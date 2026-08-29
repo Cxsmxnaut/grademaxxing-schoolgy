@@ -48,6 +48,7 @@ test.describe('live StudentVUE journeys', () => {
 		await course.click();
 		await expect(page).toHaveURL(/\/grades\/.+/);
 		await expect(page.getByText('Something went wrong')).toHaveCount(0);
+		await expect(page.getByText(/^Official · synced /)).toBeVisible();
 
 		await page.goto('/attendance');
 		await expect(page.getByText('Loading attendance...')).toHaveCount(0);

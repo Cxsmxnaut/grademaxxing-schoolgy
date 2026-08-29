@@ -44,6 +44,7 @@
 	import CalculationError from './CalculationError.svelte';
 	import GradeCategoryTable from './GradeCategoryTable.svelte';
 	import GradeChart from './GradeChart.svelte';
+	import GradeTruthLabel from './GradeTruthLabel.svelte';
 	import TargetGradeCalculator from './TargetGradeCalculator.svelte';
 
 	const synergyCourse = $derived.by(() => {
@@ -54,6 +55,12 @@
 	});
 
 	const mark = $derived(synergyCourse?.Marks?.Mark[0]);
+	const activeGradebookRecord = $derived.by(() => {
+		gradebookState.version;
+		const catalog = gradebookState.gradebookCatalog;
+		if (!catalog) return undefined;
+		return catalog.recordCache[catalog.overrideIndex ?? catalog.defaultIndex];
+	});
 
 	const courseName = $derived(synergyCourse ? removeCourseType(synergyCourse._CourseName) : '');
 
@@ -240,20 +247,21 @@
 				<span class="truncate text-xl sm:text-2xl">{courseName}</span>
 			</div>
 
-			<div
-				class="bg-background flex shrink-0 items-center rounded-bl-xl px-4 py-2 font-mono text-xl font-medium sm:text-2xl"
-			>
-				{#if hypotheticalMode && !categories && !rawGradeCalcMatches}
-					<CircleAlertIcon class="mr-2 h-5 w-5" />
-				{/if}
-				{#if grade !== undefined}
-					<NumberFlow
-						{prefix}
-						value={grade}
-						format={{ style: 'percent', maximumFractionDigits: 3 }}
-						spinTiming={{ duration: 400, easing: numberFlowDefaultEasing }}
-					/>
-				{/if}
+			<div class="bg-background flex shrink-0 flex-col items-end gap-1 rounded-bl-xl px-4 py-2">
+				<div class="flex items-center font-mono text-xl font-medium sm:text-2xl">
+					{#if hypotheticalMode && !categories && !rawGradeCalcMatches}
+						<CircleAlertIcon class="mr-2 h-5 w-5" />
+					{/if}
+					{#if grade !== undefined}
+						<NumberFlow
+							{prefix}
+							value={grade}
+							format={{ style: 'percent', maximumFractionDigits: 3 }}
+							spinTiming={{ duration: 400, easing: numberFlowDefaultEasing }}
+						/>
+					{/if}
+				</div>
+				<GradeTruthLabel {hypotheticalMode} lastRefresh={activeGradebookRecord?.lastRefresh} />
 			</div>
 		</div>
 		{#if pinChart}
@@ -263,7 +271,12 @@
 
 	{#if !rawGradeCalcMatches}
 		<div class="m-4 flex justify-center" in:fade>
-			<CalculationError {hypotheticalMode} />
+			<CalculationError
+				{hypotheticalMode}
+				officialPercentage={synergyGradePercentage}
+				estimatedPercentage={hypotheticalMode ? hypotheticalGrade : calculatedGrade}
+				hiddenAssignmentCount={hiddenAssignments.length}
+			/>
 		</div>
 	{/if}
 

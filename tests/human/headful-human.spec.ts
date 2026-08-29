@@ -433,6 +433,7 @@ test('2 — a student opens a course and uses the grade-planning controls', asyn
 
 	await expect(page).toHaveURL(/\/grades\/\d+$/);
 	await expect(page.getByText('Something went wrong')).toHaveCount(0);
+	await expect(page.getByText(/^Official · synced /)).toBeVisible();
 	const assignmentTabs = page.getByRole('tab');
 	const assignmentTabCount = await assignmentTabs.count();
 	expect(assignmentTabCount).toBeGreaterThan(0);
@@ -442,6 +443,7 @@ test('2 — a student opens a course and uses the grade-planning controls', asyn
 	}
 
 	await page.getByLabel('Hypothetical Mode').check();
+	await expect(page.getByText('Simulation · not official', { exact: true })).toBeVisible();
 	await expect(
 		page.getByRole('button', { name: 'Target Grade Calculator', exact: true })
 	).toBeVisible();
@@ -476,6 +478,7 @@ test('2 — a student opens a course and uses the grade-planning controls', asyn
 
 	await page.getByRole('button', { name: 'Reset', exact: true }).click();
 	await page.getByLabel('Hypothetical Mode').uncheck();
+	await expect(page.getByText(/^Official · synced /)).toBeVisible();
 	expect(pageErrors).toEqual([]);
 });
 

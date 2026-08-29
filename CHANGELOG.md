@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0-alpha.1
+
+- Labels the primary course grade as an official StudentVUE value with its sync freshness.
+- Labels what-if results as private simulations that are not official.
+- Replaces an ambiguous calculation error with a side-by-side official-versus-visible-work explanation.
+- Explains reconstructed point-discrepancy records without pretending hidden assignments are directly visible.
+- Adds live browser assertions for official and simulated grade states.
+
 ## 0.1.0-alpha.1
 
 - Introduced a centralized semantic palette for light and dark modes.
