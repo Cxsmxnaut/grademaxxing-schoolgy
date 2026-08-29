@@ -2,6 +2,7 @@
 	import { fullDateFormatter, removeCourseType } from '$lib';
 	import { brand } from '$lib/brand';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
+	import RecordLoadFailure from '$lib/components/RecordLoadFailure.svelte';
 	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
 	import * as Accordion from '$lib/components/ui/accordion';
 	import { Alert } from '$lib/components/ui/alert';
@@ -52,6 +53,13 @@
 		return status || reason || 'Unknown';
 	}
 
+	function attendanceDate(value: string) {
+		const date = new Date(value);
+		return value && !Number.isNaN(date.getTime())
+			? fullDateFormatter.format(date)
+			: 'Date unavailable';
+	}
+
 	const attendanceRows = $derived.by(() => {
 		const absences = attendanceState.data?.Absences.Absence ?? [];
 		const incidentDates = new Set(absences.map((absence) => absence._AbsenceDate));
@@ -82,13 +90,25 @@
 
 {#if !attendanceState.loaded}
 	<LoadingBanner>Loading attendance...</LoadingBanner>
+{:else if attendanceState.refreshing}
+	<LoadingBanner>Refreshing attendance...</LoadingBanner>
 {/if}
 
 {#if attendanceState.lastRefresh !== undefined}
 	<RefreshIndicator
 		canRefresh={attendanceState.loaded}
 		lastRefresh={attendanceState.lastRefresh}
+		refreshing={attendanceState.refreshing}
 		refresh={() => loadAttendance(true)}
+	/>
+{/if}
+
+{#if attendanceState.loaded && attendanceState.error}
+	<RecordLoadFailure
+		label="attendance"
+		error={attendanceState.error}
+		refreshing={attendanceState.refreshing}
+		retry={() => loadAttendance(true)}
 	/>
 {/if}
 
@@ -99,7 +119,7 @@
 				{#each attendanceRows as record (`${record.date}-${record.type}`)}
 					<Accordion.Item>
 						<Accordion.Trigger>
-							{fullDateFormatter.format(new Date(record.date))}{#if record.note}
+							{attendanceDate(record.date)}{#if record.note}
 								: {record.note}
 							{/if}
 

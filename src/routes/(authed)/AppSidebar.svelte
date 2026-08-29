@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { removeCourseType } from '$lib';
 	import { acc } from '$lib/account.svelte';
 	import { brand } from '$lib/brand';
@@ -22,10 +23,15 @@
 	import SunIcon from '@lucide/svelte/icons/sun';
 	import { mode, toggleMode } from 'mode-watcher';
 	import { onMount, type Component } from 'svelte';
-	import { fade } from 'svelte/transition';
 	import { installPrompt } from '../../hooks.client';
 	import { resetNonGradeRecords } from './resetNonGradeRecords.svelte';
-	import { loadStudentInfo, studentInfoState } from './studentinfo/studentInfo.svelte';
+	import { studentInfoState } from './studentinfo/studentInfo.svelte';
+
+	const sidebar = Sidebar.useSidebar();
+	$effect(() => {
+		page.url.pathname;
+		if (sidebar.isMobile) sidebar.setOpenMobile(false);
+	});
 
 	async function logOut() {
 		const response = await fetch('/api/session', { method: 'DELETE' }).catch(() => undefined);
@@ -42,8 +48,6 @@
 	function installWebApp() {
 		$installPrompt.prompt?.();
 	}
-
-	loadStudentInfo();
 
 	const data = {
 		grades: {
@@ -125,12 +129,14 @@
 
 <Sidebar.Root>
 	<Sidebar.Header>
-		<Sidebar.MenuItem>
-			<div class="m-2 flex flex-row items-center">
-				<img src="/favicon.svg" class="size-6" alt={brand} />
-				<span class="ml-2 text-lg font-bold tracking-tight">{brand}</span>
-			</div>
-		</Sidebar.MenuItem>
+		<Sidebar.Menu>
+			<Sidebar.MenuItem>
+				<div class="m-2 flex flex-row items-center">
+					<img src="/favicon.svg" class="size-6" alt={brand} />
+					<span class="ml-2 text-lg font-bold tracking-tight">{brand}</span>
+				</div>
+			</Sidebar.MenuItem>
+		</Sidebar.Menu>
 	</Sidebar.Header>
 
 	<Sidebar.Content>
@@ -179,23 +185,23 @@
 			{/each}
 		</Sidebar.Menu>
 
-		<Sidebar.MenuItem class="mx-2 mt-auto">
-			<Button
-				href="/privacy"
-				variant="ghost"
-				class="text-muted-foreground h-auto border py-3 text-xs whitespace-normal"
-			>
-				Your password is never stored. Signing out deletes your secure server session.
-			</Button>
-		</Sidebar.MenuItem>
+		<Sidebar.Menu class="mt-auto">
+			<Sidebar.MenuItem class="mx-2">
+				<Button
+					href="/privacy"
+					variant="ghost"
+					class="text-muted-foreground h-auto border py-3 text-xs whitespace-normal"
+				>
+					Your password is never stored. Signing out deletes your secure server session.
+				</Button>
+			</Sidebar.MenuItem>
+		</Sidebar.Menu>
 	</Sidebar.Content>
 
 	<Sidebar.Footer>
 		<Sidebar.Menu class="gap-2">
 			{#if $installPrompt.prompt}
-				<div transition:fade>
-					{@render menuItem(data.pwa)}
-				</div>
+				{@render menuItem(data.pwa)}
 			{/if}
 
 			{@render menuItem(data.feedback)}

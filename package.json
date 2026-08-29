@@ -11,6 +11,7 @@
 		"test:watch": "vitest src/tests",
 		"test:e2e": "playwright test",
 		"test:human": "playwright test -c playwright.human.config.ts",
+		"test:parity": "vite-node scripts/verify-studentvue-parity.ts",
 		"test:release": "bash scripts/release-test.sh",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",

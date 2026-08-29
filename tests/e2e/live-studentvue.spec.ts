@@ -20,8 +20,8 @@ test.describe('live StudentVUE journeys', () => {
 		await page.goto('/login');
 		await page.locator('#username').fill('invalid-student');
 		await page.locator('#password').fill('not-a-real-password');
-		await page.getByRole('button', { name: 'Change', exact: true }).click();
 		await page.locator('#domain').fill('example.com');
+		await page.locator('#disclaimer').check();
 		await page.getByRole('button', { name: 'Log in' }).click();
 		await expect(page.getByText("Couldn't log in")).toBeVisible();
 		expect(await page.evaluate(() => localStorage.getItem('token'))).toBeNull();
@@ -35,10 +35,8 @@ test.describe('live StudentVUE journeys', () => {
 		await page.locator('#password').fill(password!);
 		const disclaimer = page.locator('#disclaimer');
 		if (await disclaimer.count()) await disclaimer.check();
-		if (new URL(district!).host !== 'ca-pleas-psv.edupoint.com') {
-			await page.getByRole('button', { name: 'Change', exact: true }).click();
+		if (new URL(district!).host !== 'ca-pleas-psv.edupoint.com')
 			await page.locator('#domain').fill(new URL(district!).origin);
-		}
 		await page.getByRole('button', { name: 'Log in' }).click();
 		await expect(page).toHaveURL(/\/(grades|dashboard)$/);
 		await page.goto('/dashboard');

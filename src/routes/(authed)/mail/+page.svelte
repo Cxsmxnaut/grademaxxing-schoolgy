@@ -79,10 +79,15 @@
 	<LoadingBanner>Loading mail...</LoadingBanner>
 {/if}
 
+{#if openingMessageId !== undefined}
+	<LoadingBanner>Opening message…</LoadingBanner>
+{/if}
+
 {#if mailDataState.lastRefresh !== undefined}
 	<RefreshIndicator
 		canRefresh={!mailDataState.refreshing}
 		lastRefresh={mailDataState.lastRefresh}
+		refreshing={mailDataState.refreshing}
 		refresh={() => loadMailData(true)}
 	/>
 {/if}
@@ -97,17 +102,23 @@
 {/if}
 
 {#if mailDataState.data}
-	<ol class="m-4 flex flex-col items-center gap-4" aria-label="Inbox messages">
-		{#each allMessages as message (message._SMMessageGU)}
-			<li class="w-full max-w-3xl" ontouchend={() => (touchscreen = true)}>
-				<MessageButton
-					{message}
-					disabled={openingMessageId !== undefined}
-					onclick={() => void openMessage(message)}
-				/>
-			</li>
-		{/each}
-	</ol>
+	{#if allMessages.length > 0}
+		<ol class="m-4 flex flex-col items-center gap-4" aria-label="Inbox messages">
+			{#each allMessages as message (message._SMMessageGU)}
+				<li class="w-full max-w-3xl" ontouchend={() => (touchscreen = true)}>
+					<MessageButton
+						{message}
+						disabled={openingMessageId !== undefined}
+						onclick={() => void openMessage(message)}
+					/>
+				</li>
+			{/each}
+		</ol>
+	{:else}
+		<p class="text-muted-foreground mx-auto my-16 text-center" role="status">
+			Your inbox is empty.
+		</p>
+	{/if}
 
 	{#if openedMessage}
 		<MessageDialog

@@ -1,5 +1,5 @@
 import { LocalStorageKey } from '$lib';
-import { loadStudentAccount } from '$lib/account.svelte';
+import { acc, loadStudentAccount } from '$lib/account.svelte';
 import { parseGradebookXML } from '$lib/synergy';
 import { toast } from 'svelte-sonner';
 import {
@@ -157,6 +157,9 @@ async function initializeGradebookCatalogOnce() {
 	const generation = catalogGeneration;
 	try {
 		loadStudentAccount();
+		// Protected routes may render for one frame while the layout redirects a signed-out
+		// visitor. That is an expected navigation state, not a gradebook failure.
+		if (!acc.studentAccount) return;
 
 		const loadedCatalog = await getGradebookCatalog();
 		if (generation !== catalogGeneration) return;

@@ -127,11 +127,8 @@ test('1 — a student signs in and sees the dashboard and initial grades screen'
 	await page.goto('/login');
 	await page.getByLabel('StudentVUE Username').fill(username!);
 	await page.getByLabel('StudentVUE Password').fill(password!);
-	await page
-		.getByRole('checkbox', { name: /independent, unofficial tool/i })
-		.check();
+	await page.getByRole('checkbox', { name: /independent, unofficial tool/i }).check();
 	if (new URL(district!).host !== 'ca-pleas-psv.edupoint.com') {
-		await page.getByRole('button', { name: 'Change', exact: true }).click();
 		await page.getByLabel('StudentVUE Domain').fill(new URL(district!).origin);
 	}
 	await page.getByRole('button', { name: 'Log in', exact: true }).click();
@@ -226,7 +223,7 @@ test('1b — a student refreshes grades and opens every course without broken me
 		const trendState = page.locator('[data-testid^="grade-trend-"]');
 		await expect(trendState).toHaveCount(1);
 		await expect(trendState).toBeVisible();
-		const gradesLink = page.getByRole('link', { name: 'Gradebook', exact: true });
+		const gradesLink = page.getByRole('link', { name: 'Grades', exact: true });
 		expect(await gradesLink.count()).toBe(1);
 		await gradesLink.click();
 		await expect(page).toHaveURL(/\/grades$/);
@@ -427,7 +424,7 @@ test('2 — a student opens a course and uses the grade-planning controls', asyn
 			foundAssignments = true;
 			break;
 		}
-		const gradesLink = page.getByRole('link', { name: 'Gradebook', exact: true });
+		const gradesLink = page.getByRole('link', { name: 'Grades', exact: true });
 		expect(await gradesLink.count()).toBe(1);
 		await gradesLink.click();
 		await expect(page).toHaveURL(/\/grades$/);
@@ -574,7 +571,9 @@ test('4 — a student reviews documents and opens an available document', async 
 		});
 		await page.getByRole('button', { name: 'Refresh', exact: true }).click();
 		await expect(page.getByText("Couldn't load documents.", { exact: true })).toBeVisible();
-		await expect(page.getByText('Deliberate documents browser-test failure.', { exact: true })).toBeVisible();
+		await expect(
+			page.getByText('Deliberate documents browser-test failure.', { exact: true })
+		).toBeVisible();
 		await page.unroute('**/api/studentvue/documents');
 		await page.getByRole('button', { name: 'Try again', exact: true }).click();
 		await expect(page.getByText("Couldn't load documents.", { exact: true })).toBeHidden();
@@ -710,7 +709,10 @@ test('6b — a student can read privacy information and reach feedback', async (
 });
 
 test('7 — a student logs out and receives a safe visible sign-in error', async () => {
-	const logoutButton = page.getByRole('button', { name: 'Log out', exact: true });
+	const accountMenu = page.getByRole('button', { name: 'Account menu', exact: true });
+	expect(await accountMenu.count()).toBe(1);
+	await accountMenu.click();
+	const logoutButton = page.getByRole('menuitem', { name: 'Log Out', exact: true });
 	expect(await logoutButton.count()).toBe(1);
 	await logoutButton.click();
 	await expect(page).toHaveURL(/\/login$/);
@@ -722,8 +724,8 @@ test('7 — a student logs out and receives a safe visible sign-in error', async
 
 	await page.getByLabel('StudentVUE Username').fill('student@example.invalid');
 	await page.getByLabel('StudentVUE Password').fill('not-a-real-password');
-	await page.getByRole('button', { name: 'Change', exact: true }).click();
 	await page.getByLabel('StudentVUE Domain').fill('example.com');
+	await page.getByRole('checkbox', { name: /independent, unofficial tool/i }).check();
 	expectingInvalidLoginFailure = true;
 	await page.getByRole('button', { name: 'Log in', exact: true }).click();
 	await expect(page.getByText("Couldn't log in", { exact: true })).toBeVisible();
@@ -743,12 +745,12 @@ test('7b — an expired server session clears protected state and explains the r
 		await expiryPage.goto('/login');
 		await expiryPage.getByLabel('StudentVUE Username').fill(username!);
 		await expiryPage.getByLabel('StudentVUE Password').fill(password!);
+		await expiryPage.getByRole('checkbox', { name: /independent, unofficial tool/i }).check();
 		if (new URL(district!).host !== 'ca-pleas-psv.edupoint.com') {
-			await expiryPage.getByRole('button', { name: 'Change', exact: true }).click();
 			await expiryPage.getByLabel('StudentVUE Domain').fill(new URL(district!).origin);
 		}
 		await expiryPage.getByRole('button', { name: 'Log in', exact: true }).click();
-		await expect(expiryPage).toHaveURL(/\/dashboard$/, { timeout: 60_000 });
+		await expect(expiryPage).toHaveURL(/\/(grades|dashboard)$/, { timeout: 60_000 });
 		await expiryPage.goto('/grades');
 		await expect(expiryPage.getByText(/Loading .* grades\.\.\./)).toBeHidden({ timeout: 60_000 });
 
@@ -823,13 +825,14 @@ test('8 — a student can navigate the full app at phone width', async () => {
 		await mobilePage.goto('/login');
 		await mobilePage.getByLabel('StudentVUE Username').fill(username!);
 		await mobilePage.getByLabel('StudentVUE Password').fill(password!);
+		await mobilePage.getByRole('checkbox', { name: /independent, unofficial tool/i }).check();
 		if (new URL(district!).host !== 'ca-pleas-psv.edupoint.com') {
-			await mobilePage.getByRole('button', { name: 'Change', exact: true }).click();
 			await mobilePage.getByLabel('StudentVUE Domain').fill(new URL(district!).origin);
 		}
 		await mobilePage.getByRole('button', { name: 'Log in', exact: true }).click();
 		record('mobile-step', { step: 'submitted-login' });
-		await expect(mobilePage).toHaveURL(/\/dashboard$/, { timeout: 60_000 });
+		await expect(mobilePage).toHaveURL(/\/(grades|dashboard)$/, { timeout: 60_000 });
+		await mobilePage.goto('/dashboard');
 		await expect(mobilePage.getByText('GPA · unweighted', { exact: true })).toBeVisible();
 		await mobileContext.tracing.start({ screenshots: true, snapshots: true, sources: true });
 		mobileTraceStarted = true;
@@ -854,7 +857,7 @@ test('8 — a student can navigate the full app at phone width', async () => {
 		sidebarButton = mobilePage.getByRole('button', { name: 'Toggle Sidebar', exact: true });
 		expect(await sidebarButton.count()).toBe(1);
 		await sidebarButton.click();
-		const gradesLink = mobilePage.getByRole('link', { name: 'Gradebook', exact: true });
+		const gradesLink = mobilePage.getByRole('link', { name: 'Grades', exact: true });
 		expect(await gradesLink.count()).toBe(1);
 		await gradesLink.click();
 		record('mobile-step', { step: 'returned-to-grades' });
