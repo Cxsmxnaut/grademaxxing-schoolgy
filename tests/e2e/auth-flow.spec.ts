@@ -1,54 +1,58 @@
 import { expect, test } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 
-test('the Pleasanton sign-in and password-setup flow matches the intended interaction', async ({
+test('the sign-in and district-password setup flow matches the current product', async ({
 	page
 }) => {
 	await mkdir('test-results/auth-flow', { recursive: true });
 	await page.setViewportSize({ width: 1440, height: 1000 });
 	await page.goto('/login');
 
-	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing' })).toBeVisible();
-	await expect(page.getByText('Pleasanton USD', { exact: true })).toBeVisible();
-	await expect(page.locator('#domain')).toHaveCount(0);
-	await page.screenshot({ path: 'test-results/auth-flow/login.png', fullPage: true });
-
-	await page.getByRole('button', { name: 'Change', exact: true }).click();
-	const districtSelector = page.getByRole('combobox', { name: 'School district' });
-	await expect(districtSelector).toHaveValue('Pleasanton Unified School District');
+	await expect(page.getByRole('heading', { name: 'Log in to Grademaxxing' })).toBeVisible();
+	await expect(page.getByLabel('StudentVUE Username')).toBeVisible();
+	await expect(page.getByLabel('StudentVUE Password')).toBeVisible();
 	await expect(page.getByLabel('StudentVUE Domain')).toHaveValue(
 		'https://ca-pleas-psv.edupoint.com'
 	);
-	await districtSelector.fill('San Francisco Unified');
-	await page.getByText('San Francisco Unified School District', { exact: true }).click();
-	await expect(page.getByLabel('StudentVUE Domain')).toHaveValue('https://ca-sfu-psv.edupoint.com');
 	await expect(
-		page.getByText('San Francisco Unified School District', { exact: true })
+		page.getByText(
+			'Your password is sent over encrypted HTTPS, used only to open StudentVUE, and never stored.',
+			{ exact: true }
+		)
 	).toBeVisible();
-	await page.screenshot({ path: 'test-results/auth-flow/login-change.png', fullPage: true });
+	await expect(
+		page.getByRole('checkbox', { name: /independent, unofficial tool/i })
+	).not.toBeChecked();
+	await page.screenshot({ path: 'test-results/auth-flow/login.png', fullPage: true });
 
-	await page.locator('a[href="/signup"]').click();
-	await expect(page.getByRole('heading', { name: 'Sign up for Grademaxxing' })).toBeVisible();
-	await expect(page.getByRole('link', { name: 'With Google', exact: true })).toBeVisible();
+	await page.getByRole('link', { name: 'Sign up', exact: true }).click();
+	await expect(page.getByText('Sign up for Grademaxxing', { exact: true })).toBeVisible();
+	await expect(page.getByText('How do you sign in to StudentVUE?', { exact: true })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'with Google', exact: true })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'with a password', exact: true })).toHaveAttribute(
+		'href',
+		'/login'
+	);
 	await page.screenshot({ path: 'test-results/auth-flow/signup.png', fullPage: true });
 
-	await page.getByRole('link', { name: 'With Google', exact: true }).click();
-	const passwordLink = page.getByRole('link', {
-		name: 'Set your StudentVUE password',
-		exact: true
-	});
-	await expect(passwordLink).toHaveAttribute(
+	await page.getByRole('link', { name: 'with Google', exact: true }).click();
+	await expect(page.getByText('Create a password', { exact: true })).toBeVisible();
+	await page.getByRole('button', { name: 'How to set your StudentVUE password' }).click();
+	await expect(page.getByRole('dialog')).toBeVisible();
+	await page
+		.getByPlaceholder('https://[your-district]-psv.edupoint.com/Home_PXP2.aspx')
+		.fill('https://ca-pleas-psv.edupoint.com/PXP2_Login_Student.aspx');
+	await expect(page.getByRole('link', { name: 'Open', exact: true })).toHaveAttribute(
 		'href',
 		'https://ca-pleas-psv.edupoint.com/PXP2_Password_Help.aspx'
 	);
-	await page.screenshot({ path: 'test-results/auth-flow/google-password.png', fullPage: true });
+	await page.screenshot({ path: 'test-results/auth-flow/password-help.png', fullPage: true });
 });
 
-test('the redesigned sign-in flow fits a phone without horizontal overflow', async ({ page }) => {
+test('the sign-in flow fits a phone without horizontal overflow', async ({ page }) => {
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.goto('/login');
-	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing' })).toBeVisible();
-	await page.getByRole('button', { name: 'Change', exact: true }).click();
+	await expect(page.getByRole('heading', { name: 'Log in to Grademaxxing' })).toBeVisible();
 	const widths = await page.evaluate(() => ({
 		viewport: window.innerWidth,
 		document: document.documentElement.scrollWidth,
@@ -58,43 +62,30 @@ test('the redesigned sign-in flow fits a phone without horizontal overflow', asy
 	expect(widths.body).toBeLessThanOrEqual(widths.viewport);
 });
 
-test('the desktop sign-in geometry stays aligned with the visual reference', async ({ page }) => {
+test('the desktop sign-in form stays centered and readable', async ({ page }) => {
 	await page.setViewportSize({ width: 1470, height: 805 });
 	await page.goto('/login');
 
-	const promo = await page.locator('aside').boundingBox();
-	const card = await page.locator('form').boundingBox();
-	expect(promo).not.toBeNull();
-	expect(card).not.toBeNull();
-	expect(promo!.width).toBeGreaterThanOrEqual(675);
-	expect(promo!.width).toBeLessThanOrEqual(677);
-	expect(card!.width).toBeGreaterThanOrEqual(399);
-	expect(card!.width).toBeLessThanOrEqual(401);
-	expect(card!.x).toBeGreaterThanOrEqual(872);
-	expect(card!.x).toBeLessThanOrEqual(874);
-	expect(card!.y).toBeGreaterThanOrEqual(59);
-	expect(card!.y + card!.height).toBeLessThanOrEqual(746);
+	const form = await page.locator('form').boundingBox();
+	expect(form).not.toBeNull();
+	expect(form!.width).toBeGreaterThanOrEqual(350);
+	expect(form!.width).toBeLessThanOrEqual(390);
+	expect(Math.abs(form!.x + form!.width / 2 - 1470 / 2)).toBeLessThanOrEqual(2);
+	expect(form!.y).toBeGreaterThanOrEqual(60);
+	expect(form!.y + form!.height).toBeLessThanOrEqual(745);
 });
 
-test('the local district selector supports keyboard selection and district-owned portals', async ({
+test('students can enter district-owned StudentVUE portal origins and paths directly', async ({
 	page
 }) => {
 	await page.goto('/login');
-	await page.getByRole('button', { name: 'Change', exact: true }).click();
-	await expect(page.getByText('Find your district (US ZIP code)')).toHaveCount(0);
+	const domain = page.getByLabel('StudentVUE Domain');
 
-	const districtSelector = page.getByRole('combobox', { name: 'School district' });
-	await districtSelector.fill('Peoria Unified School District');
-	await expect(page.getByRole('listbox', { name: 'Matching school districts' })).toBeVisible();
-	await districtSelector.press('Enter');
+	await domain.fill('https://synergylive.pusd11.net');
+	await expect(domain).toHaveValue('https://synergylive.pusd11.net');
 
-	await expect(districtSelector).toHaveValue('Peoria Unified School District');
-	await expect(page.getByLabel('StudentVUE Domain')).toHaveValue('https://synergylive.pusd11.net');
-
-	await districtSelector.fill('Bonsall Unified School District');
-	await districtSelector.press('Enter');
-	await expect(page.getByLabel('StudentVUE Domain')).toHaveValue(
-		'https://sdhome.sdcoe.net/bonsall'
-	);
-	await expect(page.getByText('Bonsall Unified School District', { exact: true })).toBeVisible();
+	await domain.fill('https://sdhome.sdcoe.net/bonsall');
+	await expect(domain).toHaveValue('https://sdhome.sdcoe.net/bonsall');
+	await expect(domain).toHaveAttribute('autocapitalize', 'off');
+	await expect(domain).toHaveAttribute('autocorrect', 'off');
 });
