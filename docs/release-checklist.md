@@ -11,6 +11,7 @@ Do not describe a Grademaxxing build as school-ready until this checklist passes
 5. Supply test-account credentials only through environment variables and run `PLAYWRIGHT_HEADLESS=1 npm run test:human`. This exercises actual clicks through login, dashboard, grades, every class, planning tools, attendance, documents, mail, profile, privacy, refresh, failure recovery, session expiry, logout, and a 390px viewport. It also verifies the complete modern API contract and malformed upstream records.
 6. Confirm a build with `VERCEL=1` is rejected. Stateless serverless instances are incompatible with the current in-memory portal sessions.
 7. Scan tracked and untracked source for real usernames, passwords, cookies, tokens, generated portal records, traces, and screenshots before publishing.
+8. For visual-system releases, verify the semantic theme contract, light/dark interactive states, phone layout, and WCAG A/AA checks. Compare screenshots locally, but never commit screenshots containing a real student's record.
 
 ## Capacity gate
 

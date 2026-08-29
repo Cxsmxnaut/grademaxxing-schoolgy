@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { bgColorVariants } from '$lib';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { Progress } from '$lib/components/ui/progress';
@@ -20,27 +19,16 @@
 	}
 	const { courseId, name, period, room, teacher, unseenAssignmentsCount, grade }: Props = $props();
 
-	function getColorForGrade(grade: string | number) {
-		if (typeof grade === 'number') {
-			if (grade > 100) return 'blue';
-			if (grade >= 90) return 'green';
-			else if (grade >= 80) return 'yellow';
-			else return 'red';
-		}
-
-		if (grade.match(/^A\+?-?$/)) return 'green';
-		else if (grade.match(/^B\+?-?$/)) return 'yellow';
-		else if (grade.match(/^[CDEF]\+?-?$/)) return 'red';
-		return undefined;
+	function getIndicatorClass(percentage: number) {
+		if (percentage > 100) return 'bg-grade-extra';
+		if (percentage >= 90) return 'bg-grade-strong';
+		if (percentage >= 80) return 'bg-grade-watch';
+		return 'bg-grade-risk';
 	}
 
 	const indicatorClass = $derived.by(() => {
-		if (!grade) return undefined;
-
-		const color = getColorForGrade(grade.letter);
-		if (color === undefined) return undefined;
-
-		return bgColorVariants[color];
+		if (!grade || !Number.isFinite(grade.percentage)) return undefined;
+		return getIndicatorClass(grade.percentage);
 	});
 </script>
 
@@ -70,7 +58,9 @@
 			</Badge>
 
 			{#if unseenAssignmentsCount > 0}
-				<Badge color="green">{unseenAssignmentsCount} new</Badge>
+				<Badge variant="outline" class="border-grade-strong bg-grade-strong-soft text-grade-strong">
+					{unseenAssignmentsCount} new
+				</Badge>
 			{/if}
 		</div>
 	</div>

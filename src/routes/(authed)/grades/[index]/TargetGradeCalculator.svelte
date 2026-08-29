@@ -192,7 +192,7 @@
 						format={{ maximumFractionDigits: 3 }}
 						spinTiming={{ duration: 400, easing: numberFlowDefaultEasing }}
 						suffix="/{targetAssignment.pointsPossible} "
-						class="font-bold [&::part(suffix)]:ml-[0.0625em] [&::part(suffix)]:text-sm [&::part(suffix)]:font-normal [&::part(suffix)]:text-gray-300 [&::part(suffix)]:dark:text-gray-400"
+						class="[&::part(suffix)]:text-muted-foreground font-bold [&::part(suffix)]:ml-[0.0625em] [&::part(suffix)]:text-sm [&::part(suffix)]:font-normal"
 					/>
 					<NumberFlow
 						value={targetGradePointsNeeded / targetAssignment.pointsPossible}

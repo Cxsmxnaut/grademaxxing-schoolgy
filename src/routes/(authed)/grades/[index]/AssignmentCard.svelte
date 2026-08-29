@@ -82,11 +82,11 @@
 		return Math.min(percentage, 100);
 	});
 
-	const progressIndicatorColor = $derived.by(() => {
-		if (extraCredit) return 'indigo';
-		if (percentage >= 90) return 'green';
-		if (percentage >= 80) return 'yellow';
-		return 'red';
+	const progressIndicatorClass = $derived.by(() => {
+		if (extraCredit) return 'bg-grade-extra';
+		if (percentage >= 90) return 'bg-grade-strong';
+		if (percentage >= 80) return 'bg-grade-watch';
+		return 'bg-grade-risk';
 	});
 
 	const gradePercentageChangeRounded = $derived(
@@ -103,7 +103,7 @@
 <Card.Root
 	class={[
 		'max-w-full items-center gap-2 p-4 transition duration-500 sm:flex-row',
-		unseen && 'border-l-4 border-l-green-400 dark:border-l-green-600'
+		unseen && 'border-l-grade-strong border-l-4'
 	]}
 >
 	<div class="flex flex-1 flex-col gap-1 self-start sm:self-auto">
@@ -195,9 +195,9 @@
 
 			{#if extraCredit}
 				<Badge
-					color="indigo"
+					variant="outline"
 					outline={true}
-					class="inline-flex"
+					class="border-grade-extra bg-grade-extra-soft text-grade-extra inline-flex"
 					title="Calculated as if zero points were possible"
 				>
 					{#if editable}
@@ -236,7 +236,9 @@
 			{/if}
 
 			{#if unseen}
-				<Badge color="green" outline={true}>New</Badge>
+				<Badge variant="outline" class="border-grade-strong bg-grade-strong-soft text-grade-strong">
+					New
+				</Badge>
 			{/if}
 		</div>
 	</div>
@@ -257,20 +259,20 @@
 
 			{#if gradePercentageChange !== undefined}
 				{#if gradePercentageChangeRounded < 0}
-					<span class="text-red-500" title="Overall grade percentage change">
+					<span class="text-grade-risk" title="Overall grade percentage change">
 						{gradePercentageChangeRounded}%
 					</span>
 				{:else if gradePercentageChangeRounded > 0}
-					<span class="text-green-500" title="Overall grade percentage change">
+					<span class="text-grade-strong" title="Overall grade percentage change">
 						+{gradePercentageChangeRounded}%
 					</span>
 				{:else if !notForGrade && pointsEarned !== undefined && !isNaN(pointsEarned)}
-					<span class="text-slate-500" title="Overall grade percentage change">+0%</span>
+					<span class="text-grade-neutral" title="Overall grade percentage change">+0%</span>
 				{/if}
 			{/if}
 
 			{#if unscaledPoints}
-				<span class="text-gray-400" title="Points before scaling">
+				<span class="text-muted-foreground" title="Points before scaling">
 					({unscaledPoints.pointsEarned}/{unscaledPoints.pointsPossible})
 				</span>
 			{/if}
@@ -298,7 +300,7 @@
 			{:else}
 				<span title="Points earned/Points possible">
 					{pointsEarned}/{#if extraCredit}
-						<span class="text-indigo-800 dark:text-indigo-400">{pointsPossible}</span>
+						<span class="text-grade-extra">{pointsPossible}</span>
 					{:else}
 						{pointsPossible}
 					{/if}
@@ -313,8 +315,8 @@
 			<Progress
 				value={progressValue}
 				aria-label={`${name} score progress`}
-				class={[percentage > 100 ? 'bg-indigo-700' : '', 'w-48 transition-all lg:w-64']}
-				indicatorClass={bgColorVariants[progressIndicatorColor]}
+				class={[percentage > 100 ? 'bg-grade-extra-soft' : '', 'w-48 transition-all lg:w-64']}
+				indicatorClass={progressIndicatorClass}
 			/>
 		{/if}
 	</div>

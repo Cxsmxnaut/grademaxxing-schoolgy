@@ -15,7 +15,7 @@
 				secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-xs',
 				ghost: 'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
 				link: 'text-primary underline-offset-4 hover:underline',
-				card: 'bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-800'
+				card: 'bg-card text-card-foreground border-border hover:bg-accent hover:text-accent-foreground border shadow-xs'
 			},
 			size: {
 				default: 'h-9 px-4 py-2 has-[>svg]:px-3',
