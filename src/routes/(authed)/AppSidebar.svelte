@@ -1,270 +1,239 @@
 <script lang="ts">
-	import { page } from '$app/state';
-	import { getRelativeTime, removeCourseType } from '$lib';
+	import { removeCourseType } from '$lib';
 	import { acc } from '$lib/account.svelte';
 	import { brand } from '$lib/brand';
+	import { buttonVariants } from '$lib/components/ui/button';
+	import Button from '$lib/components/ui/button/button.svelte';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
-	import {
-		gradebookState,
-		initializeGradebookCatalog,
-		resetGradebookCatalog,
-		switchReportPeriod
-	} from '$lib/grades/catalog.svelte';
+	import { Spinner } from '$lib/components/ui/spinner';
+	import { initializeGradebookCatalog, resetGradebookCatalog } from '$lib/grades/catalog.svelte';
 	import { getActiveGradebook } from '$lib/grades/gradebook';
-	import BookOpenIcon from '@lucide/svelte/icons/book-open';
-	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
-	import FileTextIcon from '@lucide/svelte/icons/file-text';
-	import LayoutDashboardIcon from '@lucide/svelte/icons/layout-dashboard';
+	import AppWindowMacIcon from '@lucide/svelte/icons/app-window-mac';
+	import BellIcon from '@lucide/svelte/icons/bell';
+	import CircleUserIcon from '@lucide/svelte/icons/circle-user';
+	import EllipsisVerticalIcon from '@lucide/svelte/icons/ellipsis-vertical';
+	import FolderOpenIcon from '@lucide/svelte/icons/folder-open';
+	import InboxIcon from '@lucide/svelte/icons/inbox';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
-	import MailIcon from '@lucide/svelte/icons/mail';
+	import MessageSquareWarningIcon from '@lucide/svelte/icons/message-square-warning';
 	import MoonIcon from '@lucide/svelte/icons/moon';
-	import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
+	import NotebookTextIcon from '@lucide/svelte/icons/notebook-text';
 	import SunIcon from '@lucide/svelte/icons/sun';
-	import { mode, setMode } from 'mode-watcher';
+	import { mode, toggleMode } from 'mode-watcher';
 	import { onMount, type Component } from 'svelte';
+	import { fade } from 'svelte/transition';
 	import { installPrompt } from '../../hooks.client';
-	import { loadAttendance } from './attendance/attendance.svelte';
-	import { loadDocuments } from './documents/documents.svelte';
-	import { loadMailData } from './mail/mailData.svelte';
 	import { resetNonGradeRecords } from './resetNonGradeRecords.svelte';
 	import { loadStudentInfo, studentInfoState } from './studentinfo/studentInfo.svelte';
-
-	const sidebar = Sidebar.useSidebar();
-
-	let refreshing = $state(false);
-
-	const courses = $derived(getActiveGradebook()?.Courses.Course ?? []);
-	const studentName = $derived(studentInfoState.data?.FormattedName?.trim() || 'Student');
-	const studentInitial = $derived(studentName.charAt(0).toUpperCase());
-	const studentDetail = $derived(
-		studentInfoState.data?.Grade === null || studentInfoState.data?.Grade === undefined
-			? 'Student information'
-			: `Grade ${studentInfoState.data.Grade}`
-	);
-	const lastRefresh = $derived.by(() => {
-		gradebookState.version;
-		const catalog = gradebookState.gradebookCatalog;
-		if (!catalog) return undefined;
-		const activeIndex = catalog.overrideIndex ?? catalog.defaultIndex;
-		return catalog.recordCache[activeIndex]?.lastRefresh;
-	});
-
-	const navigation: { title: string; url: string; icon: Component }[] = [
-		{ title: 'Dashboard', url: '/dashboard', icon: LayoutDashboardIcon },
-		{ title: 'Gradebook', url: '/grades', icon: BookOpenIcon },
-		{ title: 'Documents', url: '/documents', icon: FileTextIcon },
-		{ title: 'Mail', url: '/mail', icon: MailIcon },
-		{ title: 'Attendance', url: '/attendance', icon: CalendarDaysIcon }
-	];
-
-	function closeMobileSidebar() {
-		if (sidebar.isMobile) sidebar.setOpenMobile(false);
-	}
-
-	function routeIsActive(url: string) {
-		return page.url.pathname === url || page.url.pathname.startsWith(`${url}/`);
-	}
-
-	async function refreshEverything() {
-		if (refreshing || !acc.studentAccount) return;
-		refreshing = true;
-		try {
-			if (gradebookState.gradebookCatalog) {
-				await switchReportPeriod({
-					overrideIndex: gradebookState.gradebookCatalog.overrideIndex,
-					forceRefresh: true
-				}).catch(() => undefined);
-			} else {
-				await initializeGradebookCatalog().catch(() => undefined);
-			}
-			await Promise.allSettled([
-				loadAttendance(true),
-				loadDocuments(true),
-				loadMailData(true),
-				loadStudentInfo(true)
-			]);
-		} finally {
-			refreshing = false;
-		}
-	}
 
 	async function logOut() {
 		const response = await fetch('/api/session', { method: 'DELETE' }).catch(() => undefined);
 		await response?.arrayBuffer().catch(() => undefined);
-		try {
-			localStorage.clear();
-		} catch {
-			// Continue clearing in-memory private data when managed storage is unavailable.
-		}
+		localStorage.clear();
 		resetGradebookCatalog();
 		resetNonGradeRecords();
 		acc.studentAccount = undefined;
 		location.assign('/login');
 	}
 
+	const courses = $derived(getActiveGradebook()?.Courses.Course);
+
+	function installWebApp() {
+		$installPrompt.prompt?.();
+	}
+
+	loadStudentInfo();
+
+	const data = {
+		grades: {
+			title: 'Grades',
+			url: '/grades',
+			icon: NotebookTextIcon
+		},
+		header: [
+			{
+				title: 'Attendance',
+				url: '/attendance',
+				icon: BellIcon
+			},
+			{
+				title: 'Documents',
+				url: '/documents',
+				icon: FolderOpenIcon
+			},
+			{
+				title: 'Mail',
+				url: '/mail',
+				icon: InboxIcon
+			}
+		],
+		pwa: {
+			title: 'Install Web App',
+			icon: AppWindowMacIcon,
+			onclick: installWebApp
+		},
+		feedback: {
+			title: 'Feedback',
+			url: '/feedback',
+			icon: MessageSquareWarningIcon
+		},
+		user: {
+			title: studentInfoState.data?.FormattedName ?? 'Student Info',
+			url: '/studentinfo',
+			icon: CircleUserIcon
+		},
+		logout: {
+			title: 'Log Out',
+			onclick: logOut,
+			icon: LogOutIcon
+		}
+	};
+
 	onMount(() => {
-		if (!acc.studentAccount) return;
-		void initializeGradebookCatalog();
-		void loadStudentInfo();
+		initializeGradebookCatalog();
 	});
 </script>
 
-<Sidebar.Root data-testid="app-sidebar">
-	<Sidebar.Header class="px-5 pt-6 pb-3">
-		<a
-			href="/dashboard"
-			onclick={closeMobileSidebar}
-			class="focus-visible:ring-sidebar-ring flex items-center gap-3 rounded-xl px-1 py-2 outline-none focus-visible:ring-2"
-		>
-			<img src="/favicon.svg" class="size-10 drop-shadow-sm" alt="" />
-			<span class="text-xl font-bold tracking-tight">{brand}</span>
-		</a>
-	</Sidebar.Header>
-
-	<Sidebar.Content class="px-4 pb-3">
-		<nav aria-label="Student navigation" class="space-y-1">
-			{#each navigation as item (item.url)}
-				{@const active = routeIsActive(item.url)}
-				<a
-					href={item.url}
-					onclick={closeMobileSidebar}
-					aria-current={active ? 'page' : undefined}
-					class:bg-sidebar-accent={active}
-					class:text-sidebar-accent-foreground={active}
-					class="text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring flex h-11 items-center gap-3 rounded-xl px-3 text-base font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none"
-				>
-					<item.icon class="size-5" />
-					<span>{item.title}</span>
-				</a>
-			{/each}
-		</nav>
-
-		<section class="mt-7" aria-labelledby="sidebar-classes-heading">
-			<h2
-				id="sidebar-classes-heading"
-				class="text-sidebar-foreground/55 px-3 text-xs font-semibold tracking-[0.16em] uppercase"
-			>
-				Classes
-			</h2>
-			<div class="mt-2 space-y-0.5">
-				{#each courses as course (course._CourseID)}
-					{@const url = `/grades/${encodeURIComponent(course._CourseID)}`}
-					{@const active = page.url.pathname === url}
-					<a
-						href={url}
-						onclick={closeMobileSidebar}
-						aria-current={active ? 'page' : undefined}
-						class:bg-sidebar-accent={active}
-						class:text-sidebar-accent-foreground={active}
-						class="text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring grid min-h-9 grid-cols-[1.25rem_1fr] items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
-					>
-						<span class="text-sidebar-foreground/50 font-mono text-xs">{course._Period}</span>
-						<span class="truncate">{removeCourseType(course._CourseName)}</span>
+{#snippet menuItem({
+	title,
+	url,
+	onclick,
+	icon: Icon
+}: {
+	title: string;
+	url?: string;
+	onclick?: () => void;
+	icon: Component;
+})}
+	<Sidebar.MenuItem>
+		<Sidebar.MenuButton class="h-10 text-base">
+			{#snippet child({ props })}
+				{#if url}
+					<a href={url} {...props}>
+						<Icon /> <span>{title}</span>
 					</a>
 				{:else}
-					<p class="px-3 py-2 text-sm text-sidebar-foreground/50">Loading classes…</p>
-				{/each}
-			</div>
-		</section>
-
-		<div class="mt-auto space-y-3 pt-6">
-			<a
-				href="/privacy"
-				onclick={closeMobileSidebar}
-				class="bg-sidebar-accent/45 text-sidebar-foreground/65 hover:bg-sidebar-accent focus-visible:ring-sidebar-ring block rounded-xl px-4 py-3 text-sm leading-relaxed transition-colors focus-visible:ring-2 focus-visible:outline-none"
-			>
-				Your password is never stored. Signing out deletes your secure server session.
-			</a>
-			<div class="text-sidebar-foreground/55 flex items-center justify-center gap-2 text-xs">
-				<a href="/feedback" onclick={closeMobileSidebar} class="hover:text-sidebar-foreground"
-					>Feedback</a
-				>
-				{#if $installPrompt.prompt}
-					<span aria-hidden="true">·</span>
-					<button
-						type="button"
-						onclick={() => $installPrompt.prompt?.()}
-						class="hover:text-sidebar-foreground"
-					>
-						Install app
+					<button {onclick} {...props}>
+						<Icon /> <span>{title}</span>
 					</button>
 				{/if}
+			{/snippet}
+		</Sidebar.MenuButton>
+	</Sidebar.MenuItem>
+{/snippet}
+
+<Sidebar.Root>
+	<Sidebar.Header>
+		<Sidebar.MenuItem>
+			<div class="m-2 flex flex-row items-center">
+				<img src="/favicon.svg" class="size-6" alt={brand} />
+				<span class="ml-2 text-lg font-bold tracking-tight">{brand}</span>
 			</div>
-		</div>
+		</Sidebar.MenuItem>
+	</Sidebar.Header>
+
+	<Sidebar.Content>
+		<Sidebar.Menu>
+			<Sidebar.MenuItem>
+				<Sidebar.MenuButton class="h-10 text-base">
+					{#snippet child({ props })}
+						<a href={data.grades.url} {...props}>
+							<data.grades.icon /> <span>{data.grades.title}</span>
+						</a>
+					{/snippet}
+				</Sidebar.MenuButton>
+
+				<svelte:boundary>
+					{#if courses}
+						<Sidebar.MenuSub>
+							{#each courses as Course (Course._CourseID)}
+								<Sidebar.MenuSubItem>
+									<Sidebar.MenuSubButton class="h-8 truncate text-base">
+										{#snippet child({ props })}
+											<a
+												href={`${data.grades.url}/${encodeURIComponent(Course._CourseID)}`}
+												{...props}
+											>
+												{removeCourseType(Course._CourseName)}
+											</a>
+										{/snippet}
+									</Sidebar.MenuSubButton>
+								</Sidebar.MenuSubItem>
+							{/each}
+						</Sidebar.MenuSub>
+					{/if}
+
+					{#snippet pending()}
+						<Sidebar.MenuSub>
+							<div class="flex w-full items-center justify-center p-4">
+								<Spinner />
+							</div>
+						</Sidebar.MenuSub>
+					{/snippet}
+				</svelte:boundary>
+			</Sidebar.MenuItem>
+
+			{#each data.header as item (item.title)}
+				{@render menuItem(item)}
+			{/each}
+		</Sidebar.Menu>
+
+		<Sidebar.MenuItem class="mx-2 mt-auto">
+			<Button
+				href="/privacy"
+				variant="ghost"
+				class="text-muted-foreground h-auto border py-3 text-xs whitespace-normal"
+			>
+				Your password is never stored. Signing out deletes your secure server session.
+			</Button>
+		</Sidebar.MenuItem>
 	</Sidebar.Content>
 
-	<Sidebar.Footer class="gap-3 px-4 pt-5 pb-5">
-		<button
-			type="button"
-			onclick={() => void refreshEverything()}
-			disabled={refreshing}
-			aria-busy={refreshing}
-			class="bg-card text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring flex h-10 w-full items-center justify-center gap-3 rounded-xl text-sm font-semibold shadow-sm transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-wait disabled:opacity-60"
-		>
-			<RefreshCwIcon class={['size-4', refreshing && 'animate-spin']} />
-			<span>{refreshing ? 'Refreshing' : 'Refresh'}</span>
-			{#if lastRefresh !== undefined}
-				<span class="text-sidebar-foreground/50 font-mono text-xs font-normal">
-					{getRelativeTime(new Date(lastRefresh))}
-				</span>
+	<Sidebar.Footer>
+		<Sidebar.Menu class="gap-2">
+			{#if $installPrompt.prompt}
+				<div transition:fade>
+					{@render menuItem(data.pwa)}
+				</div>
 			{/if}
-		</button>
 
-		<div class="bg-muted grid grid-cols-2 rounded-xl p-1" aria-label="Color theme">
-			<button
-				type="button"
-				onclick={() => setMode('dark')}
-				aria-pressed={mode.current === 'dark'}
-				class:bg-sidebar-accent={mode.current === 'dark'}
-				class:text-sidebar-accent-foreground={mode.current === 'dark'}
-				class="text-sidebar-foreground/55 hover:text-sidebar-foreground focus-visible:ring-sidebar-ring flex h-9 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none"
-			>
-				<MoonIcon class="size-4" /> Dark
-			</button>
-			<button
-				type="button"
-				onclick={() => setMode('light')}
-				aria-pressed={mode.current === 'light'}
-				class:bg-sidebar-accent={mode.current === 'light'}
-				class:text-sidebar-accent-foreground={mode.current === 'light'}
-				class="text-sidebar-foreground/55 hover:text-sidebar-foreground focus-visible:ring-sidebar-ring flex h-9 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none"
-			>
-				<SunIcon class="size-4" /> Light
-			</button>
-		</div>
+			{@render menuItem(data.feedback)}
 
-		<div class="flex items-center gap-3 pt-2">
-			<a
-				href="/studentinfo"
-				onclick={closeMobileSidebar}
-				class="focus-visible:ring-sidebar-ring flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:ring-2 focus-visible:outline-none"
-			>
-				{#if studentInfoState.data?.Photo}
-					<img
-						src="data:{studentInfoState.data.PhotoMimeType || 'image/png'};base64,{studentInfoState
-							.data.Photo}"
-						class="size-10 shrink-0 rounded-full object-cover"
-						alt=""
-					/>
-				{:else}
-					<span
-						class="bg-sidebar-accent text-sidebar-accent-foreground flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold"
-						>{studentInitial}</span
-					>
-				{/if}
-				<span class="min-w-0">
-					<strong class="block truncate text-sm">{studentName}</strong>
-					<span class="text-sidebar-foreground/55 block truncate text-xs">{studentDetail}</span>
-				</span>
-			</a>
-			<button
-				type="button"
-				onclick={() => void logOut()}
-				aria-label="Log out"
-				class="text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors focus-visible:ring-2 focus-visible:outline-none"
-			>
-				<LogOutIcon class="size-4" />
-			</button>
-		</div>
+			<Sidebar.MenuItem>
+				<Sidebar.MenuButton class="h-10 text-base">
+					{#snippet child({ props })}
+						<div class="flex items-center gap-1">
+							<a href={data.user.url} {...props}>
+								<data.user.icon /> <span>{data.user.title}</span>
+							</a>
+
+							<DropdownMenu.Root>
+								<DropdownMenu.Trigger class={buttonVariants({ variant: 'ghost', size: 'icon-lg' })}>
+									<EllipsisVerticalIcon />
+								</DropdownMenu.Trigger>
+
+								<DropdownMenu.Content>
+									<DropdownMenu.Item onclick={toggleMode} class="h-9">
+										<MoonIcon
+											class="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90"
+										/>
+										<SunIcon
+											class="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0"
+										/>
+										{mode.current === 'light' ? 'Dark Mode' : 'Light Mode'}
+									</DropdownMenu.Item>
+
+									<DropdownMenu.Item onclick={data.logout.onclick} class="h-9">
+										<data.logout.icon />
+										{data.logout.title}
+									</DropdownMenu.Item>
+								</DropdownMenu.Content>
+							</DropdownMenu.Root>
+						</div>
+					{/snippet}
+				</Sidebar.MenuButton>
+			</Sidebar.MenuItem>
+		</Sidebar.Menu>
 	</Sidebar.Footer>
 </Sidebar.Root>

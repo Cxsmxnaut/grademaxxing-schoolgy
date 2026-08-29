@@ -7,7 +7,7 @@
 </script>
 
 <div class="flex justify-center" in:fade out:fly={{ y: '-50%' }}>
-	<Item.Root variant="muted" size="sm" class="bg-muted/90 z-30 mx-4 mt-2 md:fixed md:top-6 md:mt-0">
+	<Item.Root variant="muted" size="sm" class="bg-muted/90 fixed top-6 z-30">
 		<Item.Media><Spinner /></Item.Media>
 
 		<Item.Content>

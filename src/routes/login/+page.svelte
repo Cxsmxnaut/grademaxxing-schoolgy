@@ -5,20 +5,19 @@
 	import { LocalStorageKey } from '$lib';
 	import { acc, loadStudentAccount } from '$lib/account.svelte';
 	import { brand } from '$lib/brand';
-	import AuthPanelHeader from '$lib/components/auth/AuthPanelHeader.svelte';
-	import AuthShell from '$lib/components/auth/AuthShell.svelte';
-	import DistrictCombobox from '$lib/components/auth/DistrictCombobox.svelte';
+	import Disclaimer from '$lib/components/Disclaimer.svelte';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
+	import { Checkbox } from '$lib/components/ui/checkbox';
+	import * as Field from '$lib/components/ui/field';
 	import { Input } from '$lib/components/ui/input';
-	import { DISTRICTS, type StudentVueDistrict } from '$lib/data/districts';
 	import { resetGradebookCatalog } from '$lib/grades/catalog.svelte';
 	import { seenAssignmentIDs } from '$lib/grades/seenAssignments.svelte';
 	import { StudentAccount } from '$lib/synergy';
 	import AlertCircleIcon from '@lucide/svelte/icons/alert-circle';
 	import InfoIcon from '@lucide/svelte/icons/info';
-	import { onMount } from 'svelte';
+	import LogInIcon from '@lucide/svelte/icons/log-in';
 	import { fly } from 'svelte/transition';
 	import { resetNonGradeRecords } from '../(authed)/resetNonGradeRecords.svelte';
 
@@ -26,48 +25,18 @@
 
 	if (browser && localStorage.getItem(LocalStorageKey.token) !== null) {
 		if (!acc.studentAccount) loadStudentAccount();
-		void goto('/dashboard');
+		void goto('/grades');
 	}
 
 	let username = $state('');
 	let password = $state('');
 	let domain = $state(pleasantonDomain);
-	let districtExpanded = $state(false);
-	let hydrated = $state(false);
 	let loginError = $state<string | undefined>();
 	let loggingIn = $state(false);
 
 	const sessionExpired = $derived(
 		browser && page.url.searchParams.get('sessionExpired') === 'true'
 	);
-	const districtName = $derived(
-		normalizedDistrictTarget(domain) === 'ca-pleas-psv.edupoint.com'
-			? 'Pleasanton USD'
-			: (DISTRICTS.find((district) => district.domain === normalizedDistrictTarget(domain))?.name ??
-					'Custom district')
-	);
-
-	onMount(() => {
-		hydrated = true;
-	});
-
-	function normalizedDistrictTarget(value: string) {
-		try {
-			const url = new URL(value.includes('://') ? value : `https://${value}`);
-			const path = url.pathname.replace(/^\/+|\/+$/g, '');
-			return `${url.host.toLowerCase()}${path ? `/${path.toLowerCase()}` : ''}`;
-		} catch {
-			return '';
-		}
-	}
-
-	function toggleDistrict() {
-		districtExpanded = !districtExpanded;
-	}
-
-	function selectDistrict(district: StudentVueDistrict) {
-		domain = `https://${district.domain}`;
-	}
 
 	async function gradebookOwnerFingerprint(user: string, district: string) {
 		const identity = `${district.trim().toLowerCase()}\n${user.trim().toLowerCase()}`;
@@ -148,134 +117,110 @@
 		}
 
 		loggingIn = false;
-		void goto('/dashboard');
+		void goto('/grades');
 	}
 </script>
 
-<svelte:head><title>Sign In - {brand}</title></svelte:head>
+<svelte:head>
+	<title>Log In - {brand}</title>
+</svelte:head>
 
-{#if loggingIn}<LoadingBanner>Logging you in...</LoadingBanner>{/if}
+{#if loggingIn}
+	<LoadingBanner>Logging you in...</LoadingBanner>
+{/if}
+
 {#if loginError}
 	<div
 		in:fly={{ y: -50, duration: 200 }}
 		class="fixed top-0 left-0 z-50 flex w-full justify-center p-4"
 	>
-		<Alert.Root variant="destructive" class="w-fit max-w-[calc(100vw-2rem)]"
-			><AlertCircleIcon /><Alert.Title>Couldn't log in</Alert.Title><Alert.Description
-				>{loginError}</Alert.Description
-			></Alert.Root
-		>
+		<Alert.Root variant="destructive" class="w-fit max-w-[calc(100vw-2rem)]">
+			<AlertCircleIcon />
+			<Alert.Title>Couldn't log in</Alert.Title>
+			<Alert.Description>{loginError}</Alert.Description>
+		</Alert.Root>
 	</div>
-{/if}
-{#if sessionExpired && !loginError}
+{:else if sessionExpired}
 	<div class="fixed top-0 left-0 z-50 flex w-full justify-center p-4">
-		<Alert.Root class="w-fit max-w-[calc(100vw-2rem)]"
-			><InfoIcon /><Alert.Title>Your StudentVUE session expired</Alert.Title><Alert.Description
-				>Sign in again to reconnect and refresh your school data.</Alert.Description
-			></Alert.Root
-		>
+		<Alert.Root class="w-fit max-w-[calc(100vw-2rem)]">
+			<InfoIcon />
+			<Alert.Title>Your StudentVUE session expired</Alert.Title>
+			<Alert.Description>Sign in again to reconnect and refresh your school data.</Alert.Description
+			>
+		</Alert.Root>
 	</div>
 {/if}
 
-<AuthShell promo>
-	<form
-		onsubmit={login}
-		class="w-full max-w-[25rem] rounded-[1.25rem] border border-[#203a51] bg-[#0d2335] p-6 shadow-2xl shadow-black/20 sm:p-8"
-	>
-		<AuthPanelHeader />
-		<h2 class="text-[1.65rem] leading-tight font-bold tracking-[-0.035em]">Sign in to {brand}</h2>
-
-		<div class="mt-8 space-y-5">
-			<div>
-				<p class="mb-2 text-sm font-semibold text-[#91aac2]">School district</p>
-				<div class="flex h-12 items-center rounded-xl border border-[#42aff0] bg-[#183650] px-4">
-					<strong class="min-w-0 truncate text-[#55baf3]">{districtName}</strong>
-					<button
-						type="button"
-						onclick={toggleDistrict}
-						disabled={!hydrated}
-						class="ml-auto text-sm font-semibold text-[#9bb2c8] underline underline-offset-2 hover:text-white disabled:cursor-wait disabled:opacity-60"
-						aria-expanded={districtExpanded}>{districtExpanded ? 'Done' : 'Change'}</button
-					>
-				</div>
+<div class="flex min-h-screen flex-col">
+	<main class="flex grow items-center justify-center">
+		<form onsubmit={login} class="m-4 flex w-full max-w-sm flex-col gap-4">
+			<div class="mb-8 flex flex-col items-center gap-2">
+				<img src="/favicon.svg" class="h-8 w-8" alt={brand} />
+				<h1 class="text-xl font-bold">Log in to {brand}</h1>
+				<Field.Description>
+					Never used {brand} before? <a href="/signup">Sign up</a>
+				</Field.Description>
 			</div>
 
-			{#if districtExpanded}
-				<div class="space-y-5">
-					<DistrictCombobox value={domain} onselect={selectDistrict} />
-					<div>
-						<label for="domain" class="mb-2 block text-sm font-semibold text-[#91aac2]"
-							>Or enter a district portal URL</label
-						>
-						<Input
-							id="domain"
-							type="text"
-							inputmode="url"
-							aria-label="StudentVUE Domain"
-							bind:value={domain}
-							placeholder="https://your-district-psv.edupoint.com"
-							autocapitalize="off"
-							autocorrect="off"
-							required
-							class="h-12 rounded-xl border-[#294258] bg-[#071522] px-4 text-base text-[#e4eef8]"
-						/>
-					</div>
-				</div>
-			{/if}
+			<Field.Group>
+				<Field.Field>
+					<Field.Label for="username">StudentVUE Username</Field.Label>
+					<Input
+						id="username"
+						type="text"
+						bind:value={username}
+						placeholder="student@school.net"
+						autocomplete="username"
+						required
+					/>
+				</Field.Field>
 
-			<div>
-				<label for="username" class="mb-2 block text-sm font-semibold text-[#91aac2]"
-					>StudentVue email</label
-				>
-				<Input
-					id="username"
-					type="text"
-					aria-label="StudentVUE Username"
-					bind:value={username}
-					autocomplete="username"
-					required
-					class="h-12 rounded-xl border-[#294258] bg-[#071522] px-4 text-base text-[#e4eef8]"
-				/>
-			</div>
-			<div>
-				<label for="password" class="mb-2 block text-sm font-semibold text-[#91aac2]"
-					>StudentVue password</label
-				>
-				<Input
-					id="password"
-					type="password"
-					aria-label="StudentVUE Password"
-					bind:value={password}
-					autocomplete="current-password"
-					required
-					class="h-12 rounded-xl border-[#294258] bg-[#071522] px-4 text-base text-[#e4eef8]"
-				/>
-			</div>
+				<Field.Field>
+					<Field.Label for="password">StudentVUE Password</Field.Label>
+					<Input
+						id="password"
+						type="password"
+						bind:value={password}
+						autocomplete="current-password"
+						required
+					/>
+					<Field.Description>
+						Your password is sent over encrypted HTTPS, used only to open StudentVUE, and never
+						stored.
+					</Field.Description>
+				</Field.Field>
 
-			<Button
-				type="submit"
-				disabled={loggingIn}
-				class="h-12 w-full rounded-xl bg-[#4db6f5] text-base font-bold text-[#06131f] hover:bg-[#68c4f8]"
-				>{loggingIn ? 'Signing in…' : 'Log in'}</Button
-			>
-		</div>
+				<Field.Field>
+					<Field.Label for="domain">StudentVUE Domain</Field.Label>
+					<Input
+						id="domain"
+						type="text"
+						aria-label="StudentVUE Domain"
+						placeholder="your-district-psv.edupoint.com"
+						autocapitalize="off"
+						autocorrect="off"
+						bind:value={domain}
+						required
+					/>
+				</Field.Field>
 
-		<div class="mt-6 space-y-3 text-center text-sm leading-5 text-[#91aac2]">
-			<p>
-				Your password is sent over encrypted HTTPS, used only to open StudentVUE, and never stored.
-			</p>
-			<p>
-				Never used a StudentVUE password before? <a
-					href="/signup"
-					class="font-semibold text-[#55baf3] underline underline-offset-2">Create one.</a
-				>
-			</p>
-			<p class="text-xs leading-4 text-[#718ba3]">
-				Independent from Edupoint · <a
-					href="/privacy"
-					class="text-[#55baf3] underline underline-offset-2">Privacy</a
-				>
-			</p>
-		</div>
-	</form>
-</AuthShell>
+				<Field.Field orientation="horizontal" class="items-center">
+					<Checkbox name="disclaimer" id="disclaimer" required />
+					<Field.Label for="disclaimer" class="text-tertiary-foreground text-xs">
+						I understand that {brand} is an independent, unofficial tool and is not affiliated with or
+						endorsed by Edupoint Educational Systems LLC.
+					</Field.Label>
+				</Field.Field>
+
+				<Field.Field>
+					<Button type="submit" class="w-full" disabled={loggingIn}>
+						<LogInIcon class="h-4 w-4" />
+						{loggingIn ? 'Logging in…' : 'Log in'}
+					</Button>
+				</Field.Field>
+			</Field.Group>
+		</form>
+	</main>
+
+	<Disclaimer />
+</div>

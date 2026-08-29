@@ -1,94 +1,67 @@
 <script lang="ts">
+	import DateBadge from '$lib/components/DateBadge.svelte';
 	import type { InboxItemListingsMessageXML } from '$lib/types/MailData';
+	import LinkIcon from '@lucide/svelte/icons/link';
 	import PaperclipIcon from '@lucide/svelte/icons/paperclip';
+	import UserIcon from '@lucide/svelte/icons/user';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Button, type ButtonProps } from '$lib/components/ui/button';
 
-	interface Props {
+	interface Props extends ButtonProps {
 		message: InboxItemListingsMessageXML;
-		disabled?: boolean;
 		onclick?: () => void;
 	}
+	let { message, onclick, ...props }: Props = $props();
 
-	let { message, disabled = false, onclick }: Props = $props();
-	let unread = $derived(message._MailRead.toLowerCase() !== 'true');
-	let sender = $derived(message.From.RecipientXML._Details1 || 'School message');
-	let initials = $derived(
-		sender
-			.split(/\s+/)
-			.filter(Boolean)
-			.slice(0, 2)
-			.map((part) => part[0])
-			.join('')
-			.toUpperCase()
-	);
-	let preview = $derived(
-		message._MessageText
-			.replace(/<style[\s\S]*?<\/style>/gi, ' ')
-			.replace(/<[^>]*>/g, ' ')
-			.replace(/&nbsp;|&#160;/gi, ' ')
-			.replace(/&amp;/gi, '&')
-			.replace(/\s+/g, ' ')
-			.trim()
-	);
-	let hasAttachments = $derived(typeof message.Attachments !== 'string');
+	const domParser = new DOMParser();
 
-	function shortDate(value: string) {
-		const date = new Date(value);
-		if (!value || Number.isNaN(date.getTime())) return 'Date unavailable';
-		const today = new Date();
-		if (date.toDateString() === today.toDateString()) {
-			return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(
-				date
-			);
-		}
-		if (date.getFullYear() === today.getFullYear()) {
-			return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(date);
-		}
-		return new Intl.DateTimeFormat(undefined, {
-			month: 'short',
-			day: 'numeric',
-			year: 'numeric'
-		}).format(date);
-	}
+	const doc = $derived(domParser.parseFromString(message._MessageText, 'text/html'));
+
+	const linkCount = $derived(
+		new Set(
+			[...doc.querySelectorAll('a')].filter((a) => new URL(a.href).hostname).map((a) => a.href)
+		).size
+	);
+
+	let attachments = $derived(
+		typeof message.Attachments !== 'string'
+			? message.Attachments.AttachmentXML instanceof Array
+				? message.Attachments.AttachmentXML
+				: [message.Attachments.AttachmentXML]
+			: undefined
+	);
 </script>
 
-<button
-	type="button"
-	{disabled}
+<Button
+	{...props}
 	{onclick}
-	class="group hover:bg-accent/55 focus-visible:outline-primary mb-1 grid w-full grid-cols-[2.5rem_minmax(0,1fr)_auto] gap-3 rounded-xl px-4 py-3.5 text-left transition-colors focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-2px] disabled:cursor-wait disabled:opacity-60 sm:grid-cols-[2.5rem_10.5rem_minmax(0,1fr)_auto] sm:items-center sm:px-5 {unread
-		? 'bg-accent/25'
-		: ''}"
-	aria-label={`${unread ? 'Unread: ' : ''}${message._Subject} from ${sender}`}
+	variant="card"
+	class="flex h-auto w-full flex-col items-start gap-2 overflow-hidden rounded-xl p-4"
 >
-	<span
-		class="bg-primary/12 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold"
-		aria-hidden="true"
-	>
-		{initials || 'M'}
-	</span>
-	<div class="min-w-0 sm:contents">
-		<div class="flex min-w-0 items-center gap-2">
-			{#if unread}<span class="bg-primary h-2 w-2 shrink-0 rounded-full" aria-hidden="true"
-				></span>{/if}
-			<span class:font-bold={unread} class="truncate text-sm">{sender}</span>
-		</div>
-		<div class="mt-0.5 min-w-0 sm:mt-0">
-			<div class="flex min-w-0 items-center gap-1.5">
-				<span class:font-semibold={unread} class="truncate text-sm"
-					>{message._Subject || '(No subject)'}</span
-				>
-				{#if hasAttachments}<PaperclipIcon
-						class="text-muted-foreground h-3.5 w-3.5 shrink-0"
-						aria-label="Has attachment"
-					/>{/if}
-			</div>
-			{#if preview}<p class="text-muted-foreground mt-0.5 truncate text-sm">{preview}</p>{/if}
-		</div>
+	<h2 class="text-start text-lg text-wrap">{message._Subject}</h2>
+
+	<div class="flex flex-row flex-wrap items-center gap-2">
+		<Badge variant="secondary">
+			<UserIcon class="mr-1 h-4 w-4" />
+			{message.From.RecipientXML._Details1} ({message.From.RecipientXML._Details2})
+		</Badge>
+
+		<DateBadge date={new Date(message._SendDateTime)} />
+
+		{#if linkCount > 0}
+			<Badge color="green">
+				<LinkIcon class="mr-1 h-4 w-4" />
+				{linkCount}
+				{linkCount === 1 ? 'Link' : 'Links'}
+			</Badge>
+		{/if}
+
+		{#if attachments}
+			<Badge color="indigo">
+				<PaperclipIcon class="mr-1 h-4 w-4" />
+				{attachments.length}
+				{attachments.length === 1 ? 'Attachment' : 'Attachments'}
+			</Badge>
+		{/if}
 	</div>
-	<time
-		datetime={message._SendDateTime}
-		class="text-muted-foreground mt-0.5 text-xs font-medium whitespace-nowrap sm:mt-0"
-	>
-		{shortDate(message._SendDateTime)}
-	</time>
-</button>
+</Button>

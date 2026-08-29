@@ -61,14 +61,14 @@
 </script>
 
 <svelte:boundary>
-	<Sidebar.Provider style="--sidebar-width: 18rem;">
+	<Sidebar.Provider>
 		<AppSidebar />
 
 		<Sidebar.Inset class="min-w-0">
 			<header class="bg-background sticky top-0 z-20 flex shrink-0 items-center p-2 md:hidden">
 				<Sidebar.Trigger />
 				<a
-					href="/dashboard"
+					href="/grades"
 					class="mr-auto ml-1 flex items-center gap-2 text-xl font-semibold tracking-tight whitespace-nowrap"
 				>
 					<img src="/favicon.svg" class="size-6" alt={brand} />
