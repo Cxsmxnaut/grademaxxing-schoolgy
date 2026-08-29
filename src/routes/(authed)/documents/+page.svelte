@@ -3,6 +3,7 @@
 	import { brand } from '$lib/brand';
 	import DateBadge from '$lib/components/DateBadge.svelte';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
+	import RecordLoadFailure from '$lib/components/RecordLoadFailure.svelte';
 	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
@@ -59,7 +60,17 @@
 	<RefreshIndicator
 		canRefresh={documentsState.loaded}
 		lastRefresh={documentsState.lastRefresh}
+		refreshing={documentsState.refreshing}
 		refresh={() => loadDocuments(true)}
+	/>
+{/if}
+
+{#if documentsState.loaded && documentsState.error}
+	<RecordLoadFailure
+		label="documents"
+		error={documentsState.error}
+		refreshing={documentsState.refreshing}
+		retry={() => loadDocuments(true)}
 	/>
 {/if}
 
@@ -89,6 +100,10 @@
 			</Tabs.Content>
 		{/each}
 	</Tabs.Root>
+{:else if documentsState.loaded && !documentsState.error}
+	<p class="text-muted-foreground mx-auto my-16 text-center" role="status">
+		No student documents are available yet.
+	</p>
 {/if}
 
 {#snippet documentsList(documents: StudentDocumentData[], showCategory = true)}

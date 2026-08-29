@@ -209,7 +209,10 @@
 							</a>
 
 							<DropdownMenu.Root>
-								<DropdownMenu.Trigger class={buttonVariants({ variant: 'ghost', size: 'icon-lg' })}>
+								<DropdownMenu.Trigger
+									aria-label="Account menu"
+									class={buttonVariants({ variant: 'ghost', size: 'icon-lg' })}
+								>
 									<EllipsisVerticalIcon />
 								</DropdownMenu.Trigger>
 

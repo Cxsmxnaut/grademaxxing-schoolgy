@@ -33,12 +33,15 @@ test.describe('live StudentVUE journeys', () => {
 		await page.goto('/login');
 		await page.locator('#username').fill(username!);
 		await page.locator('#password').fill(password!);
+		const disclaimer = page.locator('#disclaimer');
+		if (await disclaimer.count()) await disclaimer.check();
 		if (new URL(district!).host !== 'ca-pleas-psv.edupoint.com') {
 			await page.getByRole('button', { name: 'Change', exact: true }).click();
 			await page.locator('#domain').fill(new URL(district!).origin);
 		}
 		await page.getByRole('button', { name: 'Log in' }).click();
-		await expect(page).toHaveURL(/\/dashboard$/);
+		await expect(page).toHaveURL(/\/(grades|dashboard)$/);
+		await page.goto('/dashboard');
 		await expect(page.getByText('GPA · unweighted', { exact: true })).toBeVisible();
 		await page.goto('/grades');
 		await expect(page.locator('a[href^="/grades/"]')).not.toHaveCount(0);
@@ -57,12 +60,16 @@ test.describe('live StudentVUE journeys', () => {
 		await expect(page.getByText('Something went wrong')).toHaveCount(0);
 
 		await page.goto('/documents');
-		await expect(page.locator('a[href^="/documents/document?"]')).not.toHaveCount(0);
-		const documentPagePromise = context.waitForEvent('page');
-		await page.locator('a[href^="/documents/document?"]').first().click();
-		const documentPage = await documentPagePromise;
-		await documentPage.waitForURL(/^blob:/, { timeout: 30_000 });
-		await documentPage.close();
+		const documentLinks = page.locator('main a[href^="/documents/document?"]:visible');
+		await expect(documentLinks).not.toHaveCount(0);
+		const documentCount = await documentLinks.count();
+		for (let index = 0; index < documentCount; index += 1) {
+			const documentPagePromise = context.waitForEvent('page');
+			await documentLinks.nth(index).click();
+			const documentPage = await documentPagePromise;
+			await expect.poll(() => documentPage.url(), { timeout: 30_000 }).toMatch(/^blob:/);
+			await documentPage.close();
+		}
 
 		const mailboxResponse = page.waitForResponse(
 			(response) =>
@@ -102,7 +109,8 @@ test.describe('live StudentVUE journeys', () => {
 		await expect(page).toHaveURL(/\/mail$/);
 		expect(pageErrors).toEqual([]);
 
-		await page.getByRole('button', { name: 'Log out', exact: true }).click();
+		await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+		await page.getByRole('menuitem', { name: 'Log Out', exact: true }).click();
 		await expect(page).toHaveURL(/\/login$/);
 		expect((await page.request.get('/api/session/status')).status()).toBe(200);
 		expect(await (await page.request.get('/api/session/status')).json()).toEqual({

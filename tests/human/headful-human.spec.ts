@@ -127,17 +127,21 @@ test('1 — a student signs in and sees the dashboard and initial grades screen'
 	await page.goto('/login');
 	await page.getByLabel('StudentVUE Username').fill(username!);
 	await page.getByLabel('StudentVUE Password').fill(password!);
+	await page
+		.getByRole('checkbox', { name: /independent, unofficial tool/i })
+		.check();
 	if (new URL(district!).host !== 'ca-pleas-psv.edupoint.com') {
 		await page.getByRole('button', { name: 'Change', exact: true }).click();
 		await page.getByLabel('StudentVUE Domain').fill(new URL(district!).origin);
 	}
 	await page.getByRole('button', { name: 'Log in', exact: true }).click();
 
-	await expect(page).toHaveURL(/\/dashboard$/, { timeout: 60_000 });
+	await expect(page).toHaveURL(/\/(grades|dashboard)$/, { timeout: 60_000 });
+	await page.goto('/dashboard');
 	await expect(page.getByRole('heading', { name: /here’s the move/ })).toBeVisible();
 	await expect(page.getByText('GPA · unweighted', { exact: true })).toBeVisible();
 	await expect(page.getByText('Course average', { exact: true })).toBeVisible();
-	await expect(page.getByRole('link', { name: 'Gradebook', exact: true })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Grades', exact: true })).toBeVisible();
 	await page.goto('/grades');
 	await expect(page.getByText('Loading grades...')).toBeHidden();
 	await expect(page.getByText('Something went wrong')).toHaveCount(0);
@@ -560,6 +564,20 @@ test('4 — a student reviews documents and opens an available document', async 
 		await expect(page.getByText('Something went wrong')).toHaveCount(0);
 		await page.unroute('**/api/studentvue/documents');
 		await page.getByRole('button', { name: 'Refresh', exact: true }).click();
+
+		await page.route('**/api/studentvue/documents', async (route) => {
+			await route.fulfill({
+				status: 502,
+				contentType: 'application/json',
+				body: JSON.stringify({ message: 'Deliberate documents browser-test failure.' })
+			});
+		});
+		await page.getByRole('button', { name: 'Refresh', exact: true }).click();
+		await expect(page.getByText("Couldn't load documents.", { exact: true })).toBeVisible();
+		await expect(page.getByText('Deliberate documents browser-test failure.', { exact: true })).toBeVisible();
+		await page.unroute('**/api/studentvue/documents');
+		await page.getByRole('button', { name: 'Try again', exact: true }).click();
+		await expect(page.getByText("Couldn't load documents.", { exact: true })).toBeHidden();
 	}
 	expect(pageErrors).toEqual([]);
 });

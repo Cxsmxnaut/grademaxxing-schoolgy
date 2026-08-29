@@ -6,12 +6,13 @@
 		date: Date;
 	}
 	let { date }: Props = $props();
+	let valid = $derived(!Number.isNaN(date.getTime()));
 </script>
 
 <Badge
-	id="date-{date.getTime()}"
+	id={valid ? `date-${date.getTime()}` : undefined}
 	variant="secondary"
-	title="{fullDateFormatter.format(date)} ({getRelativeTime(date)})"
+	title={valid ? `${fullDateFormatter.format(date)} (${getRelativeTime(date)})` : 'Date unavailable'}
 >
-	{shortDateFormatter.format(date)}
+	{valid ? shortDateFormatter.format(date) : 'Date unavailable'}
 </Badge>
