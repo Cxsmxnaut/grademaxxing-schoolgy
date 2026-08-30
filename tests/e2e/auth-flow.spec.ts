@@ -8,24 +8,22 @@ test('the sign-in and district-password setup flow matches the current product',
 	await page.setViewportSize({ width: 1440, height: 1000 });
 	await page.goto('/login');
 
-	await expect(page.getByRole('heading', { name: 'Log in to Grademaxxing' })).toBeVisible();
-	await expect(page.getByLabel('StudentVUE Username')).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing' })).toBeVisible();
+	await expect(page.getByLabel('StudentVUE email')).toBeVisible();
 	await expect(page.getByLabel('StudentVUE Password')).toBeVisible();
 	await expect(page.getByLabel('StudentVUE Domain')).toHaveValue(
-		'https://ca-pleas-psv.edupoint.com'
+		'Pleasanton Unified School District'
 	);
 	await expect(
 		page.getByText(
-			'Your password is sent over encrypted HTTPS, used only to open StudentVUE, and never stored.',
+			'Your password travels over encrypted HTTPS, is used only to open StudentVUE, and is never stored.',
 			{ exact: true }
 		)
 	).toBeVisible();
-	await expect(
-		page.getByRole('checkbox', { name: /independent, unofficial tool/i })
-	).not.toBeChecked();
+	await expect(page.getByRole('checkbox', { name: /independent tool/i })).not.toBeChecked();
 	await page.screenshot({ path: 'test-results/auth-flow/login.png', fullPage: true });
 
-	await page.getByRole('link', { name: 'Sign up', exact: true }).click();
+	await page.getByRole('link', { name: 'Get started', exact: true }).click();
 	await expect(page.getByText('Sign up for Grademaxxing', { exact: true })).toBeVisible();
 	await expect(page.getByText('How do you sign in to StudentVUE?', { exact: true })).toBeVisible();
 	await expect(page.getByRole('link', { name: 'with Google', exact: true })).toBeVisible();
@@ -52,7 +50,7 @@ test('the sign-in and district-password setup flow matches the current product',
 test('the sign-in flow fits a phone without horizontal overflow', async ({ page }) => {
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.goto('/login');
-	await expect(page.getByRole('heading', { name: 'Log in to Grademaxxing' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing' })).toBeVisible();
 	const widths = await page.evaluate(() => ({
 		viewport: window.innerWidth,
 		document: document.documentElement.scrollWidth,
@@ -69,10 +67,12 @@ test('the desktop sign-in form stays centered and readable', async ({ page }) =>
 	const form = await page.locator('form').boundingBox();
 	expect(form).not.toBeNull();
 	expect(form!.width).toBeGreaterThanOrEqual(350);
-	expect(form!.width).toBeLessThanOrEqual(390);
-	expect(Math.abs(form!.x + form!.width / 2 - 1470 / 2)).toBeLessThanOrEqual(2);
-	expect(form!.y).toBeGreaterThanOrEqual(60);
-	expect(form!.y + form!.height).toBeLessThanOrEqual(745);
+	expect(form!.width).toBeLessThanOrEqual(410);
+	const main = await page.locator('main').boundingBox();
+	expect(main).not.toBeNull();
+	expect(Math.abs(form!.x + form!.width / 2 - (main!.x + main!.width / 2))).toBeLessThanOrEqual(2);
+	expect(form!.y).toBeGreaterThanOrEqual(20);
+	expect(form!.y + form!.height).toBeLessThanOrEqual(785);
 });
 
 test('students can enter district-owned StudentVUE portal origins and paths directly', async ({

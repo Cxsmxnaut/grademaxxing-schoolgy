@@ -43,7 +43,7 @@ test('primary controls keep visible hover, focus, checked, and disabled states',
 	await readTheme(page, 'light');
 
 	const submit = page.getByRole('button', { name: 'Log in' });
-	const disclaimer = page.getByRole('checkbox', { name: /independent, unofficial tool/i });
+	const disclaimer = page.getByRole('checkbox', { name: /independent tool/i });
 	const initialBackground = await submit.evaluate(
 		(element) => getComputedStyle(element).backgroundColor
 	);

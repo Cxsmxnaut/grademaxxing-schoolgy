@@ -7,10 +7,14 @@
 
 	let {
 		value,
-		onselect
+		onselect,
+		onvalueinput = () => undefined,
+		disabled = false
 	}: {
 		value: string;
 		onselect: (district: StudentVueDistrict) => void;
+		onvalueinput?: (value: string) => void;
+		disabled?: boolean;
 	} = $props();
 
 	const selectedAtStart = DISTRICTS.find((district) => district.domain === normalizedTarget(value));
@@ -73,6 +77,7 @@
 
 	function handleInput(event: Event) {
 		query = (event.currentTarget as HTMLInputElement).value;
+		onvalueinput(query);
 		showAll = false;
 		open = true;
 		activeIndex = 0;
@@ -121,7 +126,7 @@
 			id="district-search"
 			type="text"
 			role="combobox"
-			aria-label="School district"
+			aria-label="StudentVUE Domain"
 			aria-autocomplete="list"
 			aria-expanded={open}
 			aria-controls="district-listbox"
@@ -129,6 +134,9 @@
 				? `district-option-${activeIndex}`
 				: undefined}
 			autocomplete="off"
+			autocapitalize="off"
+			autocorrect="off"
+			{disabled}
 			placeholder="Search by district, state, or portal"
 			value={query}
 			oninput={handleInput}
@@ -140,9 +148,11 @@
 			<button
 				type="button"
 				aria-label="Clear district search"
+				{disabled}
 				onmousedown={(event) => event.preventDefault()}
 				onclick={() => {
 					query = '';
+					onvalueinput('');
 					showAll = false;
 					open = true;
 					activeIndex = 0;
@@ -156,6 +166,7 @@
 			type="button"
 			aria-label={open ? 'Close district list' : 'Open district list'}
 			aria-expanded={open}
+			{disabled}
 			onmousedown={(event) => event.preventDefault()}
 			onclick={() => {
 				if (open && showAll) {
