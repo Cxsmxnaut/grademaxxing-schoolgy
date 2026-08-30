@@ -4,8 +4,12 @@ const tokenNames = [
 	'--background',
 	'--foreground',
 	'--primary',
+	'--accent',
 	'--card',
 	'--border',
+	'--success',
+	'--warning',
+	'--destructive',
 	'--grade-strong',
 	'--grade-watch',
 	'--grade-risk'
@@ -36,15 +40,24 @@ test('the complete semantic palette resolves in light and dark modes', async ({ 
 	}
 
 	expect(light).toMatchObject({
-		'--background': '#f7f9fc',
-		'--primary': '#1677b8',
-		'--grade-strong': '#1677b8'
+		'--background': '#f5f9fd',
+		'--foreground': '#0f1c2e',
+		'--primary': '#0a73b2',
+		'--success': '#177a52',
+		'--warning': '#8f6b1e',
+		'--destructive': '#b0483a',
+		'--grade-strong': '#177a52'
 	});
 	expect(dark).toMatchObject({
 		'--background': '#081522',
 		'--primary': '#4db6f5',
-		'--grade-strong': '#4db6f5'
+		'--success': '#5fc98e',
+		'--warning': '#e0b95c',
+		'--destructive': '#e57373',
+		'--grade-strong': '#5fc98e'
 	});
+	expect(light['--primary']).not.toBe(light['--success']);
+	expect(dark['--primary']).not.toBe(dark['--success']);
 });
 
 test('primary controls keep visible hover, focus, and disabled states', async ({ page }) => {

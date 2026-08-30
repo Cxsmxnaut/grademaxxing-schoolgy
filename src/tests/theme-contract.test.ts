@@ -49,17 +49,42 @@ test('semantic visual tokens are exposed as Tailwind utilities', () => {
 	}
 });
 
-test('the global theme uses the Grademaxxing blue visual system', () => {
-	expect(rootBlock).toContain('--primary: #1677b8;');
-	expect(rootBlock).toContain('--success: #1677b8;');
-	expect(rootBlock).toContain('--chart: #1c88ca;');
+test('brand, status, and grade semantics remain visually distinct', () => {
+	expect(rootBlock).toContain('--background: #f5f9fd;');
+	expect(rootBlock).toContain('--foreground: #0f1c2e;');
+	expect(rootBlock).toContain('--primary: #0a73b2;');
+	expect(rootBlock).toContain('--success: #177a52;');
+	expect(rootBlock).toContain('--warning: #8f6b1e;');
+	expect(rootBlock).toContain('--destructive: #b0483a;');
+	expect(rootBlock).toContain('--grade-strong: #177a52;');
+	expect(rootBlock).toContain('--chart: #0a73b2;');
+
 	expect(darkBlock).toContain('--background: #081522;');
+	expect(darkBlock).toContain('--card: #0d2033;');
 	expect(darkBlock).toContain('--primary: #4db6f5;');
-	expect(darkBlock).toContain('--success: #4db6f5;');
+	expect(darkBlock).toContain('--success: #5fc98e;');
+	expect(darkBlock).toContain('--warning: #e0b95c;');
+	expect(darkBlock).toContain('--destructive: #e57373;');
+	expect(darkBlock).toContain('--grade-strong: #5fc98e;');
 	expect(darkBlock).toContain('--chart: #4db6f5;');
-	expect(themeCss).not.toMatch(
-		/#(?:0e9f6e|116b5a|197d69|1a7654|0f5b4d|0f6657|7bc4ae|71c89e|78bba8|79c6ae|75c5ab|8bd2bc)\b/i
+
+	expect(rootBlock).not.toContain('--success: #0a73b2;');
+	expect(darkBlock).not.toContain('--success: #4db6f5;');
+});
+
+test('named badge colors are not collapsed into the brand palette', () => {
+	const badgeSource = readFileSync(
+		new URL('../lib/components/ui/badge/badge.svelte', import.meta.url),
+		'utf8'
 	);
+	const utilitiesSource = readFileSync(new URL('../lib/index.ts', import.meta.url), 'utf8');
+
+	expect(badgeSource).toContain('bg-green-200');
+	expect(badgeSource).toContain('bg-emerald-200');
+	expect(badgeSource).toContain('bg-teal-200');
+	expect(utilitiesSource).toContain("green: 'bg-green-500'");
+	expect(utilitiesSource).toContain("emerald: 'bg-emerald-500'");
+	expect(utilitiesSource).toContain("teal: 'bg-teal-500'");
 });
 
 test('grade UI uses semantic outcomes instead of hard-coded utility colors', () => {

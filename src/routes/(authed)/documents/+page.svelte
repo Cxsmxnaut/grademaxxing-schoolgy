@@ -22,7 +22,7 @@
 			case 'MAP Growth Family Report':
 				return 'blue';
 			default:
-				return 'sky';
+				return 'green';
 		}
 	}
 

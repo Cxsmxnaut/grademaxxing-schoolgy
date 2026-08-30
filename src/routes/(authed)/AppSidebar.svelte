@@ -49,6 +49,10 @@
 		$installPrompt.prompt?.();
 	}
 
+	function isRouteActive(url: string) {
+		return page.url.pathname === url || page.url.pathname.startsWith(`${url}/`);
+	}
+
 	const data = {
 		grades: {
 			title: 'Grades',
@@ -111,7 +115,7 @@
 	icon: Component;
 })}
 	<Sidebar.MenuItem>
-		<Sidebar.MenuButton class="h-10 text-base">
+		<Sidebar.MenuButton class="h-10 text-base" isActive={url ? isRouteActive(url) : false}>
 			{#snippet child({ props })}
 				{#if url}
 					<a href={url} {...props}>
@@ -142,7 +146,7 @@
 	<Sidebar.Content>
 		<Sidebar.Menu>
 			<Sidebar.MenuItem>
-				<Sidebar.MenuButton class="h-10 text-base">
+				<Sidebar.MenuButton class="h-10 text-base" isActive={isRouteActive(data.grades.url)}>
 					{#snippet child({ props })}
 						<a href={data.grades.url} {...props}>
 							<data.grades.icon /> <span>{data.grades.title}</span>
@@ -155,7 +159,11 @@
 						<Sidebar.MenuSub>
 							{#each courses as Course (Course._CourseID)}
 								<Sidebar.MenuSubItem>
-									<Sidebar.MenuSubButton class="h-8 truncate text-base">
+									<Sidebar.MenuSubButton
+										class="h-8 truncate text-base"
+										isActive={page.url.pathname ===
+											`${data.grades.url}/${encodeURIComponent(Course._CourseID)}`}
+									>
 										{#snippet child({ props })}
 											<a
 												href={`${data.grades.url}/${encodeURIComponent(Course._CourseID)}`}
