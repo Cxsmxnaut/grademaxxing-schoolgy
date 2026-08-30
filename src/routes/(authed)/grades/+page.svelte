@@ -2,6 +2,8 @@
 	import { removeCourseType } from '$lib';
 	import { acc } from '$lib/account.svelte';
 	import { brand } from '$lib/brand';
+	import AppPageHeader from '$lib/components/AppPageHeader.svelte';
+	import AppPageShell from '$lib/components/AppPageShell.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
 	import {
@@ -67,60 +69,68 @@
 	<title>Grades - {brand}</title>
 </svelte:head>
 
-{#if activeReportPeriod && activeReportPeriodIndex !== undefined && gradebook}
-	<div class="m-4 space-y-4">
-		<ReportPeriodSwitcher
-			activeName={activeReportPeriod._GradePeriod}
-			activeIndex={activeReportPeriodIndex}
-			reportPeriods={gradebookCatalog?.canonicalReportPeriodEntries ??
-				gradebook.ReportingPeriods.ReportPeriod}
-			switchReportPeriod={changeReportPeriod}
-			hasReportPeriodCached={(index) => gradebookCatalog?.recordCache[index] !== undefined}
-			disabled={gradebookCatalog?.loadingIndex !== undefined}
-			defaultIndex={gradebookCatalog?.defaultIndex}
-		/>
+<AppPageShell>
+	<AppPageHeader
+		eyebrow="Current term"
+		title="Grades"
+		description="Your current classes, official grades, teachers, and rooms."
+	/>
 
-		{#if hasNoGrades}
-			<Alert.Root class="mx-auto flex w-fit items-center">
-				<CircleXIcon class="shrink-0" />
-				It looks like you don't have any grades yet in {activeReportPeriod._GradePeriod}.
-				{#if activeReportPeriodIndex > 0}
-					<Button
-						onclick={() => void changeReportPeriod(activeReportPeriodIndex - 1)}
-						variant="outline"
-					>
-						View {getReportPeriodName(activeReportPeriodIndex - 1)}
+	{#if activeReportPeriod && activeReportPeriodIndex !== undefined && gradebook}
+		<div class="space-y-5">
+			<ReportPeriodSwitcher
+				activeName={activeReportPeriod._GradePeriod}
+				activeIndex={activeReportPeriodIndex}
+				reportPeriods={gradebookCatalog?.canonicalReportPeriodEntries ??
+					gradebook.ReportingPeriods.ReportPeriod}
+				switchReportPeriod={changeReportPeriod}
+				hasReportPeriodCached={(index) => gradebookCatalog?.recordCache[index] !== undefined}
+				disabled={gradebookCatalog?.loadingIndex !== undefined}
+				defaultIndex={gradebookCatalog?.defaultIndex}
+			/>
+
+			{#if hasNoGrades}
+				<Alert.Root class="mx-auto flex w-fit items-center">
+					<CircleXIcon class="shrink-0" />
+					It looks like you don't have any grades yet in {activeReportPeriod._GradePeriod}.
+					{#if activeReportPeriodIndex > 0}
+						<Button
+							onclick={() => void changeReportPeriod(activeReportPeriodIndex - 1)}
+							variant="outline"
+						>
+							View {getReportPeriodName(activeReportPeriodIndex - 1)}
+						</Button>
+					{/if}
+				</Alert.Root>
+			{/if}
+
+			<ol class="flex flex-col items-center gap-4">
+				{#each courses as course (course._CourseID)}
+					<li class="w-full max-w-3xl">
+						<CourseButton
+							courseId={course._CourseID}
+							name={removeCourseType(course._CourseName)}
+							period={course._Period}
+							room={course._Room}
+							teacher={course._Staff}
+							teacherEmail={course._StaffEMail}
+							unseenAssignmentsCount={getCourseUnseenAssignmentsCount(course)}
+							grade={getCourseGrade(course)}
+						/>
+					</li>
+				{/each}
+			</ol>
+
+			{#if courses && totalUnseenAssignments > 0}
+				<Alert.Root class="mx-auto flex w-fit items-center gap-4 shadow-lg/30">
+					<Alert.Title class="tracking-normal">
+						{totalUnseenAssignments} new assignment{totalUnseenAssignments === 1 ? '' : 's'}
+					</Alert.Title>
+					<Button variant="outline" onclick={() => courses.forEach(clearCourseUnseenAssignments)}>
+						Mark as seen
 					</Button>
-				{/if}
-			</Alert.Root>
-		{/if}
-
-		<ol class="flex flex-col items-center gap-4">
-			{#each courses as course (course._CourseID)}
-				<li class="w-full max-w-3xl">
-					<CourseButton
-						courseId={course._CourseID}
-						name={removeCourseType(course._CourseName)}
-						period={course._Period}
-						room={course._Room}
-						teacher={course._Staff}
-						teacherEmail={course._StaffEMail}
-						unseenAssignmentsCount={getCourseUnseenAssignmentsCount(course)}
-						grade={getCourseGrade(course)}
-					/>
-				</li>
-			{/each}
-		</ol>
-
-		{#if courses && totalUnseenAssignments > 0}
-			<Alert.Root class="mx-auto flex w-fit items-center gap-4 shadow-lg/30">
-				<Alert.Title class="tracking-normal">
-					{totalUnseenAssignments} new assignment{totalUnseenAssignments === 1 ? '' : 's'}
-				</Alert.Title>
-				<Button variant="outline" onclick={() => courses.forEach(clearCourseUnseenAssignments)}>
-					Mark as seen
-				</Button>
-			</Alert.Root>
-		{/if}
-	</div>
-{/if}
+				</Alert.Root>
+			{/if}
+		</div>
+	{/if}
+</AppPageShell>

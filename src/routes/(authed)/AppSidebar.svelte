@@ -15,6 +15,7 @@
 	import CircleUserIcon from '@lucide/svelte/icons/circle-user';
 	import EllipsisVerticalIcon from '@lucide/svelte/icons/ellipsis-vertical';
 	import FolderOpenIcon from '@lucide/svelte/icons/folder-open';
+	import HouseIcon from '@lucide/svelte/icons/house';
 	import InboxIcon from '@lucide/svelte/icons/inbox';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import MessageSquareWarningIcon from '@lucide/svelte/icons/message-square-warning';
@@ -54,6 +55,11 @@
 	}
 
 	const data = {
+		dashboard: {
+			title: 'Dashboard',
+			url: '/dashboard',
+			icon: HouseIcon
+		},
 		grades: {
 			title: 'Grades',
 			url: '/grades',
@@ -145,6 +151,8 @@
 
 	<Sidebar.Content>
 		<Sidebar.Menu>
+			{@render menuItem(data.dashboard)}
+
 			<Sidebar.MenuItem>
 				<Sidebar.MenuButton class="h-10 text-base" isActive={isRouteActive(data.grades.url)}>
 					{#snippet child({ props })}

@@ -2,6 +2,8 @@
 	import { browser } from '$app/environment';
 	import { acc } from '$lib/account.svelte';
 	import { brand } from '$lib/brand';
+	import AppPageHeader from '$lib/components/AppPageHeader.svelte';
+	import AppPageShell from '$lib/components/AppPageShell.svelte';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
 	import RecordLoadFailure from '$lib/components/RecordLoadFailure.svelte';
 	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
@@ -75,58 +77,66 @@
 	<title>Mail - {brand}</title>
 </svelte:head>
 
-{#if !mailDataState.loaded && !mailDataState.data}
-	<LoadingBanner>Loading mail...</LoadingBanner>
-{/if}
-
-{#if openingMessageId !== undefined}
-	<LoadingBanner>Opening message…</LoadingBanner>
-{/if}
-
-{#if mailDataState.lastRefresh !== undefined}
-	<RefreshIndicator
-		canRefresh={!mailDataState.refreshing}
-		lastRefresh={mailDataState.lastRefresh}
-		refreshing={mailDataState.refreshing}
-		refresh={() => loadMailData(true)}
+<AppPageShell>
+	<AppPageHeader
+		eyebrow="StudentVUE inbox"
+		title="Mail"
+		description="Messages, links, and attachments sent through your school portal."
 	/>
-{/if}
 
-{#if mailDataState.error}
-	<RecordLoadFailure
-		label="mail"
-		error={mailDataState.error}
-		refreshing={mailDataState.refreshing}
-		retry={() => loadMailData(true)}
-	/>
-{/if}
-
-{#if mailDataState.data}
-	{#if allMessages.length > 0}
-		<ol class="m-4 flex flex-col items-center gap-4" aria-label="Inbox messages">
-			{#each allMessages as message (message._SMMessageGU)}
-				<li class="w-full max-w-3xl" ontouchend={() => (touchscreen = true)}>
-					<MessageButton
-						{message}
-						disabled={openingMessageId !== undefined}
-						onclick={() => void openMessage(message)}
-					/>
-				</li>
-			{/each}
-		</ol>
-	{:else}
-		<p class="text-muted-foreground mx-auto my-16 text-center" role="status">
-			Your inbox is empty.
-		</p>
+	{#if !mailDataState.loaded && !mailDataState.data}
+		<LoadingBanner>Loading mail...</LoadingBanner>
 	{/if}
 
-	{#if openedMessage}
-		<MessageDialog
-			bind:open={messageOpen}
-			message={openedMessage}
-			content={openedMessageContent}
-			links={openedMessageLinks}
-			{touchscreen}
+	{#if openingMessageId !== undefined}
+		<LoadingBanner>Opening message…</LoadingBanner>
+	{/if}
+
+	{#if mailDataState.lastRefresh !== undefined}
+		<RefreshIndicator
+			canRefresh={!mailDataState.refreshing}
+			lastRefresh={mailDataState.lastRefresh}
+			refreshing={mailDataState.refreshing}
+			refresh={() => loadMailData(true)}
 		/>
 	{/if}
-{/if}
+
+	{#if mailDataState.error}
+		<RecordLoadFailure
+			label="mail"
+			error={mailDataState.error}
+			refreshing={mailDataState.refreshing}
+			retry={() => loadMailData(true)}
+		/>
+	{/if}
+
+	{#if mailDataState.data}
+		{#if allMessages.length > 0}
+			<ol class="flex flex-col items-center gap-3" aria-label="Inbox messages">
+				{#each allMessages as message (message._SMMessageGU)}
+					<li class="w-full max-w-3xl" ontouchend={() => (touchscreen = true)}>
+						<MessageButton
+							{message}
+							disabled={openingMessageId !== undefined}
+							onclick={() => void openMessage(message)}
+						/>
+					</li>
+				{/each}
+			</ol>
+		{:else}
+			<p class="text-muted-foreground mx-auto my-16 text-center" role="status">
+				Your inbox is empty.
+			</p>
+		{/if}
+
+		{#if openedMessage}
+			<MessageDialog
+				bind:open={messageOpen}
+				message={openedMessage}
+				content={openedMessageContent}
+				links={openedMessageLinks}
+				{touchscreen}
+			/>
+		{/if}
+	{/if}
+</AppPageShell>

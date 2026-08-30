@@ -15,9 +15,7 @@
 		style="font-family: 'Space Grotesk Variable', sans-serif"
 	>
 		<img src="/favicon.svg" class="size-[1.875rem] shrink-0" alt="" />
-		<span class="truncate"
-			>{brand.slice(0, 5)}<span class="text-[#4db6f5]">{brand.slice(5)}</span></span
-		>
+		<span class="truncate text-[#e4eef8]">{brand}</span>
 	</a>
 	<Button
 		href={backHref}

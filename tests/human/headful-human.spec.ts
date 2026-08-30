@@ -685,9 +685,11 @@ test('6b — a student can read privacy information and reach feedback', async (
 	expect(await privacyLink.count()).toBe(1);
 	await privacyLink.click();
 	await expect(page).toHaveURL(/\/privacy$/);
-	await expect(page.getByText('About the privacy of Grademaxxing', { exact: true })).toBeVisible();
 	await expect(
-		page.getByText('The password is not written to disk', { exact: false })
+		page.getByText('How Grademaxxing handles your information', { exact: true })
+	).toBeVisible();
+	await expect(
+		page.getByText('Your password is not written to disk', { exact: false })
 	).toBeVisible();
 	await page.goBack();
 	await expect(page).toHaveURL(/\/studentinfo$/);
@@ -700,7 +702,7 @@ test('6b — a student can read privacy information and reach feedback', async (
 	await expect(page.getByRole('heading', { name: 'Feedback', exact: true })).toBeVisible();
 	await expect(
 		page.getByText(
-			'Support contact information will be published when this deployment is released.',
+			'The page is ready for a support channel, but it will not pretend to send a message until a real feedback destination is configured.',
 			{
 				exact: true
 			}

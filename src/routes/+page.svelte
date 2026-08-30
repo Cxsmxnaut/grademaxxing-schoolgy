@@ -20,7 +20,7 @@
 
 	if (browser && localStorage.getItem(LocalStorageKey.token) !== null) {
 		if (!acc.studentAccount) loadStudentAccount();
-		void goto('/grades');
+		void goto('/dashboard');
 	}
 
 	const features = [

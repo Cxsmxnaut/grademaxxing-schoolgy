@@ -4,8 +4,10 @@
 	import { page } from '$app/state';
 	import { env } from '$env/dynamic/public';
 	import { LocalStorageKey } from '$lib';
+	import { brand } from '$lib/brand';
+	import AuthPanelHeader from '$lib/components/auth/AuthPanelHeader.svelte';
+	import AuthShell from '$lib/components/auth/AuthShell.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import * as Card from '$lib/components/ui/card';
 
 	let sourceOrigin: string | null | undefined = $state(undefined);
 
@@ -40,13 +42,17 @@
 	}
 </script>
 
-<div class="flex min-h-screen min-w-screen items-center justify-center">
-	<Card.Root>
-		<Card.Header>
-			<Card.Title>Migrate User Data</Card.Title>
-		</Card.Header>
+<svelte:head><title>Import Data - {brand}</title></svelte:head>
 
-		<Card.Content class="space-y-4">
+<AuthShell promo={false}>
+	<section
+		class="w-full max-w-[35rem] rounded-2xl border border-[rgba(228,238,248,0.1)] bg-[#0d2033] p-6 text-[#e4eef8] shadow-xl sm:p-9"
+	>
+		<AuthPanelHeader />
+		<p class="mb-2 text-xs font-bold tracking-[0.14em] text-[#4db6f5] uppercase">Data import</p>
+		<h1 class="mb-5 text-3xl font-bold tracking-tight">Move your local app data</h1>
+
+		<div class="space-y-4 text-sm leading-6 text-[#8fa9c2]">
 			<p>
 				{#if env.PUBLIC_ALLOWED_MIGRATION_ORIGINS !== undefined}
 					{#if sourceOrigin !== null}
@@ -62,13 +68,13 @@
 			{#if env.PUBLIC_ALLOWED_MIGRATION_ORIGINS !== undefined && sourceOrigin !== null && hasExistingData}
 				<p>You already have data here. Would you like to overwrite it?</p>
 
-				<div class="flex gap-2">
-					<Button href="/grades" variant="outline" class="flex-1">Cancel</Button>
+				<div class="flex gap-2 pt-2">
+					<Button href="/dashboard" variant="outline" class="flex-1">Cancel</Button>
 					<Button onclick={startMigration} variant="destructive" class="flex-1 cursor-pointer">
 						Overwrite
 					</Button>
 				</div>
 			{/if}
-		</Card.Content>
-	</Card.Root>
-</div>
+		</div>
+	</section>
+</AuthShell>

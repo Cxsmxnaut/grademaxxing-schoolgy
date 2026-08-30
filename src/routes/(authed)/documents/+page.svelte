@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { bgColorVariants } from '$lib';
 	import { brand } from '$lib/brand';
+	import AppPageHeader from '$lib/components/AppPageHeader.svelte';
+	import AppPageShell from '$lib/components/AppPageShell.svelte';
 	import DateBadge from '$lib/components/DateBadge.svelte';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
 	import RecordLoadFailure from '$lib/components/RecordLoadFailure.svelte';
@@ -52,59 +54,69 @@
 	<title>Documents - {brand}</title>
 </svelte:head>
 
-{#if !documentsState.loaded}
-	<LoadingBanner>Loading documents...</LoadingBanner>
-{/if}
-
-{#if documentsState.lastRefresh !== undefined}
-	<RefreshIndicator
-		canRefresh={documentsState.loaded}
-		lastRefresh={documentsState.lastRefresh}
-		refreshing={documentsState.refreshing}
-		refresh={() => loadDocuments(true)}
+<AppPageShell>
+	<AppPageHeader
+		eyebrow="School record"
+		title="Documents"
+		description="Report cards, transcripts, and other files available through StudentVUE."
 	/>
-{/if}
 
-{#if documentsState.loaded && documentsState.error}
-	<RecordLoadFailure
-		label="documents"
-		error={documentsState.error}
-		refreshing={documentsState.refreshing}
-		retry={() => loadDocuments(true)}
-	/>
-{/if}
+	{#if !documentsState.loaded}
+		<LoadingBanner>Loading documents...</LoadingBanner>
+	{/if}
 
-{#if documentsState.data}
-	<Tabs.Root value="all" class="mx-4 gap-4">
-		<Tabs.List class="mx-auto h-12 max-w-full justify-start overflow-x-auto">
-			<Tabs.Trigger value="all">All</Tabs.Trigger>
+	{#if documentsState.lastRefresh !== undefined}
+		<RefreshIndicator
+			canRefresh={documentsState.loaded}
+			lastRefresh={documentsState.lastRefresh}
+			refreshing={documentsState.refreshing}
+			refresh={() => loadDocuments(true)}
+		/>
+	{/if}
+
+	{#if documentsState.loaded && documentsState.error}
+		<RecordLoadFailure
+			label="documents"
+			error={documentsState.error}
+			refreshing={documentsState.refreshing}
+			retry={() => loadDocuments(true)}
+		/>
+	{/if}
+
+	{#if documentsState.data}
+		<Tabs.Root value="all" class="gap-4">
+			<Tabs.List class="mx-auto h-12 max-w-full justify-start overflow-x-auto">
+				<Tabs.Trigger value="all">All</Tabs.Trigger>
+
+				{#each documentCategories as category (category)}
+					<Tabs.Trigger value={category}>
+						<div
+							class={[bgColorVariants[getDocumentColor(category)], 'h-2 w-2 rounded-full']}
+						></div>
+						{category}
+					</Tabs.Trigger>
+				{/each}
+			</Tabs.List>
+
+			<Tabs.Content value="all">
+				{@render documentsList(documentDatas)}
+			</Tabs.Content>
 
 			{#each documentCategories as category (category)}
-				<Tabs.Trigger value={category}>
-					<div class={[bgColorVariants[getDocumentColor(category)], 'h-2 w-2 rounded-full']}></div>
-					{category}
-				</Tabs.Trigger>
+				<Tabs.Content value={category}>
+					{@render documentsList(
+						documentDatas.filter((documentData) => documentData._DocumentType === category),
+						false
+					)}
+				</Tabs.Content>
 			{/each}
-		</Tabs.List>
-
-		<Tabs.Content value="all">
-			{@render documentsList(documentDatas)}
-		</Tabs.Content>
-
-		{#each documentCategories as category (category)}
-			<Tabs.Content value={category}>
-				{@render documentsList(
-					documentDatas.filter((documentData) => documentData._DocumentType === category),
-					false
-				)}
-			</Tabs.Content>
-		{/each}
-	</Tabs.Root>
-{:else if documentsState.loaded && !documentsState.error}
-	<p class="text-muted-foreground mx-auto my-16 text-center" role="status">
-		No student documents are available yet.
-	</p>
-{/if}
+		</Tabs.Root>
+	{:else if documentsState.loaded && !documentsState.error}
+		<p class="text-muted-foreground mx-auto my-16 text-center" role="status">
+			No student documents are available yet.
+		</p>
+	{/if}
+</AppPageShell>
 
 {#snippet documentsList(documents: StudentDocumentData[], showCategory = true)}
 	<ol class="flex flex-col items-center gap-4">

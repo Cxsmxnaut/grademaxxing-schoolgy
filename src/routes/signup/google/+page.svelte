@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { brand } from '$lib/brand';
+	import AuthPanelHeader from '$lib/components/auth/AuthPanelHeader.svelte';
 	import { Button, buttonVariants } from '$lib/components/ui/button';
-	import * as Card from '$lib/components/ui/card';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
 	import InfoIcon from '@lucide/svelte/icons/info';
@@ -21,89 +21,91 @@
 	});
 </script>
 
-<Card.Root class="max-w-sm">
-	<Card.Header>
-		<Card.Description>Sign up for {brand}</Card.Description>
-		<Card.Title>Create a password</Card.Title>
-	</Card.Header>
+<AuthPanelHeader backHref="/signup" />
 
-	<Card.Content class="text-tertiary-foreground space-y-4 text-sm">
-		<p>
-			{brand} isn't able to use Sign in with Google to sign you in. You'll need to create a password for
-			StudentVUE that {brand} can sign you in with instead.
-		</p>
+<h1 class="mb-7 text-[1.75rem] leading-tight font-bold tracking-[-0.025em]">
+	Create your StudentVUE password
+</h1>
 
-		<p>You'll still be able to use Sign in with Google with StudentVUE afterwards.</p>
+<div class="space-y-5 text-sm leading-6 text-[#8fa9c2]">
+	<p>
+		{brand} isn't able to use Sign in with Google to sign you in. You'll need to create a password for
+		StudentVUE that {brand} can sign you in with instead.
+	</p>
 
-		<Dialog.Root>
-			<Dialog.Trigger
-				class={twMerge(buttonVariants({ variant: 'outline' }), 'mx-auto flex items-center gap-2')}
-			>
-				<InfoIcon class="h-4 w-4" /> How to set your StudentVUE password
-			</Dialog.Trigger>
+	<p>You'll still be able to use Sign in with Google with StudentVUE afterwards.</p>
 
-			<Dialog.Content>
-				<Dialog.Header>
-					<Dialog.Title>Password Reset Help</Dialog.Title>
-					<Dialog.Description>
-						The exact link to reset your password depends on your district. If you don't know how to
-						find it, try these steps:
-					</Dialog.Description>
-				</Dialog.Header>
+	<Dialog.Root>
+		<Dialog.Trigger
+			class={twMerge(
+				buttonVariants(),
+				'flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#4db6f5] font-semibold text-[#081522] hover:bg-[#6fc4f7]'
+			)}
+		>
+			<InfoIcon class="h-4 w-4" /> Set your StudentVUE password
+		</Dialog.Trigger>
 
-				<h4>Find automatically</h4>
+		<Dialog.Content>
+			<Dialog.Header>
+				<Dialog.Title>Password Reset Help</Dialog.Title>
+				<Dialog.Description>
+					The exact link to reset your password depends on your district. If you don't know how to
+					find it, try these steps:
+				</Dialog.Description>
+			</Dialog.Header>
 
-				<p class="text-muted-foreground text-sm">
-					Paste a link to any page on your district's StudentVUE website and we'll take you to the
-					password reset page:
-				</p>
+			<h4>Find automatically</h4>
 
-				<div class="flex items-center gap-2">
-					<Input
-						type="url"
-						placeholder="https://[your-district]-psv.edupoint.com/Home_PXP2.aspx"
-						bind:value={pastedUrl}
-					/>
-					<Button href={convertedUrl} disabled={convertedUrl === undefined} target="_blank">
-						Open
-					</Button>
+			<p class="text-muted-foreground text-sm">
+				Paste a link to any page on your district's StudentVUE website and we'll take you to the
+				password reset page:
+			</p>
+
+			<div class="flex items-center gap-2">
+				<Input
+					type="url"
+					placeholder="https://[your-district]-psv.edupoint.com/Home_PXP2.aspx"
+					bind:value={pastedUrl}
+				/>
+				<Button href={convertedUrl} disabled={convertedUrl === undefined} target="_blank">
+					Open
+				</Button>
+			</div>
+
+			<div class="items-center gap-4 md:flex">
+				<div>
+					<h4 class="mb-4">Find manually</h4>
+					<ol class="text-muted-foreground list-inside list-decimal space-y-4 text-sm">
+						<li>
+							On your district's StudentVUE website, go to the login page (you may need to
+							temporarily log out to get there).
+						</li>
+						<li>Open the "More Options" dropdown.</li>
+						<li>
+							Click "Forgot Password". (It does not matter whether you had a password previously.)
+						</li>
+					</ol>
 				</div>
 
-				<div class="items-center gap-4 md:flex">
-					<div>
-						<h4 class="mb-4">Find manually</h4>
-						<ol class="text-muted-foreground list-inside list-decimal space-y-4 text-sm">
-							<li>
-								On your district's StudentVUE website, go to the login page (you may need to
-								temporarily log out to get there).
-							</li>
-							<li>Open the "More Options" dropdown.</li>
-							<li>
-								Click "Forgot Password". (It does not matter whether you had a password previously.)
-							</li>
-						</ol>
-					</div>
+				<img
+					src="/password-reset-location.png"
+					class="mx-auto mt-4 max-h-96 md:h-48"
+					alt="Screenshot of the StudentVUE login page showing the 'Forgot Password' button"
+				/>
+			</div>
+		</Dialog.Content>
+	</Dialog.Root>
 
-					<img
-						src="/password-reset-location.png"
-						class="mx-auto mt-4 max-h-96 md:h-48"
-						alt="Screenshot of the StudentVUE login page showing the 'Forgot Password' button"
-					/>
-				</div>
-			</Dialog.Content>
-		</Dialog.Root>
+	<p>
+		You should receive an email that will contain a link to set your password.
+		<span class="font-bold">This may take a few minutes.</span>
+		Once you've created your password, you can
+		<a href="/login" class="font-medium text-[#4db6f5] hover:underline">log in</a>.
+	</p>
 
-		<p>
-			You should receive an email that will contain a link to set your password.
-			<span class="font-bold">This may take a few minutes.</span>
-			Once you've created your password, you can
-			<a href="/login" class="text-foreground underline">log in</a>.
-		</p>
-
-		<p>
-			If you never receive an email the first time, wait a while and try again. Some students have
-			reported needing to try several times over the course of a few days before they received the
-			email.
-		</p>
-	</Card.Content>
-</Card.Root>
+	<p>
+		If you never receive an email the first time, wait a while and try again. Some students have
+		reported needing to try several times over the course of a few days before they received the
+		email.
+	</p>
+</div>

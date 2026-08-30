@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { fullDateFormatter, removeCourseType } from '$lib';
 	import { brand } from '$lib/brand';
+	import AppPageHeader from '$lib/components/AppPageHeader.svelte';
+	import AppPageShell from '$lib/components/AppPageShell.svelte';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
 	import RecordLoadFailure from '$lib/components/RecordLoadFailure.svelte';
 	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
@@ -88,62 +90,70 @@
 	<title>Attendance - {brand}</title>
 </svelte:head>
 
-{#if !attendanceState.loaded}
-	<LoadingBanner>Loading attendance...</LoadingBanner>
-{:else if attendanceState.refreshing}
-	<LoadingBanner>Refreshing attendance...</LoadingBanner>
-{/if}
-
-{#if attendanceState.lastRefresh !== undefined}
-	<RefreshIndicator
-		canRefresh={attendanceState.loaded}
-		lastRefresh={attendanceState.lastRefresh}
-		refreshing={attendanceState.refreshing}
-		refresh={() => loadAttendance(true)}
+<AppPageShell>
+	<AppPageHeader
+		eyebrow="School record"
+		title="Attendance"
+		description="Review absences, tardies, activities, dates, and class periods."
 	/>
-{/if}
 
-{#if attendanceState.loaded && attendanceState.error}
-	<RecordLoadFailure
-		label="attendance"
-		error={attendanceState.error}
-		refreshing={attendanceState.refreshing}
-		retry={() => loadAttendance(true)}
-	/>
-{/if}
+	{#if !attendanceState.loaded}
+		<LoadingBanner>Loading attendance...</LoadingBanner>
+	{:else if attendanceState.refreshing}
+		<LoadingBanner>Refreshing attendance...</LoadingBanner>
+	{/if}
 
-{#if attendanceState.data}
-	<div class="mx-2 mt-8 md:mx-4">
-		{#if attendanceRows.length > 0}
-			<Accordion.Root type="single" class="mx-auto max-w-2xl">
-				{#each attendanceRows as record (`${record.date}-${record.type}`)}
-					<Accordion.Item>
-						<Accordion.Trigger>
-							{attendanceDate(record.date)}{#if record.note}
-								: {record.note}
-							{/if}
+	{#if attendanceState.lastRefresh !== undefined}
+		<RefreshIndicator
+			canRefresh={attendanceState.loaded}
+			lastRefresh={attendanceState.lastRefresh}
+			refreshing={attendanceState.refreshing}
+			refresh={() => loadAttendance(true)}
+		/>
+	{/if}
 
-							<Badge color={getAbsenceColor(record.type)} class="ml-auto">{record.type}</Badge>
-						</Accordion.Trigger>
+	{#if attendanceState.loaded && attendanceState.error}
+		<RecordLoadFailure
+			label="attendance"
+			error={attendanceState.error}
+			refreshing={attendanceState.refreshing}
+			retry={() => loadAttendance(true)}
+		/>
+	{/if}
 
-						<Accordion.Content>
-							{#if record.periods.length > 0}
-								<ol class="text-muted-foreground space-y-2">
-									{#each record.periods.filter((course) => course._Name) as period (`${period._Number}-${period._Course}`)}
-										<li>{removeCourseType(period._Course)}: {period._Name}</li>
-									{/each}
-								</ol>
-							{:else}
-								<p class="text-muted-foreground">{record.reason || record.type}</p>
-							{/if}
-						</Accordion.Content>
-					</Accordion.Item>
-				{/each}
-			</Accordion.Root>
-		{:else}
-			<Alert class="mx-auto w-fit">
-				<CircleCheckIcon /> Looks like you haven't had any attendance events yet.
-			</Alert>
-		{/if}
-	</div>
-{/if}
+	{#if attendanceState.data}
+		<div class="mt-8">
+			{#if attendanceRows.length > 0}
+				<Accordion.Root type="single" class="mx-auto max-w-2xl">
+					{#each attendanceRows as record (`${record.date}-${record.type}`)}
+						<Accordion.Item>
+							<Accordion.Trigger>
+								{attendanceDate(record.date)}{#if record.note}
+									: {record.note}
+								{/if}
+
+								<Badge color={getAbsenceColor(record.type)} class="ml-auto">{record.type}</Badge>
+							</Accordion.Trigger>
+
+							<Accordion.Content>
+								{#if record.periods.length > 0}
+									<ol class="text-muted-foreground space-y-2">
+										{#each record.periods.filter((course) => course._Name) as period (`${period._Number}-${period._Course}`)}
+											<li>{removeCourseType(period._Course)}: {period._Name}</li>
+										{/each}
+									</ol>
+								{:else}
+									<p class="text-muted-foreground">{record.reason || record.type}</p>
+								{/if}
+							</Accordion.Content>
+						</Accordion.Item>
+					{/each}
+				</Accordion.Root>
+			{:else}
+				<Alert class="mx-auto w-fit">
+					<CircleCheckIcon /> Looks like you haven't had any attendance events yet.
+				</Alert>
+			{/if}
+		</div>
+	{/if}
+</AppPageShell>
