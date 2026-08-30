@@ -159,12 +159,12 @@
 <AuthShell promo>
 	<form
 		onsubmit={login}
-		class="min-h-[41.375rem] w-full max-w-[25rem] rounded-2xl border border-[#1d374c] bg-[#0d2033] px-5 pt-[1.5625rem] pb-[0.9375rem] shadow-[0_28px_80px_rgba(0,0,0,0.28)] sm:min-h-[42.57rem] sm:p-9"
+		class="min-h-[41.375rem] w-full max-w-[25rem] rounded-2xl border border-[rgba(228,238,248,0.08)] bg-[#0d2033] px-5 pt-[1.5625rem] pb-[0.9375rem] shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)] sm:min-h-[42.57rem] sm:p-9"
 	>
 		<AuthPanelHeader />
 
 		<h1
-			class="text-[1.4375rem] leading-[2.15625rem] font-bold tracking-[-0.025em] text-[#e4eef8]"
+			class="text-[1.4375rem] leading-[2.15625rem] font-bold tracking-[-0.01em] text-[#e4eef8]"
 			style="font-family: 'Space Grotesk Variable', sans-serif"
 		>
 			Sign in to {brand}
@@ -189,9 +189,8 @@
 					id="username"
 					type="text"
 					bind:value={username}
-					placeholder="student@school.net"
 					autocomplete="username"
-					class="h-[2.625rem] rounded-lg border-[#294258] bg-[#081522] px-3 text-sm text-[#e4eef8] shadow-none placeholder:text-[#68839c] focus-visible:border-[#55baf3] focus-visible:ring-[#55baf3]/25"
+					class="h-[2.625rem] rounded-[0.5rem] border-[rgba(228,238,248,0.16)] bg-[#081522] px-3 py-[0.6875rem] text-sm text-[#e4eef8] shadow-none focus-visible:border-[#4db6f5] focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4db6f5]"
 					disabled={!interactive}
 					required
 				/>
@@ -209,7 +208,7 @@
 					type="password"
 					bind:value={password}
 					autocomplete="current-password"
-					class="h-[2.625rem] rounded-lg border-[#294258] bg-[#081522] px-3 text-sm text-[#e4eef8] shadow-none focus-visible:border-[#55baf3] focus-visible:ring-[#55baf3]/25"
+					class="h-[2.625rem] rounded-[0.5rem] border-[rgba(228,238,248,0.16)] bg-[#081522] px-3 py-[0.6875rem] text-sm text-[#e4eef8] shadow-none focus-visible:border-[#4db6f5] focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4db6f5]"
 					disabled={!interactive}
 					required
 				/>
@@ -217,7 +216,7 @@
 
 			<Button
 				type="submit"
-				class="mt-1.5 h-[2.6875rem] w-full rounded-lg bg-[#4db6f5] text-[0.90625rem] font-semibold text-[#06131f] shadow-none transition-none hover:bg-[#69c4f7]"
+				class="mt-1.5 h-[2.6875rem] w-full rounded-[0.5rem] border border-[#4db6f5] bg-[#4db6f5] text-[0.90625rem] font-semibold text-[#06131f] shadow-none transition-none hover:brightness-[1.08]"
 				disabled={!interactive || loggingIn}
 			>
 				{loggingIn ? 'Logging in…' : 'Log in'}
@@ -234,7 +233,7 @@
 				password, you may need to
 				<a href="/signup" class="font-medium text-[#4db6f5] hover:text-[#79cbf8]">create one</a>.
 			</p>
-			<p class="mt-[0.875rem] text-xs leading-[1.125rem]">
+			<p class="mt-[0.875rem] text-xs leading-[1.125rem] text-[#7d98b1]">
 				<a href="/privacy" class="text-[#4db6f5] hover:text-[#79cbf8]">Privacy</a>
 			</p>
 		</div>

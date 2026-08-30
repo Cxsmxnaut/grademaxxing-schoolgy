@@ -128,14 +128,14 @@
 	>
 	{#if !editing && selectedDistrict}
 		<div
-			class="flex h-12 items-center rounded-lg border border-[#4db6f5] bg-[#173a55] px-3 text-sm"
+			class="flex h-12 items-center gap-2.5 rounded-[0.625rem] border border-[#4db6f5] bg-[rgba(77,182,245,0.13)] px-3.5 py-3 text-[0.90625rem] leading-[1.5] font-bold text-[#4db6f5]"
 		>
-			<span class="min-w-0 flex-1 truncate font-semibold text-[#4db6f5]">
+			<span class="min-w-0 flex-1 truncate">
 				{selectedDistrict.name}
 			</span>
 			<button
 				type="button"
-				class="ml-3 shrink-0 text-[0.78125rem] font-semibold text-[#8fa9c2] underline underline-offset-2 hover:text-[#e4eef8]"
+				class="shrink-0 text-[0.78125rem] leading-normal font-semibold text-[#8fa9c2] underline underline-offset-2 hover:text-[#e4eef8]"
 				{disabled}
 				onclick={async () => {
 					editing = true;
@@ -150,7 +150,7 @@
 		</div>
 	{:else}
 		<div
-			class="flex h-12 items-center overflow-hidden rounded-lg border border-[#294258] bg-[#081522] focus-within:border-[#55baf3] focus-within:ring-2 focus-within:ring-[#55baf3]/25"
+			class="flex h-12 items-center overflow-hidden rounded-lg border border-[rgba(228,238,248,0.16)] bg-[#081522] focus-within:border-[#4db6f5] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#4db6f5]"
 		>
 			<input
 				id="district-search"
