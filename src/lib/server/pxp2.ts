@@ -14,6 +14,12 @@ const knownStudentVueTargets = DISTRICTS.map((district) => {
 
 type Credentials = { username: string; password: string };
 
+export type Pxp2SessionState = {
+	baseUrl: string;
+	cookies: Record<string, string>;
+	messageToken?: string;
+};
+
 export type PortalDocument = { id: string; title: string; date: string; category: string };
 export type PortalFile = { base64: string; mimeType: string; fileName: string };
 export type PortalCalendarEvent = {
@@ -138,6 +144,38 @@ export class Pxp2Client {
 		const client = new Pxp2Client(normalizeDistrictUrl(districtUrl));
 		await client.authenticate(credentials);
 		return client;
+	}
+
+	static resume(state: Pxp2SessionState) {
+		const baseUrl = normalizeDistrictUrl(state.baseUrl);
+		const client = new Pxp2Client(baseUrl);
+		const entries = Object.entries(state.cookies ?? {});
+		if (entries.length === 0 || entries.length > 50)
+			throw new Error('StudentVUE session cookie state is invalid.');
+		for (const [name, value] of entries) {
+			if (
+				!/^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(name) ||
+				typeof value !== 'string' ||
+				value.length > 4_096 ||
+				/[;\r\n]/.test(value)
+			)
+				throw new Error('StudentVUE session cookie state is invalid.');
+			client.cookies.set(name, value);
+		}
+		if (state.messageToken !== undefined) {
+			if (typeof state.messageToken !== 'string' || state.messageToken.length > 4_096)
+				throw new Error('StudentVUE message session state is invalid.');
+			client.messageToken = state.messageToken;
+		}
+		return client;
+	}
+
+	exportSessionState(): Pxp2SessionState {
+		return {
+			baseUrl: this.baseUrl.toString(),
+			cookies: Object.fromEntries(this.cookies),
+			...(this.messageToken ? { messageToken: this.messageToken } : {})
+		};
 	}
 
 	async gradebook(reportPeriod?: number): Promise<PortalGradebook> {

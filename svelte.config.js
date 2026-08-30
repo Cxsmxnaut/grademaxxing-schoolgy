@@ -1,11 +1,11 @@
 import adapterNode from '@sveltejs/adapter-node';
+import adapterVercel from '@sveltejs/adapter-vercel';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
-if (process.env.VERCEL === '1') {
-	throw new Error(
-		'Grademaxxing requires a long-lived Node process because StudentVUE sessions are held in memory. Serverless Vercel deployment is intentionally disabled.'
-	);
-}
+const adapter =
+	process.env.VERCEL === '1'
+		? adapterVercel({ maxDuration: 300, runtime: 'nodejs24.x' })
+		: adapterNode();
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -35,7 +35,7 @@ const config = {
 		// adapter-auto only supports some environments, see https://kit.svelte.dev/docs/adapter-auto for a list.
 		// If your environment is not supported or you settled on a specific environment, switch out the adapter.
 		// See https://kit.svelte.dev/docs/adapters for more information about adapters.
-		adapter: adapterNode()
+		adapter
 	}
 };
 

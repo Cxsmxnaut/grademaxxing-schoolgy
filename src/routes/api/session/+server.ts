@@ -5,7 +5,8 @@ import {
 	deleteStudentSession,
 	sessionCookie,
 	sessionMaxAge,
-	StudentSessionCapacityError
+	StudentSessionCapacityError,
+	StudentSessionConfigurationError
 } from '$lib/server/student-session';
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
@@ -92,6 +93,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 			if (cause instanceof Pxp2InputError) throw error(400, cause.message);
 			if (cause instanceof Pxp2TimeoutError) throw error(504, cause.message);
 			if (cause instanceof StudentSessionCapacityError) throw error(503, cause.message);
+			if (cause instanceof StudentSessionConfigurationError) throw error(503, cause.message);
 			throw error(502, cause instanceof Error ? cause.message : 'StudentVUE sign-in failed.');
 		}
 	} finally {

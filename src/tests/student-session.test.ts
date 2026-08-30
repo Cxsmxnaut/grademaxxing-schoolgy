@@ -1,6 +1,9 @@
+import { Pxp2Client } from '$lib/server/pxp2';
 import {
+	getStudentSession,
 	requireStudentSessionContext,
 	runStudentOperation,
+	serializeStudentSession,
 	StudentOperationAbortedError,
 	StudentOperationGate,
 	StudentServiceBusyError,
@@ -16,6 +19,46 @@ function fakeSession(): Session {
 		queuedOperations: 0
 	} as Session;
 }
+
+function resumableSession(): Session {
+	return {
+		client: Pxp2Client.resume({
+			baseUrl: 'https://ca-pleas-psv.edupoint.com/',
+			cookies: { ASP_NET_SessionId: 'encrypted-upstream-cookie' },
+			messageToken: 'message-token'
+		}),
+		clientSessionId: 'd9428888-122b-4f22-bc7f-1d95e4097a11',
+		username: 'student@example.edu',
+		domain: 'ca-pleas-psv.edupoint.com',
+		expiresAt: Date.now() + 60_000,
+		operationTail: Promise.resolve(),
+		queuedOperations: 0
+	} as Session;
+}
+
+test('encrypted sessions survive reconstruction without retaining a password', () => {
+	const token = serializeStudentSession(resumableSession());
+	expect(token).not.toContain('student@example.edu');
+	expect(token).not.toContain('encrypted-upstream-cookie');
+
+	const restored = getStudentSession(token);
+	expect(restored.username).toBe('student@example.edu');
+	expect(restored.domain).toBe('ca-pleas-psv.edupoint.com');
+	expect(restored.clientSessionId).toBe('d9428888-122b-4f22-bc7f-1d95e4097a11');
+	expect(restored.client.exportSessionState()).toEqual({
+		baseUrl: 'https://ca-pleas-psv.edupoint.com/',
+		cookies: { ASP_NET_SessionId: 'encrypted-upstream-cookie' },
+		messageToken: 'message-token'
+	});
+});
+
+test('tampered encrypted sessions are rejected', () => {
+	const token = serializeStudentSession(resumableSession());
+	const replacement = token.endsWith('A') ? 'B' : 'A';
+	expect(() => getStudentSession(`${token.slice(0, -1)}${replacement}`)).toThrow(
+		'Your StudentVUE session has expired'
+	);
+});
 
 test('student operations are serialized within one portal session', async () => {
 	const session = fakeSession();

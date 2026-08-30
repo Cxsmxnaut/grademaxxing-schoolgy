@@ -199,13 +199,34 @@ export class StudentAccount {
 			return Promise.reject(
 				new Error('Your StudentVUE session has expired. Please sign in again.')
 			);
-		return apiRequest<T>(
-			path,
-			{ headers: { 'X-Grademaxxing-Session': this.sessionId } },
-			true,
-			this.sessionId
+		const sessionId = this.sessionId;
+		return serializedStudentVueRequest(sessionId, () =>
+			apiRequest<T>(path, { headers: { 'X-Grademaxxing-Session': sessionId } }, true, sessionId)
 		);
 	}
+}
+
+const localSessionRequestTails = new Map<string, Promise<void>>();
+
+function serializedStudentVueRequest<T>(sessionId: string, operation: () => Promise<T>) {
+	// StudentVUE mutates server-side focus while loading gradebook details. A Web Lock
+	// keeps requests ordered across tabs and prevents an older encrypted session response
+	// from overwriting a newer one. The promise queue covers browsers without Web Locks.
+	if (typeof navigator !== 'undefined' && navigator.locks) {
+		return navigator.locks.request(`grademaxxing-studentvue-${sessionId}`, operation);
+	}
+	const previous = localSessionRequestTails.get(sessionId) ?? Promise.resolve();
+	const result = previous.catch(() => undefined).then(operation);
+	const tail = result.then(
+		() => undefined,
+		() => undefined
+	);
+	localSessionRequestTails.set(sessionId, tail);
+	void tail.finally(() => {
+		if (localSessionRequestTails.get(sessionId) === tail)
+			localSessionRequestTails.delete(sessionId);
+	});
+	return result;
 }
 
 export async function apiRequest<T>(
@@ -244,9 +265,8 @@ export async function apiRequest<T>(
 			continue;
 		}
 		if (redirectOnUnauthorized && response.status === 401 && typeof window !== 'undefined') {
-			// A restarted deployment or expired server-side portal session invalidates every
-			// cached client store at once. Use a full navigation so module-level Svelte state
-			// cannot survive into the next authenticated account.
+			// An expired or invalid portal session must clear every cached client store. Use a
+			// full navigation so module-level Svelte state cannot survive into the next account.
 			if (!expectedSessionId || storedSessionId() === expectedSessionId)
 				localStorage.removeItem('token');
 			window.location.assign('/login?sessionExpired=true');

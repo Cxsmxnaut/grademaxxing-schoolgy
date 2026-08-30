@@ -1,6 +1,6 @@
 # Production hardening
 
-Grademaxxing handles private student records. A production deployment must use HTTPS and a long-lived Node process behind a trusted reverse proxy.
+Grademaxxing handles private student records. Every production deployment must use HTTPS and a high-entropy session secret.
 
 ## Required runtime configuration
 
@@ -13,11 +13,11 @@ BODY_SIZE_LIMIT=64K
 GRADEMAXXING_MAX_ACTIVE_OPERATIONS=96
 GRADEMAXXING_MAX_QUEUED_OPERATIONS=1000
 GRADEMAXXING_OPERATION_QUEUE_TIMEOUT_MS=30000
-GRADEMAXXING_MAX_SESSIONS=5000
+GRADEMAXXING_SESSION_SECRET=<at least 32 random characters>
 GRADEMAXXING_SESSION_TTL_HOURS=12
 ```
 
-If TLS terminates at a trusted reverse proxy, configure adapter-node's forwarded-header settings for that proxy. Never expose the Node port directly when trusting forwarded headers.
+For adapter-node deployments, if TLS terminates at a trusted reverse proxy, configure the forwarded-header settings for that proxy. Never expose the Node port directly when trusting forwarded headers.
 
 ```dotenv
 PROTOCOL_HEADER=x-forwarded-proto
@@ -30,11 +30,9 @@ The proxy should preserve the public `Host`, set the forwarded headers itself, r
 
 ## Session topology
 
-StudentVUE browser sessions contain live upstream cookie state and are intentionally held only in server memory. Run one long-lived app instance. Multiple replicas require sticky routing plus a shared, encrypted session implementation; deploying multiple stateless replicas as-is will cause random session-expired responses.
+StudentVUE credentials are used only for the initial upstream login and discarded immediately. Live upstream cookie state is compressed, authenticated, and encrypted with AES-256-GCM inside the Secure, HttpOnly application cookie. `GRADEMAXXING_SESSION_SECRET` is required in production, must contain at least 32 random characters, and must be identical across every instance. Rotate it only when intentionally invalidating every active session.
 
-The build intentionally rejects Vercel's serverless environment for this reason. Deploy the generated adapter-node server to a long-lived VM or container with process supervision and a trusted HTTPS reverse proxy.
-
-Sessions expire after 12 hours, are capped at 5,000 per process, and serialize each student's portal operations to prevent StudentVUE focus-state races. The per-session queue is bounded. A process restart safely invalidates all sessions without retaining passwords.
+The official Vercel adapter is selected automatically when `VERCEL=1`; other environments use adapter-node. Sessions expire after 12 hours and survive function cold starts without a session database. Browsers serialize session-bound StudentVUE requests across tabs to protect StudentVUE's mutable gradebook focus and prevent stale encrypted-cookie responses from winning a race.
 
 Portal operations are also bounded across the whole process. The defaults allow 96 active student operations and queue 1,000 more for at most 30 seconds; excess or timed-out work receives a retryable `503` instead of exhausting memory, sockets, or StudentVUE. Work abandoned by a disconnected browser is removed from the queue. Tune these settings only after measuring the deployment host and coordinating acceptable traffic with the district portal owner.
 
@@ -56,7 +54,7 @@ Sign-in traffic is bounded globally and per account. Failed authentication is th
 - CSP, anti-framing, MIME-sniffing, referrer, permissions, HSTS, and cross-origin isolation headers are set centrally.
 - Unsafe API methods reject cross-site browser requests.
 - Sign-in bodies, active sign-ins, failed attempts, active sessions, portal queues, upstream HTML/JSON, and downloads are bounded.
-- Logout deletes server state, browser storage, cookies, and origin caches.
+- Logout deletes the encrypted browser session, browser storage, cookies, and origin caches.
 - Message HTML is isolated in a sandboxed iframe. Active attachment formats cannot execute through same-origin blob URLs.
 
 Run the security probes, unit suite, and live human suite against the exact production build before each release.

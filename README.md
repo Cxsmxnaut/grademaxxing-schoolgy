@@ -44,7 +44,7 @@ After sign-in, the read-only same-origin API is available under `/api/studentvue
 
 ## Hosting
 
-Use HTTPS in production. StudentVUE sessions are kept only in server memory for up to 12 hours, so deploy one long-lived application instance (or add a shared session store before scaling to multiple replicas). Failed logins are rate-limited per user and client address, active sessions are capped, and logout deletes the server-side session.
+Use HTTPS in production and configure `GRADEMAXXING_SESSION_SECRET` with at least 32 random characters. StudentVUE credentials are discarded immediately after login. The resulting StudentVUE cookie state is encrypted into an HttpOnly application session, which allows the official Vercel adapter and multi-instance Node deployments without a shared session database. Failed logins are rate-limited per user and client address, and session-bound requests are serialized in the browser to protect StudentVUE's mutable gradebook focus.
 
 Follow the [production hardening and reverse-proxy checklist](./docs/production-hardening.md) and [release gate](./docs/release-checklist.md) before exposing the app to students.
 

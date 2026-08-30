@@ -1,3 +1,4 @@
+import { dev } from '$app/environment';
 import { gradebookXml } from '$lib/server/gradebook-adapter';
 import { Pxp2InputError, Pxp2SessionExpiredError, Pxp2TimeoutError } from '$lib/server/pxp2';
 import {
@@ -6,7 +7,9 @@ import {
 	getStudentSession,
 	requireStudentSessionContext,
 	runStudentOperation,
+	serializeStudentSession,
 	sessionCookie,
+	sessionMaxAge,
 	StudentOperationAbortedError,
 	StudentServiceBusyError,
 	StudentSessionBusyError
@@ -46,7 +49,7 @@ export const GET: RequestHandler = async ({ params, cookies, request, url }) => 
 		throw error(401, cause instanceof Error ? cause.message : 'Sign in to StudentVUE first.');
 	}
 	try {
-		return await runStudentOperation(
+		const response = await runStudentOperation(
 			session,
 			async () => {
 				switch (params.resource as Resource) {
@@ -129,6 +132,14 @@ export const GET: RequestHandler = async ({ params, cookies, request, url }) => 
 			},
 			request.signal
 		);
+		cookies.set(sessionCookie, serializeStudentSession(session), {
+			path: '/',
+			httpOnly: true,
+			sameSite: 'lax',
+			secure: !dev,
+			maxAge: sessionMaxAge
+		});
+		return response;
 	} catch (cause) {
 		if (isHttpError(cause)) throw cause;
 		if (cause instanceof StudentOperationAbortedError) throw error(499, cause.message);

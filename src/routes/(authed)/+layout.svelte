@@ -27,7 +27,7 @@
 			try {
 				localStorage.removeItem(LocalStorageKey.token);
 			} catch {
-				// The in-memory session is still cleared when managed storage is unavailable.
+				// The active module session is still cleared when managed storage is unavailable.
 			}
 			resetGradebookCatalog();
 			resetNonGradeRecords();
