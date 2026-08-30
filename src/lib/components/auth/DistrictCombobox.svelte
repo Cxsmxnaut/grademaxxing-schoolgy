@@ -19,11 +19,15 @@
 
 	const selectedAtStart = DISTRICTS.find((district) => district.domain === normalizedTarget(value));
 	let query = $state(selectedAtStart?.name ?? '');
+	let editing = $state(selectedAtStart === undefined);
 	let open = $state(false);
 	let showAll = $state(false);
 	let activeIndex = $state(0);
 
 	const normalizedQuery = $derived(query.trim().toLocaleLowerCase());
+	const selectedDistrict = $derived(
+		DISTRICTS.find((district) => district.domain === normalizedTarget(value))
+	);
 	const matches = $derived.by(() => {
 		if (showAll || !normalizedQuery) return DISTRICTS;
 
@@ -69,6 +73,7 @@
 
 	function choose(district: StudentVueDistrict) {
 		query = district.name;
+		editing = false;
 		open = false;
 		showAll = false;
 		activeIndex = 0;
@@ -116,78 +121,104 @@
 </script>
 
 <div class="relative" onfocusout={closeAfterFocusLeaves}>
-	<label for="district-search" class="mb-2 block text-sm font-semibold text-[#91aac2]"
-		>Choose your school district</label
+	<label
+		for={editing ? 'district-search' : undefined}
+		class="mb-1.5 block text-[0.78125rem] leading-[1.172rem] font-semibold text-[#8fa9c2]"
+		>School district</label
 	>
-	<div
-		class="flex h-12 items-center overflow-hidden rounded-xl border border-[#294258] bg-[#071522] focus-within:border-[#55baf3] focus-within:ring-2 focus-within:ring-[#55baf3]/25"
-	>
-		<input
-			id="district-search"
-			type="text"
-			role="combobox"
-			aria-label="StudentVUE Domain"
-			aria-autocomplete="list"
-			aria-expanded={open}
-			aria-controls="district-listbox"
-			aria-activedescendant={open && matches[activeIndex]
-				? `district-option-${activeIndex}`
-				: undefined}
-			autocomplete="off"
-			autocapitalize="off"
-			autocorrect="off"
-			{disabled}
-			placeholder="Search by district, state, or portal"
-			value={query}
-			oninput={handleInput}
-			onfocus={() => (open = true)}
-			onkeydown={handleKeydown}
-			class="h-full min-w-0 flex-1 border-0 bg-transparent px-4 text-base text-[#e4eef8] outline-none placeholder:text-[#68839c]"
-		/>
-		{#if query}
+	{#if !editing && selectedDistrict}
+		<div
+			class="flex h-12 items-center rounded-lg border border-[#4db6f5] bg-[#173a55] px-3 text-sm"
+		>
+			<span class="min-w-0 flex-1 truncate font-semibold text-[#4db6f5]">
+				{selectedDistrict.name}
+			</span>
 			<button
 				type="button"
-				aria-label="Clear district search"
+				class="ml-3 shrink-0 text-[0.78125rem] font-semibold text-[#8fa9c2] underline underline-offset-2 hover:text-[#e4eef8]"
+				{disabled}
+				onclick={async () => {
+					editing = true;
+					showAll = true;
+					open = true;
+					await tick();
+					document.getElementById('district-search')?.focus();
+				}}
+			>
+				Change
+			</button>
+		</div>
+	{:else}
+		<div
+			class="flex h-12 items-center overflow-hidden rounded-lg border border-[#294258] bg-[#081522] focus-within:border-[#55baf3] focus-within:ring-2 focus-within:ring-[#55baf3]/25"
+		>
+			<input
+				id="district-search"
+				type="text"
+				role="combobox"
+				aria-label="StudentVUE Domain"
+				aria-autocomplete="list"
+				aria-expanded={open}
+				aria-controls="district-listbox"
+				aria-activedescendant={open && matches[activeIndex]
+					? `district-option-${activeIndex}`
+					: undefined}
+				autocomplete="off"
+				autocapitalize="off"
+				autocorrect="off"
+				{disabled}
+				placeholder="Search by district, state, or portal"
+				value={query}
+				oninput={handleInput}
+				onfocus={() => (open = true)}
+				onkeydown={handleKeydown}
+				class="h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-[#e4eef8] outline-none placeholder:text-[#68839c]"
+			/>
+			{#if query}
+				<button
+					type="button"
+					aria-label="Clear district search"
+					{disabled}
+					onmousedown={(event) => event.preventDefault()}
+					onclick={() => {
+						query = '';
+						onvalueinput('');
+						showAll = false;
+						open = true;
+						activeIndex = 0;
+					}}
+					class="grid h-full w-9 shrink-0 place-items-center text-[#91aac2] hover:text-white"
+				>
+					<XIcon class="size-4" />
+				</button>
+			{/if}
+			<button
+				type="button"
+				aria-label={open ? 'Close district list' : 'Open district list'}
+				aria-expanded={open}
 				{disabled}
 				onmousedown={(event) => event.preventDefault()}
 				onclick={() => {
-					query = '';
-					onvalueinput('');
-					showAll = false;
-					open = true;
-					activeIndex = 0;
+					if (open && showAll) {
+						open = false;
+						showAll = false;
+					} else {
+						showAll = true;
+						open = true;
+						const selectedIndex = DISTRICTS.findIndex(
+							(district) => district.domain === normalizedTarget(value)
+						);
+						void moveActive(selectedIndex < 0 ? 0 : selectedIndex);
+					}
 				}}
-				class="grid h-full w-10 shrink-0 place-items-center text-[#91aac2] hover:text-white"
+				class="grid h-full w-10 shrink-0 place-items-center border-l border-[#294258] text-[#b4c6d7] hover:bg-white/5 hover:text-white"
 			>
-				<XIcon class="size-4" />
+				<ChevronDownIcon class={`size-5 transition-transform ${open ? 'rotate-180' : ''}`} />
 			</button>
-		{/if}
-		<button
-			type="button"
-			aria-label={open ? 'Close district list' : 'Open district list'}
-			aria-expanded={open}
-			{disabled}
-			onmousedown={(event) => event.preventDefault()}
-			onclick={() => {
-				if (open && showAll) {
-					open = false;
-					showAll = false;
-				} else {
-					showAll = true;
-					open = true;
-					const selectedIndex = DISTRICTS.findIndex(
-						(district) => district.domain === normalizedTarget(value)
-					);
-					void moveActive(selectedIndex < 0 ? 0 : selectedIndex);
-				}
-			}}
-			class="grid h-full w-11 shrink-0 place-items-center border-l border-[#294258] text-[#b4c6d7] hover:bg-white/5 hover:text-white"
-		>
-			<ChevronDownIcon class={`size-5 transition-transform ${open ? 'rotate-180' : ''}`} />
-		</button>
-	</div>
+		</div>
+	{/if}
 
-	{#if open}
+	{#if editing && open}
 		<div
 			id="district-listbox"
 			role="listbox"

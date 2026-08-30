@@ -36,14 +36,11 @@ test('the complete semantic palette resolves in light and dark modes', async ({ 
 	}
 });
 
-test('primary controls keep visible hover, focus, checked, and disabled states', async ({
-	page
-}) => {
+test('primary controls keep visible hover, focus, and disabled states', async ({ page }) => {
 	await page.goto('/login');
 	await readTheme(page, 'light');
 
 	const submit = page.getByRole('button', { name: 'Log in' });
-	const disclaimer = page.getByRole('checkbox', { name: /independent tool/i });
 	const initialBackground = await submit.evaluate(
 		(element) => getComputedStyle(element).backgroundColor
 	);
@@ -56,12 +53,6 @@ test('primary controls keep visible hover, focus, checked, and disabled states',
 
 	await submit.focus();
 	expect(await submit.evaluate((element) => getComputedStyle(element).boxShadow)).not.toBe('none');
-
-	await disclaimer.click();
-	await expect(disclaimer).toBeChecked();
-	expect(
-		await disclaimer.evaluate((element) => getComputedStyle(element).backgroundColor)
-	).not.toBe('rgba(0, 0, 0, 0)');
 
 	await submit.evaluate((element) => {
 		(element as HTMLButtonElement).disabled = true;

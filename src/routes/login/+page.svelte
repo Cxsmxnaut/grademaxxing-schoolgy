@@ -11,7 +11,6 @@
 	import DistrictCombobox from '$lib/components/auth/DistrictCombobox.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
-	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Input } from '$lib/components/ui/input';
 	import { resetGradebookCatalog } from '$lib/grades/catalog.svelte';
 	import { seenAssignmentIDs } from '$lib/grades/seenAssignments.svelte';
@@ -160,17 +159,18 @@
 <AuthShell promo>
 	<form
 		onsubmit={login}
-		class="w-full max-w-[25rem] rounded-[1.35rem] border border-[#294258] bg-[#0b2133] px-7 py-8 shadow-[0_28px_80px_rgba(0,0,0,0.28)] sm:px-8"
+		class="min-h-[41.375rem] w-full max-w-[25rem] rounded-2xl border border-[#1d374c] bg-[#0d2033] px-5 pt-[1.5625rem] pb-[0.9375rem] shadow-[0_28px_80px_rgba(0,0,0,0.28)] sm:min-h-[42.57rem] sm:p-9"
 	>
 		<AuthPanelHeader />
 
 		<h1
-			class="font-display text-[1.75rem] leading-tight font-bold tracking-[-0.035em] text-[#e4eef8]"
+			class="text-[1.4375rem] leading-[2.15625rem] font-bold tracking-[-0.025em] text-[#e4eef8]"
+			style="font-family: 'Space Grotesk Variable', sans-serif"
 		>
 			Sign in to {brand}
 		</h1>
 
-		<div class="mt-8 space-y-5">
+		<div class="mt-[1.359375rem] space-y-[1.125rem]">
 			<DistrictCombobox
 				value={domain}
 				onselect={(district) => (domain = `https://${district.domain}`)}
@@ -179,7 +179,10 @@
 			/>
 
 			<div>
-				<label for="username" class="mb-2 block text-sm font-semibold text-[#91aac2]">
+				<label
+					for="username"
+					class="mb-1.5 block text-[0.78125rem] leading-[1.172rem] font-semibold text-[#8fa9c2]"
+				>
 					StudentVUE email
 				</label>
 				<Input
@@ -188,14 +191,17 @@
 					bind:value={username}
 					placeholder="student@school.net"
 					autocomplete="username"
-					class="h-12 rounded-xl border-[#294258] bg-[#071522] px-4 text-base text-[#e4eef8] shadow-none placeholder:text-[#68839c] focus-visible:border-[#55baf3] focus-visible:ring-[#55baf3]/25"
+					class="h-[2.625rem] rounded-lg border-[#294258] bg-[#081522] px-3 text-sm text-[#e4eef8] shadow-none placeholder:text-[#68839c] focus-visible:border-[#55baf3] focus-visible:ring-[#55baf3]/25"
 					disabled={!interactive}
 					required
 				/>
 			</div>
 
 			<div>
-				<label for="password" class="mb-2 block text-sm font-semibold text-[#91aac2]">
+				<label
+					for="password"
+					class="mb-1.5 block text-[0.78125rem] leading-[1.172rem] font-semibold text-[#8fa9c2]"
+				>
 					StudentVUE password
 				</label>
 				<Input
@@ -203,44 +209,34 @@
 					type="password"
 					bind:value={password}
 					autocomplete="current-password"
-					class="h-12 rounded-xl border-[#294258] bg-[#071522] px-4 text-base text-[#e4eef8] shadow-none focus-visible:border-[#55baf3] focus-visible:ring-[#55baf3]/25"
+					class="h-[2.625rem] rounded-lg border-[#294258] bg-[#081522] px-3 text-sm text-[#e4eef8] shadow-none focus-visible:border-[#55baf3] focus-visible:ring-[#55baf3]/25"
 					disabled={!interactive}
 					required
 				/>
 			</div>
 
-			<label class="flex items-start gap-3 text-xs leading-5 text-[#7893ab]" for="disclaimer">
-				<Checkbox
-					name="disclaimer"
-					id="disclaimer"
-					class="mt-0.5 border-[#456078] bg-[#071522] data-[state=checked]:border-[#4db6f5] data-[state=checked]:bg-[#4db6f5]"
-					disabled={!interactive}
-					required
-				/>
-				<span>
-					I understand that {brand} is an independent tool and is not affiliated with Edupoint.
-				</span>
-			</label>
-
 			<Button
 				type="submit"
-				class="h-12 w-full rounded-xl bg-[#4db6f5] font-bold text-[#06131f] shadow-none transition-none hover:bg-[#69c4f7]"
+				class="mt-1.5 h-[2.6875rem] w-full rounded-lg bg-[#4db6f5] text-[0.90625rem] font-semibold text-[#06131f] shadow-none transition-none hover:bg-[#69c4f7]"
 				disabled={!interactive || loggingIn}
 			>
 				{loggingIn ? 'Logging in…' : 'Log in'}
 			</Button>
 		</div>
 
-		<div class="mt-6 space-y-4 text-center text-sm leading-5 text-[#91aac2]">
+		<div class="mt-[1.125rem] text-center text-[0.8125rem] leading-[1.259375rem] text-[#8fa9c2]">
 			<p>
-				Your password travels over encrypted HTTPS, is used only to open StudentVUE, and is never
-				stored.
+				Your password is encrypted in transit and passed directly to your district. We never store
+				it, and we never save your grades.
 			</p>
-			<p>
-				Need a StudentVUE password?
-				<a href="/signup" class="font-medium text-[#4db6f5] hover:text-[#79cbf8]">Get started</a>
+			<p class="mt-2.5">
+				{brand} is independent and is not affiliated with Edupoint. If you have never used a StudentVUE
+				password, you may need to
+				<a href="/signup" class="font-medium text-[#4db6f5] hover:text-[#79cbf8]">create one</a>.
 			</p>
-			<a href="/privacy" class="inline-block text-[#4db6f5] hover:text-[#79cbf8]">Privacy</a>
+			<p class="mt-[0.875rem] text-xs leading-[1.125rem]">
+				<a href="/privacy" class="text-[#4db6f5] hover:text-[#79cbf8]">Privacy</a>
+			</p>
 		</div>
 	</form>
 </AuthShell>

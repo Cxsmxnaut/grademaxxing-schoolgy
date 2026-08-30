@@ -11,19 +11,16 @@ test('the sign-in and district-password setup flow matches the current product',
 	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing' })).toBeVisible();
 	await expect(page.getByLabel('StudentVUE email')).toBeVisible();
 	await expect(page.getByLabel('StudentVUE Password')).toBeVisible();
-	await expect(page.getByLabel('StudentVUE Domain')).toHaveValue(
-		'Pleasanton Unified School District'
-	);
+	await expect(page.getByText('Pleasanton Unified School District', { exact: true })).toBeVisible();
 	await expect(
 		page.getByText(
-			'Your password travels over encrypted HTTPS, is used only to open StudentVUE, and is never stored.',
+			'Your password is encrypted in transit and passed directly to your district. We never store it, and we never save your grades.',
 			{ exact: true }
 		)
 	).toBeVisible();
-	await expect(page.getByRole('checkbox', { name: /independent tool/i })).not.toBeChecked();
 	await page.screenshot({ path: 'test-results/auth-flow/login.png', fullPage: true });
 
-	await page.getByRole('link', { name: 'Get started', exact: true }).click();
+	await page.getByRole('link', { name: 'create one', exact: true }).click();
 	await expect(page.getByText('Sign up for Grademaxxing', { exact: true })).toBeVisible();
 	await expect(page.getByText('How do you sign in to StudentVUE?', { exact: true })).toBeVisible();
 	await expect(page.getByRole('link', { name: 'with Google', exact: true })).toBeVisible();
@@ -71,14 +68,15 @@ test('the desktop sign-in form stays centered and readable', async ({ page }) =>
 	const main = await page.locator('main').boundingBox();
 	expect(main).not.toBeNull();
 	expect(Math.abs(form!.x + form!.width / 2 - (main!.x + main!.width / 2))).toBeLessThanOrEqual(2);
-	expect(form!.y).toBeGreaterThanOrEqual(20);
-	expect(form!.y + form!.height).toBeLessThanOrEqual(785);
+	expect(Math.abs(form!.y + form!.height / 2 - 805 / 2)).toBeLessThanOrEqual(2);
+	expect(form!.y + form!.height).toBeLessThanOrEqual(805);
 });
 
 test('students can enter district-owned StudentVUE portal origins and paths directly', async ({
 	page
 }) => {
 	await page.goto('/login');
+	await page.getByRole('button', { name: 'Change' }).click();
 	const domain = page.getByLabel('StudentVUE Domain');
 
 	await domain.fill('https://synergylive.pusd11.net');
