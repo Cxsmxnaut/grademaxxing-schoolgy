@@ -49,7 +49,7 @@
 		<DateBadge date={new Date(message._SendDateTime)} />
 
 		{#if linkCount > 0}
-			<Badge color="green">
+			<Badge color="sky">
 				<LinkIcon class="mr-1 h-4 w-4" />
 				{linkCount}
 				{linkCount === 1 ? 'Link' : 'Links'}

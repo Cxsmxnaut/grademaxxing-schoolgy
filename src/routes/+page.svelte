@@ -88,7 +88,7 @@
 			<div class="product-frame" aria-label="Preview of the Grademaxxing gradebook">
 				<div class="frame-bar" aria-hidden="true">
 					<span class="dot dot-red"></span><span class="dot dot-yellow"></span><span
-						class="dot dot-green"
+						class="dot dot-blue"
 					></span><span class="frame-url">grademaxxing.local</span>
 				</div>
 				<div class="frame-image-wrap">
@@ -464,8 +464,8 @@
 	.dot-yellow {
 		background: #f0c05a;
 	}
-	.dot-green {
-		background: #66c07a;
+	.dot-blue {
+		background: #4db6f5;
 	}
 	.frame-url {
 		position: absolute;
@@ -480,9 +480,19 @@
 		font-size: 11px;
 	}
 	.frame-image-wrap {
+		position: relative;
+		isolation: isolate;
 		aspect-ratio: 16/9;
 		overflow: hidden;
 		background: #0b1718;
+	}
+	.frame-image-wrap::after {
+		position: absolute;
+		inset: 0;
+		background: var(--accent);
+		content: '';
+		mix-blend-mode: color;
+		pointer-events: none;
 	}
 	.frame-image-wrap img {
 		display: block;
@@ -706,7 +716,7 @@
 		font-size: 11px;
 	}
 	.impact strong {
-		color: #5fc98e;
+		color: var(--accent);
 	}
 	.record-visual {
 		display: flex;

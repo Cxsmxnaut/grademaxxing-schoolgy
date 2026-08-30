@@ -3,8 +3,8 @@
 	"description": "An advanced grade calculator.",
 	"start_url": "/grades",
 	"display": "standalone",
-	"background_color": "#111827",
-	"theme_color": "#ef562f",
+	"background_color": "#081522",
+	"theme_color": "#4db6f5",
 	"icons": [
 		{
 			"src": "/pwa-64x64.png",

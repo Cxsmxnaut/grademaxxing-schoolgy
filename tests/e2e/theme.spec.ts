@@ -34,6 +34,17 @@ test('the complete semantic palette resolves in light and dark modes', async ({ 
 		expect(dark[token], `${token} should resolve in dark mode`).not.toBe('');
 		expect(dark[token], `${token} should differ between modes`).not.toBe(light[token]);
 	}
+
+	expect(light).toMatchObject({
+		'--background': '#f7f9fc',
+		'--primary': '#1677b8',
+		'--grade-strong': '#1677b8'
+	});
+	expect(dark).toMatchObject({
+		'--background': '#081522',
+		'--primary': '#4db6f5',
+		'--grade-strong': '#4db6f5'
+	});
 });
 
 test('primary controls keep visible hover, focus, and disabled states', async ({ page }) => {

@@ -49,6 +49,19 @@ test('semantic visual tokens are exposed as Tailwind utilities', () => {
 	}
 });
 
+test('the global theme uses the Grademaxxing blue visual system', () => {
+	expect(rootBlock).toContain('--primary: #1677b8;');
+	expect(rootBlock).toContain('--success: #1677b8;');
+	expect(rootBlock).toContain('--chart: #1c88ca;');
+	expect(darkBlock).toContain('--background: #081522;');
+	expect(darkBlock).toContain('--primary: #4db6f5;');
+	expect(darkBlock).toContain('--success: #4db6f5;');
+	expect(darkBlock).toContain('--chart: #4db6f5;');
+	expect(themeCss).not.toMatch(
+		/#(?:0e9f6e|116b5a|197d69|1a7654|0f5b4d|0f6657|7bc4ae|71c89e|78bba8|79c6ae|75c5ab|8bd2bc)\b/i
+	);
+});
+
 test('grade UI uses semantic outcomes instead of hard-coded utility colors', () => {
 	const gradeFiles = [
 		'../routes/(authed)/grades/CourseButton.svelte',

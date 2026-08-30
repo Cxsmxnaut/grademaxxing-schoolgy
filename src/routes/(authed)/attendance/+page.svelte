@@ -38,7 +38,7 @@
 				return 'yellow';
 			case 'Excused':
 			case 'Present':
-				return 'green';
+				return 'sky';
 			default:
 				return 'orange';
 		}

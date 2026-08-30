@@ -61,22 +61,22 @@
 			{
 				color: 'lime',
 				outline: false,
-				class: 'bg-lime-200 dark:bg-lime-900/70 text-secondary-foreground border-transparent'
+				class: 'bg-sky-200 dark:bg-sky-900/70 text-secondary-foreground border-transparent'
 			},
 			{
 				color: 'green',
 				outline: false,
-				class: 'bg-green-200 dark:bg-green-900/70 text-secondary-foreground border-transparent'
+				class: 'bg-sky-200 dark:bg-sky-900/70 text-secondary-foreground border-transparent'
 			},
 			{
 				color: 'emerald',
 				outline: false,
-				class: 'bg-emerald-200 dark:bg-emerald-900/70 text-secondary-foreground border-transparent'
+				class: 'bg-blue-200 dark:bg-blue-900/70 text-secondary-foreground border-transparent'
 			},
 			{
 				color: 'teal',
 				outline: false,
-				class: 'bg-teal-200 dark:bg-teal-900/70 text-secondary-foreground border-transparent'
+				class: 'bg-indigo-200 dark:bg-indigo-900/70 text-secondary-foreground border-transparent'
 			},
 			{
 				color: 'cyan',
@@ -151,25 +151,25 @@
 				color: 'lime',
 				outline: true,
 				class:
-					'border-lime-400 dark:border-lime-700 bg-lime-100 dark:bg-lime-800/20 text-secondary-foreground'
+					'border-sky-400 dark:border-sky-700 bg-sky-100 dark:bg-sky-800/20 text-secondary-foreground'
 			},
 			{
 				color: 'green',
 				outline: true,
 				class:
-					'border-green-400 dark:border-green-700 bg-green-100 dark:bg-green-800/20 text-secondary-foreground'
+					'border-sky-400 dark:border-sky-700 bg-sky-100 dark:bg-sky-800/20 text-secondary-foreground'
 			},
 			{
 				color: 'emerald',
 				outline: true,
 				class:
-					'border-emerald-400 dark:border-emerald-700 bg-emerald-100 dark:bg-emerald-800/20 text-secondary-foreground'
+					'border-blue-400 dark:border-blue-700 bg-blue-100 dark:bg-blue-800/20 text-secondary-foreground'
 			},
 			{
 				color: 'teal',
 				outline: true,
 				class:
-					'border-teal-400 dark:border-teal-700 bg-teal-100 dark:bg-teal-800/20 text-secondary-foreground'
+					'border-indigo-400 dark:border-indigo-700 bg-indigo-100 dark:bg-indigo-800/20 text-secondary-foreground'
 			},
 			{
 				color: 'cyan',
