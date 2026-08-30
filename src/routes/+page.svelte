@@ -242,6 +242,7 @@
 		--accent-soft: rgba(77, 182, 245, 0.13);
 		min-height: 100vh;
 		overflow-x: hidden;
+		isolation: isolate;
 		color: var(--ink);
 		font-family: 'Instrument Sans Variable', system-ui, sans-serif;
 		font-size: 14.5px;
@@ -251,6 +252,8 @@
 			radial-gradient(720px 440px at -12% 14%, rgba(91, 142, 245, 0.08), transparent 60%), var(--bg);
 	}
 	.landing-nav {
+		position: relative;
+		z-index: 2;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -274,6 +277,10 @@
 	.wordmark img,
 	.footer-wordmark img {
 		flex-shrink: 0;
+		transition: transform 0.2s ease;
+	}
+	.wordmark:hover img {
+		transform: rotate(-4deg) scale(1.04);
 	}
 	.accent-word {
 		color: var(--accent);
@@ -311,6 +318,10 @@
 	}
 	.button:hover {
 		border-color: var(--accent);
+		transform: translateY(-1px);
+	}
+	.button:active {
+		transform: translateY(0);
 	}
 	.button:focus-visible,
 	.wordmark:focus-visible,
@@ -331,9 +342,11 @@
 		border-color: var(--accent);
 		background: var(--accent);
 		color: #06131f;
+		box-shadow: 0 8px 24px -14px rgba(77, 182, 245, 0.92);
 	}
 	.button-primary:hover {
 		filter: brightness(1.08);
+		box-shadow: 0 12px 28px -14px rgba(77, 182, 245, 0.95);
 	}
 	.button-ghost {
 		background: transparent;
@@ -343,10 +356,23 @@
 		color: var(--ink);
 	}
 	.hero {
+		position: relative;
 		max-width: 1100px;
 		margin: 0 auto;
 		padding: 72px 40px 0;
 		text-align: center;
+	}
+	.hero::before {
+		position: absolute;
+		z-index: -1;
+		top: -86px;
+		left: 50%;
+		width: min(760px, 92vw);
+		height: 430px;
+		transform: translateX(-50%);
+		background: radial-gradient(circle, rgba(77, 182, 245, 0.085), transparent 68%);
+		content: '';
+		pointer-events: none;
 	}
 	.hero h1,
 	.showcase h2,
@@ -360,6 +386,7 @@
 		margin: 14px 0 18px;
 		font-size: clamp(38px, 5.5vw, 54px);
 		line-height: 1.08;
+		text-wrap: balance;
 	}
 	.hero-subtitle {
 		max-width: 650px;
@@ -367,6 +394,7 @@
 		color: var(--muted);
 		font-size: 17px;
 		line-height: 1.6;
+		text-wrap: pretty;
 	}
 	.hero-actions {
 		justify-content: center;
@@ -396,6 +424,7 @@
 		font-size: 13px;
 	}
 	.product-frame {
+		position: relative;
 		max-width: 880px;
 		margin: 52px auto 0;
 		overflow: hidden;
@@ -407,7 +436,16 @@
 			0 8px 24px rgba(0, 0, 0, 0.3);
 		text-align: left;
 	}
+	.product-frame::after {
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		box-shadow: inset 0 1px rgba(255, 255, 255, 0.08);
+		content: '';
+		pointer-events: none;
+	}
 	.frame-bar {
+		position: relative;
 		display: flex;
 		align-items: center;
 		gap: 6px;
@@ -430,7 +468,9 @@
 		background: #66c07a;
 	}
 	.frame-url {
-		margin: 0 auto;
+		position: absolute;
+		left: 50%;
+		transform: translateX(-50%);
 		border: 1px solid var(--line);
 		border-radius: 6px;
 		background: var(--panel);
@@ -480,6 +520,9 @@
 	.feature-card:hover {
 		transform: translateY(-3px);
 		border-color: rgba(77, 182, 245, 0.65);
+		box-shadow:
+			0 2px 4px rgba(0, 0, 0, 0.4),
+			0 14px 30px rgba(0, 0, 0, 0.34);
 	}
 	.feature-icon {
 		display: grid;
@@ -507,6 +550,7 @@
 		color: var(--muted);
 		font-size: 12.5px;
 		line-height: 1.45;
+		text-wrap: pretty;
 	}
 	.showcase {
 		max-width: 1100px;
@@ -534,6 +578,7 @@
 		margin: 12px auto 0;
 		color: var(--muted);
 		font-size: 14.5px;
+		text-wrap: pretty;
 	}
 	.detail-grid {
 		display: grid;
@@ -722,6 +767,7 @@
 		color: var(--muted);
 		font-size: 13px;
 		line-height: 1.55;
+		text-wrap: pretty;
 	}
 	.privacy-section {
 		display: grid;
@@ -759,6 +805,7 @@
 		margin: 8px 0 0;
 		color: var(--muted);
 		font-size: 13px;
+		text-wrap: pretty;
 	}
 	.final-cta {
 		display: flex;
@@ -780,6 +827,7 @@
 		margin: 12px 0 24px;
 		color: var(--muted);
 		font-size: 15px;
+		text-wrap: pretty;
 	}
 	.landing-footer {
 		display: grid;
@@ -865,7 +913,7 @@
 			padding: 44px 16px 0;
 		}
 		.hero h1 {
-			font-size: 40px;
+			font-size: clamp(36px, 10.25vw, 40px);
 		}
 		.hero-subtitle {
 			font-size: 15px;
@@ -882,6 +930,7 @@
 		}
 		.frame-url {
 			padding: 3px 16px;
+			font-size: 10px;
 		}
 		.frame-image-wrap {
 			aspect-ratio: 4/3;
@@ -947,6 +996,7 @@
 			scroll-behavior: auto;
 		}
 		.button,
+		.wordmark img,
 		.feature-card,
 		.detail-card {
 			transition: none;
