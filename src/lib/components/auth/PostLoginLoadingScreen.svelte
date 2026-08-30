@@ -6,16 +6,16 @@
 	let { message = 'Loading your grades…' }: { message?: string } = $props();
 
 	const phrases = [
-		'Getting your grades in sync…',
-		'Building the full picture…',
-		'Making your grades make sense…'
+		'Checking if that quiz got graded yet…',
+		'Putting the full picture together…',
+		'Whatever it says, you’re more than a number.'
 	];
 	let phraseIndex = $state(0);
 
 	onMount(() => {
 		const interval = window.setInterval(() => {
 			phraseIndex = (phraseIndex + 1) % phrases.length;
-		}, 2_600);
+		}, 2_400);
 		return () => window.clearInterval(interval);
 	});
 </script>
@@ -51,7 +51,36 @@
 		color: #e4eef8;
 		font-family: 'Instrument Sans Variable', system-ui, sans-serif;
 	}
+	.post-login-loading::before,
+	.post-login-loading::after {
+		position: absolute;
+		inset: -35%;
+		content: '';
+		pointer-events: none;
+	}
+	.post-login-loading::before {
+		background: repeating-radial-gradient(
+			ellipse at 52% 48%,
+			transparent 0 92px,
+			rgba(77, 182, 245, 0.036) 112px 142px,
+			transparent 166px 230px
+		);
+		filter: blur(12px);
+		animation: wave-drift 13s ease-in-out infinite alternate;
+	}
+	.post-login-loading::after {
+		background: repeating-radial-gradient(
+			ellipse at 20% 70%,
+			transparent 0 130px,
+			rgba(20, 72, 111, 0.052) 158px 202px,
+			transparent 230px 310px
+		);
+		filter: blur(18px);
+		animation: wave-drift-reverse 17s ease-in-out infinite alternate;
+	}
 	.loading-content {
+		position: relative;
+		z-index: 1;
 		display: flex;
 		align-items: center;
 		flex-direction: column;
@@ -61,7 +90,7 @@
 	.logo-glow {
 		display: grid;
 		place-items: center;
-		animation: logo-float 2.8s ease-in-out infinite;
+		animation: logo-float 2.3s ease-in-out infinite;
 	}
 	.logo-glow img {
 		filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.32))
@@ -111,7 +140,7 @@
 			opacity: 0.38;
 		}
 		50% {
-			transform: translateY(-3px) scale(1);
+			transform: translateY(-6px) scale(1);
 			opacity: 1;
 		}
 	}
@@ -121,12 +150,30 @@
 			transform: translateY(0);
 		}
 		50% {
-			transform: translateY(-4px);
+			transform: translateY(-7px);
+		}
+	}
+	@keyframes wave-drift {
+		from {
+			transform: translate3d(-2%, -1%, 0) rotate(-8deg) scale(1.05);
+		}
+		to {
+			transform: translate3d(3%, 2%, 0) rotate(-4deg) scale(1.11);
+		}
+	}
+	@keyframes wave-drift-reverse {
+		from {
+			transform: translate3d(2%, -2%, 0) rotate(5deg) scale(1.08);
+		}
+		to {
+			transform: translate3d(-3%, 2%, 0) rotate(1deg) scale(1.14);
 		}
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.loading-dots span,
-		.logo-glow {
+		.logo-glow,
+		.post-login-loading::before,
+		.post-login-loading::after {
 			animation: none;
 		}
 		.loading-dots span {
