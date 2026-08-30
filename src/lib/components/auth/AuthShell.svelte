@@ -21,14 +21,8 @@
 >
 	{#if promo}
 		<aside
-			class="relative hidden min-h-screen overflow-hidden border-r border-white/[0.04] bg-[linear-gradient(145deg,#071522_0%,#0a1e31_58%,#0d2b49_100%)] lg:flex lg:flex-col"
+			class="relative hidden min-h-screen overflow-hidden border-r border-white/[0.04] bg-[linear-gradient(to_bottom,#081522,#0e2c4d)] lg:flex lg:flex-col"
 		>
-			<div
-				class="absolute -top-40 -left-40 size-[32rem] rounded-full bg-[#2eaef0]/8 blur-3xl"
-			></div>
-			<div
-				class="absolute right-[-12rem] bottom-[-12rem] size-[32rem] rounded-full bg-[#167fce]/10 blur-3xl"
-			></div>
 			<div class="relative my-auto max-w-2xl px-12 py-14 xl:px-16">
 				<img src="/favicon.svg" class="mb-8 size-18 drop-shadow-lg" alt="" />
 				<h1
