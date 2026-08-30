@@ -87,3 +87,79 @@ test('students can enter district-owned StudentVUE portal origins and paths dire
 	await expect(domain).toHaveAttribute('autocapitalize', 'off');
 	await expect(domain).toHaveAttribute('autocorrect', 'off');
 });
+
+test('sign-in keeps the app hidden until the gradebook is ready', async ({ page }) => {
+	let releaseSession!: () => void;
+	const sessionGate = new Promise<void>((resolve) => (releaseSession = resolve));
+	let releaseGradebook!: () => void;
+	const gradebookGate = new Promise<void>((resolve) => (releaseGradebook = resolve));
+	let markGradebookRequested!: () => void;
+	const gradebookRequested = new Promise<void>((resolve) => (markGradebookRequested = resolve));
+
+	await page.route('**/api/session', async (route) => {
+		if (route.request().method() !== 'POST') return route.fallback();
+		await sessionGate;
+		await route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				username: 'theme-preview',
+				domain: 'ca-pleas-psv.edupoint.com',
+				sessionId: 'preview-session'
+			})
+		});
+	});
+	await page.route('**/api/session/status', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				signedIn: true,
+				username: 'theme-preview',
+				domain: 'ca-pleas-psv.edupoint.com'
+			})
+		})
+	);
+	await page.route('**/api/studentvue/**', async (route) => {
+		if (new URL(route.request().url()).pathname.endsWith('/gradebook')) {
+			markGradebookRequested();
+			await gradebookGate;
+			const xml =
+				'<Gradebook><ReportingPeriod Index="0" GradePeriod="Semester 1"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Semester 1"/></ReportingPeriods><Courses><Course CourseID="preview" CourseName="Theme Preview" Period="1" Staff="Teacher" Room="101"><Marks><Mark MarkName="Semester 1" CalculatedScoreRaw="95" CalculatedScoreString="A"><Assignments></Assignments></Mark></Marks></Course></Courses></Gradebook>';
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({ xml })
+			});
+			return;
+		}
+
+		await route.fulfill({
+			status: 500,
+			contentType: 'application/json',
+			body: JSON.stringify({ message: 'Not needed by this loading-flow test.' })
+		});
+	});
+
+	await page.goto('/login');
+	await page.getByLabel('StudentVUE email').fill('theme-preview');
+	await page.getByLabel('StudentVUE Password').fill('preview-password');
+	await page.getByRole('button', { name: 'Log in' }).click();
+
+	const loadingScreen = page.getByTestId('post-login-loading');
+	await expect(loadingScreen).toBeVisible();
+	await expect(loadingScreen).toContainText('Connecting to StudentVUE…');
+	await expect(page.locator('form')).toHaveCount(0);
+	await expect(page).toHaveURL(/\/login$/);
+
+	releaseSession();
+	await gradebookRequested;
+	await expect(loadingScreen).toContainText('Loading your grades…');
+	await expect(page.locator('form')).toHaveCount(0);
+	await expect(page).toHaveURL(/\/login$/);
+
+	releaseGradebook();
+	await expect(page).toHaveURL(/\/dashboard$/);
+	await expect(page.getByTestId('dashboard-overview')).toBeVisible();
+	await expect(loadingScreen).toHaveCount(0);
+});
