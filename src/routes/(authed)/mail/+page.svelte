@@ -6,7 +6,6 @@
 	import AppPageShell from '$lib/components/AppPageShell.svelte';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
 	import RecordLoadFailure from '$lib/components/RecordLoadFailure.svelte';
-	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
 	import type { InboxItemListingsMessageXML } from '$lib/types/MailData';
 	import InboxIcon from '@lucide/svelte/icons/inbox';
 	import MailCheckIcon from '@lucide/svelte/icons/mail-check';
@@ -92,15 +91,6 @@
 
 	{#if openingMessageId !== undefined}
 		<LoadingBanner>Opening message…</LoadingBanner>
-	{/if}
-
-	{#if mailDataState.lastRefresh !== undefined}
-		<RefreshIndicator
-			canRefresh={!mailDataState.refreshing}
-			lastRefresh={mailDataState.lastRefresh}
-			refreshing={mailDataState.refreshing}
-			refresh={() => loadMailData(true)}
-		/>
 	{/if}
 
 	{#if mailDataState.error}

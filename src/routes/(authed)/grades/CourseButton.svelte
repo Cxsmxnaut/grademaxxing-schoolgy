@@ -1,9 +1,7 @@
 <script lang="ts">
-	import { Badge } from '$lib/components/ui/badge';
-	import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
-	import BellElectricIcon from '@lucide/svelte/icons/bell-electric';
+	import Clock3Icon from '@lucide/svelte/icons/clock-3';
 	import MapPinIcon from '@lucide/svelte/icons/map-pin';
-	import UserIcon from '@lucide/svelte/icons/user';
+	import UserRoundIcon from '@lucide/svelte/icons/user-round';
 	import NumberFlow from '@number-flow/svelte';
 
 	interface Props {
@@ -18,84 +16,86 @@
 	}
 	const { courseId, name, period, room, teacher, unseenAssignmentsCount, grade }: Props = $props();
 
-	function getGradeTone(percentage: number) {
+	function gradeTone(percentage: number) {
 		if (percentage > 100) return 'text-grade-extra';
 		if (percentage >= 90) return 'text-grade-strong';
 		if (percentage >= 80) return 'text-grade-watch';
 		return 'text-grade-risk';
 	}
 
-	function getGradeSurface(percentage: number) {
-		if (percentage > 100) return 'bg-grade-extra-soft';
-		if (percentage >= 90) return 'bg-grade-strong-soft';
-		if (percentage >= 80) return 'bg-grade-watch-soft';
-		return 'bg-grade-risk-soft';
+	function indicatorTone(percentage: number) {
+		if (percentage > 100) return 'bg-grade-extra';
+		if (percentage >= 90) return 'bg-grade-strong';
+		if (percentage >= 80) return 'bg-grade-watch';
+		return 'bg-grade-risk';
 	}
 </script>
 
 <a
 	href="/grades/{encodeURIComponent(courseId)}"
-	class="group hover:bg-accent/45 focus-visible:ring-ring grid min-h-24 grid-cols-[3.25rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 transition-colors focus-visible:ring-2 focus-visible:outline-none sm:grid-cols-[3.5rem_minmax(0,1fr)_auto] sm:gap-5 sm:px-6"
+	class="group border-border/80 bg-card hover:border-primary focus-visible:ring-ring grid min-h-[82px] grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-4 rounded-xl border px-4 py-3.5 shadow-sm transition-[border-color,background-color] focus-visible:ring-2 focus-visible:outline-none sm:grid-cols-[44px_minmax(0,1fr)_minmax(180px,210px)] sm:px-5"
 >
 	<div
-		class="bg-secondary text-muted-foreground flex size-12 shrink-0 flex-col items-center justify-center rounded-xl"
-		aria-label="Period {period}"
+		class="font-mono text-[1.65rem] leading-none font-bold {grade
+			? gradeTone(grade.percentage)
+			: 'text-muted-foreground'}"
 	>
-		<span class="text-[0.6rem] font-bold tracking-[0.12em] uppercase">Period</span>
-		<strong class="text-foreground -mt-0.5 font-mono text-xl">{period}</strong>
+		{grade?.letter ?? '—'}
 	</div>
 
 	<div class="min-w-0">
 		<div class="flex min-w-0 items-center gap-2">
-			<h2 class="truncate text-base font-bold tracking-[-0.01em] sm:text-lg">{name}</h2>
+			<h2 class="truncate text-[1.03rem] leading-tight font-bold tracking-[-0.015em]">{name}</h2>
 			{#if unseenAssignmentsCount > 0}
-				<Badge
-					variant="outline"
-					class="border-grade-strong/20 bg-grade-strong-soft text-grade-strong shrink-0"
-				>
-					<BellElectricIcon class="size-3" />
+				<span class="bg-primary/12 text-primary rounded-full px-2 py-0.5 text-[0.65rem] font-bold">
 					{unseenAssignmentsCount} new
-				</Badge>
-			{/if}
-		</div>
-		<div
-			class="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm"
-		>
-			{#if teacher}
-				<span class="inline-flex min-w-0 items-center gap-1.5">
-					<UserIcon class="size-3.5 shrink-0" />
-					<span class="truncate">{teacher}</span>
 				</span>
 			{/if}
+		</div>
+		<div class="text-muted-foreground mt-1.5 flex flex-wrap items-center gap-1.5 text-[0.7rem]">
+			<span class="bg-secondary inline-flex items-center gap-1 rounded-full px-2 py-1">
+				<Clock3Icon class="size-3" /> Period {period}
+			</span>
 			{#if room}
-				<span class="inline-flex items-center gap-1.5">
-					<MapPinIcon class="size-3.5" /> Room {room}
+				<span class="bg-secondary inline-flex items-center gap-1 rounded-full px-2 py-1">
+					<MapPinIcon class="size-3" />
+					{room}
+				</span>
+			{/if}
+			{#if teacher}
+				<span class="bg-secondary inline-flex min-w-0 items-center gap-1 rounded-full px-2 py-1">
+					<UserRoundIcon class="size-3 shrink-0" />
+					<span class="max-w-28 truncate sm:max-w-36">{teacher}</span>
 				</span>
 			{/if}
 		</div>
 	</div>
 
-	<div class="flex items-center gap-2.5 sm:gap-4">
+	<div class="hidden items-center gap-3 sm:flex">
 		{#if grade}
-			<div
-				class="{getGradeSurface(
-					grade.percentage
-				)} flex min-w-20 flex-col items-end rounded-xl px-3 py-2 sm:min-w-28 sm:px-4"
-			>
-				<strong class="{getGradeTone(grade.percentage)} text-xl leading-none sm:text-2xl">
-					{grade.letter}
-				</strong>
-				<NumberFlow
-					value={grade.percentage / 100}
-					format={{ style: 'percent', maximumFractionDigits: 2 }}
-					class="text-muted-foreground mt-1 font-mono text-xs"
-				/>
+			<NumberFlow
+				value={grade.percentage / 100}
+				format={{ style: 'percent', maximumFractionDigits: 1 }}
+				class="{gradeTone(grade.percentage)} w-[4.3rem] text-right font-mono text-sm font-bold"
+			/>
+			<div class="bg-secondary h-1.5 min-w-0 flex-1 overflow-hidden rounded-full">
+				<div
+					class="h-full rounded-full {indicatorTone(grade.percentage)}"
+					style:width={`${Math.min(Math.max(grade.percentage, 0), 100)}%`}
+				></div>
 			</div>
 		{:else}
-			<div class="text-muted-foreground min-w-20 text-right text-sm sm:min-w-28">Not graded</div>
+			<span class="text-muted-foreground ml-auto text-sm">Not graded</span>
 		{/if}
-		<ArrowRightIcon
-			class="text-muted-foreground size-4 transition-transform group-hover:translate-x-0.5"
-		/>
 	</div>
+
+	{#if grade}
+		<NumberFlow
+			value={grade.percentage / 100}
+			format={{ style: 'percent', maximumFractionDigits: 1 }}
+			class="{gradeTone(grade.percentage)} text-right font-mono text-sm font-bold sm:hidden"
+		/>
+	{:else}
+		<span class="text-muted-foreground text-xs sm:hidden">Not graded</span>
+	{/if}
 </a>

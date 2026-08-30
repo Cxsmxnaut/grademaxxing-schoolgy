@@ -1,7 +1,6 @@
 <script lang="ts">
 	import BoundaryFailure from '$lib/components/BoundaryFailure.svelte';
 	import { acc } from '$lib/account.svelte';
-	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
 	import * as Item from '$lib/components/ui/item';
@@ -29,14 +28,6 @@
 	});
 
 	const loadingIndex = $derived(gradebookCatalog?.loadingIndex);
-
-	const gradebookRecord = $derived(
-		gradebookCatalog
-			? gradebookCatalog.recordCache[
-					gradebookCatalog.overrideIndex ?? gradebookCatalog.defaultIndex
-				]
-			: undefined
-	);
 
 	const defaultReportPeriodName = $derived(
 		gradebookCatalog ? getReportPeriodName(gradebookCatalog.defaultIndex) : undefined
@@ -92,15 +83,6 @@
 			/>
 		{/key}
 	</div>
-{/if}
-
-{#if gradebookRecord?.lastRefresh !== undefined}
-	<RefreshIndicator
-		canRefresh={loadingIndex === undefined}
-		lastRefresh={gradebookRecord.lastRefresh}
-		refreshing={loadingIndex !== undefined}
-		refresh={refreshGradebook}
-	/>
 {/if}
 
 {#if loadingError !== undefined}

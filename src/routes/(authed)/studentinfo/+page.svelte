@@ -1,48 +1,17 @@
 <script lang="ts">
-	import { LocalStorageKey } from '$lib';
 	import { acc } from '$lib/account.svelte';
 	import { brand } from '$lib/brand';
 	import AppPageHeader from '$lib/components/AppPageHeader.svelte';
 	import AppPageShell from '$lib/components/AppPageShell.svelte';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
 	import RecordLoadFailure from '$lib/components/RecordLoadFailure.svelte';
-	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
-	import * as Accordion from '$lib/components/ui/accordion';
 	import { Button } from '$lib/components/ui/button';
-	import * as Table from '$lib/components/ui/table';
 	import BadgeCheckIcon from '@lucide/svelte/icons/badge-check';
 	import CopyIcon from '@lucide/svelte/icons/copy';
 	import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
 	import { loadStudentInfo, studentInfoState } from './studentInfo.svelte';
 
 	loadStudentInfo();
-
-	const dataSources = Object.values(LocalStorageKey);
-
-	async function copy(key: string) {
-		const data = localStorage.getItem(key);
-		if (data === null) {
-			alert('Not found');
-			return;
-		}
-
-		await navigator.clipboard.writeText(data);
-	}
-
-	async function paste(key: string) {
-		const text = await navigator.clipboard.readText();
-
-		try {
-			JSON.parse(text);
-		} catch {
-			alert('Invalid JSON');
-			return;
-		}
-
-		localStorage.setItem(key, text);
-	}
-
-	const remove = (key: string) => localStorage.removeItem(key);
 
 	function copyUsername() {
 		if (!acc.studentAccount) return;
@@ -69,15 +38,6 @@
 		<LoadingBanner>Loading student info...</LoadingBanner>
 	{:else if studentInfoState.refreshing}
 		<LoadingBanner>Refreshing student info...</LoadingBanner>
-	{/if}
-
-	{#if studentInfoState.loaded}
-		<RefreshIndicator
-			canRefresh={!studentInfoState.refreshing}
-			refreshing={studentInfoState.refreshing}
-			lastRefresh={studentInfoState.lastRefresh}
-			refresh={() => loadStudentInfo(true)}
-		/>
 	{/if}
 
 	{#if studentInfoState.error}
@@ -196,31 +156,4 @@
 			</div>
 		</section>
 	{/if}
-
-	<Accordion.Root type="single" class="mt-6 w-full max-w-4xl">
-		<Accordion.Item>
-			<Accordion.Trigger>Developer Tools</Accordion.Trigger>
-
-			<Accordion.Content class="max-w-[calc(100vw-2rem)] overflow-x-auto">
-				<Table.Root class="min-w-max">
-					<Table.Body>
-						{#each dataSources as dataSource (dataSource)}
-							<Table.Row>
-								<Table.Cell>{dataSource}</Table.Cell>
-								{@render toolButton('Copy', () => void copy(dataSource))}
-								{@render toolButton('Paste', () => void paste(dataSource))}
-								{@render toolButton('Delete', () => remove(dataSource))}
-							</Table.Row>
-						{/each}
-					</Table.Body>
-				</Table.Root>
-			</Accordion.Content>
-		</Accordion.Item>
-	</Accordion.Root>
 </AppPageShell>
-
-{#snippet toolButton(name: string, func: () => void)}
-	<Table.Cell>
-		<Button variant="outline" onclick={func}>{name}</Button>
-	</Table.Cell>
-{/snippet}

@@ -35,7 +35,6 @@
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
 	import CircleXIcon from '@lucide/svelte/icons/circle-x';
 	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
-	import Columns3CogIcon from '@lucide/svelte/icons/columns-3-cog';
 	import Grid2x2PlusIcon from '@lucide/svelte/icons/grid-2x2-plus';
 	import RotateCCWIcon from '@lucide/svelte/icons/rotate-ccw';
 	import NumberFlow from '@number-flow/svelte';
@@ -45,7 +44,6 @@
 	import CalculationError from './CalculationError.svelte';
 	import GradeCategoryTable from './GradeCategoryTable.svelte';
 	import GradeChart from './GradeChart.svelte';
-	import GradeTruthLabel from './GradeTruthLabel.svelte';
 	import TargetGradeCalculator from './TargetGradeCalculator.svelte';
 
 	const synergyCourse = $derived.by(() => {
@@ -56,13 +54,6 @@
 	});
 
 	const mark = $derived(synergyCourse?.Marks?.Mark[0]);
-	const activeGradebookRecord = $derived.by(() => {
-		gradebookState.version;
-		const catalog = gradebookState.gradebookCatalog;
-		if (!catalog) return undefined;
-		return catalog.recordCache[catalog.overrideIndex ?? catalog.defaultIndex];
-	});
-
 	const courseName = $derived(synergyCourse ? removeCourseType(synergyCourse._CourseName) : '');
 
 	const synergyGradePercentage = $derived.by(() => {
@@ -195,8 +186,6 @@
 		realAssignments.filter(({ id }) => !seenAssignmentIDs.has(id))
 	);
 
-	let pinChart = $state(false);
-
 	let showTargetGradeCalculator = $state(false);
 	function toggleTargetGradeCalculator() {
 		showTargetGradeCalculator = !showTargetGradeCalculator;
@@ -217,14 +206,6 @@
 		if (roundedGradePercentage >= 80) return 'text-grade-watch';
 		return 'text-grade-risk';
 	});
-	const gradeSurface = $derived.by(() => {
-		if (roundedGradePercentage === undefined) return 'bg-secondary';
-		if (roundedGradePercentage > 100) return 'bg-grade-extra-soft';
-		if (roundedGradePercentage >= 90) return 'bg-grade-strong-soft';
-		if (roundedGradePercentage >= 80) return 'bg-grade-watch-soft';
-		return 'bg-grade-risk-soft';
-	});
-
 	const assignmentCategoryNames = $derived(
 		new Set(realAssignments.map((assignment) => assignment.category).toSorted())
 	);
@@ -251,62 +232,68 @@
 </svelte:head>
 
 {#if synergyCourse}
-	<main class="mx-auto w-full max-w-[68rem] px-4 pb-10 sm:px-6 lg:px-8">
-		<div
-			class={[
-				'bg-background/95 sticky top-10 z-10 py-3 backdrop-blur transition-all md:top-0',
-				!pinChart && 'md:bg-transparent'
-			]}
+	<main class="w-full px-4 pt-6 pb-24 sm:px-6 lg:px-11 lg:pt-9 lg:pb-16">
+		<a
+			href="/grades"
+			class="text-primary mb-6 inline-flex items-center gap-2 text-sm font-semibold hover:underline"
 		>
-			<div
-				class="border-border/80 bg-card flex items-center justify-between gap-4 rounded-2xl border p-3 shadow-[0_18px_50px_-44px_rgba(7,32,52,0.7)] sm:p-4"
-			>
-				<div class="flex min-w-0 items-center gap-3">
-					<a
-						href="/grades"
-						class="bg-secondary text-muted-foreground hover:text-foreground hover:bg-accent flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors"
-						aria-label="Back to Grades"
-					>
-						<ArrowLeftIcon class="size-4" />
-					</a>
-					<div class="min-w-0">
-						<p class="text-primary text-[0.65rem] font-bold tracking-[0.13em] uppercase">
-							Course details
-						</p>
-						<h1 class="truncate text-lg font-bold tracking-[-0.015em] sm:text-2xl">{courseName}</h1>
-						<p class="text-muted-foreground truncate text-xs sm:text-sm">
-							Period {synergyCourse._Period}{synergyCourse._Room
-								? ` · Room ${synergyCourse._Room}`
-								: ''}{synergyCourse._Staff ? ` · ${synergyCourse._Staff}` : ''}
-						</p>
-					</div>
-				</div>
+			<ArrowLeftIcon class="size-4" /> All courses
+		</a>
 
-				<div
-					class="{gradeSurface} flex shrink-0 flex-col items-end gap-1 rounded-xl px-3 py-2 sm:px-5"
+		<header class="mb-6 flex items-start justify-between gap-5">
+			<div class="min-w-0">
+				<h1
+					class="font-heading truncate text-[1.875rem] leading-tight font-bold tracking-[-0.035em]"
 				>
-					<div class="{gradeTone} flex items-center font-mono text-xl font-bold sm:text-2xl">
-						{#if hypotheticalMode && !categories && !rawGradeCalcMatches}
-							<CircleAlertIcon class="mr-2 h-5 w-5" />
-						{/if}
-						{#if grade !== undefined}
-							<NumberFlow
-								{prefix}
-								value={grade}
-								format={{ style: 'percent', maximumFractionDigits: 3 }}
-								spinTiming={{ duration: 400, easing: numberFlowDefaultEasing }}
-							/>
-						{/if}
-					</div>
-					<GradeTruthLabel {hypotheticalMode} lastRefresh={activeGradebookRecord?.lastRefresh} />
-				</div>
+					{courseName}
+				</h1>
+				<p class="text-muted-foreground mt-2 truncate text-sm">
+					Period {synergyCourse._Period}{synergyCourse._Room
+						? ` · Room ${synergyCourse._Room}`
+						: ''}{synergyCourse._Staff ? ` · ${synergyCourse._Staff}` : ''}
+				</p>
 			</div>
-			{#if pinChart}
-				<div class="border-border/80 bg-card mt-3 overflow-hidden rounded-2xl border">
-					{@render chart()}
+
+			<div class="shrink-0 text-right">
+				<div class="{gradeTone} flex items-center justify-end font-mono text-[1.65rem] font-bold">
+					{#if hypotheticalMode && !categories && !rawGradeCalcMatches}<CircleAlertIcon
+							class="mr-2 size-5"
+						/>{/if}
+					{#if grade !== undefined}<NumberFlow
+							{prefix}
+							value={grade}
+							format={{ style: 'percent', maximumFractionDigits: 3 }}
+							spinTiming={{ duration: 400, easing: numberFlowDefaultEasing }}
+						/>{/if}
 				</div>
-			{/if}
-		</div>
+				<p class="text-muted-foreground mt-1 font-mono text-xs">
+					{realAssignments.filter((assignment) => assignment.pointsEarned !== undefined).length} graded
+					of {realAssignments.length}
+				</p>
+			</div>
+		</header>
+
+		<button
+			type="button"
+			onclick={toggleTargetGradeCalculator}
+			class="border-border/80 bg-card hover:border-primary mb-4 flex h-14 w-full items-center justify-between rounded-xl border px-5 text-left shadow-sm transition-colors"
+		>
+			<span class="font-bold">Finals Planner</span><span class="text-muted-foreground text-xs"
+				>what do I need on the final? <span class="ml-2">⌄</span></span
+			>
+		</button>
+
+		{#if showTargetGradeCalculator}
+			<div class="mb-4" transition:fade={{ duration: 160 }}>
+				<TargetGradeCalculator
+					initialGradePercentage={roundedGradePercentage}
+					assignments={reactiveAssignments}
+					categoryColors={assignmentCategoryColors}
+					{gradeCategoryWeightProportions}
+					onclose={toggleTargetGradeCalculator}
+				/>
+			</div>
+		{/if}
 
 		{#if !rawGradeCalcMatches}
 			<div class="m-4 flex justify-center" in:fade>
@@ -319,18 +306,12 @@
 			</div>
 		{/if}
 
-		{#if !pinChart}
-			<section
-				aria-label="Grade trend"
-				class="border-border/80 bg-card overflow-hidden rounded-2xl border"
-			>
-				<div class="border-border/70 border-b px-5 py-4">
-					<h2 class="font-bold">Grade trend</h2>
-					<p class="text-muted-foreground text-sm">How posted work has changed this grade</p>
-				</div>
-				{@render chart()}
-			</section>
-		{/if}
+		<section
+			aria-label="Grade trend"
+			class="border-border/80 bg-card overflow-hidden rounded-xl border shadow-sm"
+		>
+			{@render chart()}
+		</section>
 
 		{#snippet chart()}
 			<GradeChart
@@ -342,9 +323,7 @@
 			/>
 		{/snippet}
 
-		<div
-			class="border-border/80 bg-card my-4 flex min-h-9 flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border px-4 py-3"
-		>
+		<div class="my-4 flex min-h-9 flex-wrap items-center gap-x-5 gap-y-3">
 			<div class="flex items-center gap-2">
 				<Checkbox
 					bind:checked={hypotheticalMode}
@@ -361,26 +340,12 @@
 				</div>
 			{/if}
 
-			<div class="hidden items-center gap-2 sm:flex">
-				<Checkbox bind:checked={pinChart} id="pin-chart" />
-				<Label for="pin-chart">Pin chart to top of screen</Label>
-			</div>
-
 			{#if hypotheticalMode}
 				<div transition:fade={{ duration: 200 }} class="ml-auto flex flex-wrap gap-1">
 					<Button variant="card" onclick={initReactiveAssignments}>
 						<RotateCCWIcon class="mr-2 h-4 w-4" />
 						Reset
 					</Button>
-
-					{#if !showTargetGradeCalculator}
-						<div transition:fade={{ duration: 200 }}>
-							<Button variant="card" onclick={toggleTargetGradeCalculator}>
-								<Columns3CogIcon class="mr-2 h-4 w-4" />
-								Target Grade Calculator
-							</Button>
-						</div>
-					{/if}
 
 					<Button variant="card" onclick={addHypotheticalAssignment}>
 						<Grid2x2PlusIcon class="mr-2 h-4 w-4" />
@@ -393,18 +358,6 @@
 		{#if categories && gradeCategories && showCategoryTable}
 			<div class="m-4 flex justify-center" transition:fade={{ duration: 200 }}>
 				<GradeCategoryTable {gradeCategories} {hypotheticalMode} {pointsByCategory} />
-			</div>
-		{/if}
-
-		{#if hypotheticalMode && showTargetGradeCalculator}
-			<div class="m-4" transition:fade={{ duration: 200 }}>
-				<TargetGradeCalculator
-					initialGradePercentage={roundedGradePercentage}
-					assignments={reactiveAssignments}
-					categoryColors={assignmentCategoryColors}
-					{gradeCategoryWeightProportions}
-					onclose={toggleTargetGradeCalculator}
-				/>
 			</div>
 		{/if}
 

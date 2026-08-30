@@ -31,7 +31,7 @@ test('the sign-in and district-password setup flow matches the current product',
 	await page.screenshot({ path: 'test-results/auth-flow/signup.png', fullPage: true });
 
 	await page.getByRole('link', { name: 'With Google', exact: true }).click();
-	await expect(page.getByText('Create your StudentVUE password', { exact: true })).toBeVisible();
+	await expect(page.getByText('Sign up for Grademaxxing', { exact: true })).toBeVisible();
 	await page.getByRole('button', { name: 'Set your StudentVUE password' }).click();
 	await expect(page.getByRole('dialog')).toBeVisible();
 	await page

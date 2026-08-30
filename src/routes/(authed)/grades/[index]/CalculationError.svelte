@@ -20,7 +20,7 @@
 		new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 }).format(percentage) + '%';
 </script>
 
-<Alert.Root class="border-grade-watch bg-grade-watch-soft max-w-3xl">
+<Alert.Root class="border-grade-watch bg-grade-watch-soft max-w-3xl py-3">
 	<AlertCircleIcon class="text-grade-watch" />
 
 	<Alert.Title>
@@ -38,15 +38,10 @@
 				{brand} estimates <strong>{formatPercentage(estimatedPercentage)}</strong>.
 			</p>
 		{/if}
-		<p>
-			Your official StudentVUE value remains the main grade. The estimate and chart can differ when
-			the portal omits assignments or uses rules that are not visible in the gradebook.
-		</p>
 		{#if hiddenAssignmentCount > 0}
 			<p>
-				{hiddenAssignmentCount} point-discrepancy
-				{hiddenAssignmentCount === 1 ? 'record was' : 'records were'} reconstructed from category totals
-				to make missing work explicit.
+				{hiddenAssignmentCount} hidden point
+				{hiddenAssignmentCount === 1 ? 'record was' : 'records were'} reconstructed from category totals.
 			</p>
 		{/if}
 	</Alert.Description>

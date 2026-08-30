@@ -102,7 +102,7 @@
 
 <Card.Root
 	class={[
-		'border-border/70 max-w-full items-center gap-3 rounded-xl p-4 shadow-none transition duration-500 sm:flex-row',
+		'border-border/80 max-w-full items-center gap-3 rounded-xl p-4 shadow-sm transition duration-500 sm:flex-row',
 		unseen && 'border-l-grade-strong bg-grade-strong-soft/30 border-l-4'
 	]}
 >

@@ -61,13 +61,14 @@ test.beforeEach(async ({ page }) => {
 
 const pages = [
 	['/dashboard', /Hey Student, here’s the move\./],
-	['/grades', 'Grades'],
+	['/grades', 'Gradebook'],
+	['/gpa-calculator', 'GPA calculator'],
 	['/grades/preview', 'Theme Preview'],
 	['/attendance', 'Attendance'],
 	['/documents', 'Documents'],
 	['/mail', 'Mail'],
 	['/studentinfo', 'Student information'],
-	['/feedback', 'Feedback']
+	['/feedback', 'Chat with the team']
 ] as const;
 
 for (const [path, heading] of pages) {
@@ -82,3 +83,48 @@ for (const [path, heading] of pages) {
 		);
 	});
 }
+
+test('gradebook calculator, course planner, and attendance views are interactive', async ({
+	page
+}) => {
+	await page.goto('/grades');
+	await page.getByRole('link', { name: 'GPA calculator' }).click();
+	await expect(page).toHaveURL(/\/gpa-calculator$/);
+	await expect(page.getByText('4.00').first()).toBeVisible();
+	await page.getByLabel('weighted +1.0').click();
+	await expect(page.getByText('5.00')).toBeVisible();
+	await page.getByRole('button', { name: 'Reset all' }).click();
+	await expect(page.getByText('5.00')).toHaveCount(0);
+
+	await page.goto('/grades/preview');
+	await page.getByRole('button', { name: /Finals Planner/ }).click();
+	await expect(page.getByText(/Target Grade/i).first()).toBeVisible();
+
+	await page.goto('/attendance');
+	await expect(page.getByRole('heading', { name: 'By class' })).toBeVisible();
+	await page.getByRole('button', { name: 'Calendar' }).click();
+	await expect(page.getByRole('button', { name: 'Previous month' })).toBeVisible();
+});
+
+test('empty records, feedback state, mobile navigation, and theme controls are clear', async ({
+	page
+}) => {
+	await page.goto('/documents');
+	await expect(page.getByRole('heading', { name: 'No documents yet' })).toBeVisible();
+	await page.goto('/mail');
+	await expect(page.getByRole('heading', { name: 'Your inbox is empty' })).toBeVisible();
+	await page.goto('/feedback');
+	await expect(page.getByRole('button', { name: 'Send' })).toBeDisabled();
+
+	await page.getByRole('button', { name: 'Light' }).click();
+	await expect(page.locator('html')).not.toHaveClass(/dark/);
+	await page.getByRole('button', { name: 'Dark' }).click();
+	await expect(page.locator('html')).toHaveClass(/dark/);
+
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.goto('/dashboard');
+	for (const label of ['Home', 'Grades', 'Attendance', 'Documents', 'Mail'])
+		await expect(
+			page.getByRole('navigation', { name: 'Mobile navigation' }).getByText(label, { exact: true })
+		).toBeVisible();
+});

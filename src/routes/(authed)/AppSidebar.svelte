@@ -103,24 +103,24 @@
 	});
 </script>
 
-<Sidebar.Root class="border-sidebar-border/70">
-	<Sidebar.Header class="px-4 pt-5 pb-3">
+<Sidebar.Root class="border-sidebar-border/80">
+	<Sidebar.Header class="px-[1.375rem] pt-6 pb-5">
 		<a
 			href="/dashboard"
-			class="focus-visible:ring-sidebar-ring flex w-fit items-center gap-3 rounded-lg outline-none focus-visible:ring-2"
+			class="focus-visible:ring-sidebar-ring flex w-fit items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2"
 		>
-			<img src="/favicon.svg" class="size-9" alt="" />
-			<span class="text-xl font-extrabold tracking-[-0.035em]">{brand}</span>
+			<img src="/favicon.svg" class="size-7" alt="" />
+			<span class="text-[1.22rem] font-extrabold tracking-[-0.035em]">{brand}</span>
 		</a>
 	</Sidebar.Header>
 
-	<Sidebar.Content class="px-3 pb-3">
+	<Sidebar.Content class="px-[0.875rem] pb-3">
 		<nav aria-label="Primary navigation">
-			<Sidebar.Menu class="gap-1">
+			<Sidebar.Menu class="gap-0.5">
 				{#each navigation as item (item.url)}
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton
-							class="data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground h-11 rounded-xl px-3 text-[0.95rem] font-semibold"
+							class="data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground h-[2.375rem] rounded-lg px-3 text-[0.90625rem] font-semibold"
 							isActive={isRouteActive(item.url)}
 						>
 							{#snippet child({ props })}
@@ -135,22 +135,22 @@
 			</Sidebar.Menu>
 		</nav>
 
-		<section class="mt-5" aria-labelledby="classes-heading">
+		<section class="mt-[1.375rem]" aria-labelledby="classes-heading">
 			<h2
 				id="classes-heading"
-				class="text-muted-foreground px-3 text-[0.7rem] font-bold tracking-[0.15em] uppercase"
+				class="text-muted-foreground px-2 text-[0.6875rem] font-bold tracking-[0.15em] uppercase"
 			>
 				Classes
 			</h2>
 
 			<svelte:boundary>
 				{#if courses}
-					<ol class="mt-2 space-y-0.5">
+					<ol class="mt-2 space-y-0">
 						{#each courses as course, index (course._CourseID)}
 							<li>
 								<a
 									href={`/grades/${encodeURIComponent(course._CourseID)}`}
-									class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring flex min-h-9 items-center gap-3 rounded-lg px-3 py-1.5 text-sm outline-none focus-visible:ring-2 {page
+									class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring flex min-h-[1.875rem] items-center gap-2 rounded-lg px-2 py-1 text-[0.8125rem] outline-none focus-visible:ring-2 {page
 										.url.pathname === `/grades/${encodeURIComponent(course._CourseID)}`
 										? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold'
 										: 'text-muted-foreground'}"
@@ -169,15 +169,15 @@
 			</svelte:boundary>
 		</section>
 
-		<div class="mt-auto space-y-3 pt-6">
+		<div class="mt-auto space-y-2.5 pt-5">
 			<a
 				href="/privacy"
-				class="border-border/70 text-muted-foreground hover:bg-sidebar-accent block rounded-xl border px-3.5 py-3 text-xs leading-5 transition-colors"
+				class="border-border/70 text-muted-foreground hover:bg-sidebar-accent block rounded-lg border px-3 py-2.5 text-[0.7rem] leading-[1.45] transition-colors"
 			>
 				Your password is never stored. Signing out deletes your secure server session.
 			</a>
 
-			<div class="text-muted-foreground px-1 text-xs">
+			<div class="text-muted-foreground px-1 text-[0.6875rem] leading-4">
 				<p>Built for students.</p>
 				<a href="/feedback" class="hover:text-foreground underline underline-offset-4"
 					>Send feedback</a
@@ -188,7 +188,7 @@
 				type="button"
 				onclick={() => void refreshAll()}
 				disabled={refreshingAll}
-				class="border-border/70 hover:bg-sidebar-accent flex h-10 w-full items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+				class="border-border/70 hover:bg-sidebar-accent flex h-9 w-full items-center justify-center gap-2 rounded-lg border px-3 text-[0.8125rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
 				aria-busy={refreshingAll}
 			>
 				<RefreshCwIcon class="size-4 {refreshingAll ? 'animate-spin' : ''}" />
@@ -201,13 +201,13 @@
 			</button>
 
 			<div
-				class="border-border/70 grid grid-cols-2 gap-1 rounded-xl border p-1"
+				class="border-border/70 grid grid-cols-2 gap-1 rounded-lg border p-1"
 				aria-label="Color theme"
 			>
 				<button
 					type="button"
 					onclick={() => setMode('dark')}
-					class="flex h-9 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-colors {mode.current ===
+					class="flex h-8 items-center justify-center gap-2 rounded-md text-[0.8125rem] font-semibold transition-colors {mode.current ===
 					'dark'
 						? 'bg-sidebar-accent text-sidebar-accent-foreground'
 						: 'text-muted-foreground hover:text-foreground'}"
@@ -218,7 +218,7 @@
 				<button
 					type="button"
 					onclick={() => setMode('light')}
-					class="flex h-9 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-colors {mode.current ===
+					class="flex h-8 items-center justify-center gap-2 rounded-md text-[0.8125rem] font-semibold transition-colors {mode.current ===
 					'light'
 						? 'bg-sidebar-accent text-sidebar-accent-foreground'
 						: 'text-muted-foreground hover:text-foreground'}"
@@ -230,22 +230,22 @@
 		</div>
 	</Sidebar.Content>
 
-	<Sidebar.Footer class="border-sidebar-border/70 border-t px-3 py-3">
+	<Sidebar.Footer class="border-sidebar-border/70 border-t px-[0.875rem] py-2.5">
 		<div class="flex items-center gap-3">
 			<a
 				href="/studentinfo"
-				class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring flex min-w-0 flex-1 items-center gap-3 rounded-xl p-2 outline-none focus-visible:ring-2"
+				class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1.5 outline-none focus-visible:ring-2"
 			>
 				{#if studentInfoState.data?.Photo}
 					<img
 						src="data:{studentInfoState.data.PhotoMimeType || 'image/png'};base64,{studentInfoState
 							.data.Photo}"
-						class="size-10 shrink-0 rounded-full object-cover"
+						class="size-9 shrink-0 rounded-full object-cover"
 						alt=""
 					/>
 				{:else}
 					<span
-						class="bg-sidebar-accent text-sidebar-accent-foreground flex size-10 shrink-0 items-center justify-center rounded-full font-bold"
+						class="bg-sidebar-accent text-sidebar-accent-foreground flex size-9 shrink-0 items-center justify-center rounded-full font-bold"
 					>
 						{studentInfoState.data?.FormattedName.trim().charAt(0) || 'S'}
 					</span>

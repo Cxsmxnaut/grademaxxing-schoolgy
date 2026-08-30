@@ -6,7 +6,6 @@
 	import DateBadge from '$lib/components/DateBadge.svelte';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
 	import RecordLoadFailure from '$lib/components/RecordLoadFailure.svelte';
-	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import * as Tabs from '$lib/components/ui/tabs';
@@ -68,15 +67,6 @@
 		<LoadingBanner>Loading documents...</LoadingBanner>
 	{/if}
 
-	{#if documentsState.lastRefresh !== undefined}
-		<RefreshIndicator
-			canRefresh={documentsState.loaded}
-			lastRefresh={documentsState.lastRefresh}
-			refreshing={documentsState.refreshing}
-			refresh={() => loadDocuments(true)}
-		/>
-	{/if}
-
 	{#if documentsState.loaded && documentsState.error}
 		<RecordLoadFailure
 			label="documents"
@@ -86,7 +76,7 @@
 		/>
 	{/if}
 
-	{#if documentsState.data}
+	{#if documentsState.data && documentDatas.length > 0}
 		<Tabs.Root value="all" class="mt-5 gap-4">
 			<Tabs.List class="h-11 max-w-full justify-start overflow-x-auto rounded-xl">
 				<Tabs.Trigger value="all">All</Tabs.Trigger>

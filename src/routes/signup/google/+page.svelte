@@ -26,7 +26,7 @@
 	class="mb-[1.359375rem] text-[1.4375rem] leading-[2.15625rem] font-bold tracking-[-0.01em]"
 	style="font-family: 'Space Grotesk Variable', sans-serif"
 >
-	Create your StudentVUE password
+	Sign up for {brand}
 </h1>
 
 <div class="space-y-4 text-[0.875rem] leading-[1.55] text-[#8fa9c2]">

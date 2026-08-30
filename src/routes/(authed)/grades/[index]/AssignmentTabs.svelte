@@ -46,15 +46,10 @@
 	});
 </script>
 
-<section class="border-border/80 bg-card mt-4 overflow-hidden rounded-2xl border">
-	<div class="border-border/70 border-b px-5 pt-4">
-		<h2 class="font-bold">Assignments</h2>
-		<p class="text-muted-foreground mb-3 text-sm">Posted work, scores, and grade impact</p>
-	</div>
-
+<section class="mt-4">
 	<Tabs.Root bind:value={activeTab} class="gap-0">
 		<Tabs.List
-			class="border-border/70 h-12 max-w-full justify-start overflow-x-auto rounded-none border-b bg-transparent px-3"
+			class="bg-secondary mb-4 h-10 max-w-full justify-start overflow-x-auto rounded-xl p-1"
 		>
 			<Tabs.Trigger value="all">All</Tabs.Trigger>
 
@@ -73,7 +68,7 @@
 			{/each}
 		</Tabs.List>
 
-		<Tabs.Content value="all" class="p-3 sm:p-4">
+		<Tabs.Content value="all">
 			<ol class="flex flex-col items-center gap-2">
 				{#if hypotheticalMode}
 					{#each reactiveAssignments as { id, gradePercentageChange, hidden, newHypothetical, date, comments, category }, i (id)}
@@ -135,7 +130,7 @@
 		</Tabs.Content>
 
 		{#each assignmentCategoryNames as categoryName (categoryName)}
-			<Tabs.Content value={categoryName} class="p-3 sm:p-4">
+			<Tabs.Content value={categoryName}>
 				<ol class="flex flex-col items-center gap-2">
 					{#if hypotheticalMode}
 						{#each reactiveAssignments as { category, id, gradePercentageChange, hidden, newHypothetical, date, comments }, i (id)}

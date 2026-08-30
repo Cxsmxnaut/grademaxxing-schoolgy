@@ -213,6 +213,7 @@
 	}
 	body {
 		@apply bg-background text-foreground;
+		font-size: 0.90625rem;
 	}
 }
 
