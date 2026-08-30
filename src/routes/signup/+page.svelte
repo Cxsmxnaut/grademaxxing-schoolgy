@@ -6,11 +6,14 @@
 
 <AuthPanelHeader />
 
-<h1 class="mb-7 text-[1.75rem] leading-tight font-bold tracking-[-0.025em]">
+<h1
+	class="mb-[1.359375rem] text-[1.4375rem] leading-[2.15625rem] font-bold tracking-[-0.01em]"
+	style="font-family: 'Space Grotesk Variable', sans-serif"
+>
 	Sign up for {brand}
 </h1>
 
-<p class="mb-4 text-sm font-semibold text-[#e4eef8]">How do you sign in to StudentVUE?</p>
+<p class="mb-3 text-[0.90625rem] font-semibold text-[#e4eef8]">How do you sign in to StudentVUE?</p>
 
 <div class="space-y-3">
 	<Button
@@ -30,7 +33,7 @@
 	</Button>
 </div>
 
-<p class="mt-7 text-sm leading-6 text-[#8fa9c2]">
+<p class="mt-5 text-[0.875rem] leading-[1.55] text-[#8fa9c2]">
 	If you have used {brand} before, you are already set up. Just use the same StudentVUE password to
 	<a href="/login" class="font-medium text-[#4db6f5] hover:underline">log in</a>.
 </p>

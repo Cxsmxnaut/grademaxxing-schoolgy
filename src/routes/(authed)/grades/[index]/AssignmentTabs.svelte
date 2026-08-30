@@ -46,94 +46,40 @@
 	});
 </script>
 
-<Tabs.Root bind:value={activeTab} class="mx-4 gap-4">
-	<Tabs.List class="mx-auto h-12 max-w-full justify-start overflow-x-auto">
-		<Tabs.Trigger value="all">All</Tabs.Trigger>
+<section class="border-border/80 bg-card mt-4 overflow-hidden rounded-2xl border">
+	<div class="border-border/70 border-b px-5 pt-4">
+		<h2 class="font-bold">Assignments</h2>
+		<p class="text-muted-foreground mb-3 text-sm">Posted work, scores, and grade impact</p>
+	</div>
 
-		{#each assignmentCategoryNames as categoryName (categoryName)}
-			<Tabs.Trigger value={categoryName}>
-				{#if assignmentCategoryColors.has(categoryName)}
-					<div
-						class={[
-							bgColorVariants[assignmentCategoryColors.get(categoryName)!],
-							'h-2 w-2 rounded-full'
-						]}
-					></div>
-				{/if}
-				{categoryName}
-			</Tabs.Trigger>
-		{/each}
-	</Tabs.List>
+	<Tabs.Root bind:value={activeTab} class="gap-0">
+		<Tabs.List
+			class="border-border/70 h-12 max-w-full justify-start overflow-x-auto rounded-none border-b bg-transparent px-3"
+		>
+			<Tabs.Trigger value="all">All</Tabs.Trigger>
 
-	<Tabs.Content value="all">
-		<ol class="flex flex-col items-center gap-4">
-			{#if hypotheticalMode}
-				{#each reactiveAssignments as { id, gradePercentageChange, hidden, newHypothetical, date, comments, category }, i (id)}
-					{#if reactiveAssignments[i]}
-						<li class="w-full max-w-4xl">
-							{#if gradeCategories && categoryDropdownOptions}
-								<AssignmentCard
-									bind:name={reactiveAssignments[i].name}
-									{id}
-									bind:pointsEarned={reactiveAssignments[i].pointsEarned}
-									bind:pointsPossible={reactiveAssignments[i].pointsPossible}
-									bind:extraCredit={reactiveAssignments[i].extraCredit}
-									gradePercentageChange={rawGradeCalcMatches ? gradePercentageChange : undefined}
-									bind:notForGrade={reactiveAssignments[i].notForGrade}
-									{hidden}
-									showHypotheticalLabel={newHypothetical}
-									bind:categoryDropdownSelected={reactiveAssignments[i].category}
-									categoryDropdown={{
-										names: categoryDropdownOptions,
-										colors: assignmentCategoryColors
-									}}
-									{date}
-									{comments}
-									editable={true}
-									{recalculateGradePercentage}
-								/>
-							{:else}
-								<AssignmentCard
-									bind:name={reactiveAssignments[i].name}
-									{id}
-									bind:pointsEarned={reactiveAssignments[i].pointsEarned}
-									bind:pointsPossible={reactiveAssignments[i].pointsPossible}
-									bind:extraCredit={reactiveAssignments[i].extraCredit}
-									gradePercentageChange={rawGradeCalcMatches ? gradePercentageChange : undefined}
-									bind:notForGrade={reactiveAssignments[i].notForGrade}
-									{hidden}
-									showHypotheticalLabel={newHypothetical}
-									categoryBadge={category !== undefined
-										? {
-												name: category,
-												color: assignmentCategoryColors.get(category) ?? 'default'
-											}
-										: undefined}
-									{date}
-									{comments}
-									editable={true}
-									{recalculateGradePercentage}
-								/>
-							{/if}
-						</li>
+			{#each assignmentCategoryNames as categoryName (categoryName)}
+				<Tabs.Trigger value={categoryName}>
+					{#if assignmentCategoryColors.has(categoryName)}
+						<div
+							class={[
+								bgColorVariants[assignmentCategoryColors.get(categoryName)!],
+								'h-2 w-2 rounded-full'
+							]}
+						></div>
 					{/if}
-				{/each}
-			{:else}
-				{#each assignments as assignment (assignment.id)}
-					{@render assignmentSnippet(assignment, true)}
-				{/each}
-			{/if}
-		</ol>
-	</Tabs.Content>
+					{categoryName}
+				</Tabs.Trigger>
+			{/each}
+		</Tabs.List>
 
-	{#each assignmentCategoryNames as categoryName (categoryName)}
-		<Tabs.Content value={categoryName}>
-			<ol class="flex flex-col items-center gap-4">
+		<Tabs.Content value="all" class="p-3 sm:p-4">
+			<ol class="flex flex-col items-center gap-2">
 				{#if hypotheticalMode}
-					{#each reactiveAssignments as { category, id, gradePercentageChange, hidden, newHypothetical, date, comments }, i (id)}
-						{#if category === categoryName && reactiveAssignments[i]}
+					{#each reactiveAssignments as { id, gradePercentageChange, hidden, newHypothetical, date, comments, category }, i (id)}
+						{#if reactiveAssignments[i]}
 							<li class="w-full max-w-4xl">
-								{#if gradeCategories && categoryDropdownOptions && reactiveAssignments[i].category !== undefined}
+								{#if gradeCategories && categoryDropdownOptions}
 									<AssignmentCard
 										bind:name={reactiveAssignments[i].name}
 										{id}
@@ -165,6 +111,12 @@
 										bind:notForGrade={reactiveAssignments[i].notForGrade}
 										{hidden}
 										showHypotheticalLabel={newHypothetical}
+										categoryBadge={category !== undefined
+											? {
+													name: category,
+													color: assignmentCategoryColors.get(category) ?? 'default'
+												}
+											: undefined}
 										{date}
 										{comments}
 										editable={true}
@@ -176,15 +128,76 @@
 					{/each}
 				{:else}
 					{#each assignments as assignment (assignment.id)}
-						{#if assignment.category === categoryName}
-							{@render assignmentSnippet(assignment, false)}
-						{/if}
+						{@render assignmentSnippet(assignment, true)}
 					{/each}
 				{/if}
 			</ol>
 		</Tabs.Content>
-	{/each}
-</Tabs.Root>
+
+		{#each assignmentCategoryNames as categoryName (categoryName)}
+			<Tabs.Content value={categoryName} class="p-3 sm:p-4">
+				<ol class="flex flex-col items-center gap-2">
+					{#if hypotheticalMode}
+						{#each reactiveAssignments as { category, id, gradePercentageChange, hidden, newHypothetical, date, comments }, i (id)}
+							{#if category === categoryName && reactiveAssignments[i]}
+								<li class="w-full max-w-4xl">
+									{#if gradeCategories && categoryDropdownOptions && reactiveAssignments[i].category !== undefined}
+										<AssignmentCard
+											bind:name={reactiveAssignments[i].name}
+											{id}
+											bind:pointsEarned={reactiveAssignments[i].pointsEarned}
+											bind:pointsPossible={reactiveAssignments[i].pointsPossible}
+											bind:extraCredit={reactiveAssignments[i].extraCredit}
+											gradePercentageChange={rawGradeCalcMatches
+												? gradePercentageChange
+												: undefined}
+											bind:notForGrade={reactiveAssignments[i].notForGrade}
+											{hidden}
+											showHypotheticalLabel={newHypothetical}
+											bind:categoryDropdownSelected={reactiveAssignments[i].category}
+											categoryDropdown={{
+												names: categoryDropdownOptions,
+												colors: assignmentCategoryColors
+											}}
+											{date}
+											{comments}
+											editable={true}
+											{recalculateGradePercentage}
+										/>
+									{:else}
+										<AssignmentCard
+											bind:name={reactiveAssignments[i].name}
+											{id}
+											bind:pointsEarned={reactiveAssignments[i].pointsEarned}
+											bind:pointsPossible={reactiveAssignments[i].pointsPossible}
+											bind:extraCredit={reactiveAssignments[i].extraCredit}
+											gradePercentageChange={rawGradeCalcMatches
+												? gradePercentageChange
+												: undefined}
+											bind:notForGrade={reactiveAssignments[i].notForGrade}
+											{hidden}
+											showHypotheticalLabel={newHypothetical}
+											{date}
+											{comments}
+											editable={true}
+											{recalculateGradePercentage}
+										/>
+									{/if}
+								</li>
+							{/if}
+						{/each}
+					{:else}
+						{#each assignments as assignment (assignment.id)}
+							{#if assignment.category === categoryName}
+								{@render assignmentSnippet(assignment, false)}
+							{/if}
+						{/each}
+					{/if}
+				</ol>
+			</Tabs.Content>
+		{/each}
+	</Tabs.Root>
+</section>
 
 {#snippet assignmentSnippet(
 	{
@@ -205,7 +218,7 @@
 	}: RealAssignment | Flowed<RealAssignment | HiddenAssignment>,
 	showCategory = true
 )}
-	<li class="w-full max-w-3xl">
+	<li class="w-full">
 		<AssignmentCard
 			{name}
 			{id}

@@ -1,4 +1,7 @@
 <script lang="ts">
+	import '@fontsource-variable/instrument-sans';
+	import '@fontsource-variable/space-grotesk';
+	import '@fontsource/ibm-plex-mono';
 	import { Toaster } from '$lib/components/ui/sonner';
 	import { ModeWatcher } from 'mode-watcher';
 	import '../app.css';

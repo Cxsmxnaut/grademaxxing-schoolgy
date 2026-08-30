@@ -12,7 +12,10 @@
 	<article class="w-full max-w-[46rem] py-2 text-[#e4eef8] sm:py-8">
 		<AuthPanelHeader />
 		<p class="mb-2 text-xs font-bold tracking-[0.14em] text-[#4db6f5] uppercase">Privacy</p>
-		<h1 class="mb-4 text-3xl font-bold tracking-[-0.03em] sm:text-4xl">
+		<h1
+			class="mb-4 text-3xl font-bold tracking-[-0.03em]"
+			style="font-family: 'Space Grotesk Variable', sans-serif"
+		>
 			How {brand} handles your information
 		</h1>
 		<p class="mb-10 max-w-2xl text-base leading-7 text-[#8fa9c2]">

@@ -8,6 +8,8 @@
 	import RecordLoadFailure from '$lib/components/RecordLoadFailure.svelte';
 	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
 	import type { InboxItemListingsMessageXML } from '$lib/types/MailData';
+	import InboxIcon from '@lucide/svelte/icons/inbox';
+	import MailCheckIcon from '@lucide/svelte/icons/mail-check';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { toast } from 'svelte-sonner';
 	import MessageButton from './MessageButton.svelte';
@@ -112,21 +114,43 @@
 
 	{#if mailDataState.data}
 		{#if allMessages.length > 0}
-			<ol class="flex flex-col items-center gap-3" aria-label="Inbox messages">
-				{#each allMessages as message (message._SMMessageGU)}
-					<li class="w-full max-w-3xl" ontouchend={() => (touchscreen = true)}>
-						<MessageButton
-							{message}
-							disabled={openingMessageId !== undefined}
-							onclick={() => void openMessage(message)}
-						/>
-					</li>
-				{/each}
-			</ol>
+			<section
+				class="bg-card mx-auto mt-5 max-w-4xl overflow-hidden rounded-xl shadow-sm"
+				aria-labelledby="inbox-heading"
+			>
+				<header
+					class="border-border/70 flex items-center justify-between border-b px-4 py-3 sm:px-5"
+				>
+					<div class="flex items-center gap-2.5">
+						<InboxIcon class="text-primary size-4" />
+						<h2 id="inbox-heading" class="font-semibold">Inbox</h2>
+					</div>
+					<span class="text-muted-foreground text-xs tabular-nums">
+						{allMessages.length}
+						{allMessages.length === 1 ? 'message' : 'messages'}
+					</span>
+				</header>
+				<ol aria-label="Inbox messages">
+					{#each allMessages as message (message._SMMessageGU)}
+						<li
+							class="border-border/70 border-b last:border-b-0"
+							ontouchend={() => (touchscreen = true)}
+						>
+							<MessageButton
+								{message}
+								disabled={openingMessageId !== undefined}
+								onclick={() => void openMessage(message)}
+							/>
+						</li>
+					{/each}
+				</ol>
+			</section>
 		{:else}
-			<p class="text-muted-foreground mx-auto my-16 text-center" role="status">
-				Your inbox is empty.
-			</p>
+			<div class="py-16 text-center" role="status">
+				<MailCheckIcon class="text-success mx-auto size-9" />
+				<h2 class="mt-3 font-semibold">Your inbox is empty</h2>
+				<p class="text-muted-foreground mt-1 text-sm">New school messages will appear here.</p>
+			</div>
 		{/if}
 
 		{#if openedMessage}

@@ -36,7 +36,7 @@
 	}
 	{disabled}
 >
-	<Select.Trigger class="mx-auto">
+	<Select.Trigger class="w-full sm:w-56">
 		{activeName}
 	</Select.Trigger>
 

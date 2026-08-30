@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
 	import { LocalStorageKey } from '$lib';
 	import { acc, loadStudentAccount } from '$lib/account.svelte';
 	import { brand } from '$lib/brand';
@@ -65,13 +64,15 @@
 		<AppSidebar />
 
 		<Sidebar.Inset class="min-w-0">
-			<header class="bg-background sticky top-0 z-20 flex shrink-0 items-center p-2 md:hidden">
-				<Sidebar.Trigger />
+			<header
+				class="bg-background/95 border-border/70 sticky top-0 z-20 flex h-14 shrink-0 items-center border-b px-3 backdrop-blur md:hidden"
+			>
+				<Sidebar.Trigger class="-ml-1" />
 				<a
 					href="/dashboard"
-					class="mr-auto ml-1 flex items-center gap-2 text-xl font-semibold tracking-tight whitespace-nowrap"
+					class="mr-auto ml-2 flex items-center gap-2 text-lg font-extrabold tracking-[-0.035em] whitespace-nowrap"
 				>
-					<img src="/favicon.svg" class="size-6" alt={brand} />
+					<img src="/favicon.svg" class="size-7" alt="" />
 					{brand}
 				</a>
 			</header>
@@ -92,17 +93,9 @@
 				</svelte:boundary>
 			</div>
 
-			{#if page.url.pathname !== '/feedback'}
-				<div class="mt-auto w-full text-xs">
-					<div class="text-muted-foreground mx-auto w-fit p-4 pb-0">
-						<a href="/feedback" class="text-tertiary-foreground">Report an issue</a> •
-						<a href="/feedback" class="text-tertiary-foreground">Suggest a feature</a> •
-						<a href="/feedback" class="text-tertiary-foreground">Provide feedback</a>
-					</div>
-
-					<Disclaimer trademark={false} />
-				</div>
-			{/if}
+			<div class="mt-auto w-full text-xs">
+				<Disclaimer trademark={false} />
+			</div>
 		</Sidebar.Inset>
 	</Sidebar.Provider>
 

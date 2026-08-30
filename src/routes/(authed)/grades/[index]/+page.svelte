@@ -210,6 +210,20 @@
 	const roundedGradePercentage = $derived(
 		grade !== undefined ? Math.round(grade * 100 * 1000) / 1000 : undefined
 	);
+	const gradeTone = $derived.by(() => {
+		if (roundedGradePercentage === undefined) return 'text-foreground';
+		if (roundedGradePercentage > 100) return 'text-grade-extra';
+		if (roundedGradePercentage >= 90) return 'text-grade-strong';
+		if (roundedGradePercentage >= 80) return 'text-grade-watch';
+		return 'text-grade-risk';
+	});
+	const gradeSurface = $derived.by(() => {
+		if (roundedGradePercentage === undefined) return 'bg-secondary';
+		if (roundedGradePercentage > 100) return 'bg-grade-extra-soft';
+		if (roundedGradePercentage >= 90) return 'bg-grade-strong-soft';
+		if (roundedGradePercentage >= 80) return 'bg-grade-watch-soft';
+		return 'bg-grade-risk-soft';
+	});
 
 	const assignmentCategoryNames = $derived(
 		new Set(realAssignments.map((assignment) => assignment.category).toSorted())
@@ -237,25 +251,30 @@
 </svelte:head>
 
 {#if synergyCourse}
-	<div class="mx-auto w-full max-w-[65rem] px-4 pb-8 sm:px-6 lg:px-8">
+	<main class="mx-auto w-full max-w-[68rem] px-4 pb-10 sm:px-6 lg:px-8">
 		<div
 			class={[
-				'bg-background sticky top-10 z-10 transition-all md:top-0',
+				'bg-background/95 sticky top-10 z-10 py-3 backdrop-blur transition-all md:top-0',
 				!pinChart && 'md:bg-transparent'
 			]}
 		>
-			<div class="flex justify-between rounded-b-lg">
-				<div class="bg-background flex min-w-0 items-center gap-3 rounded-br-xl py-2 pr-4">
+			<div
+				class="border-border/80 bg-card flex items-center justify-between gap-4 rounded-2xl border p-3 shadow-[0_18px_50px_-44px_rgba(7,32,52,0.7)] sm:p-4"
+			>
+				<div class="flex min-w-0 items-center gap-3">
 					<a
 						href="/grades"
-						class="text-muted-foreground hover:text-foreground flex size-8 shrink-0 items-center justify-center rounded-full transition-colors"
+						class="bg-secondary text-muted-foreground hover:text-foreground hover:bg-accent flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors"
 						aria-label="Back to Grades"
 					>
 						<ArrowLeftIcon class="size-4" />
 					</a>
 					<div class="min-w-0">
-						<h1 class="truncate text-xl font-semibold sm:text-2xl">{courseName}</h1>
-						<p class="text-muted-foreground truncate text-xs">
+						<p class="text-primary text-[0.65rem] font-bold tracking-[0.13em] uppercase">
+							Course details
+						</p>
+						<h1 class="truncate text-lg font-bold tracking-[-0.015em] sm:text-2xl">{courseName}</h1>
+						<p class="text-muted-foreground truncate text-xs sm:text-sm">
 							Period {synergyCourse._Period}{synergyCourse._Room
 								? ` · Room ${synergyCourse._Room}`
 								: ''}{synergyCourse._Staff ? ` · ${synergyCourse._Staff}` : ''}
@@ -263,8 +282,10 @@
 					</div>
 				</div>
 
-				<div class="bg-background flex shrink-0 flex-col items-end gap-1 rounded-bl-xl px-4 py-2">
-					<div class="flex items-center font-mono text-xl font-medium sm:text-2xl">
+				<div
+					class="{gradeSurface} flex shrink-0 flex-col items-end gap-1 rounded-xl px-3 py-2 sm:px-5"
+				>
+					<div class="{gradeTone} flex items-center font-mono text-xl font-bold sm:text-2xl">
 						{#if hypotheticalMode && !categories && !rawGradeCalcMatches}
 							<CircleAlertIcon class="mr-2 h-5 w-5" />
 						{/if}
@@ -281,7 +302,9 @@
 				</div>
 			</div>
 			{#if pinChart}
-				{@render chart()}
+				<div class="border-border/80 bg-card mt-3 overflow-hidden rounded-2xl border">
+					{@render chart()}
+				</div>
 			{/if}
 		</div>
 
@@ -297,7 +320,16 @@
 		{/if}
 
 		{#if !pinChart}
-			{@render chart()}
+			<section
+				aria-label="Grade trend"
+				class="border-border/80 bg-card overflow-hidden rounded-2xl border"
+			>
+				<div class="border-border/70 border-b px-5 py-4">
+					<h2 class="font-bold">Grade trend</h2>
+					<p class="text-muted-foreground text-sm">How posted work has changed this grade</p>
+				</div>
+				{@render chart()}
+			</section>
 		{/if}
 
 		{#snippet chart()}
@@ -310,7 +342,9 @@
 			/>
 		{/snippet}
 
-		<div class="m-4 flex min-h-9 flex-wrap items-center gap-4">
+		<div
+			class="border-border/80 bg-card my-4 flex min-h-9 flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border px-4 py-3"
+		>
 			<div class="flex items-center gap-2">
 				<Checkbox
 					bind:checked={hypotheticalMode}
@@ -410,7 +444,7 @@
 				</Alert.Root>
 			</div>
 		{/if}
-	</div>
+	</main>
 {:else if getActiveGradebook()?.Courses.Course}
 	<div class="mx-auto flex min-h-[50vh] max-w-xl items-center px-4">
 		<Alert.Root>

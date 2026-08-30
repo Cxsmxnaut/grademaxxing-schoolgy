@@ -9,9 +9,10 @@
 	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
 	import * as Accordion from '$lib/components/ui/accordion';
 	import { Button } from '$lib/components/ui/button';
-	import * as Card from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
+	import BadgeCheckIcon from '@lucide/svelte/icons/badge-check';
 	import CopyIcon from '@lucide/svelte/icons/copy';
+	import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
 	import { loadStudentInfo, studentInfoState } from './studentInfo.svelte';
 
 	loadStudentInfo();
@@ -88,80 +89,115 @@
 		/>
 	{/if}
 
-	<div class="flex flex-wrap gap-4">
-		{#if studentInfoState.data}
-			<Card.Root class="w-sm max-w-full">
-				<Card.Header>
-					<Card.Title>Student Information</Card.Title>
-				</Card.Header>
-
-				<Card.Content class="flex h-full items-center justify-between gap-6">
-					<div class="space-y-2">
-						<p>{studentInfoState.data.FormattedName}</p>
-						<p class="text-muted-foreground">
-							{studentInfoState.data.PermID === null
-								? 'Student ID unavailable'
-								: studentInfoState.data.PermID}
-						</p>
-						<p class="text-muted-foreground">
-							{studentInfoState.data.Grade === null
-								? 'Grade unavailable'
-								: `Grade ${studentInfoState.data.Grade}`}
-						</p>
-						<p class="text-muted-foreground">{studentInfoState.data.Gender}</p>
+	{#if studentInfoState.data}
+		<section
+			class="bg-card mt-5 overflow-hidden rounded-xl shadow-sm"
+			aria-labelledby="student-name"
+		>
+			<div class="bg-primary/6 flex flex-col gap-5 px-5 py-6 sm:flex-row sm:items-center sm:px-7">
+				{#if studentInfoState.data.Photo}
+					<img
+						src="data:{studentInfoState.data.PhotoMimeType || 'image/png'};base64,{studentInfoState
+							.data.Photo}"
+						class="ring-card size-20 shrink-0 rounded-full object-cover ring-4"
+						alt="Student portrait"
+					/>
+				{:else}
+					<div
+						class="bg-primary/12 text-primary ring-card flex size-20 shrink-0 items-center justify-center rounded-full text-2xl font-bold ring-4"
+						aria-label="Student portrait unavailable"
+					>
+						{studentInfoState.data.FormattedName.trim().charAt(0) || '?'}
 					</div>
+				{/if}
 
-					{#if studentInfoState.data.Photo}
-						<img
-							src="data:{studentInfoState.data.PhotoMimeType ||
-								'image/png'};base64,{studentInfoState.data.Photo}"
-							class="size-24 rounded-sm object-cover"
-							alt="Student Portrait"
-						/>
-					{:else}
-						<div
-							class="bg-muted text-muted-foreground flex aspect-square h-24 items-center justify-center rounded-sm text-2xl"
-							aria-label="Student portrait unavailable"
-						>
-							{studentInfoState.data.FormattedName.trim().charAt(0) || '?'}
+				<div class="min-w-0">
+					<div class="flex flex-wrap items-center gap-2">
+						<h2 id="student-name" class="truncate text-2xl font-bold tracking-tight">
+							{studentInfoState.data.FormattedName}
+						</h2>
+						<BadgeCheckIcon class="text-primary size-5" aria-label="Connected student account" />
+					</div>
+					<p class="text-muted-foreground mt-1 text-sm">
+						{studentInfoState.data.Grade === null
+							? 'Grade level unavailable'
+							: `Grade ${studentInfoState.data.Grade}`}
+						{#if studentInfoState.data.PermID !== null}
+							· Student ID {studentInfoState.data.PermID}
+						{/if}
+					</p>
+				</div>
+			</div>
+
+			<div class="grid gap-0 sm:grid-cols-2">
+				<div class="border-border/70 p-5 sm:border-r sm:p-6">
+					<h3 class="text-muted-foreground text-xs font-bold tracking-[0.12em] uppercase">
+						School profile
+					</h3>
+					<dl class="mt-4 space-y-3 text-sm">
+						<div class="flex items-center justify-between gap-4">
+							<dt class="text-muted-foreground">Student ID</dt>
+							<dd class="font-medium tabular-nums">
+								{studentInfoState.data.PermID ?? 'Unavailable'}
+							</dd>
 						</div>
-					{/if}
-				</Card.Content>
-			</Card.Root>
-		{/if}
-
-		{#if acc.studentAccount}
-			<Card.Root class="w-sm max-w-full">
-				<Card.Header>
-					<Card.Title>Login Information</Card.Title>
-					<Card.Description>Username and domain stored on-device</Card.Description>
-				</Card.Header>
-
-				<Card.Content>
-					<dl>
-						<dt>Username</dt>
-						<dd class="flex items-center justify-end gap-2">
-							{acc.studentAccount.userID}
-							<Button onclick={copyUsername} variant="outline" size="icon-sm" title="Copy username">
-								<CopyIcon />
-							</Button>
-						</dd>
-						<dt>Password</dt>
-						<dd class="text-muted-foreground text-end">Not stored</dd>
-						<dt>Domain</dt>
-						<dd class="flex items-center justify-end gap-2">
-							{acc.studentAccount.domain}
-							<Button onclick={copyDomain} variant="outline" size="icon-sm" title="Copy domain">
-								<CopyIcon />
-							</Button>
-						</dd>
+						<div class="flex items-center justify-between gap-4">
+							<dt class="text-muted-foreground">Grade</dt>
+							<dd class="font-medium">{studentInfoState.data.Grade ?? 'Unavailable'}</dd>
+						</div>
+						{#if studentInfoState.data.Gender}
+							<div class="flex items-center justify-between gap-4">
+								<dt class="text-muted-foreground">Gender</dt>
+								<dd class="font-medium">{studentInfoState.data.Gender}</dd>
+							</div>
+						{/if}
 					</dl>
-				</Card.Content>
-			</Card.Root>
-		{/if}
-	</div>
+				</div>
 
-	<Accordion.Root type="single" class="mt-6 w-full max-w-fit">
+				{#if acc.studentAccount}
+					<div class="border-border/70 border-t p-5 sm:border-t-0 sm:p-6">
+						<div class="flex items-center gap-2">
+							<ShieldCheckIcon class="text-success size-4" />
+							<h3 class="text-muted-foreground text-xs font-bold tracking-[0.12em] uppercase">
+								Secure connection
+							</h3>
+						</div>
+						<dl class="mt-4 space-y-3 text-sm">
+							<div class="flex items-center justify-between gap-4">
+								<dt class="text-muted-foreground">Username</dt>
+								<dd class="flex min-w-0 items-center gap-2 font-medium">
+									<span class="truncate">{acc.studentAccount.userID}</span>
+									<Button
+										onclick={copyUsername}
+										variant="ghost"
+										size="icon-sm"
+										title="Copy username"
+									>
+										<CopyIcon />
+									</Button>
+								</dd>
+							</div>
+							<div class="flex items-center justify-between gap-4">
+								<dt class="text-muted-foreground">Password</dt>
+								<dd class="text-success font-medium">Never stored</dd>
+							</div>
+							<div class="flex items-center justify-between gap-4">
+								<dt class="text-muted-foreground">District portal</dt>
+								<dd class="flex min-w-0 items-center gap-2 font-medium">
+									<span class="truncate">{acc.studentAccount.domain}</span>
+									<Button onclick={copyDomain} variant="ghost" size="icon-sm" title="Copy domain">
+										<CopyIcon />
+									</Button>
+								</dd>
+							</div>
+						</dl>
+					</div>
+				{/if}
+			</div>
+		</section>
+	{/if}
+
+	<Accordion.Root type="single" class="mt-6 w-full max-w-4xl">
 		<Accordion.Item>
 			<Accordion.Trigger>Developer Tools</Accordion.Trigger>
 

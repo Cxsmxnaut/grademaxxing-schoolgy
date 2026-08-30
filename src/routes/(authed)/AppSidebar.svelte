@@ -1,38 +1,43 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { removeCourseType } from '$lib';
+	import { getRelativeTime, removeCourseType } from '$lib';
 	import { acc } from '$lib/account.svelte';
 	import { brand } from '$lib/brand';
-	import { buttonVariants } from '$lib/components/ui/button';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Spinner } from '$lib/components/ui/spinner';
-	import { initializeGradebookCatalog, resetGradebookCatalog } from '$lib/grades/catalog.svelte';
+	import {
+		gradebookState,
+		initializeGradebookCatalog,
+		resetGradebookCatalog,
+		switchReportPeriod
+	} from '$lib/grades/catalog.svelte';
 	import { getActiveGradebook } from '$lib/grades/gradebook';
 	import AppWindowMacIcon from '@lucide/svelte/icons/app-window-mac';
-	import BellIcon from '@lucide/svelte/icons/bell';
-	import CircleUserIcon from '@lucide/svelte/icons/circle-user';
-	import EllipsisVerticalIcon from '@lucide/svelte/icons/ellipsis-vertical';
-	import FolderOpenIcon from '@lucide/svelte/icons/folder-open';
+	import BookOpenIcon from '@lucide/svelte/icons/book-open';
+	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
+	import FileTextIcon from '@lucide/svelte/icons/file-text';
 	import HouseIcon from '@lucide/svelte/icons/house';
-	import InboxIcon from '@lucide/svelte/icons/inbox';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
-	import MessageSquareWarningIcon from '@lucide/svelte/icons/message-square-warning';
+	import MailIcon from '@lucide/svelte/icons/mail';
 	import MoonIcon from '@lucide/svelte/icons/moon';
-	import NotebookTextIcon from '@lucide/svelte/icons/notebook-text';
+	import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
 	import SunIcon from '@lucide/svelte/icons/sun';
-	import { mode, toggleMode } from 'mode-watcher';
+	import { mode, setMode } from 'mode-watcher';
 	import { onMount, type Component } from 'svelte';
 	import { installPrompt } from '../../hooks.client';
+	import { attendanceState, loadAttendance } from './attendance/attendance.svelte';
+	import { documentsState, loadDocuments } from './documents/documents.svelte';
+	import { loadMailData, mailDataState } from './mail/mailData.svelte';
 	import { resetNonGradeRecords } from './resetNonGradeRecords.svelte';
-	import { studentInfoState } from './studentinfo/studentInfo.svelte';
+	import { loadStudentInfo, studentInfoState } from './studentinfo/studentInfo.svelte';
 
 	const sidebar = Sidebar.useSidebar();
 	$effect(() => {
 		page.url.pathname;
 		if (sidebar.isMobile) sidebar.setOpenMobile(false);
 	});
+
+	let refreshingAll = $state(false);
 
 	async function logOut() {
 		const response = await fetch('/api/session', { method: 'DELETE' }).catch(() => undefined);
@@ -45,6 +50,36 @@
 	}
 
 	const courses = $derived(getActiveGradebook()?.Courses.Course);
+	const gradebookLastRefresh = $derived.by(() => {
+		const catalog = gradebookState.gradebookCatalog;
+		if (!catalog) return undefined;
+		const index = catalog.overrideIndex ?? catalog.defaultIndex;
+		return catalog.recordCache[index]?.lastRefresh;
+	});
+	const lastSync = $derived.by(() => {
+		const values = [
+			gradebookLastRefresh,
+			attendanceState.lastRefresh,
+			documentsState.lastRefresh,
+			mailDataState.lastRefresh,
+			studentInfoState.lastRefresh
+		].filter((value): value is number => value !== undefined);
+		return values.length ? Math.max(...values) : undefined;
+	});
+
+	async function refreshAll() {
+		if (refreshingAll) return;
+		refreshingAll = true;
+		const refreshes: Promise<unknown>[] = [
+			loadAttendance(true),
+			loadDocuments(true),
+			loadMailData(true),
+			loadStudentInfo(true)
+		];
+		if (gradebookState.gradebookCatalog) refreshes.push(switchReportPeriod({ forceRefresh: true }));
+		await Promise.allSettled(refreshes);
+		refreshingAll = false;
+	}
 
 	function installWebApp() {
 		$installPrompt.prompt?.();
@@ -54,211 +89,200 @@
 		return page.url.pathname === url || page.url.pathname.startsWith(`${url}/`);
 	}
 
-	const data = {
-		dashboard: {
-			title: 'Dashboard',
-			url: '/dashboard',
-			icon: HouseIcon
-		},
-		grades: {
-			title: 'Grades',
-			url: '/grades',
-			icon: NotebookTextIcon
-		},
-		header: [
-			{
-				title: 'Attendance',
-				url: '/attendance',
-				icon: BellIcon
-			},
-			{
-				title: 'Documents',
-				url: '/documents',
-				icon: FolderOpenIcon
-			},
-			{
-				title: 'Mail',
-				url: '/mail',
-				icon: InboxIcon
-			}
-		],
-		pwa: {
-			title: 'Install Web App',
-			icon: AppWindowMacIcon,
-			onclick: installWebApp
-		},
-		feedback: {
-			title: 'Feedback',
-			url: '/feedback',
-			icon: MessageSquareWarningIcon
-		},
-		user: {
-			title: studentInfoState.data?.FormattedName ?? 'Student Info',
-			url: '/studentinfo',
-			icon: CircleUserIcon
-		},
-		logout: {
-			title: 'Log Out',
-			onclick: logOut,
-			icon: LogOutIcon
-		}
-	};
+	const navigation: { title: string; url: string; icon: Component }[] = [
+		{ title: 'Dashboard', url: '/dashboard', icon: HouseIcon },
+		{ title: 'Gradebook', url: '/grades', icon: BookOpenIcon },
+		{ title: 'Attendance', url: '/attendance', icon: CalendarDaysIcon },
+		{ title: 'Documents', url: '/documents', icon: FileTextIcon },
+		{ title: 'Mail', url: '/mail', icon: MailIcon }
+	];
 
 	onMount(() => {
 		initializeGradebookCatalog();
+		loadStudentInfo();
 	});
 </script>
 
-{#snippet menuItem({
-	title,
-	url,
-	onclick,
-	icon: Icon
-}: {
-	title: string;
-	url?: string;
-	onclick?: () => void;
-	icon: Component;
-})}
-	<Sidebar.MenuItem>
-		<Sidebar.MenuButton class="h-10 text-base" isActive={url ? isRouteActive(url) : false}>
-			{#snippet child({ props })}
-				{#if url}
-					<a href={url} {...props}>
-						<Icon /> <span>{title}</span>
-					</a>
-				{:else}
-					<button {onclick} {...props}>
-						<Icon /> <span>{title}</span>
-					</button>
-				{/if}
-			{/snippet}
-		</Sidebar.MenuButton>
-	</Sidebar.MenuItem>
-{/snippet}
-
-<Sidebar.Root>
-	<Sidebar.Header>
-		<Sidebar.Menu>
-			<Sidebar.MenuItem>
-				<div class="m-2 flex flex-row items-center">
-					<img src="/favicon.svg" class="size-6" alt={brand} />
-					<span class="ml-2 text-lg font-bold tracking-tight">{brand}</span>
-				</div>
-			</Sidebar.MenuItem>
-		</Sidebar.Menu>
+<Sidebar.Root class="border-sidebar-border/70">
+	<Sidebar.Header class="px-4 pt-5 pb-3">
+		<a
+			href="/dashboard"
+			class="focus-visible:ring-sidebar-ring flex w-fit items-center gap-3 rounded-lg outline-none focus-visible:ring-2"
+		>
+			<img src="/favicon.svg" class="size-9" alt="" />
+			<span class="text-xl font-extrabold tracking-[-0.035em]">{brand}</span>
+		</a>
 	</Sidebar.Header>
 
-	<Sidebar.Content>
-		<Sidebar.Menu>
-			{@render menuItem(data.dashboard)}
+	<Sidebar.Content class="px-3 pb-3">
+		<nav aria-label="Primary navigation">
+			<Sidebar.Menu class="gap-1">
+				{#each navigation as item (item.url)}
+					<Sidebar.MenuItem>
+						<Sidebar.MenuButton
+							class="data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground h-11 rounded-xl px-3 text-[0.95rem] font-semibold"
+							isActive={isRouteActive(item.url)}
+						>
+							{#snippet child({ props })}
+								<a href={item.url} {...props}>
+									<item.icon class="size-[1.15rem]" />
+									<span>{item.title}</span>
+								</a>
+							{/snippet}
+						</Sidebar.MenuButton>
+					</Sidebar.MenuItem>
+				{/each}
+			</Sidebar.Menu>
+		</nav>
 
-			<Sidebar.MenuItem>
-				<Sidebar.MenuButton class="h-10 text-base" isActive={isRouteActive(data.grades.url)}>
-					{#snippet child({ props })}
-						<a href={data.grades.url} {...props}>
-							<data.grades.icon /> <span>{data.grades.title}</span>
-						</a>
-					{/snippet}
-				</Sidebar.MenuButton>
+		<section class="mt-5" aria-labelledby="classes-heading">
+			<h2
+				id="classes-heading"
+				class="text-muted-foreground px-3 text-[0.7rem] font-bold tracking-[0.15em] uppercase"
+			>
+				Classes
+			</h2>
 
-				<svelte:boundary>
-					{#if courses}
-						<Sidebar.MenuSub>
-							{#each courses as Course (Course._CourseID)}
-								<Sidebar.MenuSubItem>
-									<Sidebar.MenuSubButton
-										class="h-8 truncate text-base"
-										isActive={page.url.pathname ===
-											`${data.grades.url}/${encodeURIComponent(Course._CourseID)}`}
-									>
-										{#snippet child({ props })}
-											<a
-												href={`${data.grades.url}/${encodeURIComponent(Course._CourseID)}`}
-												{...props}
-											>
-												{removeCourseType(Course._CourseName)}
-											</a>
-										{/snippet}
-									</Sidebar.MenuSubButton>
-								</Sidebar.MenuSubItem>
-							{/each}
-						</Sidebar.MenuSub>
-					{/if}
+			<svelte:boundary>
+				{#if courses}
+					<ol class="mt-2 space-y-0.5">
+						{#each courses as course, index (course._CourseID)}
+							<li>
+								<a
+									href={`/grades/${encodeURIComponent(course._CourseID)}`}
+									class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring flex min-h-9 items-center gap-3 rounded-lg px-3 py-1.5 text-sm outline-none focus-visible:ring-2 {page
+										.url.pathname === `/grades/${encodeURIComponent(course._CourseID)}`
+										? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold'
+										: 'text-muted-foreground'}"
+								>
+									<span class="w-4 shrink-0 text-center tabular-nums">{index + 1}</span>
+									<span class="truncate">{removeCourseType(course._CourseName)}</span>
+								</a>
+							</li>
+						{/each}
+					</ol>
+				{:else}
+					<div class="text-muted-foreground flex items-center gap-2 px-3 py-4 text-sm">
+						<Spinner class="size-4" /> Loading classes
+					</div>
+				{/if}
+			</svelte:boundary>
+		</section>
 
-					{#snippet pending()}
-						<Sidebar.MenuSub>
-							<div class="flex w-full items-center justify-center p-4">
-								<Spinner />
-							</div>
-						</Sidebar.MenuSub>
-					{/snippet}
-				</svelte:boundary>
-			</Sidebar.MenuItem>
+		<div class="mt-auto space-y-3 pt-6">
+			<a
+				href="/privacy"
+				class="border-border/70 text-muted-foreground hover:bg-sidebar-accent block rounded-xl border px-3.5 py-3 text-xs leading-5 transition-colors"
+			>
+				Your password is never stored. Signing out deletes your secure server session.
+			</a>
 
-			{#each data.header as item (item.title)}
-				{@render menuItem(item)}
-			{/each}
-		</Sidebar.Menu>
-
-		<Sidebar.Menu class="mt-auto">
-			<Sidebar.MenuItem class="mx-2">
-				<Button
-					href="/privacy"
-					variant="ghost"
-					class="text-muted-foreground h-auto border py-3 text-xs whitespace-normal"
+			<div class="text-muted-foreground px-1 text-xs">
+				<p>Built for students.</p>
+				<a href="/feedback" class="hover:text-foreground underline underline-offset-4"
+					>Send feedback</a
 				>
-					Your password is never stored. Signing out deletes your secure server session.
-				</Button>
-			</Sidebar.MenuItem>
-		</Sidebar.Menu>
+			</div>
+
+			<button
+				type="button"
+				onclick={() => void refreshAll()}
+				disabled={refreshingAll}
+				class="border-border/70 hover:bg-sidebar-accent flex h-10 w-full items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+				aria-busy={refreshingAll}
+			>
+				<RefreshCwIcon class="size-4 {refreshingAll ? 'animate-spin' : ''}" />
+				<span>{refreshingAll ? 'Refreshing' : 'Refresh'}</span>
+				{#if lastSync !== undefined && !refreshingAll}
+					<span class="text-muted-foreground font-normal"
+						>{getRelativeTime(new Date(lastSync))}</span
+					>
+				{/if}
+			</button>
+
+			<div
+				class="border-border/70 grid grid-cols-2 gap-1 rounded-xl border p-1"
+				aria-label="Color theme"
+			>
+				<button
+					type="button"
+					onclick={() => setMode('dark')}
+					class="flex h-9 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-colors {mode.current ===
+					'dark'
+						? 'bg-sidebar-accent text-sidebar-accent-foreground'
+						: 'text-muted-foreground hover:text-foreground'}"
+					aria-pressed={mode.current === 'dark'}
+				>
+					<MoonIcon class="size-4" /> Dark
+				</button>
+				<button
+					type="button"
+					onclick={() => setMode('light')}
+					class="flex h-9 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-colors {mode.current ===
+					'light'
+						? 'bg-sidebar-accent text-sidebar-accent-foreground'
+						: 'text-muted-foreground hover:text-foreground'}"
+					aria-pressed={mode.current === 'light'}
+				>
+					<SunIcon class="size-4" /> Light
+				</button>
+			</div>
+		</div>
 	</Sidebar.Content>
 
-	<Sidebar.Footer>
-		<Sidebar.Menu class="gap-2">
+	<Sidebar.Footer class="border-sidebar-border/70 border-t px-3 py-3">
+		<div class="flex items-center gap-3">
+			<a
+				href="/studentinfo"
+				class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring flex min-w-0 flex-1 items-center gap-3 rounded-xl p-2 outline-none focus-visible:ring-2"
+			>
+				{#if studentInfoState.data?.Photo}
+					<img
+						src="data:{studentInfoState.data.PhotoMimeType || 'image/png'};base64,{studentInfoState
+							.data.Photo}"
+						class="size-10 shrink-0 rounded-full object-cover"
+						alt=""
+					/>
+				{:else}
+					<span
+						class="bg-sidebar-accent text-sidebar-accent-foreground flex size-10 shrink-0 items-center justify-center rounded-full font-bold"
+					>
+						{studentInfoState.data?.FormattedName.trim().charAt(0) || 'S'}
+					</span>
+				{/if}
+				<span class="min-w-0">
+					<span class="block truncate text-sm font-bold">
+						{studentInfoState.data?.FormattedName ?? 'Student profile'}
+					</span>
+					<span class="text-muted-foreground block truncate text-xs">
+						{studentInfoState.data?.Grade === null || studentInfoState.data?.Grade === undefined
+							? 'Account details'
+							: `Grade ${studentInfoState.data.Grade}`}
+					</span>
+				</span>
+			</a>
+
 			{#if $installPrompt.prompt}
-				{@render menuItem(data.pwa)}
+				<button
+					type="button"
+					onclick={installWebApp}
+					class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg outline-none focus-visible:ring-2"
+					title="Install web app"
+					aria-label="Install web app"
+				>
+					<AppWindowMacIcon class="size-4" />
+				</button>
 			{/if}
 
-			{@render menuItem(data.feedback)}
-
-			<Sidebar.MenuItem>
-				<Sidebar.MenuButton class="h-10 text-base">
-					{#snippet child({ props })}
-						<div class="flex items-center gap-1">
-							<a href={data.user.url} {...props}>
-								<data.user.icon /> <span>{data.user.title}</span>
-							</a>
-
-							<DropdownMenu.Root>
-								<DropdownMenu.Trigger
-									aria-label="Account menu"
-									class={buttonVariants({ variant: 'ghost', size: 'icon-lg' })}
-								>
-									<EllipsisVerticalIcon />
-								</DropdownMenu.Trigger>
-
-								<DropdownMenu.Content>
-									<DropdownMenu.Item onclick={toggleMode} class="h-9">
-										<MoonIcon
-											class="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90"
-										/>
-										<SunIcon
-											class="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0"
-										/>
-										{mode.current === 'light' ? 'Dark Mode' : 'Light Mode'}
-									</DropdownMenu.Item>
-
-									<DropdownMenu.Item onclick={data.logout.onclick} class="h-9">
-										<data.logout.icon />
-										{data.logout.title}
-									</DropdownMenu.Item>
-								</DropdownMenu.Content>
-							</DropdownMenu.Root>
-						</div>
-					{/snippet}
-				</Sidebar.MenuButton>
-			</Sidebar.MenuItem>
-		</Sidebar.Menu>
+			<button
+				type="button"
+				onclick={logOut}
+				class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg outline-none focus-visible:ring-2"
+				title="Log out"
+				aria-label="Log out"
+			>
+				<LogOutIcon class="size-4" />
+			</button>
+		</div>
 	</Sidebar.Footer>
 </Sidebar.Root>

@@ -11,6 +11,9 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import type { StudentDocumentData } from '$lib/types/Documents';
+	import ArrowUpRightIcon from '@lucide/svelte/icons/arrow-up-right';
+	import FileTextIcon from '@lucide/svelte/icons/file-text';
+	import FolderOpenIcon from '@lucide/svelte/icons/folder-open';
 	import { documentsState, loadDocuments } from './documents.svelte';
 
 	loadDocuments();
@@ -84,8 +87,8 @@
 	{/if}
 
 	{#if documentsState.data}
-		<Tabs.Root value="all" class="gap-4">
-			<Tabs.List class="mx-auto h-12 max-w-full justify-start overflow-x-auto">
+		<Tabs.Root value="all" class="mt-5 gap-4">
+			<Tabs.List class="h-11 max-w-full justify-start overflow-x-auto rounded-xl">
 				<Tabs.Trigger value="all">All</Tabs.Trigger>
 
 				{#each documentCategories as category (category)}
@@ -112,32 +115,48 @@
 			{/each}
 		</Tabs.Root>
 	{:else if documentsState.loaded && !documentsState.error}
-		<p class="text-muted-foreground mx-auto my-16 text-center" role="status">
-			No student documents are available yet.
-		</p>
+		<div class="py-16 text-center" role="status">
+			<FolderOpenIcon class="text-primary mx-auto size-9" />
+			<h2 class="mt-3 font-semibold">No documents yet</h2>
+			<p class="text-muted-foreground mt-1 text-sm">
+				Report cards and other files will appear here when your school publishes them.
+			</p>
+		</div>
 	{/if}
 </AppPageShell>
 
 {#snippet documentsList(documents: StudentDocumentData[], showCategory = true)}
-	<ol class="flex flex-col items-center gap-4">
+	<ol
+		class="bg-card mx-auto max-w-4xl overflow-hidden rounded-xl shadow-sm"
+		aria-label="Student documents"
+	>
 		{#each documents as documentData (documentData._DocumentGU)}
-			<li class="w-full max-w-3xl">
+			<li class="border-border/70 border-b last:border-b-0">
 				<Button
 					href="/documents/document?documentGU={documentData._DocumentGU}"
 					target="_blank"
-					variant="card"
-					size="lg"
-					class="flex h-auto flex-col items-start gap-2 rounded-xl p-4"
+					variant="ghost"
+					class="group flex h-auto w-full items-center justify-start gap-4 rounded-none px-4 py-4 text-left sm:px-5"
 				>
-					<h2 class="text-lg">{documentData._DocumentComment}</h2>
-					<div class="flex flex-wrap gap-1">
-						{#if showCategory}
-							<Badge color={getDocumentColor(documentData._DocumentType)}>
-								{documentData._DocumentType}
-							</Badge>
-						{/if}
-						<DateBadge date={new Date(documentData._DocumentDate)} />
+					<span
+						class="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-lg"
+					>
+						<FileTextIcon class="size-5" />
+					</span>
+					<div class="min-w-0 flex-1">
+						<h2 class="truncate font-semibold">{documentData._DocumentComment}</h2>
+						<div class="mt-1.5 flex flex-wrap gap-1.5">
+							{#if showCategory}
+								<Badge color={getDocumentColor(documentData._DocumentType)}>
+									{documentData._DocumentType}
+								</Badge>
+							{/if}
+							<DateBadge date={new Date(documentData._DocumentDate)} />
+						</div>
 					</div>
+					<ArrowUpRightIcon
+						class="text-muted-foreground size-4 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+					/>
 				</Button>
 			</li>
 		{/each}

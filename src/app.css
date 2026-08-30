@@ -217,9 +217,26 @@
 }
 
 html {
-	font-family: Inter, sans-serif;
+	font-family: 'Instrument Sans Variable', system-ui, sans-serif;
 	font-size: 1rem;
 	line-height: 1.5;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	font-family: 'Space Grotesk Variable', 'Instrument Sans Variable', system-ui, sans-serif;
+}
+
+code,
+kbd,
+samp,
+pre,
+.font-mono {
+	font-family: 'IBM Plex Mono', ui-monospace, monospace;
 }
 
 @theme {

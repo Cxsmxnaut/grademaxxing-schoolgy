@@ -4,7 +4,6 @@
 	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
-	import InfoIcon from '@lucide/svelte/icons/info';
 	import { SvelteURL } from 'svelte/reactivity';
 	import { twMerge } from 'tailwind-merge';
 
@@ -23,14 +22,17 @@
 
 <AuthPanelHeader backHref="/signup" />
 
-<h1 class="mb-7 text-[1.75rem] leading-tight font-bold tracking-[-0.025em]">
+<h1
+	class="mb-[1.359375rem] text-[1.4375rem] leading-[2.15625rem] font-bold tracking-[-0.01em]"
+	style="font-family: 'Space Grotesk Variable', sans-serif"
+>
 	Create your StudentVUE password
 </h1>
 
-<div class="space-y-5 text-sm leading-6 text-[#8fa9c2]">
+<div class="space-y-4 text-[0.875rem] leading-[1.55] text-[#8fa9c2]">
 	<p>
-		{brand} isn't able to use Sign in with Google to sign you in. You'll need to create a password for
-		StudentVUE that {brand} can sign you in with instead.
+		{brand} can't use Sign in with Google to sign you in. You'll need to create a StudentVUE password
+		that {brand} can use instead.
 	</p>
 
 	<p>You'll still be able to use Sign in with Google with StudentVUE afterwards.</p>
@@ -39,10 +41,10 @@
 		<Dialog.Trigger
 			class={twMerge(
 				buttonVariants(),
-				'flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#4db6f5] font-semibold text-[#081522] hover:bg-[#6fc4f7]'
+				'flex h-12 w-full items-center justify-center rounded-lg bg-[#4db6f5] font-semibold text-[#081522] hover:bg-[#6fc4f7]'
 			)}
 		>
-			<InfoIcon class="h-4 w-4" /> Set your StudentVUE password
+			Set your StudentVUE password
 		</Dialog.Trigger>
 
 		<Dialog.Content>
@@ -101,11 +103,5 @@
 		<span class="font-bold">This may take a few minutes.</span>
 		Once you've created your password, you can
 		<a href="/login" class="font-medium text-[#4db6f5] hover:underline">log in</a>.
-	</p>
-
-	<p>
-		If you never receive an email the first time, wait a while and try again. Some students have
-		reported needing to try several times over the course of a few days before they received the
-		email.
 	</p>
 </div>

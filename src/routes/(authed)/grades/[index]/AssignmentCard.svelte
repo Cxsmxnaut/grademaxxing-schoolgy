@@ -102,8 +102,8 @@
 
 <Card.Root
 	class={[
-		'max-w-full items-center gap-2 p-4 transition duration-500 sm:flex-row',
-		unseen && 'border-l-grade-strong border-l-4'
+		'border-border/70 max-w-full items-center gap-3 rounded-xl p-4 shadow-none transition duration-500 sm:flex-row',
+		unseen && 'border-l-grade-strong bg-grade-strong-soft/30 border-l-4'
 	]}
 >
 	<div class="flex flex-1 flex-col gap-1 self-start sm:self-auto">

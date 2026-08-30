@@ -363,9 +363,12 @@
 			</div>
 		</section>
 
-		<div class="mt-4 grid gap-x-8 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.85fr)]">
-			<div class="min-w-0">
-				<section aria-labelledby="attention-heading" class="border-border/70 border-b py-7">
+		<div class="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.85fr)]">
+			<div class="min-w-0 space-y-5">
+				<section
+					aria-labelledby="attention-heading"
+					class="border-border/80 bg-card overflow-hidden rounded-2xl border px-5 py-5 sm:px-6"
+				>
 					<div class="mb-4 flex items-end justify-between gap-3">
 						<div>
 							<h2 id="attention-heading" class="text-xl font-bold">Needs attention</h2>
@@ -460,7 +463,10 @@
 					{/if}
 				</section>
 
-				<section aria-labelledby="courses-heading" class="border-border/70 border-b py-7">
+				<section
+					aria-labelledby="courses-heading"
+					class="border-border/80 bg-card overflow-hidden rounded-2xl border px-5 py-5 sm:px-6"
+				>
 					<div class="mb-3 flex items-end justify-between">
 						<div>
 							<h2 id="courses-heading" class="text-xl font-bold">Classes</h2>
@@ -508,7 +514,10 @@
 					</div>
 				</section>
 
-				<section aria-labelledby="recent-heading" class="py-7">
+				<section
+					aria-labelledby="recent-heading"
+					class="border-border/80 bg-card overflow-hidden rounded-2xl border px-5 py-5 sm:px-6"
+				>
 					<div class="mb-3">
 						<h2 id="recent-heading" class="text-xl font-bold">Recent grades</h2>
 						<p class="text-muted-foreground text-sm">Newest graded assignments from StudentVUE</p>
@@ -552,8 +561,11 @@
 				</section>
 			</div>
 
-			<aside class="xl:border-border/70 min-w-0 xl:border-l xl:pl-8">
-				<section aria-labelledby="upcoming-heading" class="py-8">
+			<aside class="min-w-0 space-y-5">
+				<section
+					aria-labelledby="upcoming-heading"
+					class="border-border/80 bg-card rounded-2xl border p-5"
+				>
 					<div class="mb-4 flex items-center gap-2">
 						<CalendarDaysIcon class="text-primary size-5" />
 						<h2 id="upcoming-heading" class="text-lg font-bold">Coming up</h2>
@@ -589,7 +601,10 @@
 						</div>{/if}
 				</section>
 
-				<section aria-labelledby="updates-heading" class="py-8">
+				<section
+					aria-labelledby="updates-heading"
+					class="border-border/80 bg-card rounded-2xl border p-5"
+				>
 					<h2 id="updates-heading" class="mb-4 text-lg font-bold">School updates</h2>
 					<div class="space-y-2">
 						<a
@@ -654,7 +669,7 @@
 					</div>
 				</section>
 
-				<section class="py-6">
+				<section>
 					<div class="bg-muted/45 rounded-xl p-4">
 						<p class="text-muted-foreground text-xs font-bold tracking-[0.12em] uppercase">
 							Current term

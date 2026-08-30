@@ -137,7 +137,7 @@
 </script>
 
 {#if chartData.length >= 2}
-	<Chart.Container config={{}} class="m-4 aspect-auto h-64" data-testid="grade-trend-chart">
+	<Chart.Container config={{}} class="m-4 aspect-auto h-64 sm:m-5" data-testid="grade-trend-chart">
 		<!-- https://techniq-docs-v2.layerchart.pages.dev/docs -->
 		<AreaChart data={chartData} x="date" y="grade" {yDomain}>
 			{#snippet tooltip()}
@@ -178,7 +178,7 @@
 	</Chart.Container>
 {:else if chartData.length === 1}
 	<div
-		class="m-4 flex h-64 flex-col items-center justify-center gap-2 rounded-lg border border-dashed text-center"
+		class="bg-secondary/35 m-4 flex h-64 flex-col items-center justify-center gap-2 rounded-xl text-center sm:m-5"
 		role="status"
 		data-testid="grade-trend-insufficient"
 	>
@@ -191,7 +191,7 @@
 	</div>
 {:else}
 	<div
-		class="m-4 flex h-64 items-center justify-center rounded-lg border border-dashed"
+		class="bg-secondary/35 m-4 flex h-64 items-center justify-center rounded-xl sm:m-5"
 		role="status"
 		data-testid="grade-trend-empty"
 	>

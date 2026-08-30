@@ -71,23 +71,33 @@
 
 <AppPageShell>
 	<AppPageHeader
-		eyebrow="Current term"
+		eyebrow="Gradebook"
 		title="Grades"
-		description="Your current classes, official grades, teachers, and rooms."
+		description="Official grades from StudentVUE, with every class in one place."
 	/>
 
 	{#if activeReportPeriod && activeReportPeriodIndex !== undefined && gradebook}
 		<div class="space-y-5">
-			<ReportPeriodSwitcher
-				activeName={activeReportPeriod._GradePeriod}
-				activeIndex={activeReportPeriodIndex}
-				reportPeriods={gradebookCatalog?.canonicalReportPeriodEntries ??
-					gradebook.ReportingPeriods.ReportPeriod}
-				switchReportPeriod={changeReportPeriod}
-				hasReportPeriodCached={(index) => gradebookCatalog?.recordCache[index] !== undefined}
-				disabled={gradebookCatalog?.loadingIndex !== undefined}
-				defaultIndex={gradebookCatalog?.defaultIndex}
-			/>
+			<div
+				class="border-border/80 bg-card flex flex-col gap-4 rounded-2xl border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+			>
+				<div>
+					<p class="text-muted-foreground text-[0.68rem] font-bold tracking-[0.13em] uppercase">
+						Reporting period
+					</p>
+					<p class="mt-0.5 font-semibold">{activeReportPeriod._GradePeriod}</p>
+				</div>
+				<ReportPeriodSwitcher
+					activeName={activeReportPeriod._GradePeriod}
+					activeIndex={activeReportPeriodIndex}
+					reportPeriods={gradebookCatalog?.canonicalReportPeriodEntries ??
+						gradebook.ReportingPeriods.ReportPeriod}
+					switchReportPeriod={changeReportPeriod}
+					hasReportPeriodCached={(index) => gradebookCatalog?.recordCache[index] !== undefined}
+					disabled={gradebookCatalog?.loadingIndex !== undefined}
+					defaultIndex={gradebookCatalog?.defaultIndex}
+				/>
+			</div>
 
 			{#if hasNoGrades}
 				<Alert.Root class="mx-auto flex w-fit items-center">
@@ -104,9 +114,11 @@
 				</Alert.Root>
 			{/if}
 
-			<ol class="flex flex-col items-center gap-4">
+			<ol
+				class="border-border/80 bg-card divide-border/70 divide-y overflow-hidden rounded-2xl border shadow-[0_18px_50px_-42px_rgba(7,32,52,0.65)]"
+			>
 				{#each courses as course (course._CourseID)}
-					<li class="w-full max-w-3xl">
+					<li>
 						<CourseButton
 							courseId={course._CourseID}
 							name={removeCourseType(course._CourseName)}
