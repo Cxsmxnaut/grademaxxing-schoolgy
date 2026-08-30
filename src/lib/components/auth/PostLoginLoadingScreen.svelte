@@ -1,19 +1,37 @@
 <script lang="ts">
 	import { brand } from '$lib/brand';
+	import { onMount } from 'svelte';
+	import { fade } from 'svelte/transition';
 
 	let { message = 'Loading your grades…' }: { message?: string } = $props();
+
+	const phrases = [
+		'Getting your grades in sync…',
+		'Building the full picture…',
+		'Making your grades make sense…'
+	];
+	let phraseIndex = $state(0);
+
+	onMount(() => {
+		const interval = window.setInterval(() => {
+			phraseIndex = (phraseIndex + 1) % phrases.length;
+		}, 2_600);
+		return () => window.clearInterval(interval);
+	});
 </script>
 
 <div class="post-login-loading" data-testid="post-login-loading">
 	<div class="loading-content" role="status" aria-live="polite" aria-atomic="true">
 		<div class="logo-glow" aria-hidden="true">
-			<img src="/favicon.svg" width="78" height="78" alt="" />
+			<img src="/favicon.svg" width="92" height="92" alt="" />
 		</div>
 		<div class="loading-dots" aria-hidden="true">
 			<span></span><span></span><span></span>
 		</div>
-		<p>{message}</p>
-		<span class="sr-only">{brand} is preparing your dashboard.</span>
+		{#key phraseIndex}
+			<p in:fade={{ duration: 260 }} out:fade={{ duration: 180 }}>{phrases[phraseIndex]}</p>
+		{/key}
+		<span class="sr-only">{message} {brand} is preparing your dashboard.</span>
 	</div>
 </div>
 
@@ -27,8 +45,9 @@
 		place-items: center;
 		overflow: hidden;
 		background:
-			radial-gradient(520px 320px at 50% 48%, rgba(77, 182, 245, 0.09), transparent 70%),
-			radial-gradient(720px 460px at -8% 8%, rgba(77, 182, 245, 0.06), transparent 64%), #081522;
+			radial-gradient(720px 460px at 50% 48%, rgba(77, 182, 245, 0.045), transparent 70%),
+			radial-gradient(980px 620px at 82% -18%, rgba(18, 55, 89, 0.34), transparent 65%),
+			linear-gradient(145deg, #071724, #081522 58%, #06131f);
 		color: #e4eef8;
 		font-family: 'Instrument Sans Variable', system-ui, sans-serif;
 	}
@@ -41,29 +60,24 @@
 	}
 	.logo-glow {
 		display: grid;
-		width: 108px;
-		height: 108px;
 		place-items: center;
-		border: 1px solid rgba(77, 182, 245, 0.08);
-		border-radius: 30px;
-		background: rgba(13, 32, 51, 0.82);
-		box-shadow:
-			0 22px 52px rgba(0, 0, 0, 0.28),
-			0 0 64px rgba(77, 182, 245, 0.12);
+		animation: logo-float 2.8s ease-in-out infinite;
 	}
 	.logo-glow img {
-		filter: drop-shadow(0 12px 22px rgba(77, 182, 245, 0.2));
+		filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.32))
+			drop-shadow(0 0 28px rgba(14, 159, 110, 0.12));
 	}
 	.loading-dots {
 		display: flex;
 		gap: 7px;
-		margin-top: 18px;
+		margin-top: 10px;
 	}
 	.loading-dots span {
-		width: 9px;
-		height: 9px;
+		width: 10px;
+		height: 10px;
 		border-radius: 999px;
 		background: #4db6f5;
+		box-shadow: 0 0 12px rgba(77, 182, 245, 0.22);
 		animation: loading-pulse 1.15s ease-in-out infinite;
 	}
 	.loading-dots span:nth-child(2) {
@@ -75,7 +89,7 @@
 		opacity: 0.45;
 	}
 	.loading-content p {
-		margin: 16px 0 0;
+		margin: 17px 0 0;
 		color: #9bb3ca;
 		font-size: 15px;
 		font-weight: 650;
@@ -101,9 +115,21 @@
 			opacity: 1;
 		}
 	}
+	@keyframes logo-float {
+		0%,
+		100% {
+			transform: translateY(0);
+		}
+		50% {
+			transform: translateY(-4px);
+		}
+	}
 	@media (prefers-reduced-motion: reduce) {
-		.loading-dots span {
+		.loading-dots span,
+		.logo-glow {
 			animation: none;
+		}
+		.loading-dots span {
 			opacity: 0.8;
 		}
 	}

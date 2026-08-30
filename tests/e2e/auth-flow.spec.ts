@@ -151,6 +151,8 @@ test('sign-in keeps the app hidden until the gradebook is ready', async ({ page 
 	await expect(loadingScreen).toContainText('Connecting to StudentVUE…');
 	await expect(page.locator('form')).toHaveCount(0);
 	await expect(page).toHaveURL(/\/login$/);
+	await page.screenshot({ path: 'test-results/auth-flow/loading.png', fullPage: true });
+	await expect(loadingScreen).toContainText('Building the full picture…', { timeout: 4_000 });
 
 	releaseSession();
 	await gradebookRequested;
