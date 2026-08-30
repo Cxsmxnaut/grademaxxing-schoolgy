@@ -26,3 +26,4 @@ vite.config.ts.timestamp-*
 
 # Mocked data
 src/lib/mocks/data
+.env*.local
