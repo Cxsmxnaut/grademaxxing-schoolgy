@@ -3,6 +3,8 @@ import { mkdir } from 'node:fs/promises';
 
 const outputRoot = '/tmp/grademaxxing-parity/local';
 const baseUrl = 'http://127.0.0.1:5173';
+const requestedPage = process.env.PARITY_PAGE;
+const requestedMode = process.env.PARITY_MODE;
 const courses = [
 	['ap-calc', 'AP Calculus BC', '1', '214', 'M. Okafor', '91.6', 'A-'],
 	['ap-english', 'AP English Language', '2', '108', 'S. Whitfield', '88.2', 'B+'],
@@ -140,7 +142,7 @@ async function capture(
 	await page.reload({ waitUntil: 'networkidle' });
 	const directory = `${outputRoot}/${mode}`;
 	await mkdir(directory, { recursive: true });
-	for (const [name, path] of [
+	const pages = [
 		['gradebook', '/grades'],
 		['course', '/grades/ap-calc'],
 		['attendance', '/attendance'],
@@ -149,7 +151,10 @@ async function capture(
 		['mail', '/mail'],
 		['feedback', '/feedback'],
 		['student-info', '/studentinfo']
-	] as const) {
+	] as const;
+	for (const [name, path] of requestedPage
+		? pages.filter(([name]) => name === requestedPage)
+		: pages) {
 		await page.goto(`${baseUrl}${path}`, { waitUntil: 'networkidle' });
 		await page.waitForTimeout(350);
 		await page.screenshot({ path: `${directory}/${name}.png`, fullPage: true });
@@ -177,12 +182,15 @@ async function capturePublic(
 	const page = await context.newPage();
 	const directory = `${outputRoot}/${mode}-public`;
 	await mkdir(directory, { recursive: true });
-	for (const [name, path] of [
+	const pages = [
 		['landing', '/'],
 		['login', '/login'],
 		['signup', '/signup'],
 		['signup-google', '/signup/google']
-	] as const) {
+	] as const;
+	for (const [name, path] of requestedPage
+		? pages.filter(([name]) => name === requestedPage)
+		: pages) {
 		await page.goto(`${baseUrl}${path}`, { waitUntil: 'networkidle' });
 		await page.waitForTimeout(250);
 		await page.screenshot({ path: `${directory}/${name}.png`, fullPage: true });
@@ -190,10 +198,16 @@ async function capturePublic(
 	await browser.close();
 }
 
-await capture('desktop-dark', { width: 1440, height: 900 }, false);
-await capture('mobile-dark', { width: 390, height: 844 }, false);
-await capture('desktop-light', { width: 1440, height: 900 }, true);
-await capture('mobile-light', { width: 390, height: 844 }, true);
-await capturePublic({ width: 1440, height: 900 }, 'desktop');
-await capturePublic({ width: 390, height: 844 }, 'mobile');
+if (!requestedMode || requestedMode === 'desktop-dark')
+	await capture('desktop-dark', { width: 1440, height: 900 }, false);
+if (!requestedMode || requestedMode === 'mobile-dark')
+	await capture('mobile-dark', { width: 390, height: 844 }, false);
+if (!requestedMode || requestedMode === 'desktop-light')
+	await capture('desktop-light', { width: 1440, height: 900 }, true);
+if (!requestedMode || requestedMode === 'mobile-light')
+	await capture('mobile-light', { width: 390, height: 844 }, true);
+if (!requestedMode || requestedMode === 'desktop-public')
+	await capturePublic({ width: 1440, height: 900 }, 'desktop');
+if (!requestedMode || requestedMode === 'mobile-public')
+	await capturePublic({ width: 390, height: 844 }, 'mobile');
 console.log(outputRoot);

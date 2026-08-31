@@ -207,7 +207,7 @@
 		return 'text-grade-risk';
 	});
 	const assignmentCategoryNames = $derived(
-		new Set(realAssignments.map((assignment) => assignment.category).toSorted())
+		new Set(realAssignments.map((assignment) => assignment.category))
 	);
 
 	const assignmentCategoryColors = $derived(
@@ -232,29 +232,34 @@
 </svelte:head>
 
 {#if synergyCourse}
-	<main class="w-full px-4 pt-6 pb-24 sm:px-6 lg:px-11 lg:pt-9 lg:pb-16">
+	<main class="w-full max-w-[67.5rem] px-4 pt-2 pb-24 sm:px-6 lg:px-11 lg:pt-9 lg:pb-16">
 		<a
 			href="/grades"
-			class="text-primary mb-6 inline-flex items-center gap-2 text-sm font-semibold hover:underline"
+			class="text-primary mb-5 inline-flex items-center gap-2 text-sm font-semibold hover:underline"
 		>
 			<ArrowLeftIcon class="size-4" /> All courses
 		</a>
 
-		<header class="mb-6 flex items-start justify-between gap-5">
+		<header class="mb-4 flex items-start justify-between gap-5">
 			<div class="min-w-0">
 				<h1
 					class="font-heading truncate text-[1.875rem] leading-tight font-bold tracking-[-0.035em]"
 				>
 					{courseName}
 				</h1>
-				<p class="text-muted-foreground mt-2 truncate text-sm">
+				<p class="text-muted-foreground mt-1 text-sm leading-5 sm:truncate">
 					Period {synergyCourse._Period}{synergyCourse._Room
 						? ` · Room ${synergyCourse._Room}`
-						: ''}{synergyCourse._Staff ? ` · ${synergyCourse._Staff}` : ''}
+						: ''}{#if synergyCourse._Staff}
+						· {#if synergyCourse._StaffEMail}<a
+								href={`mailto:${synergyCourse._StaffEMail}`}
+								class="text-primary hover:underline">{synergyCourse._Staff}</a
+							>{:else}{synergyCourse._Staff}{/if}{/if}{#if mark?._MarkName}
+						· {mark._MarkName}{/if}
 				</p>
 			</div>
 
-			<div class="shrink-0 text-right">
+			<div class="-mt-2 shrink-0 text-right">
 				<div class="{gradeTone} flex items-center justify-end font-mono text-[1.65rem] font-bold">
 					{#if hypotheticalMode && !categories && !rawGradeCalcMatches}<CircleAlertIcon
 							class="mr-2 size-5"
@@ -323,7 +328,7 @@
 			/>
 		{/snippet}
 
-		<div class="my-4 flex min-h-9 flex-wrap items-center gap-x-5 gap-y-3">
+		<div class="my-4 flex flex-wrap items-center gap-x-3 gap-y-3 sm:gap-x-5">
 			<div class="flex items-center gap-2">
 				<Checkbox
 					bind:checked={hypotheticalMode}
@@ -336,7 +341,11 @@
 			{#if categories && gradeCategories}
 				<div class="flex items-center gap-2">
 					<Checkbox bind:checked={showCategoryTable} id="show-category-breakdown" />
-					<Label for="show-category-breakdown">Show category breakdown</Label>
+					<Label for="show-category-breakdown"
+						><span class="sm:hidden">Categories</span><span class="hidden sm:inline"
+							>Show category breakdown</span
+						></Label
+					>
 				</div>
 			{/if}
 

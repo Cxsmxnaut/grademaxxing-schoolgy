@@ -4,6 +4,8 @@
 	import AppPageShell from '$lib/components/AppPageShell.svelte';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
 	import RecordLoadFailure from '$lib/components/RecordLoadFailure.svelte';
+	import { gradebookState } from '$lib/grades/catalog.svelte';
+	import { getActiveGradebook } from '$lib/grades/gradebook';
 	import type { Period } from '$lib/types/Attendance';
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
@@ -76,7 +78,7 @@
 			case 'Tardy':
 				return 'bg-warning-soft text-warning';
 			case 'Excused':
-				return 'bg-primary/10 text-primary';
+				return 'bg-destructive-soft text-destructive';
 			case 'Present':
 				return 'bg-success-soft text-success';
 			default:
@@ -91,7 +93,7 @@
 			case 'Tardy':
 				return 'bg-warning';
 			case 'Excused':
-				return 'bg-primary';
+				return 'bg-destructive';
 			case 'Present':
 				return 'bg-success';
 			default:
@@ -167,6 +169,25 @@
 		}
 		return [...totals.values()];
 	});
+	const gradebookCourses = $derived.by(() => {
+		gradebookState.version;
+		return getActiveGradebook()?.Courses.Course ?? [];
+	});
+	const courseAttendanceRows = $derived(
+		courseTotals.map((total, index) => {
+			const normalizedName = removeCourseType(total.Course).trim().toLocaleLowerCase();
+			const course = gradebookCourses.find(
+				(candidate) =>
+					removeCourseType(candidate._CourseName).trim().toLocaleLowerCase() === normalizedName
+			);
+			return {
+				...total,
+				period: course?._Period || String(index + 1),
+				teacher: course?._Staff || '—',
+				absenceCount: total.Absent + total.Unexcused + total.Excused
+			};
+		})
+	);
 
 	const calendarDays = $derived.by(() => {
 		const year = currentMonth.getFullYear();
@@ -205,11 +226,15 @@
 
 <svelte:head><title>Attendance - {brand}</title></svelte:head>
 
-<AppPageShell>
-	<div class="mb-7 flex items-start justify-between gap-4">
+<AppPageShell class="max-w-[67.5rem]">
+	<div class="mb-5 flex items-start justify-between gap-4 sm:mb-7">
 		<div>
 			<p class="text-primary text-[0.68rem] font-bold tracking-[0.14em] uppercase">School year</p>
-			<h1 class="font-heading mt-2 text-[1.875rem] font-bold tracking-[-0.035em]">Attendance</h1>
+			<h1
+				class="font-heading mt-0.5 text-[1.625rem] font-bold tracking-[-0.035em] sm:mt-2 sm:text-[1.875rem]"
+			>
+				Attendance
+			</h1>
 		</div>
 		<div class="bg-secondary grid grid-cols-2 rounded-xl p-1" aria-label="Attendance view">
 			<button
@@ -252,7 +277,7 @@
 					<p class="metric-label">Tardies</p>
 					<strong class="text-grade-watch">{tardies}</strong>
 				</div>
-				<div class="summary-card col-span-2 sm:col-span-1">
+				<div class="summary-card">
 					<p class="metric-label">Days recorded</p>
 					<strong class="text-grade-strong">{daysRecorded}</strong>
 				</div>
@@ -263,15 +288,18 @@
 				<div class="overflow-x-auto">
 					<table>
 						<thead
-							><tr><th>Class</th><th>Present</th><th>Excused</th><th>Absent</th><th>Tardy</th></tr
+							><tr
+								><th>Period</th><th>Class</th><th class="hidden sm:table-cell">Teacher</th><th
+									>Absent</th
+								><th>Tardy</th></tr
 							></thead
 						><tbody
-							>{#if courseTotals.length}{#each courseTotals as course (course.Course)}<tr
-										><td class="font-semibold">{removeCourseType(course.Course)}</td><td
-											>{course.Present}</td
-										><td>{course.Excused}</td><td>{course.Absent + course.Unexcused}</td><td
-											class="text-grade-watch">{course.Tardy}</td
-										></tr
+							>{#if courseAttendanceRows.length}{#each courseAttendanceRows as course (course.Course)}<tr
+										><td class="text-muted-foreground font-mono">{course.period}</td><td
+											class="font-semibold">{removeCourseType(course.Course)}</td
+										><td class="text-muted-foreground hidden sm:table-cell">{course.teacher}</td><td
+											>{course.absenceCount}</td
+										><td class="text-grade-watch">{course.Tardy}</td></tr
 									>{/each}{:else}<tr
 									><td colspan="5" class="empty-cell"
 										>No class attendance totals have been reported.</td
@@ -449,5 +477,12 @@
 		justify-content: center;
 		border: 1px solid var(--border);
 		border-radius: 0.5rem;
+	}
+	@media (max-width: 639px) {
+		th,
+		td {
+			padding-right: 0.75rem;
+			padding-left: 0.75rem;
+		}
 	}
 </style>

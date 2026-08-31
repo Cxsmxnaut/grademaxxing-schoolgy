@@ -49,12 +49,12 @@
 <section class="mt-4">
 	<Tabs.Root bind:value={activeTab} class="gap-0">
 		<Tabs.List
-			class="bg-secondary mb-4 h-10 max-w-full justify-start overflow-x-auto rounded-xl p-1"
+			class="bg-secondary mb-4 h-auto min-h-10 max-w-full flex-wrap justify-start overflow-visible rounded-xl p-1 sm:h-10 sm:flex-nowrap sm:overflow-x-auto"
 		>
-			<Tabs.Trigger value="all">All</Tabs.Trigger>
+			<Tabs.Trigger value="all" class="flex-none">All</Tabs.Trigger>
 
 			{#each assignmentCategoryNames as categoryName (categoryName)}
-				<Tabs.Trigger value={categoryName}>
+				<Tabs.Trigger value={categoryName} class="flex-none">
 					{#if assignmentCategoryColors.has(categoryName)}
 						<div
 							class={[

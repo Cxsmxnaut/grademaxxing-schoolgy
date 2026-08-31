@@ -88,6 +88,12 @@
 		if (percentage >= 80) return 'bg-grade-watch';
 		return 'bg-grade-risk';
 	});
+	const percentageTextClass = $derived.by(() => {
+		if (extraCredit || percentage > 100) return 'text-grade-extra';
+		if (percentage >= 90) return 'text-grade-strong';
+		if (percentage >= 80) return 'text-grade-watch';
+		return 'text-grade-risk';
+	});
 
 	const gradePercentageChangeRounded = $derived(
 		Math.round((gradePercentageChange ?? 0) * 100) / 100
@@ -151,7 +157,7 @@
 					</Select.Root>
 				{/if}
 			{:else}
-				{name}
+				<span class="text-sm font-semibold">{name}</span>
 			{/if}
 
 			{#if description && !editable}
@@ -169,13 +175,13 @@
 
 		<div class="flex flex-wrap gap-1">
 			{#if categoryBadge}
-				<Badge color={categoryBadge.color} outline={false} title="Category">
+				<Badge color={categoryBadge.color} outline={true} title="Category">
 					{categoryBadge.name}
 				</Badge>
 			{/if}
 
 			{#if pointsEarned === undefined}
-				<Badge color="purple" outline={true}>Not Graded</Badge>
+				<Badge color="yellow" outline={true}>Not Graded</Badge>
 			{/if}
 
 			{#if notForGrade}
@@ -244,7 +250,7 @@
 	</div>
 
 	<div class="flex w-full flex-col items-end gap-2 sm:w-auto">
-		<div class="flex items-center gap-2">
+		<div class="flex items-center gap-2 font-mono text-sm font-bold">
 			{#if comments !== undefined && !editable}
 				<Popover.Root>
 					<Popover.Trigger
@@ -279,7 +285,9 @@
 
 			{#if editable}
 				{#if percentage && percentage !== Infinity}
-					<span title="Assignment grade percentage">{Math.round(percentage * 100) / 100}%</span>
+					<span class={percentageTextClass} title="Assignment grade percentage"
+						>{Math.round(percentage * 100) / 100}%</span
+					>
 				{/if}
 
 				<div class="flex w-40 items-center gap-1">
@@ -306,7 +314,9 @@
 					{/if}
 				</span>
 				{#if percentage && percentage !== Infinity}
-					<span title="Assignment grade percentage">{Math.round(percentage * 100) / 100}%</span>
+					<span class={percentageTextClass} title="Assignment grade percentage"
+						>{Math.round(percentage * 100) / 100}%</span
+					>
 				{/if}
 			{/if}
 		</div>
@@ -315,7 +325,10 @@
 			<Progress
 				value={progressValue}
 				aria-label={`${name} score progress`}
-				class={[percentage > 100 ? 'bg-grade-extra-soft' : '', 'w-48 transition-all lg:w-64']}
+				class={[
+					percentage > 100 ? 'bg-grade-extra-soft' : '',
+					'w-full transition-all sm:w-48 lg:w-56'
+				]}
 				indicatorClass={progressIndicatorClass}
 			/>
 		{/if}

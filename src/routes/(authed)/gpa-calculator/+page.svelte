@@ -75,7 +75,7 @@
 			<Button variant="outline" size="sm" onclick={resetRows}>Reset all</Button>
 		</div>
 
-		<p class="text-primary mt-5 text-[0.68rem] font-bold tracking-[0.15em] uppercase">Projected</p>
+		<p class="text-primary mt-3 text-[0.68rem] font-bold tracking-[0.15em] uppercase">Projected</p>
 		<h1 class="font-heading mt-2 text-[1.875rem] font-bold tracking-[-0.035em]">GPA calculator</h1>
 		<p class="text-muted-foreground mt-1.5 text-sm">
 			Try hypothetical grades and see how your GPA moves — nothing here touches your real grades.
@@ -85,13 +85,22 @@
 			class="border-border/80 bg-card mt-5 grid overflow-hidden rounded-xl border shadow-sm sm:grid-cols-2"
 			aria-label="Estimated GPA"
 		>
-			<div class="min-h-28 px-5 py-5 sm:px-7">
+			<div class="min-h-[5.625rem] px-5 py-4 sm:min-h-28 sm:px-7 sm:py-5">
 				<p class="metric-label">GPA · Unweighted</p>
-				<p class="mt-2 font-mono text-[2rem] font-bold">{unweighted?.toFixed(2) ?? '—'}</p>
+				<div class="mt-2 flex items-baseline gap-3">
+					<p class="text-success font-heading text-[2rem] font-bold tracking-[-0.035em]">
+						{unweighted?.toFixed(2) ?? '—'}
+					</p>
+					<p class="text-muted-foreground font-mono text-xs">{rows.length} courses</p>
+				</div>
 			</div>
-			<div class="border-border/70 min-h-28 border-t px-5 py-5 sm:border-t-0 sm:border-l sm:px-7">
+			<div
+				class="border-border/70 min-h-[5.625rem] border-t px-5 py-4 sm:min-h-28 sm:border-t-0 sm:border-l sm:px-7 sm:py-5"
+			>
 				<p class="metric-label">GPA · Weighted</p>
-				<p class="mt-2 font-mono text-[2rem] font-bold">{weighted?.toFixed(2) ?? '—'}</p>
+				<p class="font-heading mt-2 text-[2rem] font-bold tracking-[-0.035em]">
+					{weighted?.toFixed(2) ?? '—'}
+				</p>
 			</div>
 		</section>
 
@@ -107,7 +116,9 @@
 			{#if rows.length}
 				<ol class="divide-border/70 divide-y">
 					{#each rows as row, index (row.id)}
-						<li class="grid gap-4 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_150px] sm:items-center">
+						<li
+							class="grid grid-cols-[minmax(0,1fr)_7rem] items-center gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_150px] sm:gap-4"
+						>
 							<div class="min-w-0">
 								<p class="truncate font-semibold">{row.name}</p>
 								<p class="text-muted-foreground mt-0.5 font-mono text-xs">
@@ -121,10 +132,10 @@
 									>
 								</div>
 							</div>
-							<label class="grid gap-1 text-xs font-semibold sm:justify-self-end"
+							<label class="grid gap-1 justify-self-end text-xs font-semibold"
 								><span class="sr-only">Projected grade</span><select
 									bind:value={row.letter}
-									class="border-input bg-background h-10 w-full rounded-lg border px-3 text-sm font-semibold sm:w-36"
+									class="border-input bg-background h-10 w-28 rounded-lg border px-3 text-sm font-semibold sm:w-36"
 									>{#each gradeOptions as grade (grade)}<option value={grade}
 											>{grade}{grade === getGpaCourses(courses)[index]?.letter
 												? ' (current)'
