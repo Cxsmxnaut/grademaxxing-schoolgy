@@ -66,6 +66,14 @@
 		].filter((value): value is number => value !== undefined);
 		return values.length ? Math.max(...values) : undefined;
 	});
+	const profileName = $derived.by(() => {
+		const formattedName = studentInfoState.data?.FormattedName.trim();
+		if (!formattedName) return 'Student profile';
+		const givenNames = formattedName.includes(',')
+			? formattedName.split(',').slice(1).join(' ').trim()
+			: formattedName;
+		return givenNames.split(/\s+/)[0] || formattedName;
+	});
 
 	async function refreshAll() {
 		if (refreshingAll) return;
@@ -103,29 +111,40 @@
 	});
 </script>
 
-<Sidebar.Root class="border-sidebar-border/80">
-	<Sidebar.Header class="px-[1.375rem] pt-6 pb-5">
+<Sidebar.Root class="border-sidebar-border/80" data-testid="app-sidebar">
+	<Sidebar.Header class="px-[0.875rem] pt-5 pb-[1.734375rem]">
 		<a
 			href="/dashboard"
-			class="focus-visible:ring-sidebar-ring flex w-fit items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2"
+			class="focus-visible:ring-sidebar-ring flex h-[3.03125rem] w-full items-start gap-[0.5625rem] rounded-lg px-2 pt-1 pb-4 outline-none focus-visible:ring-2"
+			aria-label={`${brand} dashboard`}
+			data-testid="sidebar-brand"
 		>
 			<img src="/favicon.svg" class="size-7" alt="" />
-			<span class="text-[1.22rem] font-extrabold tracking-[-0.035em]">{brand}</span>
+			<span
+				class="text-[1.1875rem] leading-7 font-bold tracking-[-0.01em]"
+				style="font-family: 'Space Grotesk Variable', 'Instrument Sans Variable', system-ui, sans-serif;"
+				>{brand}</span
+			>
 		</a>
 	</Sidebar.Header>
 
-	<Sidebar.Content class="px-[0.875rem] pb-3">
-		<nav aria-label="Primary navigation">
-			<Sidebar.Menu class="gap-0.5">
+	<Sidebar.Content class="gap-0 px-[0.875rem] pb-0">
+		<nav aria-label="Primary navigation" data-testid="sidebar-primary-nav">
+			<Sidebar.Menu class="gap-[0.1875rem]">
 				{#each navigation as item (item.url)}
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton
-							class="data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground h-[2.375rem] rounded-lg px-3 text-[0.90625rem] font-semibold"
+							class="text-muted-foreground hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground h-[2.3125rem] gap-2.5 rounded-[0.5rem] px-3 py-2.5 text-sm font-semibold transition-colors data-[active=true]:font-semibold"
 							isActive={isRouteActive(item.url)}
 						>
 							{#snippet child({ props })}
-								<a href={item.url} {...props}>
-									<item.icon class="size-[1.15rem]" />
+								<a
+									href={item.url}
+									aria-current={page.url.pathname === item.url ? 'page' : undefined}
+									data-testid={`sidebar-nav-${item.url.slice(1)}`}
+									{...props}
+								>
+									<item.icon class="size-4" strokeWidth={1.5} />
 									<span>{item.title}</span>
 								</a>
 							{/snippet}
@@ -135,28 +154,39 @@
 			</Sidebar.Menu>
 		</nav>
 
-		<section class="mt-[1.375rem]" aria-labelledby="classes-heading">
+		<section class="mt-[1.375rem]" aria-labelledby="classes-heading" data-testid="sidebar-classes">
 			<h2
 				id="classes-heading"
-				class="text-muted-foreground px-2 text-[0.6875rem] font-bold tracking-[0.15em] uppercase"
+				class="text-tertiary-foreground h-[1.03125rem] px-2 text-[0.6875rem] leading-[1.03125rem] font-semibold tracking-[0.1em] uppercase"
 			>
 				Classes
 			</h2>
 
 			<svelte:boundary>
 				{#if courses}
-					<ol class="mt-2 space-y-0">
+					<ol class="mt-2 space-y-px">
 						{#each courses as course, index (course._CourseID)}
 							<li>
 								<a
 									href={`/grades/${encodeURIComponent(course._CourseID)}`}
-									class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring flex min-h-[1.875rem] items-center gap-2 rounded-lg px-2 py-1 text-[0.8125rem] outline-none focus-visible:ring-2 {page
+									class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring flex h-[1.8125rem] items-center gap-2 rounded-[0.4375rem] px-2 py-[0.4375rem] outline-none focus-visible:ring-2 {page
 										.url.pathname === `/grades/${encodeURIComponent(course._CourseID)}`
 										? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold'
 										: 'text-muted-foreground'}"
+									aria-current={page.url.pathname ===
+									`/grades/${encodeURIComponent(course._CourseID)}`
+										? 'page'
+										: undefined}
+									title={removeCourseType(course._CourseName)}
+									data-testid="sidebar-course"
 								>
-									<span class="w-4 shrink-0 text-center tabular-nums">{index + 1}</span>
-									<span class="truncate">{removeCourseType(course._CourseName)}</span>
+									<span
+										class="text-tertiary-foreground w-3 shrink-0 font-mono text-[0.6875rem] leading-none tabular-nums"
+										>{index + 1}</span
+									>
+									<span class="truncate text-[0.78125rem] leading-none font-medium"
+										>{removeCourseType(course._CourseName)}</span
+									>
 								</a>
 							</li>
 						{/each}
@@ -169,29 +199,32 @@
 			</svelte:boundary>
 		</section>
 
-		<div class="mt-auto space-y-2.5 pt-5">
+		<div class="mt-auto flex flex-col gap-3 pt-4" data-testid="sidebar-utilities">
 			<a
 				href="/privacy"
-				class="border-border/70 text-muted-foreground hover:bg-sidebar-accent block rounded-lg border px-3 py-2.5 text-[0.7rem] leading-[1.45] transition-colors"
+				class="border-border text-tertiary-foreground hover:bg-sidebar-accent block rounded-[0.5625rem] border px-[0.6875rem] py-[0.5625rem] text-[0.71875rem] leading-[1.45] transition-colors"
+				data-testid="sidebar-privacy"
 			>
 				Your password is never stored. Signing out deletes your secure server session.
 			</a>
 
-			<div class="text-muted-foreground px-1 text-[0.6875rem] leading-4">
-				<p>Built for students.</p>
-				<a href="/feedback" class="hover:text-foreground underline underline-offset-4"
-					>Send feedback</a
-				>
+			<div
+				class="text-tertiary-foreground flex items-center px-1.5 text-[0.6875rem] leading-[0.9625rem]"
+			>
+				<span>Built for students</span>
+				<span class="px-1.5" aria-hidden="true">·</span>
+				<a href="/feedback" class="hover:text-foreground underline underline-offset-4">Feedback</a>
 			</div>
 
 			<button
 				type="button"
 				onclick={() => void refreshAll()}
 				disabled={refreshingAll}
-				class="border-border/70 hover:bg-sidebar-accent flex h-9 w-full items-center justify-center gap-2 rounded-lg border px-3 text-[0.8125rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+				class="border-input hover:bg-sidebar-accent flex h-9 w-full items-center justify-center gap-2 rounded-[0.4375rem] border px-3 text-[0.78125rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
 				aria-busy={refreshingAll}
+				data-testid="sidebar-refresh"
 			>
-				<RefreshCwIcon class="size-4 {refreshingAll ? 'animate-spin' : ''}" />
+				<RefreshCwIcon class="size-3.5 {refreshingAll ? 'animate-spin' : ''}" strokeWidth={1.5} />
 				<span>{refreshingAll ? 'Refreshing' : 'Refresh'}</span>
 				{#if lastSync !== undefined && !refreshingAll}
 					<span class="text-muted-foreground font-normal"
@@ -201,40 +234,46 @@
 			</button>
 
 			<div
-				class="border-border/70 grid grid-cols-2 gap-1 rounded-lg border p-1"
+				class="border-input grid grid-cols-2 gap-1 rounded-[0.5rem] border p-1"
 				aria-label="Color theme"
+				data-testid="sidebar-theme"
 			>
 				<button
 					type="button"
 					onclick={() => setMode('dark')}
-					class="flex h-8 items-center justify-center gap-2 rounded-md text-[0.8125rem] font-semibold transition-colors {mode.current ===
+					class="flex h-[1.9375rem] items-center justify-center gap-[0.4375rem] rounded-[0.3125rem] text-xs font-semibold transition-colors {mode.current ===
 					'dark'
 						? 'bg-sidebar-accent text-sidebar-accent-foreground'
 						: 'text-muted-foreground hover:text-foreground'}"
 					aria-pressed={mode.current === 'dark'}
 				>
-					<MoonIcon class="size-4" /> Dark
+					<MoonIcon class="size-[0.8125rem]" strokeWidth={1.5} /> Dark
 				</button>
 				<button
 					type="button"
 					onclick={() => setMode('light')}
-					class="flex h-8 items-center justify-center gap-2 rounded-md text-[0.8125rem] font-semibold transition-colors {mode.current ===
+					class="flex h-[1.9375rem] items-center justify-center gap-[0.4375rem] rounded-[0.3125rem] text-xs font-semibold transition-colors {mode.current ===
 					'light'
 						? 'bg-sidebar-accent text-sidebar-accent-foreground'
 						: 'text-muted-foreground hover:text-foreground'}"
 					aria-pressed={mode.current === 'light'}
 				>
-					<SunIcon class="size-4" /> Light
+					<SunIcon class="size-[0.8125rem]" strokeWidth={1.5} /> Light
 				</button>
 			</div>
 		</div>
 	</Sidebar.Content>
 
-	<Sidebar.Footer class="border-sidebar-border/70 border-t px-[0.875rem] py-2.5">
+	<Sidebar.Footer
+		class="border-sidebar-border border-t px-[0.875rem] py-2.5"
+		data-testid="sidebar-profile-footer"
+	>
 		<div class="flex items-center gap-3">
 			<a
 				href="/studentinfo"
 				class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1.5 outline-none focus-visible:ring-2"
+				title={studentInfoState.data?.FormattedName ?? 'Student profile'}
+				data-testid="sidebar-profile"
 			>
 				{#if studentInfoState.data?.Photo}
 					<img
@@ -247,12 +286,12 @@
 					<span
 						class="bg-sidebar-accent text-sidebar-accent-foreground flex size-9 shrink-0 items-center justify-center rounded-full font-bold"
 					>
-						{studentInfoState.data?.FormattedName.trim().charAt(0) || 'S'}
+						{profileName.charAt(0) || 'S'}
 					</span>
 				{/if}
 				<span class="min-w-0">
 					<span class="block truncate text-sm font-bold">
-						{studentInfoState.data?.FormattedName ?? 'Student profile'}
+						{profileName}
 					</span>
 					<span class="text-muted-foreground block truncate text-xs">
 						{studentInfoState.data?.Grade === null || studentInfoState.data?.Grade === undefined
@@ -270,7 +309,7 @@
 					title="Install web app"
 					aria-label="Install web app"
 				>
-					<AppWindowMacIcon class="size-4" />
+					<AppWindowMacIcon class="size-4" strokeWidth={1.5} />
 				</button>
 			{/if}
 
@@ -281,7 +320,7 @@
 				title="Log out"
 				aria-label="Log out"
 			>
-				<LogOutIcon class="size-4" />
+				<LogOutIcon class="size-4" strokeWidth={1.5} />
 			</button>
 		</div>
 	</Sidebar.Footer>

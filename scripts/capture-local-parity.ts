@@ -19,7 +19,7 @@ const assignments = [
 	['4', 'Related Rates Group Work', 'Classwork', '8/15/2026', '15', '15']
 ] as const;
 
-const gradebookXml = `<Gradebook Type="" ErrorMessage="" HideStandardGraphInd="false" HideMarksColumnElementary="false" HidePointsColumnElementary="false" HidePercentSecondary="false" DisplayStandardsData="false" GBStandardsTabDefault="false"><ReportingPeriod Index="0" GradePeriod="Quarter 1" StartDate="8/1/2026" EndDate="10/10/2026"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1" StartDate="8/1/2026" EndDate="10/10/2026"/></ReportingPeriods><Courses>${courses.map(([id, name, period, room, teacher, score, letter]) => `<Course CourseID="${id}" CourseName="${name}" Period="${period}" Staff="${teacher}" StaffEMail="teacher@example.edu" Room="${room}" StaffGU="" ImageType="" HighlightPercentageCutOffForProgressBar="0" UsesRichContent="false"><Marks><Mark MarkName="Quarter 1" ShortMarkName="Q1" CalculatedScoreRaw="${score}" CalculatedScoreString="${letter}"><GradeCalculationSummary><AssignmentGradeCalc Type="Assessments" Weight="60%" Points="125" PointsPossible="140" WeightedPct="54%" CalculatedMark="A-"/><AssignmentGradeCalc Type="Homework" Weight="40%" Points="80" PointsPossible="85" WeightedPct="38%" CalculatedMark="A"/></GradeCalculationSummary><Assignments>${assignments.map(([assignmentId, name, type, date, earned, possible]) => `<Assignment GradebookID="${id}-${assignmentId}" Measure="${name}" Type="${type}" Date="${date}" DueDate="${date}" Score="${earned}" DisplayScore="${earned} out of ${possible}" ScoreCalValue="${earned}" ScoreMaxValue="${possible}" ScoreType="Raw Score" Points="${earned} / ${possible}" Point="${earned}" PointPossible="${possible}" Notes="" MeasureDescription="" TeacherID="1" StudentID="1" HasDropBox="false" DropStartDate="" DropEndDate="" TimeSincePost="1d" TotalSecondsSincePost="1"/></Assignment>`).join('')}</Assignments></Mark></Marks></Course>`).join('')}</Courses></Gradebook>`;
+const gradebookXml = `<Gradebook Type="" ErrorMessage="" HideStandardGraphInd="false" HideMarksColumnElementary="false" HidePointsColumnElementary="false" HidePercentSecondary="false" DisplayStandardsData="false" GBStandardsTabDefault="false"><ReportingPeriod Index="0" GradePeriod="Quarter 1" StartDate="8/1/2026" EndDate="10/10/2026"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1" StartDate="8/1/2026" EndDate="10/10/2026"/></ReportingPeriods><Courses>${courses.map(([id, name, period, room, teacher, score, letter]) => `<Course CourseID="${id}" CourseName="${name}" Period="${period}" Staff="${teacher}" StaffEMail="teacher@example.edu" Room="${room}" StaffGU="" ImageType="" HighlightPercentageCutOffForProgressBar="0" UsesRichContent="false"><Marks><Mark MarkName="Quarter 1" ShortMarkName="Q1" CalculatedScoreRaw="${score}" CalculatedScoreString="${letter}"><GradeCalculationSummary><AssignmentGradeCalc Type="Assessments" Weight="60%" Points="125" PointsPossible="140" WeightedPct="54%" CalculatedMark="A-"/><AssignmentGradeCalc Type="Homework" Weight="40%" Points="80" PointsPossible="85" WeightedPct="38%" CalculatedMark="A"/></GradeCalculationSummary><Assignments>${assignments.map(([assignmentId, name, type, date, earned, possible]) => `<Assignment GradebookID="${id}-${assignmentId}" Measure="${name}" Type="${type}" Date="${date}" DueDate="${date}" Score="${earned}" DisplayScore="${earned} out of ${possible}" ScoreCalValue="${earned}" ScoreMaxValue="${possible}" ScoreType="Raw Score" Points="${earned} / ${possible}" Point="${earned}" PointPossible="${possible}" Notes="" MeasureDescription="" TeacherID="1" StudentID="1" HasDropBox="false" DropStartDate="" DropEndDate="" TimeSincePost="1d" TotalSecondsSincePost="1"/>`).join('')}</Assignments></Mark></Marks></Course>`).join('')}</Courses></Gradebook>`;
 
 const attendance = {
 	Absences: {
@@ -136,7 +136,7 @@ async function capture(
 	await mockApp(context);
 	const page: Page = await context.newPage();
 	await page.goto(`${baseUrl}/grades`, { waitUntil: 'networkidle' });
-	if (light) await page.evaluate(() => localStorage.setItem('theme', 'light'));
+	if (light) await page.evaluate(() => localStorage.setItem('mode-watcher-mode', 'light'));
 	await page.reload({ waitUntil: 'networkidle' });
 	const directory = `${outputRoot}/${mode}`;
 	await mkdir(directory, { recursive: true });
@@ -154,6 +154,17 @@ async function capture(
 		await page.goto(`${baseUrl}${path}`, { waitUntil: 'networkidle' });
 		await page.waitForTimeout(350);
 		await page.screenshot({ path: `${directory}/${name}.png`, fullPage: true });
+		if (mode.startsWith('desktop') && name === 'gradebook') {
+			await page.screenshot({
+				path: `${directory}/sidebar.png`,
+				clip: { x: 0, y: 0, width: 240, height: viewport.height }
+			});
+			await page.getByTestId('sidebar-nav-dashboard').hover();
+			await page.screenshot({
+				path: `${directory}/sidebar-hover.png`,
+				clip: { x: 0, y: 0, width: 240, height: viewport.height }
+			});
+		}
 	}
 	await browser.close();
 }
