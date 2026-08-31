@@ -21,7 +21,7 @@ const assignments = [
 	['4', 'Related Rates Group Work', 'Classwork', '8/15/2026', '15', '15']
 ] as const;
 
-const gradebookXml = `<Gradebook Type="" ErrorMessage="" HideStandardGraphInd="false" HideMarksColumnElementary="false" HidePointsColumnElementary="false" HidePercentSecondary="false" DisplayStandardsData="false" GBStandardsTabDefault="false"><ReportingPeriod Index="0" GradePeriod="Quarter 1" StartDate="8/1/2026" EndDate="10/10/2026"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1" StartDate="8/1/2026" EndDate="10/10/2026"/></ReportingPeriods><Courses>${courses.map(([id, name, period, room, teacher, score, letter]) => `<Course CourseID="${id}" CourseName="${name}" Period="${period}" Staff="${teacher}" StaffEMail="teacher@example.edu" Room="${room}" StaffGU="" ImageType="" HighlightPercentageCutOffForProgressBar="0" UsesRichContent="false"><Marks><Mark MarkName="Quarter 1" ShortMarkName="Q1" CalculatedScoreRaw="${score}" CalculatedScoreString="${letter}"><GradeCalculationSummary><AssignmentGradeCalc Type="Assessments" Weight="60%" Points="125" PointsPossible="140" WeightedPct="54%" CalculatedMark="A-"/><AssignmentGradeCalc Type="Homework" Weight="40%" Points="80" PointsPossible="85" WeightedPct="38%" CalculatedMark="A"/></GradeCalculationSummary><Assignments>${assignments.map(([assignmentId, name, type, date, earned, possible]) => `<Assignment GradebookID="${id}-${assignmentId}" Measure="${name}" Type="${type}" Date="${date}" DueDate="${date}" Score="${earned}" DisplayScore="${earned} out of ${possible}" ScoreCalValue="${earned}" ScoreMaxValue="${possible}" ScoreType="Raw Score" Points="${earned} / ${possible}" Point="${earned}" PointPossible="${possible}" Notes="" MeasureDescription="" TeacherID="1" StudentID="1" HasDropBox="false" DropStartDate="" DropEndDate="" TimeSincePost="1d" TotalSecondsSincePost="1"/>`).join('')}</Assignments></Mark></Marks></Course>`).join('')}</Courses></Gradebook>`;
+const gradebookXml = `<Gradebook Type="" ErrorMessage="" HideStandardGraphInd="false" HideMarksColumnElementary="false" HidePointsColumnElementary="false" HidePercentSecondary="false" DisplayStandardsData="false" GBStandardsTabDefault="false"><ReportingPeriod Index="0" GradePeriod="Quarter 1" StartDate="8/1/2026" EndDate="10/10/2026"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1" StartDate="8/1/2026" EndDate="10/10/2026"/></ReportingPeriods><Courses>${courses.map(([id, name, period, room, teacher, score, letter]) => `<Course CourseID="${id}" CourseName="${name}" Period="${period}" Staff="${teacher}" StaffEMail="teacher@example.edu" Room="${room}" StaffGU="" ImageType="" HighlightPercentageCutOffForProgressBar="0" UsesRichContent="false"><Marks><Mark MarkName="Quarter 1" ShortMarkName="Q1" CalculatedScoreRaw="${score}" CalculatedScoreString="${letter}"><GradeCalculationSummary><AssignmentGradeCalc Type="Assessments" Weight="60%" Points="125" PointsPossible="140" WeightedPct="54%" CalculatedMark="A-"/><AssignmentGradeCalc Type="Homework" Weight="40%" Points="80" PointsPossible="85" WeightedPct="38%" CalculatedMark="A"/></GradeCalculationSummary><Assignments>${assignments.map(([assignmentId, name, type, date, earned, possible]) => `<Assignment GradebookID="${id}-${assignmentId}" Measure="${name}" Type="${type}" Date="${date}" DueDate="${date}" Score="${earned}" DisplayScore="${earned} out of ${possible}" ScoreCalValue="${earned}" ScoreMaxValue="${possible}" ScoreType="Raw Score" Points="${earned} / ${possible}" Point="${earned}" PointPossible="${possible}" Notes="${assignmentId === '1' ? 'Strong reasoning. Review question 4.' : ''}" MeasureDescription="${assignmentId === '1' ? 'Cumulative unit assessment covering derivatives and their applications.' : ''}" TeacherID="1" StudentID="1" HasDropBox="false" DropStartDate="" DropEndDate="" TimeSincePost="1d" TotalSecondsSincePost="1"/>`).join('')}</Assignments></Mark></Marks></Course>`).join('')}</Courses></Gradebook>`;
 
 const attendance = {
 	Absences: {
@@ -82,6 +82,106 @@ const attendance = {
 	TotalUnexcusedTardies: {}
 };
 
+const documents = {
+	StudentDocumentDatas: {
+		StudentDocumentData: [
+			{
+				_DocumentGU: 'report-card-q4',
+				_DocumentFileName: 'Quarter 4 Report Card.pdf',
+				_DocumentDate: '6/5/2026',
+				_DocumentType: 'Report Card',
+				_StudentGU: 'visual-student',
+				_DocumentComment: 'Quarter 4 Report Card'
+			},
+			{
+				_DocumentGU: 'unofficial-transcript',
+				_DocumentFileName: 'Unofficial Transcript.pdf',
+				_DocumentDate: '6/10/2026',
+				_DocumentType: 'Transcript',
+				_StudentGU: 'visual-student',
+				_DocumentComment: 'Unofficial Transcript'
+			},
+			{
+				_DocumentGU: 'map-growth-spring',
+				_DocumentFileName: 'Spring MAP Growth Family Report.pdf',
+				_DocumentDate: '5/20/2026',
+				_DocumentType: 'MAP Growth Family Report',
+				_StudentGU: 'visual-student',
+				_DocumentComment: 'Spring MAP Growth Family Report'
+			}
+		]
+	}
+};
+
+const recipient = {
+	_RecipientType: 'From',
+	_GU: 'counselor',
+	_RecipientList: 'Staff',
+	_GroupUserTypes: '',
+	_Details1: 'College & Career Center',
+	_Details2: 'Staff',
+	_ReadCount: '',
+	_PersonCount: ''
+};
+
+const mailMessages = [
+	{
+		From: { RecipientXML: recipient },
+		To: {
+			RecipientXML: {
+				...recipient,
+				_RecipientType: 'To',
+				_GU: 'visual-student',
+				_Details1: 'Bhavith Student',
+				_Details2: 'Student'
+			}
+		},
+		CC: '',
+		BCC: '',
+		Attachments: {
+			AttachmentXML: [{ _SmAttachmentGU: 'senior-night-flyer', _DocumentName: 'College Night.pdf' }]
+		},
+		_SMMessageGU: 'college-night',
+		_SMMsgPersonGU: 'college-night-person',
+		_SendDateTime: '2026-08-28T09:15:00',
+		_Subject: 'College information night — September 3',
+		_MessageText:
+			'<p>Students and families are invited to our fall college information night.</p><p>Please review the attached flyer and <a href="https://example.edu/college-night">reserve a seat online</a>.</p>',
+		_FolderType: 'Inbox',
+		_Priority: 'None',
+		_IsItDraft: 'false',
+		_MailRead: 'false',
+		_SendDateTimeFormattedLong: 'Friday, August 28, 2026 at 9:15 AM',
+		_SendDateTimeFormattedShort: '8/28/26',
+		_IsSystemMessage: 'false'
+	},
+	{
+		From: {
+			RecipientXML: {
+				...recipient,
+				_GU: 'attendance-office',
+				_Details1: 'Attendance Office'
+			}
+		},
+		To: '',
+		CC: '',
+		BCC: '',
+		Attachments: '',
+		_SMMessageGU: 'attendance-reminder',
+		_SMMsgPersonGU: 'attendance-reminder-person',
+		_SendDateTime: '2026-08-26T14:40:00',
+		_Subject: 'Attendance record updated',
+		_MessageText: '<p>Your attendance record for August 26 has been updated.</p>',
+		_FolderType: 'Inbox',
+		_Priority: 'None',
+		_IsItDraft: 'false',
+		_MailRead: 'true',
+		_SendDateTimeFormattedLong: 'Wednesday, August 26, 2026 at 2:40 PM',
+		_SendDateTimeFormattedShort: '8/26/26',
+		_IsSystemMessage: 'false'
+	}
+];
+
 async function mockApp(context: BrowserContext) {
 	await context.addInitScript(() => {
 		localStorage.setItem(
@@ -109,8 +209,9 @@ async function mockApp(context: BrowserContext) {
 		const bodies: Record<string, unknown> = {
 			gradebook: { xml: gradebookXml },
 			attendance,
-			documents: { StudentDocumentDatas: { StudentDocumentData: [] } },
-			messages: { InboxItemListings: { MessageXML: [] } },
+			documents,
+			messages: { InboxItemListings: { MessageXML: mailMessages } },
+			message: mailMessages[0],
 			'student-info': {
 				FormattedName: 'Bhavith Student',
 				PermID: 123456,
@@ -345,6 +446,44 @@ async function capture(
 				fullPage: true,
 				animations: 'disabled'
 			});
+			await page.getByRole('tab', { name: 'All', exact: true }).click();
+			await page.getByTitle('Assignment description').first().click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-description-open.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await page.getByTitle('Assignment description').first().click();
+			await page.getByTitle('Teacher comments').first().click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-comments-open.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await page.getByTitle('Teacher comments').first().click();
+			await page.getByLabel('Hypothetical Mode').check();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-hypothetical.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await page.getByLabel('Show category breakdown').check();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-category-breakdown.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await page.getByRole('button', { name: 'Add Hypothetical Assignment' }).click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-hypothetical-added.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
 		}
 		if (name === 'gpa-calculator') {
 			await page.getByLabel('weighted +1.0').first().click();
@@ -368,6 +507,25 @@ async function capture(
 			await settlePage(page);
 			await page.screenshot({
 				path: `${directory}/attendance-calendar.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+		}
+		if (name === 'documents') {
+			await page.getByRole('tab', { name: 'Transcript', exact: true }).click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/documents-filtered.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+		}
+		if (name === 'mail') {
+			await page.getByTestId('mail-message').first().click();
+			await page.getByRole('dialog').waitFor({ state: 'visible' });
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/mail-message-open.png`,
 				fullPage: true,
 				animations: 'disabled'
 			});

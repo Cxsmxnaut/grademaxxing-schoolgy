@@ -158,7 +158,7 @@
 							{#if rank}<span class="contents group-open:hidden"
 									><RankEmblem
 										color={rank.current.color}
-										size={26}
+										size={18}
 										label={`${rank.current.name} GPA rank`}
 									/></span
 								>{/if}
@@ -315,7 +315,7 @@
 							<div class="flex items-center gap-3">
 								<RankEmblem
 									color={rank.next.color}
-									size={23}
+									size={26}
 									label={`${rank.next.name} GPA rank`}
 								/>
 								<div class="flex min-w-0 flex-1 items-baseline gap-2">
@@ -344,7 +344,7 @@
 							<div class="flex items-center gap-3">
 								<RankEmblem
 									color={rank.current.color}
-									size={23}
+									size={26}
 									label={`${rank.current.name} GPA rank`}
 								/>
 								<div>

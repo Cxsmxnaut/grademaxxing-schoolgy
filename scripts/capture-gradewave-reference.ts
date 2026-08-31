@@ -115,6 +115,13 @@ async function capture(
 				fullPage: true,
 				animations: 'disabled'
 			});
+			await page.locator('input[type="checkbox"]').first().check();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-hypothetical.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
 		}
 		if (name === 'gpa-calculator') {
 			await page.locator('input[type="checkbox"]').first().click();

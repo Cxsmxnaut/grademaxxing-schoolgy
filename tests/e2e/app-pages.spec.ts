@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 function gradebookXml(index: number, name: string, score: string, letter: string) {
-	return `<Gradebook><ReportingPeriod Index="${index}" GradePeriod="${name}"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Semester 1"/><ReportPeriod Index="1" GradePeriod="Semester 2"/></ReportingPeriods><Courses><Course CourseID="preview" CourseName="Theme Preview" Period="1" Staff="Teacher Example" StaffEMail="teacher@example.edu" Room="101"><Marks><Mark MarkName="${name}" CalculatedScoreRaw="${score}" CalculatedScoreString="${letter}"><Assignments></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
+	return `<Gradebook><ReportingPeriod Index="${index}" GradePeriod="${name}"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Semester 1"/><ReportPeriod Index="1" GradePeriod="Semester 2"/></ReportingPeriods><Courses><Course CourseID="preview" CourseName="Theme Preview" Period="1" Staff="Teacher Example" StaffEMail="teacher@example.edu" Room="101"><Marks><Mark MarkName="${name}" CalculatedScoreRaw="${score}" CalculatedScoreString="${letter}"><GradeCalculationSummary><AssignmentGradeCalc Type="Assessments" Weight="100%" Points="${score}" PointsPossible="100" WeightedPct="${score}%" CalculatedMark="${letter}"/></GradeCalculationSummary><Assignments><Assignment GradebookID="preview-assessment" Measure="Unit assessment" Type="Assessments" Date="8/20/2026" DueDate="8/20/2026" Score="${score}" DisplayScore="${score} out of 100" ScoreCalValue="${score}" ScoreMaxValue="100" ScoreType="Raw Score" Points="${score} / 100" Point="${score}" PointPossible="100" Notes="Strong reasoning. Review question 4." MeasureDescription="Cumulative unit assessment covering the first four lessons." HasDropBox="false"/></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
 }
 
 test.beforeEach(async ({ page }) => {
@@ -118,6 +118,28 @@ test('gradebook calculator, course planner, and attendance views are interactive
 	await expect(plannerRegion.getByText(/You need/)).not.toHaveText(initialRequirement ?? '');
 	await finalsPlanner.click();
 	await expect(plannerRegion).toHaveCount(0);
+
+	await page.getByTitle('Assignment description').filter({ visible: true }).click();
+	await expect(
+		page.getByText('Cumulative unit assessment covering the first four lessons.')
+	).toBeVisible();
+	await page.getByTitle('Assignment description').filter({ visible: true }).click();
+	await page.getByTitle('Teacher comments').filter({ visible: true }).click();
+	await expect(page.getByText('Strong reasoning. Review question 4.')).toBeVisible();
+	await page.getByTitle('Teacher comments').filter({ visible: true }).click();
+
+	await page.getByLabel('Show category breakdown').check();
+	await expect(page.getByRole('columnheader', { name: 'Category' })).toBeVisible();
+	await page.getByLabel('Hypothetical Mode').check();
+	await expect(page.getByRole('button', { name: 'Add Hypothetical Assignment' })).toBeVisible();
+	await page.getByRole('button', { name: 'Add Hypothetical Assignment' }).click();
+	await expect(page.getByLabel('Assignment name').first()).toHaveValue('Hypothetical Assignment');
+	await page.getByTitle('Points earned').first().fill('10');
+	await page.getByTitle('Points possible').first().fill('10');
+	await expect(page.getByText('Hypothetical', { exact: true })).toBeVisible();
+	await page.getByRole('button', { name: 'Reset changes' }).click();
+	await expect(page.getByLabel('Assignment name').filter({ visible: true })).toHaveCount(1);
+
 	await page.getByRole('link', { name: 'All courses' }).click();
 	await expect(page).toHaveURL(/\/grades$/);
 

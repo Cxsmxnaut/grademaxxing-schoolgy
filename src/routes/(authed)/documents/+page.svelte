@@ -77,7 +77,7 @@
 	{/if}
 
 	{#if documentsState.data && documentDatas.length > 0}
-		<Tabs.Root value="all" class="mt-5 gap-4">
+		<Tabs.Root value="all" class="mx-auto mt-5 max-w-4xl gap-4">
 			<Tabs.List class="h-11 max-w-full justify-start overflow-x-auto rounded-xl">
 				<Tabs.Trigger value="all">All</Tabs.Trigger>
 
@@ -121,7 +121,7 @@
 		aria-label="Student documents"
 	>
 		{#each documents as documentData (documentData._DocumentGU)}
-			<li class="border-border/70 border-b last:border-b-0">
+			<li class="border-border/70 border-b last:border-b-0" data-testid="document-row">
 				<Button
 					href="/documents/document?documentGU={documentData._DocumentGU}"
 					target="_blank"

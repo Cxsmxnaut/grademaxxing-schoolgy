@@ -94,7 +94,7 @@
 
 		<Sidebar.Inset class="min-w-0 pb-[3.75rem] md:pb-0">
 			<header
-				class="bg-card border-border/70 sticky top-0 z-30 flex h-[3.125rem] shrink-0 items-center border-b px-4 md:hidden"
+				class="bg-card border-border/70 sticky top-0 z-30 flex h-[3.09375rem] shrink-0 items-center border-b px-4 md:hidden"
 			>
 				<a
 					href="/grades"

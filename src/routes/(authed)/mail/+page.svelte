@@ -29,6 +29,9 @@
 	let touchscreen = $state(false);
 
 	let allMessages = $derived(mailDataState.data?.InboxItemListings.MessageXML ?? []);
+	let unreadMessages = $derived(
+		allMessages.filter((message) => message._MailRead !== 'true').length
+	);
 
 	async function openMessage(summary: InboxItemListingsMessageXML) {
 		const id = summary._SMMsgPersonGU || summary._SMMessageGU;
@@ -116,6 +119,10 @@
 						<h2 id="inbox-heading" class="font-semibold">Inbox</h2>
 					</div>
 					<span class="text-muted-foreground text-xs tabular-nums">
+						{#if unreadMessages > 0}
+							<strong class="text-primary font-semibold">{unreadMessages} unread</strong>
+							<span aria-hidden="true"> · </span>
+						{/if}
 						{allMessages.length}
 						{allMessages.length === 1 ? 'message' : 'messages'}
 					</span>

@@ -173,7 +173,12 @@
 		showAllAssignmentsRevision += 1;
 	}
 
-	const prefix = $derived(hypotheticalMode ? '' : `${mark?._CalculatedScoreString} `);
+	const prefix = $derived(mark?._CalculatedScoreString ? `${mark._CalculatedScoreString} ` : '');
+	const hypotheticalDelta = $derived(
+		synergyGradePercentage === undefined || !Number.isFinite(hypotheticalGrade)
+			? undefined
+			: hypotheticalGrade - synergyGradePercentage
+	);
 
 	const grade = $derived(
 		hypotheticalMode
@@ -232,7 +237,9 @@
 </svelte:head>
 
 {#if synergyCourse}
-	<main class="w-full max-w-[67.5rem] px-4 pt-[0.84375rem] pb-24 sm:px-6 lg:px-11 lg:pt-9 lg:pb-16">
+	<main
+		class="min-h-[calc(100vh-3.09375rem)] w-full max-w-[67.5rem] px-4 pt-[0.84375rem] pb-[5.25rem] sm:px-6 md:min-h-screen lg:px-11 lg:pt-9 lg:pb-16"
+	>
 		<a
 			href="/grades"
 			class="text-primary mb-[0.875rem] inline-flex items-center gap-2 text-[0.90625rem] leading-[1.5] font-semibold hover:underline sm:mb-4 sm:text-sm sm:leading-5"
@@ -272,8 +279,12 @@
 						/>{/if}
 				</div>
 				<p class="text-muted-foreground mt-1 font-mono text-xs">
-					{realAssignments.filter((assignment) => assignment.pointsEarned !== undefined).length} graded
-					of {realAssignments.length}
+					{#if hypotheticalMode && hypotheticalDelta !== undefined}
+						what-if · {hypotheticalDelta >= 0 ? '+' : ''}{hypotheticalDelta.toFixed(3)}% vs actual
+					{:else}
+						{realAssignments.filter((assignment) => assignment.pointsEarned !== undefined).length}
+						graded of {realAssignments.length}
+					{/if}
 				</p>
 			</div>
 		</header>
@@ -345,6 +356,13 @@
 				<Label for="hypothetical-mode">Hypothetical Mode</Label>
 			</div>
 
+			{#if hypotheticalMode}
+				<Button variant="card" onclick={initReactiveAssignments}>
+					<RotateCCWIcon class="mr-2 h-4 w-4" />
+					Reset changes
+				</Button>
+			{/if}
+
 			{#if categories && gradeCategories}
 				<div class="flex items-center gap-2">
 					<Checkbox bind:checked={showCategoryTable} id="show-category-breakdown" />
@@ -357,12 +375,7 @@
 			{/if}
 
 			{#if hypotheticalMode}
-				<div transition:fade={{ duration: 200 }} class="ml-auto flex flex-wrap gap-1">
-					<Button variant="card" onclick={initReactiveAssignments}>
-						<RotateCCWIcon class="mr-2 h-4 w-4" />
-						Reset
-					</Button>
-
+				<div transition:fade={{ duration: 200 }} class="ml-auto">
 					<Button variant="card" onclick={addHypotheticalAssignment}>
 						<Grid2x2PlusIcon class="mr-2 h-4 w-4" />
 						Add Hypothetical Assignment
