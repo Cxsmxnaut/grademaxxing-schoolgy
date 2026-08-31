@@ -122,15 +122,19 @@
 <AppPageShell>
 	{#if activeReportPeriod && activeReportPeriodIndex !== undefined && gradebook}
 		<div class="grid items-start gap-[22px] xl:grid-cols-[minmax(0,770px)_320px]">
-			<div class="min-w-0 space-y-6">
-				<div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+			<div class="min-w-0">
+				<div
+					class="mb-[1.21875rem] flex flex-col gap-[0.75rem] sm:mb-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+				>
 					<h1
-						class="font-heading text-2xl leading-[1.5] font-bold tracking-[-0.035em] sm:text-[1.875rem] sm:leading-tight"
+						class="font-heading text-2xl leading-[1.5] font-bold tracking-[-0.02em] sm:text-[1.875rem]"
 					>
 						Gradebook
 					</h1>
-					<div class="grid grid-cols-2 gap-2.5 sm:flex">
-						<Button href="/gpa-calculator" class="h-9 w-full rounded-lg px-4 sm:h-10 sm:w-auto"
+					<div class="grid grid-cols-2 items-center gap-2.5 sm:flex">
+						<Button
+							href="/gpa-calculator"
+							class="h-[2.1875rem] w-full gap-[0.4375rem] rounded-lg px-3 text-[0.78125rem] leading-[1.5] font-semibold sm:h-10 sm:w-auto sm:px-4 sm:text-sm"
 							><CalculatorIcon class="size-4" /> GPA calculator</Button
 						>
 						<ReportPeriodSwitcher
@@ -146,12 +150,12 @@
 					</div>
 				</div>
 
-				<details class="border-border/80 bg-card group rounded-xl border shadow-sm sm:hidden">
+				<details class="border-border/80 bg-card group mb-6 rounded-xl border shadow-sm sm:hidden">
 					<summary
-						class="flex h-11 cursor-pointer list-none items-center justify-between px-4 font-semibold"
+						class="flex h-[2.625rem] cursor-pointer list-none items-center justify-between px-[0.875rem] text-[0.84375rem] leading-[normal] font-semibold"
 					>
 						<span>GPA and rank</span>
-						<span class="text-muted-foreground flex items-center gap-2 font-mono">
+						<span class="text-muted-foreground flex items-center gap-[0.4375rem] font-mono">
 							{#if rank}<RankEmblem
 									color={rank.current.color}
 									size={26}
@@ -180,43 +184,49 @@
 				</details>
 
 				<section
-					class="border-border/80 bg-card hidden h-28 grid-cols-[1.4fr_1fr_1fr] overflow-hidden rounded-xl border shadow-sm sm:grid"
+					class="border-border/80 bg-card mb-6 hidden h-28 grid-cols-[1.4fr_1fr_1fr] overflow-hidden rounded-xl border shadow-sm sm:grid"
 					aria-label="Grade summary"
 				>
-					<div class="flex flex-col justify-center px-5">
+					<div class="flex flex-col px-5 py-[1.125rem]">
 						<p class="metric-label">GPA · Unweighted</p>
-						<div class="mt-2 flex items-end gap-3">
-							<strong class="text-grade-strong font-mono text-[2rem] leading-none"
+						<div class="mt-2 flex items-baseline gap-[0.625rem]">
+							<strong
+								class="text-grade-strong text-[2rem] leading-[1.5]"
+								style="font-family: 'Space Grotesk Variable', 'Instrument Sans Variable', system-ui, sans-serif;"
 								>{gpas.unweighted?.toFixed(2) ?? '—'}</strong
-							><span class="text-muted-foreground font-mono text-xs"
+							><span class="text-tertiary-foreground font-mono text-xs leading-[1.5]"
 								>{gpas.graded.length} graded courses</span
 							>
 						</div>
 					</div>
-					<div class="border-border/70 flex flex-col justify-center border-x px-5">
+					<div class="border-border/70 flex flex-col border-x px-5 py-[1.125rem]">
 						<p class="metric-label">GPA · Weighted</p>
-						<strong class="mt-2 font-mono text-[2rem] leading-none"
+						<strong
+							class="mt-2 text-[2rem] leading-[1.5]"
+							style="font-family: 'Space Grotesk Variable', 'Instrument Sans Variable', system-ui, sans-serif;"
 							>{gpas.weighted?.toFixed(2) ?? '—'}</strong
 						>
 					</div>
 					<div
-						class="rank-summary flex flex-col justify-center px-5"
+						class="rank-summary flex flex-col px-5 py-[1.125rem]"
 						style:--rank-color={rank?.current.color ?? 'transparent'}
 					>
 						<p class="metric-label">Rank</p>
 						<div class="mt-1.5 flex items-center gap-2">
 							{#if rank}<RankEmblem
 									color={rank.current.color}
-									size={43}
+									size={34}
 									label={`${rank.current.name} GPA rank`}
 								/>{/if}
-							<strong class="truncate text-[1.35rem] leading-none" style:color={rank?.current.color}
-								>{rank?.current.name ?? '—'}</strong
+							<strong
+								class="truncate text-[1.5625rem] leading-[1.5] tracking-[-0.02em]"
+								style="font-family: 'Space Grotesk Variable', 'Instrument Sans Variable', system-ui, sans-serif; color: {rank
+									?.current.color};">{rank?.current.name ?? '—'}</strong
 							>
 							{#if rank}<button
 									type="button"
 									onclick={() => void shareRank()}
-									class="text-muted-foreground hover:text-foreground ml-auto rounded-md p-1.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+									class="text-muted-foreground hover:text-foreground ml-1 size-[2.3125rem] rounded-md p-2.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
 									aria-label="Share GPA rank"><Share2Icon class="size-4" /></button
 								>{/if}
 						</div>
@@ -257,9 +267,11 @@
 					</div>{/if}
 			</div>
 
-			<aside class="hidden space-y-3 xl:block" aria-label="Gradebook details">
+			<aside class="hidden space-y-3.5 xl:block" aria-label="Gradebook details">
 				<section class="border-border/80 bg-card overflow-hidden rounded-xl border shadow-sm">
-					<h2 class="border-border/70 border-b px-5 py-4 font-bold">Next rank</h2>
+					<h2 class="border-border/70 border-b px-5 py-4 text-sm leading-[1.5] font-semibold">
+						Next rank
+					</h2>
 					<div class="px-5 py-4">
 						{#if rank?.next}
 							<div class="flex items-center gap-3">
@@ -269,10 +281,16 @@
 									label={`${rank.next.name} GPA rank`}
 								/>
 								<div class="flex min-w-0 flex-1 items-baseline gap-2">
-									<p class="text-base leading-tight font-bold" style:color={rank.next.color}>
+									<p
+										class="text-base leading-[1.5] font-bold"
+										style="font-family: 'Space Grotesk Variable', 'Instrument Sans Variable', system-ui, sans-serif; color: {rank
+											.next.color};"
+									>
 										{rank.next.name}
 									</p>
-									<p class="text-muted-foreground ml-auto font-mono text-[0.68rem]">
+									<p
+										class="text-tertiary-foreground ml-auto font-mono text-[0.65625rem] leading-[1.5]"
+									>
 										{rank.pointsAway.toFixed(2)} GPA away
 									</p>
 								</div>
@@ -306,19 +324,27 @@
 				</section>
 
 				<section class="border-border/80 bg-card overflow-hidden rounded-xl border shadow-sm">
-					<h2 class="border-border/70 border-b px-5 py-4 font-bold">Recently graded</h2>
+					<h2 class="border-border/70 border-b px-5 py-4 text-sm leading-[1.5] font-semibold">
+						Recently graded
+					</h2>
 					{#if recentAssignments.length}<ol class="divide-border/70 divide-y">
 							{#each recentAssignments as item (`${item.course._CourseID}-${item.assignment._GradebookID}`)}{@const score =
 									assignmentPercentage(item.assignment)}
-								<li class="px-4 py-3">
+								<li class="px-[1.125rem] py-[0.625rem]">
 									<div class="flex items-start justify-between gap-3">
-										<p class="line-clamp-1 font-semibold">{item.assignment._Measure}</p>
+										<p
+											class="line-clamp-1 text-[0.78125rem] leading-[1.5] font-semibold tracking-[0.03em]"
+										>
+											{item.assignment._Measure}
+										</p>
 										{#if score !== undefined}<span
-												class="{percentageTone(score)} shrink-0 font-mono text-xs font-bold"
+												class="{percentageTone(
+													score
+												)} shrink-0 font-mono text-[0.78125rem] leading-[1.5] font-semibold"
 												>{score.toFixed(1)}%</span
 											>{/if}
 									</div>
-									<p class="text-muted-foreground mt-0.5 truncate text-xs">
+									<p class="text-tertiary-foreground truncate text-[0.6875rem] leading-[1.5]">
 										{removeCourseType(item.course._CourseName)} · {item.date.getTime()
 											? item.date.toLocaleDateString(undefined, {
 													month: 'numeric',
@@ -340,9 +366,10 @@
 <style>
 	.metric-label {
 		color: var(--muted-foreground);
-		font-size: 0.69rem;
-		font-weight: 700;
-		letter-spacing: 0.1em;
+		font-size: 0.75rem;
+		font-weight: 600;
+		line-height: 1.5;
+		letter-spacing: 0.08em;
 		text-transform: uppercase;
 	}
 

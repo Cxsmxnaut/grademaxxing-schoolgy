@@ -33,10 +33,11 @@
 
 <a
 	href="/grades/{encodeURIComponent(courseId)}"
-	class="group border-border/80 bg-card hover:border-primary focus-visible:ring-ring grid min-h-[82px] grid-cols-[30px_minmax(0,1fr)_auto] items-center gap-4 rounded-xl border py-2.5 pr-4 pl-[25px] shadow-sm transition-[border-color,background-color] focus-visible:ring-2 focus-visible:outline-none sm:grid-cols-[42px_minmax(0,1fr)_minmax(180px,210px)] sm:py-3.5 sm:pr-5 sm:pl-[34px]"
+	class="group border-border/80 bg-card hover:border-primary focus-visible:ring-ring grid grid-cols-[44px_minmax(0,1fr)_45px] items-center gap-3 rounded-xl border px-[0.875rem] py-[0.8125rem] shadow-sm transition-[border-color,background-color] focus-visible:ring-2 focus-visible:outline-none sm:min-h-[82px] sm:grid-cols-[56px_minmax(0,1fr)_minmax(180px,209px)] sm:gap-4 sm:px-5 sm:py-4"
 >
 	<div
-		class="font-mono text-[1.65rem] leading-none font-bold {grade
+		style="font-family: 'Space Grotesk Variable', 'Instrument Sans Variable', system-ui, sans-serif;"
+		class="text-[1.375rem] leading-[normal] font-bold tracking-[-0.03em] sm:text-[1.6875rem] {grade
 			? gradeTone(grade.percentage)
 			: 'text-muted-foreground'}"
 	>
@@ -45,26 +46,38 @@
 
 	<div class="min-w-0">
 		<div class="flex min-w-0 items-center gap-2">
-			<h2 class="truncate text-[1.03rem] leading-tight font-bold tracking-[-0.015em]">{name}</h2>
+			<h2
+				class="truncate text-[0.9375rem] leading-[1.3] font-semibold tracking-normal sm:text-[1.03125rem]"
+			>
+				{name}
+			</h2>
 			{#if unseenAssignmentsCount > 0}
 				<span class="bg-primary/12 text-primary rounded-full px-2 py-0.5 text-[0.65rem] font-bold">
 					{unseenAssignmentsCount} new
 				</span>
 			{/if}
 		</div>
-		<div class="text-muted-foreground mt-1.5 flex flex-wrap items-center gap-1.5 text-[0.7rem]">
-			<span class="bg-secondary inline-flex items-center gap-1 rounded-full px-2 py-1">
+		<div
+			class="text-muted-foreground mt-[0.4375rem] flex flex-wrap items-center gap-1.5 text-[0.71875rem] leading-[normal] font-medium tracking-[0.04em]"
+		>
+			<span
+				class="bg-secondary inline-flex h-[1.3125rem] items-center gap-[0.3125rem] rounded-full px-[0.5625rem]"
+			>
 				<Clock3Icon class="size-3" /> Period {period}
 			</span>
 			{#if room}
-				<span class="bg-secondary inline-flex items-center gap-1 rounded-full px-2 py-1">
+				<span
+					class="bg-secondary inline-flex h-[1.3125rem] items-center gap-[0.3125rem] rounded-full px-[0.5625rem]"
+				>
 					<MapPinIcon class="size-3" />
 					{room}
 				</span>
 			{/if}
 			{#if teacher}
 				<div class="basis-full sm:basis-auto">
-					<span class="bg-secondary inline-flex min-w-0 items-center gap-1 rounded-full px-2 py-1">
+					<span
+						class="bg-secondary inline-flex h-[1.3125rem] min-w-0 items-center gap-[0.3125rem] rounded-full px-[0.5625rem]"
+					>
 						<UserRoundIcon class="size-3 shrink-0" />
 						<span class="max-w-28 truncate sm:max-w-36">{teacher}</span>
 					</span>
@@ -73,12 +86,14 @@
 		</div>
 	</div>
 
-	<div class="hidden items-center gap-3 sm:flex">
+	<div class="hidden items-center gap-3.5 sm:flex">
 		{#if grade}
 			<NumberFlow
 				value={grade.percentage / 100}
 				format={{ style: 'percent', maximumFractionDigits: 1 }}
-				class="{gradeTone(grade.percentage)} w-[4.3rem] text-right font-mono text-sm font-bold"
+				class="{gradeTone(
+					grade.percentage
+				)} h-[1.1875rem] text-right font-mono text-[0.9375rem] leading-[normal] font-semibold"
 			/>
 			<div class="bg-secondary h-1.5 min-w-0 flex-1 overflow-hidden rounded-full">
 				<div
@@ -95,7 +110,9 @@
 		<NumberFlow
 			value={grade.percentage / 100}
 			format={{ style: 'percent', maximumFractionDigits: 1 }}
-			class="{gradeTone(grade.percentage)} text-right font-mono text-sm font-bold sm:hidden"
+			class="{gradeTone(
+				grade.percentage
+			)} h-[1.1875rem] text-right font-mono text-[0.9375rem] leading-[normal] font-semibold sm:hidden"
 		/>
 	{:else}
 		<span class="text-muted-foreground text-xs sm:hidden">Not graded</span>

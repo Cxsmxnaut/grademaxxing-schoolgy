@@ -141,6 +141,11 @@ async function measurePage(page: Page) {
 			return element ? measureElement(element) : null;
 		}
 
+		function measureAt(selector: string, index = 0) {
+			const element = document.querySelectorAll<HTMLElement>(selector).item(index);
+			return element ? measureElement(element) : null;
+		}
+
 		function measureElement(element: HTMLElement) {
 			const box = element.getBoundingClientRect();
 			const style = getComputedStyle(element);
@@ -206,7 +211,27 @@ async function measurePage(page: Page) {
 							.closest<HTMLElement>('[data-slot="card"]')!
 							.querySelector<HTMLElement>('[data-slot="progress"]')!
 					)
-				: null
+				: null,
+			typography: {
+				metricLabel: measure('[aria-label="Grade summary"] .metric-label'),
+				summaryValue: measure('[aria-label="Grade summary"] strong'),
+				summaryCount: measure('[aria-label="Grade summary"] .font-mono.text-xs'),
+				courseGrade: measure('ol > li:first-child > a > div:first-child'),
+				courseTitle: measure('ol > li:first-child h2'),
+				courseMetadata: measure('ol > li:first-child > a > div:nth-child(2) > div:nth-child(2)'),
+				coursePill: measure(
+					'ol > li:first-child > a > div:nth-child(2) > div:nth-child(2) > span:first-child'
+				),
+				coursePillIcon: measure(
+					'ol > li:first-child > a > div:nth-child(2) > div:nth-child(2) > span:first-child svg'
+				),
+				coursePercentage: measure('ol > li:first-child > a > div:nth-child(3) .font-mono'),
+				detailHeading: measureAt('[aria-label="Gradebook details"] h2', 0),
+				recentHeading: measureAt('[aria-label="Gradebook details"] h2', 1),
+				recentAssignment: measure(
+					'[aria-label="Gradebook details"] section:nth-child(2) li:first-child p:first-child'
+				)
+			}
 		};
 	});
 }

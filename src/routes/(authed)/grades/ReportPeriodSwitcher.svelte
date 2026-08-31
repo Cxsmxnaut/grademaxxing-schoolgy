@@ -36,7 +36,9 @@
 	}
 	{disabled}
 >
-	<Select.Trigger class="w-full sm:w-[11.125rem]">
+	<Select.Trigger
+		class="h-[2.375rem] w-full px-3 text-[0.84375rem] leading-[normal] font-medium sm:h-10 sm:w-[11.125rem] sm:text-sm"
+	>
 		{activeName}
 	</Select.Trigger>
 
