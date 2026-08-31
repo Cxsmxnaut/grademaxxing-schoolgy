@@ -232,18 +232,18 @@
 </svelte:head>
 
 {#if synergyCourse}
-	<main class="w-full max-w-[67.5rem] px-4 pt-2 pb-24 sm:px-6 lg:px-11 lg:pt-9 lg:pb-16">
+	<main class="w-full max-w-[67.5rem] px-4 pt-[0.84375rem] pb-24 sm:px-6 lg:px-11 lg:pt-9 lg:pb-16">
 		<a
 			href="/grades"
-			class="text-primary mb-4 inline-flex items-center gap-2 text-sm font-semibold hover:underline sm:mb-5"
+			class="text-primary mb-[0.875rem] inline-flex items-center gap-2 text-[0.90625rem] leading-[1.5] font-semibold hover:underline sm:mb-4 sm:text-sm sm:leading-5"
 		>
 			<ArrowLeftIcon class="size-4" /> All courses
 		</a>
 
-		<header class="mb-4 flex items-start justify-between gap-5">
+		<header class="mb-[1.125rem] flex items-start justify-between gap-5">
 			<div class="min-w-0">
 				<h1
-					class="font-heading truncate text-[1.75rem] leading-[1.5] font-bold tracking-[-0.035em]"
+					class="font-heading truncate text-[1.75rem] leading-[1.5] font-bold tracking-normal sm:tracking-[-0.035em]"
 				>
 					{courseName}
 				</h1>
@@ -281,10 +281,10 @@
 		<button
 			type="button"
 			onclick={toggleTargetGradeCalculator}
-			class="border-border/80 bg-card hover:border-primary mb-4 flex h-14 w-full items-center justify-between rounded-xl border px-5 text-left shadow-sm transition-colors"
+			style="font-family: 'Space Grotesk Variable', 'Instrument Sans Variable', system-ui, sans-serif; line-height: normal;"
+			class="border-border/80 bg-card hover:border-primary font-heading mb-4 flex h-[3.3125rem] w-full items-center justify-between rounded-[0.75rem] border px-5 text-left text-base font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.12),0_8px_24px_rgba(0,0,0,0.08)] transition-[border-color,box-shadow,transform] hover:-translate-y-px hover:shadow-md dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)]"
 		>
-			<span class="font-bold">Finals Planner</span><span
-				class="text-muted-foreground flex items-center text-xs"
+			<span>Finals Planner</span><span class="text-muted-foreground flex items-center text-xs"
 				><span class="hidden sm:inline">what do I need on the final?</span><span class="ml-2"
 					>⌄</span
 				></span
@@ -316,7 +316,7 @@
 
 		<section
 			aria-label="Grade trend"
-			class="border-border/80 bg-card overflow-hidden rounded-xl border shadow-sm"
+			class="border-border/80 bg-card overflow-hidden rounded-[0.75rem] border shadow-[0_1px_2px_rgba(0,0,0,0.12),0_8px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)]"
 		>
 			{@render chart()}
 		</section>

@@ -49,12 +49,19 @@
 <section class="mt-4">
 	<Tabs.Root bind:value={activeTab} class="gap-0">
 		<Tabs.List
-			class="bg-secondary mb-4 h-auto min-h-10 max-w-full flex-wrap justify-start overflow-visible rounded-xl p-1 sm:h-10 sm:flex-nowrap sm:overflow-x-auto"
+			class="border-border/80 bg-secondary mb-4 h-[4.625rem] min-h-[2.5625rem] max-w-full flex-wrap justify-start gap-1 overflow-visible rounded-[0.625rem] border p-[0.3125rem] sm:h-[2.5625rem] sm:flex-nowrap sm:overflow-x-auto"
 		>
-			<Tabs.Trigger value="all" class="flex-none">All</Tabs.Trigger>
+			<Tabs.Trigger
+				value="all"
+				class="h-[1.8125rem] flex-none rounded-[0.4375rem] border-0 px-[0.640625rem]"
+				>All</Tabs.Trigger
+			>
 
 			{#each assignmentCategoryNames as categoryName (categoryName)}
-				<Tabs.Trigger value={categoryName} class="flex-none">
+				<Tabs.Trigger
+					value={categoryName}
+					class="h-[1.8125rem] flex-none rounded-[0.4375rem] border-0 px-[0.640625rem]"
+				>
 					{#if assignmentCategoryColors.has(categoryName)}
 						<div
 							class={[
@@ -69,7 +76,7 @@
 		</Tabs.List>
 
 		<Tabs.Content value="all">
-			<ol class="flex flex-col items-center gap-2">
+			<ol class="flex flex-col items-center gap-[0.625rem]">
 				{#if hypotheticalMode}
 					{#each reactiveAssignments as { id, gradePercentageChange, hidden, newHypothetical, date, comments, category }, i (id)}
 						{#if reactiveAssignments[i]}
@@ -131,7 +138,7 @@
 
 		{#each assignmentCategoryNames as categoryName (categoryName)}
 			<Tabs.Content value={categoryName}>
-				<ol class="flex flex-col items-center gap-2">
+				<ol class="flex flex-col items-center gap-[0.625rem]">
 					{#if hypotheticalMode}
 						{#each reactiveAssignments as { category, id, gradePercentageChange, hidden, newHypothetical, date, comments }, i (id)}
 							{#if category === categoryName && reactiveAssignments[i]}

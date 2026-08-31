@@ -1,5 +1,5 @@
 import { chromium, type BrowserContext, type Page } from '@playwright/test';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 
 const outputRoot = '/tmp/grademaxxing-parity/local';
 const baseUrl = 'http://127.0.0.1:5173';
@@ -128,6 +128,89 @@ async function mockApp(context: BrowserContext) {
 	});
 }
 
+async function measurePage(page: Page) {
+	return page.evaluate(() => {
+		function measure(selector: string) {
+			const element = document.querySelector<HTMLElement>(selector);
+			return element ? measureElement(element) : null;
+		}
+
+		function measureLast(selector: string) {
+			const elements = document.querySelectorAll<HTMLElement>(selector);
+			const element = elements.item(elements.length - 1);
+			return element ? measureElement(element) : null;
+		}
+
+		function measureElement(element: HTMLElement) {
+			const box = element.getBoundingClientRect();
+			const style = getComputedStyle(element);
+			return {
+				box: {
+					x: box.x,
+					y: box.y,
+					width: box.width,
+					height: box.height
+				},
+				fontFamily: style.fontFamily,
+				fontSize: style.fontSize,
+				fontWeight: style.fontWeight,
+				lineHeight: style.lineHeight,
+				letterSpacing: style.letterSpacing,
+				color: style.color,
+				backgroundColor: style.backgroundColor,
+				borderColor: style.borderColor,
+				borderRadius: style.borderRadius,
+				boxShadow: style.boxShadow,
+				opacity: style.opacity,
+				padding: style.padding,
+				gap: style.gap
+			};
+		}
+
+		function findExactText(text: string) {
+			return Array.from(document.querySelectorAll<HTMLElement>('*')).find(
+				(element) => element.children.length === 0 && element.textContent?.trim() === text
+			);
+		}
+
+		const assignmentTitle = findExactText('Unit 2 Test — Derivatives');
+		const finalsPlanner = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find(
+			(button) => button.textContent?.includes('Finals Planner')
+		);
+		const allCoursesLink = Array.from(document.querySelectorAll<HTMLAnchorElement>('a')).find(
+			(link) => link.textContent?.includes('All courses')
+		);
+
+		return {
+			viewport: { width: innerWidth, height: innerHeight },
+			body: measure('body'),
+			h1: measure('h1'),
+			main: measureLast('main'),
+			nav: measure('nav'),
+			aside: measure('aside'),
+			button: measure('button'),
+			input: measure('input'),
+			allCoursesLink: allCoursesLink ? measureElement(allCoursesLink) : null,
+			finalsPlanner: finalsPlanner ? measureElement(finalsPlanner) : null,
+			gradeChart: measure('section[aria-label="Grade trend"]'),
+			assignmentTabs: measure('[data-slot="tabs-list"]'),
+			assignmentCard: assignmentTitle?.closest<HTMLElement>('[data-slot="card"]')
+				? measureElement(assignmentTitle.closest<HTMLElement>('[data-slot="card"]')!)
+				: null,
+			assignmentTitle: assignmentTitle ? measureElement(assignmentTitle) : null,
+			assignmentProgress: assignmentTitle
+				?.closest<HTMLElement>('[data-slot="card"]')
+				?.querySelector<HTMLElement>('[data-slot="progress"]')
+				? measureElement(
+						assignmentTitle
+							.closest<HTMLElement>('[data-slot="card"]')!
+							.querySelector<HTMLElement>('[data-slot="progress"]')!
+					)
+				: null
+		};
+	});
+}
+
 async function capture(
 	mode: 'desktop-dark' | 'mobile-dark' | 'desktop-light' | 'mobile-light',
 	viewport: { width: number; height: number },
@@ -142,6 +225,7 @@ async function capture(
 	await page.reload({ waitUntil: 'networkidle' });
 	const directory = `${outputRoot}/${mode}`;
 	await mkdir(directory, { recursive: true });
+	const metrics: Record<string, Awaited<ReturnType<typeof measurePage>>> = {};
 	const pages = [
 		['gradebook', '/grades'],
 		['course', '/grades/ap-calc'],
@@ -158,6 +242,7 @@ async function capture(
 		await page.goto(`${baseUrl}${path}`, { waitUntil: 'networkidle' });
 		await page.waitForTimeout(350);
 		await page.screenshot({ path: `${directory}/${name}.png`, fullPage: true });
+		metrics[name] = await measurePage(page);
 		if (mode.startsWith('desktop') && name === 'gradebook') {
 			await page.screenshot({
 				path: `${directory}/sidebar.png`,
@@ -170,6 +255,7 @@ async function capture(
 			});
 		}
 	}
+	await writeFile(`${directory}/metrics.json`, `${JSON.stringify(metrics, null, 2)}\n`);
 	await browser.close();
 }
 
@@ -182,6 +268,7 @@ async function capturePublic(
 	const page = await context.newPage();
 	const directory = `${outputRoot}/${mode}-public`;
 	await mkdir(directory, { recursive: true });
+	const metrics: Record<string, Awaited<ReturnType<typeof measurePage>>> = {};
 	const pages = [
 		['landing', '/'],
 		['login', '/login'],
@@ -194,7 +281,9 @@ async function capturePublic(
 		await page.goto(`${baseUrl}${path}`, { waitUntil: 'networkidle' });
 		await page.waitForTimeout(250);
 		await page.screenshot({ path: `${directory}/${name}.png`, fullPage: true });
+		metrics[name] = await measurePage(page);
 	}
+	await writeFile(`${directory}/metrics.json`, `${JSON.stringify(metrics, null, 2)}\n`);
 	await browser.close();
 }
 
