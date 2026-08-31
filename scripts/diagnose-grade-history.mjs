@@ -215,7 +215,7 @@ await appPage.goto(`${appUrl}/login`);
 await appPage.getByLabel('StudentVUE Username').fill(process.env.STUDENTVUE_USERNAME);
 await appPage.getByLabel('StudentVUE Password').fill(process.env.STUDENTVUE_PASSWORD);
 await appPage.getByRole('button', { name: 'Log in', exact: true }).click();
-await appPage.waitForURL(/\/dashboard$/, { timeout: 60_000 });
+await appPage.waitForURL(/\/grades$/, { timeout: 60_000 });
 const token = JSON.parse(await appPage.evaluate(() => localStorage.getItem('token')));
 const appGradebookResult = await appPage.evaluate(async (sessionId) => {
 	const response = await fetch('/api/studentvue/gradebook', {

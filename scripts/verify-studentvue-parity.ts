@@ -120,7 +120,7 @@ try {
 	if (await domainInput.count()) await domainInput.fill(new URL(district).origin);
 	await page.getByRole('checkbox', { name: /independent, unofficial tool/i }).check();
 	await page.getByRole('button', { name: 'Log in', exact: true }).click();
-	await page.waitForURL(/\/(?:grades|dashboard)$/, { timeout: 60_000 });
+	await page.waitForURL(/\/grades$/, { timeout: 60_000 });
 
 	const direct = await Pxp2Client.login(district, { username, password });
 

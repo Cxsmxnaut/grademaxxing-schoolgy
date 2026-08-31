@@ -123,7 +123,7 @@ test.afterEach(async ({}, testInfo) => {
 	});
 });
 
-test('1 — a student signs in and sees the dashboard and initial grades screen', async () => {
+test('1 — a student signs in and sees the Gradebook home', async () => {
 	await page.goto('/login');
 	await page.getByLabel('StudentVUE Username').fill(username!);
 	await page.getByLabel('StudentVUE Password').fill(password!);
@@ -133,13 +133,11 @@ test('1 — a student signs in and sees the dashboard and initial grades screen'
 	}
 	await page.getByRole('button', { name: 'Log in', exact: true }).click();
 
-	await expect(page).toHaveURL(/\/(grades|dashboard)$/, { timeout: 60_000 });
-	await page.goto('/dashboard');
-	await expect(page.getByRole('heading', { name: /here’s the move/ })).toBeVisible();
-	await expect(page.getByText('GPA · unweighted', { exact: true })).toBeVisible();
-	await expect(page.getByText('Course average', { exact: true })).toBeVisible();
-	await expect(page.getByRole('link', { name: 'Grades', exact: true })).toBeVisible();
-	await page.goto('/grades');
+	await expect(page).toHaveURL(/\/grades$/, { timeout: 60_000 });
+	await expect(page.getByRole('heading', { level: 1, name: 'Gradebook' })).toBeVisible();
+	await expect(page.getByText('GPA · Unweighted', { exact: true })).toBeVisible();
+	await expect(page.getByText('Rank', { exact: true })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Gradebook', exact: true })).toBeVisible();
 	await expect(page.getByText('Loading grades...')).toBeHidden();
 	await expect(page.getByText('Something went wrong')).toHaveCount(0);
 	await mkdir(diagnosticsDirectory, { recursive: true });
@@ -241,14 +239,7 @@ test('1bc — a stale class link fails safely instead of opening the wrong class
 });
 
 test('1ba — authenticated student screens meet WCAG A/AA', async () => {
-	for (const path of [
-		'/dashboard',
-		'/grades',
-		'/attendance',
-		'/documents',
-		'/mail',
-		'/studentinfo'
-	]) {
+	for (const path of ['/grades', '/attendance', '/documents', '/mail', '/studentinfo']) {
 		await page.goto(path);
 		await page.waitForLoadState('networkidle');
 		await expect(page.getByText('Something went wrong')).toHaveCount(0);
@@ -755,7 +746,7 @@ test('7b — an expired server session clears protected state and explains the r
 			await expiryPage.getByLabel('StudentVUE Domain').fill(new URL(district!).origin);
 		}
 		await expiryPage.getByRole('button', { name: 'Log in', exact: true }).click();
-		await expect(expiryPage).toHaveURL(/\/(grades|dashboard)$/, { timeout: 60_000 });
+		await expect(expiryPage).toHaveURL(/\/grades$/, { timeout: 60_000 });
 		await expiryPage.goto('/grades');
 		await expect(expiryPage.getByText(/Loading .* grades\.\.\./)).toBeHidden({ timeout: 60_000 });
 
@@ -836,17 +827,15 @@ test('8 — a student can navigate the full app at phone width', async () => {
 		}
 		await mobilePage.getByRole('button', { name: 'Log in', exact: true }).click();
 		record('mobile-step', { step: 'submitted-login' });
-		await expect(mobilePage).toHaveURL(/\/(grades|dashboard)$/, { timeout: 60_000 });
-		await mobilePage.goto('/dashboard');
-		await expect(mobilePage.getByText('GPA · unweighted', { exact: true })).toBeVisible();
+		await expect(mobilePage).toHaveURL(/\/grades$/, { timeout: 60_000 });
+		await expect(mobilePage.getByText('GPA and rank', { exact: true })).toBeVisible();
 		await mobileContext.tracing.start({ screenshots: true, snapshots: true, sources: true });
 		mobileTraceStarted = true;
 		record('mobile-step', { step: 'signed-in' });
 
-		let sidebarButton = mobilePage.getByRole('button', { name: 'Toggle Sidebar', exact: true });
-		expect(await sidebarButton.count()).toBe(1);
-		await sidebarButton.click();
-		const attendanceLink = mobilePage.getByRole('link', { name: 'Attendance', exact: true });
+		const attendanceLink = mobilePage
+			.getByRole('navigation', { name: 'Mobile navigation' })
+			.getByRole('link', { name: 'Attendance', exact: true });
 		expect(await attendanceLink.count()).toBe(1);
 		await attendanceLink.click();
 		record('mobile-step', { step: 'opened-attendance' });
@@ -859,10 +848,9 @@ test('8 — a student can navigate the full app at phone width', async () => {
 		await expect(mobilePage.getByText('Loading attendance...', { exact: true })).toBeHidden();
 		record('mobile-step', { step: 'attendance-loaded' });
 
-		sidebarButton = mobilePage.getByRole('button', { name: 'Toggle Sidebar', exact: true });
-		expect(await sidebarButton.count()).toBe(1);
-		await sidebarButton.click();
-		const gradesLink = mobilePage.getByRole('link', { name: 'Grades', exact: true });
+		const gradesLink = mobilePage
+			.getByRole('navigation', { name: 'Mobile navigation' })
+			.getByRole('link', { name: 'Grades', exact: true });
 		expect(await gradesLink.count()).toBe(1);
 		await gradesLink.click();
 		record('mobile-step', { step: 'returned-to-grades' });

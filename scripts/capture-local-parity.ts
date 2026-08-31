@@ -145,7 +145,6 @@ async function capture(
 		['course', '/grades/ap-calc'],
 		['attendance', '/attendance'],
 		['gpa-calculator', '/gpa-calculator'],
-		['dashboard', '/dashboard'],
 		['documents', '/documents'],
 		['mail', '/mail'],
 		['feedback', '/feedback'],
@@ -159,7 +158,7 @@ async function capture(
 				path: `${directory}/sidebar.png`,
 				clip: { x: 0, y: 0, width: 240, height: viewport.height }
 			});
-			await page.getByTestId('sidebar-nav-dashboard').hover();
+			await page.getByTestId('sidebar-nav-attendance').hover();
 			await page.screenshot({
 				path: `${directory}/sidebar-hover.png`,
 				clip: { x: 0, y: 0, width: 240, height: viewport.height }

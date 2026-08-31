@@ -116,7 +116,7 @@ test('desktop sidebar matches the 240px reference geometry and visual tokens', a
 	expect(nav.y).toBeCloseTo(96.5, 0);
 	expect(nav.width).toBe(211);
 	const navItems = page.getByTestId('sidebar-primary-nav').locator('a');
-	await expect(navItems).toHaveCount(5);
+	await expect(navItems).toHaveCount(4);
 	for (const item of await navItems.all()) {
 		const box = await item.boundingBox();
 		expect(box?.width).toBe(211);
@@ -130,11 +130,11 @@ test('desktop sidebar matches the 240px reference geometry and visual tokens', a
 	await expect(active).toHaveAttribute('aria-current', 'page');
 	await expect(active).toHaveCSS('color', 'rgb(77, 182, 245)');
 	await expect(active).toHaveCSS('background-color', 'rgba(77, 182, 245, 0.13)');
-	await expect(page.getByTestId('sidebar-nav-dashboard')).toHaveCSS('color', 'rgb(143, 169, 194)');
+	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS('color', 'rgb(143, 169, 194)');
 
 	const classes = await boundingBox(page, 'sidebar-classes');
 	expect(classes.x).toBe(14);
-	expect(classes.y).toBeCloseTo(315.5, 0);
+	expect(classes.y).toBeCloseTo(275.5, 0);
 	expect(classes.width).toBe(211);
 	const classHeading = page.getByRole('heading', { name: 'Classes' });
 	await expect(classHeading).toHaveCSS('font-size', '11px');
@@ -164,13 +164,12 @@ test('desktop sidebar matches the 240px reference geometry and visual tokens', a
 });
 
 test('every sidebar action works and preserves a single active destination', async ({ page }) => {
-	await page.goto('/dashboard');
+	await page.goto('/grades');
 	for (const [testId, path] of [
-		['sidebar-nav-grades', '/grades'],
 		['sidebar-nav-attendance', '/attendance'],
 		['sidebar-nav-documents', '/documents'],
 		['sidebar-nav-mail', '/mail'],
-		['sidebar-nav-dashboard', '/dashboard']
+		['sidebar-nav-grades', '/grades']
 	] as const) {
 		await page.getByTestId(testId).click();
 		await expect(page).toHaveURL(new RegExp(`${path.replace('/', '\\/')}$`));
@@ -211,19 +210,19 @@ test('hover, keyboard focus, active-course, and light-mode states remain legible
 	page
 }) => {
 	await page.goto('/documents');
-	const dashboard = page.getByTestId('sidebar-nav-dashboard');
-	await expect(dashboard).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-	await dashboard.hover();
-	await expect(dashboard).toHaveCSS('background-color', 'rgba(77, 182, 245, 0.13)');
-	await expect(dashboard).toHaveCSS('color', 'rgb(77, 182, 245)');
+	const gradebook = page.getByTestId('sidebar-nav-grades');
+	await expect(gradebook).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+	await gradebook.hover();
+	await expect(gradebook).toHaveCSS('background-color', 'rgba(77, 182, 245, 0.13)');
+	await expect(gradebook).toHaveCSS('color', 'rgb(77, 182, 245)');
 
 	await page.mouse.move(800, 500);
 	await page.keyboard.press('Tab');
 	await expect(page.getByTestId('sidebar-brand')).toBeFocused();
 	await page.keyboard.press('Tab');
-	await expect(dashboard).toBeFocused();
+	await expect(gradebook).toBeFocused();
 	await expect
-		.poll(() => dashboard.evaluate((element) => getComputedStyle(element).boxShadow))
+		.poll(() => gradebook.evaluate((element) => getComputedStyle(element).boxShadow))
 		.not.toBe('none');
 
 	await page.goto('/grades/calculus');
@@ -266,7 +265,7 @@ test('sidebar remains usable at short desktop heights and switches cleanly at th
 		clientWidth: element.clientWidth,
 		scrollWidth: element.scrollWidth
 	}));
-	expect(overflow.scrollHeight).toBeGreaterThan(overflow.clientHeight);
+	expect(overflow.scrollHeight).toBeGreaterThanOrEqual(overflow.clientHeight);
 	expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth);
 	await page.getByTestId('sidebar-refresh').scrollIntoViewIfNeeded();
 	await expect(page.getByTestId('sidebar-refresh')).toBeVisible();

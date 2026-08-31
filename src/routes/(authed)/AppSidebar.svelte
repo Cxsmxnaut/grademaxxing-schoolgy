@@ -16,7 +16,6 @@
 	import BookOpenIcon from '@lucide/svelte/icons/book-open';
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
 	import FileTextIcon from '@lucide/svelte/icons/file-text';
-	import HouseIcon from '@lucide/svelte/icons/house';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import MailIcon from '@lucide/svelte/icons/mail';
 	import MoonIcon from '@lucide/svelte/icons/moon';
@@ -98,7 +97,6 @@
 	}
 
 	const navigation: { title: string; url: string; icon: Component }[] = [
-		{ title: 'Dashboard', url: '/dashboard', icon: HouseIcon },
 		{ title: 'Gradebook', url: '/grades', icon: BookOpenIcon },
 		{ title: 'Attendance', url: '/attendance', icon: CalendarDaysIcon },
 		{ title: 'Documents', url: '/documents', icon: FileTextIcon },
@@ -114,9 +112,9 @@
 <Sidebar.Root class="border-sidebar-border/80" data-testid="app-sidebar">
 	<Sidebar.Header class="px-[0.875rem] pt-5 pb-[1.734375rem]">
 		<a
-			href="/dashboard"
+			href="/grades"
 			class="focus-visible:ring-sidebar-ring flex h-[3.03125rem] w-full items-start gap-[0.5625rem] rounded-lg px-2 pt-1 pb-4 outline-none focus-visible:ring-2"
-			aria-label={`${brand} dashboard`}
+			aria-label={`${brand} gradebook`}
 			data-testid="sidebar-brand"
 		>
 			<img src="/favicon.svg" class="size-7" alt="" />

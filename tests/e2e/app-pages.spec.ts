@@ -60,7 +60,6 @@ test.beforeEach(async ({ page }) => {
 });
 
 const pages = [
-	['/dashboard', /Hey Student, here’s the move\./],
 	['/grades', 'Gradebook'],
 	['/gpa-calculator', 'GPA calculator'],
 	['/grades/preview', 'Theme Preview'],
@@ -75,7 +74,6 @@ for (const [path, heading] of pages) {
 	test(`${path} has a visible page identity and app navigation`, async ({ page }) => {
 		await page.goto(path);
 		await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
-		await expect(page.getByRole('link', { name: 'Dashboard', exact: true })).toBeVisible();
 		await expect(page.getByRole('link', { name: 'Gradebook', exact: true })).toBeVisible();
 		await expect(page.locator('img[src="/favicon.svg"]').first()).toBeVisible();
 		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
@@ -122,9 +120,32 @@ test('empty records, feedback state, mobile navigation, and theme controls are c
 	await expect(page.locator('html')).toHaveClass(/dark/);
 
 	await page.setViewportSize({ width: 390, height: 844 });
-	await page.goto('/dashboard');
-	for (const label of ['Home', 'Grades', 'Attendance', 'Documents', 'Mail'])
+	await page.goto('/grades');
+	for (const label of ['Grades', 'Attendance', 'Documents', 'Mail'])
 		await expect(
 			page.getByRole('navigation', { name: 'Mobile navigation' }).getByText(label, { exact: true })
 		).toBeVisible();
+});
+
+test('legacy dashboard bookmarks resolve to the Gradebook home', async ({ page }) => {
+	await page.goto('/dashboard');
+	await expect(page).toHaveURL(/\/grades$/);
+	await expect(page.getByRole('heading', { level: 1, name: 'Gradebook' })).toBeVisible();
+});
+
+test('Gradebook exposes the GPA rank summary on desktop and mobile', async ({ page }) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	await page.goto('/grades');
+	const summary = page.getByRole('region', { name: 'Grade summary' });
+	await expect(summary.getByText('Rank', { exact: true })).toBeVisible();
+	await expect(summary.getByText('Diamond', { exact: true })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Share GPA rank' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Next rank' })).toBeVisible();
+	await expect(page.getByText('Highest rank reached')).toBeVisible();
+
+	await page.setViewportSize({ width: 390, height: 844 });
+	await expect(page.getByText('GPA and rank', { exact: true })).toBeVisible();
+	await page.getByText('GPA and rank', { exact: true }).click();
+	await expect(page.getByText('Unweighted', { exact: true })).toBeVisible();
+	await expect(page.getByText('Weighted', { exact: true })).toBeVisible();
 });

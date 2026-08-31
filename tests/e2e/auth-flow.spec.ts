@@ -163,7 +163,7 @@ test('sign-in keeps the app hidden until the gradebook is ready', async ({ page 
 	await expect(page).toHaveURL(/\/login$/);
 
 	releaseGradebook();
-	await expect(page).toHaveURL(/\/dashboard$/);
-	await expect(page.getByTestId('dashboard-overview')).toBeVisible();
+	await expect(page).toHaveURL(/\/grades$/);
+	await expect(page.getByRole('heading', { level: 1, name: 'Gradebook' })).toBeVisible();
 	await expect(loadingScreen).toHaveCount(0);
 });

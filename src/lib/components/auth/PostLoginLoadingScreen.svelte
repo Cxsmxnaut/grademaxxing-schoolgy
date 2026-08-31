@@ -31,7 +31,7 @@
 		{#key phraseIndex}
 			<p in:fade={{ duration: 260 }} out:fade={{ duration: 180 }}>{phrases[phraseIndex]}</p>
 		{/key}
-		<span class="sr-only">{message} {brand} is preparing your dashboard.</span>
+		<span class="sr-only">{message} {brand} is preparing your gradebook.</span>
 	</div>
 </div>
 

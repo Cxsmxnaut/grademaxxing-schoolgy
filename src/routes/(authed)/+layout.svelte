@@ -12,7 +12,6 @@
 	import BookOpenIcon from '@lucide/svelte/icons/book-open';
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
 	import FileTextIcon from '@lucide/svelte/icons/file-text';
-	import HouseIcon from '@lucide/svelte/icons/house';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import MailIcon from '@lucide/svelte/icons/mail';
 	import MoonIcon from '@lucide/svelte/icons/moon';
@@ -25,7 +24,6 @@
 	let { children } = $props();
 
 	const mobileNavigation = [
-		{ title: 'Home', url: '/dashboard', icon: HouseIcon },
 		{ title: 'Grades', url: '/grades', icon: BookOpenIcon },
 		{ title: 'Attendance', url: '/attendance', icon: CalendarDaysIcon },
 		{ title: 'Documents', url: '/documents', icon: FileTextIcon },
@@ -83,7 +81,7 @@
 			resetGradebookCatalog();
 			resetNonGradeRecords();
 			acc.studentAccount = undefined;
-			location.assign(replacementSessionId ? '/dashboard' : '/login');
+			location.assign(replacementSessionId ? '/grades' : '/login');
 		};
 		window.addEventListener('storage', handleStorage);
 		return () => window.removeEventListener('storage', handleStorage);
@@ -99,7 +97,7 @@
 				class="bg-card border-border/70 sticky top-0 z-30 flex h-[3.125rem] shrink-0 items-center border-b px-4 md:hidden"
 			>
 				<a
-					href="/dashboard"
+					href="/grades"
 					class="mr-auto flex items-center gap-2 text-lg font-extrabold tracking-[-0.035em] whitespace-nowrap"
 				>
 					<img src="/favicon.svg" class="size-6" alt="" />
@@ -142,7 +140,7 @@
 			</div>
 
 			<nav
-				class="bg-card border-border fixed inset-x-0 bottom-0 z-40 grid h-[3.375rem] grid-cols-5 border-t md:hidden"
+				class="bg-card border-border fixed inset-x-0 bottom-0 z-40 grid h-[3.375rem] grid-cols-4 border-t md:hidden"
 				aria-label="Mobile navigation"
 			>
 				{#each mobileNavigation as item (item.url)}

@@ -36,7 +36,7 @@
 	}
 	{disabled}
 >
-	<Select.Trigger class="w-full sm:w-56">
+	<Select.Trigger class="w-full sm:w-[11.125rem]">
 		{activeName}
 	</Select.Trigger>
 

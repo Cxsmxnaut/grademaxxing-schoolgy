@@ -25,7 +25,7 @@
 
 	if (browser && localStorage.getItem(LocalStorageKey.token) !== null) {
 		if (!acc.studentAccount) loadStudentAccount();
-		void goto('/dashboard');
+		void goto('/grades');
 	}
 
 	let username = $state('');
@@ -125,7 +125,7 @@
 
 		loginStage = 'Loading your grades…';
 		await initializeGradebookCatalog();
-		await goto('/dashboard');
+		await goto('/grades');
 	}
 </script>
 

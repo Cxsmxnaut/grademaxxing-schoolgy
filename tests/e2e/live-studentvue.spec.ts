@@ -38,8 +38,7 @@ test.describe('live StudentVUE journeys', () => {
 		if (new URL(district!).host !== 'ca-pleas-psv.edupoint.com')
 			await page.locator('#domain').fill(new URL(district!).origin);
 		await page.getByRole('button', { name: 'Log in' }).click();
-		await expect(page).toHaveURL(/\/(grades|dashboard)$/);
-		await page.goto('/dashboard');
+		await expect(page).toHaveURL(/\/grades$/);
 		await expect(page.getByText('GPA · unweighted', { exact: true })).toBeVisible();
 		await page.goto('/grades');
 		await expect(page.locator('a[href^="/grades/"]')).not.toHaveCount(0);

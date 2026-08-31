@@ -74,7 +74,7 @@
 				<p>You already have data here. Would you like to overwrite it?</p>
 
 				<div class="flex gap-2 pt-2">
-					<Button href="/dashboard" variant="outline" class="flex-1">Cancel</Button>
+					<Button href="/grades" variant="outline" class="flex-1">Cancel</Button>
 					<Button onclick={startMigration} variant="destructive" class="flex-1 cursor-pointer">
 						Overwrite
 					</Button>
