@@ -5,6 +5,7 @@
 	import AppPageShell from '$lib/components/AppPageShell.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
+	import * as Dialog from '$lib/components/ui/dialog';
 	import RankEmblem from '$lib/components/RankEmblem.svelte';
 	import {
 		getReportPeriodName,
@@ -29,6 +30,8 @@
 	import { toast } from 'svelte-sonner';
 	import CourseButton from './CourseButton.svelte';
 	import ReportPeriodSwitcher from './ReportPeriodSwitcher.svelte';
+
+	let rankShareOpen = $state(false);
 
 	onMount(() => {
 		if (acc.studentAccount) void initializeGradebookCatalog();
@@ -110,10 +113,25 @@
 				await navigator.clipboard.writeText(text);
 				toast.success('Rank copied');
 			}
+			rankShareOpen = false;
 		} catch (error) {
 			if (error instanceof DOMException && error.name === 'AbortError') return;
 			toast.error('Could not share your rank');
 		}
+	}
+
+	function saveRankImage() {
+		if (!rank) return;
+		const color = rank.current.color.replaceAll('&', '&amp;').replaceAll('"', '&quot;');
+		const rankName = rank.current.name.replaceAll('&', '&amp;').replaceAll('<', '&lt;');
+		const appName = brand.replaceAll('&', '&amp;').replaceAll('<', '&lt;');
+		const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080"><rect width="1080" height="1080" rx="72" fill="#0d2033"/><path d="M0 760 Q270 680 540 760 T1080 760 V1080 H0Z" fill="#12395d"/><text x="80" y="120" fill="#e4eef8" font-family="Arial,sans-serif" font-size="48" font-weight="700">${appName}</text><path d="M540 250 675 340 630 560 540 650 450 560 405 340Z" fill="${color}" stroke="#e4eef8" stroke-width="12"/><text x="540" y="780" text-anchor="middle" fill="#8fa9c2" font-family="Arial,sans-serif" font-size="40">Your GPA rank is</text><text x="540" y="880" text-anchor="middle" fill="${color}" font-family="Arial,sans-serif" font-size="96" font-weight="700">${rankName}</text><text x="540" y="975" text-anchor="middle" fill="#4db6f5" font-family="monospace" font-size="34">What’s your rank?</text></svg>`;
+		const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+		const anchor = document.createElement('a');
+		anchor.href = url;
+		anchor.download = `${brand.toLowerCase()}-${rank.current.name.toLowerCase()}-rank.svg`;
+		anchor.click();
+		URL.revokeObjectURL(url);
 	}
 </script>
 
@@ -209,7 +227,7 @@
 									>
 									{#if rank}<button
 											type="button"
-											onclick={() => void shareRank()}
+											onclick={() => (rankShareOpen = true)}
 											class="rank-share hover:text-foreground ml-1 size-[2.3125rem] rounded-[0.625rem] p-2 transition-colors focus-visible:ring-2 focus-visible:outline-none"
 											title="Share your rank"
 											aria-label="Share your rank"><ShareIcon class="size-[1.0625rem]" /></button
@@ -262,7 +280,7 @@
 							>
 							{#if rank}<button
 									type="button"
-									onclick={() => void shareRank()}
+									onclick={() => (rankShareOpen = true)}
 									class="rank-share hover:text-foreground ml-1 size-[2.3125rem] rounded-md p-2 transition-colors focus-visible:ring-2 focus-visible:outline-none"
 									title="Share your rank"
 									aria-label="Share your rank"><ShareIcon class="size-[1.3125rem]" /></button
@@ -400,6 +418,52 @@
 		</div>
 	{/if}
 </AppPageShell>
+
+<Dialog.Root bind:open={rankShareOpen}>
+	<Dialog.Content
+		class="border-border bg-card w-[25rem] max-w-[calc(100%-2rem)] gap-0 overflow-hidden rounded-xl p-0"
+	>
+		<Dialog.Header class="border-border border-b px-4 py-3.5">
+			<Dialog.Title class="text-sm">Your rank card</Dialog.Title>
+			<Dialog.Description class="sr-only">
+				Preview and share a rank card without grades or GPA.
+			</Dialog.Description>
+		</Dialog.Header>
+
+		{#if rank}
+			<div class="p-4">
+				<div
+					class="rank-card-preview relative overflow-hidden rounded-xl bg-[#081522] px-6 pt-5 pb-6 text-center"
+				>
+					<div class="flex items-center gap-2 text-left">
+						<img src="/favicon.svg" class="size-7" alt="" />
+						<span class="font-heading text-base font-bold">{brand}</span>
+					</div>
+					<div class="relative z-10 mt-8 flex flex-col items-center">
+						<RankEmblem
+							color={rank.current.color}
+							size={112}
+							label={`${rank.current.name} GPA rank`}
+						/>
+						<p class="text-muted-foreground mt-3 text-sm">Your GPA rank is</p>
+						<p class="font-heading text-4xl font-bold" style:color={rank.current.color}>
+							{rank.current.name}
+						</p>
+						<p class="text-primary mt-7 font-mono text-xs font-semibold">What’s your rank?</p>
+					</div>
+					<div class="absolute right-0 bottom-0 left-0 h-24 bg-[#12395d] opacity-75"></div>
+				</div>
+			</div>
+		{/if}
+
+		<div class="border-border flex flex-wrap items-center gap-2 border-t px-4 py-3">
+			<p class="text-muted-foreground mr-auto text-xs">No GPA or grades on the card.</p>
+			<Button variant="outline" size="sm" onclick={() => (rankShareOpen = false)}>Cancel</Button>
+			<Button variant="outline" size="sm" onclick={saveRankImage}>Save image</Button>
+			<Button size="sm" onclick={() => void shareRank()}>Share</Button>
+		</div>
+	</Dialog.Content>
+</Dialog.Root>
 
 <style>
 	.gradebook-panel {

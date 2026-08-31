@@ -311,6 +311,20 @@ test('Gradebook class and rank controls perform their real actions', async ({ pa
 	});
 	await page.goto('/grades');
 	await page.getByRole('button', { name: 'Share your rank' }).click();
+	await expect(page.getByRole('dialog', { name: 'Your rank card' })).toBeVisible();
+	await expect(page.getByText('No GPA or grades on the card.')).toBeVisible();
+	await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+	await expect(page.getByRole('dialog', { name: 'Your rank card' })).toHaveCount(0);
+
+	await page.getByRole('button', { name: 'Share your rank' }).click();
+	const downloadPromise = page.waitForEvent('download');
+	await page.getByRole('button', { name: 'Save image', exact: true }).click();
+	const download = await downloadPromise;
+	expect(download.suggestedFilename()).toMatch(/-rank\.svg$/);
+
+	await page.getByRole('button', { name: 'Close', exact: true }).click();
+	await page.getByRole('button', { name: 'Share your rank' }).click();
+	await page.getByRole('button', { name: 'Share', exact: true }).click();
 	await expect
 		.poll(() => page.evaluate(() => sessionStorage.getItem('shared-rank')))
 		.toContain('GPA rank');

@@ -46,6 +46,11 @@ async function capture(
 	await context.addInitScript(
 		(theme) => {
 			localStorage.setItem('gradewave.theme', theme);
+			Object.defineProperty(navigator, 'share', {
+				configurable: true,
+				value: async (payload: ShareData) =>
+					sessionStorage.setItem('visual-audit-share', JSON.stringify(payload))
+			});
 		},
 		useLightMode ? 'light' : 'dark'
 	);
@@ -64,6 +69,16 @@ async function capture(
 			animations: 'disabled'
 		});
 		metrics[name] = await collectMetrics(page);
+		if (name === 'login') {
+			const districtChange = page.locator('#district-change');
+			await districtChange.click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/login-district-change.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+		}
 	}
 
 	await enableDemo(page);
@@ -97,6 +112,37 @@ async function capture(
 				animations: 'disabled'
 			});
 			await page.mouse.move(0, 0);
+			await page.locator('#period-sel').selectOption({ label: 'Quarter 2' });
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/gradebook-period-changed.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await page.locator('#period-sel').selectOption({ label: 'Quarter 1' });
+			await page.locator('#rank-share').click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/gradebook-rank-shared.png`,
+				fullPage: true
+			});
+			await page.getByRole('button', { name: 'Close', exact: true }).click();
+			if (mode.startsWith('desktop')) {
+				const themeButton = page.getByRole('button', {
+					name: useLightMode ? 'Dark' : 'Light',
+					exact: true
+				});
+				await themeButton.click();
+				await settlePage(page);
+				await page.screenshot({
+					path: `${directory}/gradebook-theme-toggled.png`,
+					fullPage: true,
+					animations: 'disabled'
+				});
+				await page
+					.getByRole('button', { name: useLightMode ? 'Light' : 'Dark', exact: true })
+					.click();
+			}
 		}
 		if (name === 'course') {
 			const planner = page.locator('.fold-head');
@@ -115,10 +161,65 @@ async function capture(
 				fullPage: true,
 				animations: 'disabled'
 			});
+			await page.getByRole('button', { name: 'Homework', exact: true }).click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-homework.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await page.getByRole('button', { name: 'Classwork', exact: true }).click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-classwork.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await page.getByRole('button', { name: 'Assessments', exact: true }).click();
 			await page.locator('input[type="checkbox"]').first().check();
 			await settlePage(page);
 			await page.screenshot({
 				path: `${directory}/course-hypothetical.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			const whatIfForm = page.locator('#hypo-add');
+			await whatIfForm.locator('input[name="earned"]').focus();
+			await page.screenshot({
+				path: `${directory}/course-hypothetical-focused.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await whatIfForm.locator('input[name="earned"]').fill('10');
+			await whatIfForm.locator('input[name="possible"]').fill('10');
+			await whatIfForm.getByRole('button', { name: 'Add', exact: true }).click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-hypothetical-added.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await page.locator('.asg-card.just-added .cat-select').selectOption('Homework');
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-hypothetical-category-edited.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await page.getByRole('button', { name: 'Homework', exact: true }).click();
+			const addedCard = page.locator('.asg-card').filter({ hasText: 'What-if 1' }).first();
+			await addedCard.locator('.what-if-input').first().fill('7');
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-hypothetical-score-edited.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await addedCard.locator('.hypo-del').click();
+			await page.locator('#hypo-reset').click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-hypothetical-reset.png`,
 				fullPage: true,
 				animations: 'disabled'
 			});
@@ -131,9 +232,25 @@ async function capture(
 				fullPage: true,
 				animations: 'disabled'
 			});
+			await page.locator('.gpa-letter-sel').first().selectOption('B');
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/gpa-calculator-letter-edited.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await page.locator('#gpa-reset-all').click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/gpa-calculator-reset.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
 		}
 		if (name === 'feedback') {
+			await page.locator('#chat-refresh').click();
 			await page.locator('textarea').focus();
+			await page.locator('textarea').fill('Visual parity keyboard check');
 			await page.screenshot({
 				path: `${directory}/feedback-focused.png`,
 				fullPage: true,

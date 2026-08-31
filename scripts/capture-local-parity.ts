@@ -21,7 +21,15 @@ const assignments = [
 	['4', 'Related Rates Group Work', 'Classwork', '8/15/2026', '15', '15']
 ] as const;
 
-const gradebookXml = `<Gradebook Type="" ErrorMessage="" HideStandardGraphInd="false" HideMarksColumnElementary="false" HidePointsColumnElementary="false" HidePercentSecondary="false" DisplayStandardsData="false" GBStandardsTabDefault="false"><ReportingPeriod Index="0" GradePeriod="Quarter 1" StartDate="8/1/2026" EndDate="10/10/2026"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1" StartDate="8/1/2026" EndDate="10/10/2026"/></ReportingPeriods><Courses>${courses.map(([id, name, period, room, teacher, score, letter]) => `<Course CourseID="${id}" CourseName="${name}" Period="${period}" Staff="${teacher}" StaffEMail="teacher@example.edu" Room="${room}" StaffGU="" ImageType="" HighlightPercentageCutOffForProgressBar="0" UsesRichContent="false"><Marks><Mark MarkName="Quarter 1" ShortMarkName="Q1" CalculatedScoreRaw="${score}" CalculatedScoreString="${letter}"><GradeCalculationSummary><AssignmentGradeCalc Type="Assessments" Weight="60%" Points="125" PointsPossible="140" WeightedPct="54%" CalculatedMark="A-"/><AssignmentGradeCalc Type="Homework" Weight="40%" Points="80" PointsPossible="85" WeightedPct="38%" CalculatedMark="A"/></GradeCalculationSummary><Assignments>${assignments.map(([assignmentId, name, type, date, earned, possible]) => `<Assignment GradebookID="${id}-${assignmentId}" Measure="${name}" Type="${type}" Date="${date}" DueDate="${date}" Score="${earned}" DisplayScore="${earned} out of ${possible}" ScoreCalValue="${earned}" ScoreMaxValue="${possible}" ScoreType="Raw Score" Points="${earned} / ${possible}" Point="${earned}" PointPossible="${possible}" Notes="${assignmentId === '1' ? 'Strong reasoning. Review question 4.' : ''}" MeasureDescription="${assignmentId === '1' ? 'Cumulative unit assessment covering derivatives and their applications.' : ''}" TeacherID="1" StudentID="1" HasDropBox="false" DropStartDate="" DropEndDate="" TimeSincePost="1d" TotalSecondsSincePost="1"/>`).join('')}</Assignments></Mark></Marks></Course>`).join('')}</Courses></Gradebook>`;
+const gradebookXml = `<Gradebook Type="" ErrorMessage="" HideStandardGraphInd="false" HideMarksColumnElementary="false" HidePointsColumnElementary="false" HidePercentSecondary="false" DisplayStandardsData="false" GBStandardsTabDefault="false"><ReportingPeriod Index="0" GradePeriod="Quarter 1" StartDate="8/1/2026" EndDate="10/10/2026"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1" StartDate="8/1/2026" EndDate="10/10/2026"/><ReportPeriod Index="1" GradePeriod="Quarter 2" StartDate="10/11/2026" EndDate="12/18/2026"/></ReportingPeriods><Courses>${courses.map(([id, name, period, room, teacher, score, letter]) => `<Course CourseID="${id}" CourseName="${name}" Period="${period}" Staff="${teacher}" StaffEMail="teacher@example.edu" Room="${room}" StaffGU="" ImageType="" HighlightPercentageCutOffForProgressBar="0" UsesRichContent="false"><Marks><Mark MarkName="Quarter 1" ShortMarkName="Q1" CalculatedScoreRaw="${score}" CalculatedScoreString="${letter}"><GradeCalculationSummary><AssignmentGradeCalc Type="Assessments" Weight="60%" Points="125" PointsPossible="140" WeightedPct="54%" CalculatedMark="A-"/><AssignmentGradeCalc Type="Homework" Weight="40%" Points="80" PointsPossible="85" WeightedPct="38%" CalculatedMark="A"/></GradeCalculationSummary><Assignments>${assignments.map(([assignmentId, name, type, date, earned, possible]) => `<Assignment GradebookID="${id}-${assignmentId}" Measure="${name}" Type="${type}" Date="${date}" DueDate="${date}" Score="${earned}" DisplayScore="${earned} out of ${possible}" ScoreCalValue="${earned}" ScoreMaxValue="${possible}" ScoreType="Raw Score" Points="${earned} / ${possible}" Point="${earned}" PointPossible="${possible}" Notes="${assignmentId === '1' ? 'Strong reasoning. Review question 4.' : ''}" MeasureDescription="${assignmentId === '1' ? 'Cumulative unit assessment covering derivatives and their applications.' : ''}" TeacherID="1" StudentID="1" HasDropBox="false" DropStartDate="" DropEndDate="" TimeSincePost="1d" TotalSecondsSincePost="1"/>`).join('')}</Assignments></Mark></Marks></Course>`).join('')}</Courses></Gradebook>`;
+
+const gradebookXmlQuarter2 = gradebookXml
+	.replace(
+		'<ReportingPeriod Index="0" GradePeriod="Quarter 1" StartDate="8/1/2026" EndDate="10/10/2026"/>',
+		'<ReportingPeriod Index="1" GradePeriod="Quarter 2" StartDate="10/11/2026" EndDate="12/18/2026"/>'
+	)
+	.replaceAll('MarkName="Quarter 1"', 'MarkName="Quarter 2"')
+	.replaceAll('ShortMarkName="Q1"', 'ShortMarkName="Q2"');
 
 const attendance = {
 	Absences: {
@@ -205,9 +213,12 @@ async function mockApp(context: BrowserContext) {
 		})
 	);
 	await context.route('**/api/studentvue/**', (route) => {
-		const resource = new URL(route.request().url()).pathname.split('/').at(-1);
+		const url = new URL(route.request().url());
+		const resource = url.pathname.split('/').at(-1);
 		const bodies: Record<string, unknown> = {
-			gradebook: { xml: gradebookXml },
+			gradebook: {
+				xml: url.searchParams.get('reportPeriod') === '1' ? gradebookXmlQuarter2 : gradebookXml
+			},
 			attendance,
 			documents,
 			messages: { InboxItemListings: { MessageXML: mailMessages } },
@@ -367,6 +378,11 @@ async function capture(
 	await context.addInitScript(
 		(theme) => {
 			localStorage.setItem('mode-watcher-mode', theme);
+			Object.defineProperty(navigator, 'share', {
+				configurable: true,
+				value: async (payload: ShareData) =>
+					sessionStorage.setItem('visual-audit-share', JSON.stringify(payload))
+			});
 		},
 		light ? 'light' : 'dark'
 	);
@@ -428,6 +444,31 @@ async function capture(
 				animations: 'disabled'
 			});
 			await page.mouse.move(0, 0);
+			await page.getByRole('combobox', { name: 'Report period' }).selectOption('1');
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/gradebook-period-changed.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await page.getByRole('combobox', { name: 'Report period' }).selectOption('0');
+			await page.getByRole('button', { name: 'Share your rank' }).click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/gradebook-rank-shared.png`,
+				fullPage: true
+			});
+			await page.getByRole('button', { name: 'Close', exact: true }).click();
+			if (mode.startsWith('desktop')) {
+				await page.getByRole('button', { name: light ? 'Dark' : 'Light', exact: true }).click();
+				await settlePage(page);
+				await page.screenshot({
+					path: `${directory}/gradebook-theme-toggled.png`,
+					fullPage: true,
+					animations: 'disabled'
+				});
+				await page.getByRole('button', { name: light ? 'Light' : 'Dark', exact: true }).click();
+			}
 		}
 		if (name === 'course') {
 			const planner = page.getByRole('button', { name: /Finals Planner/ });
@@ -443,6 +484,20 @@ async function capture(
 			await settlePage(page);
 			await page.screenshot({
 				path: `${directory}/course-assessments.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await page.getByRole('tab', { name: 'Homework', exact: true }).click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-homework.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await page.getByRole('tab', { name: 'Classwork', exact: true }).click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-classwork.png`,
 				fullPage: true,
 				animations: 'disabled'
 			});
@@ -471,6 +526,7 @@ async function capture(
 				animations: 'disabled'
 			});
 			await page.getByLabel('Show category breakdown').uncheck();
+			await page.getByRole('tab', { name: 'Assessments', exact: true }).click();
 			await page.getByLabel('Hypothetical Mode').check();
 			await settlePage(page);
 			await page.screenshot({
@@ -494,6 +550,34 @@ async function capture(
 				fullPage: true,
 				animations: 'disabled'
 			});
+			const addedCard = page
+				.getByText('What-if 1', { exact: true })
+				.filter({ visible: true })
+				.first()
+				.locator('xpath=ancestor::*[@data-slot="card"]');
+			await addedCard.getByLabel('Category for What-if 1').selectOption('Homework');
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-hypothetical-category-edited.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await page.getByRole('tab', { name: 'Homework', exact: true }).click();
+			await addedCard.getByTitle('Points earned').fill('7');
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-hypothetical-score-edited.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await addedCard.getByRole('button', { name: 'Remove this what-if' }).click();
+			await page.getByRole('button', { name: 'Reset changes' }).click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-hypothetical-reset.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
 		}
 		if (name === 'gpa-calculator') {
 			await page.getByLabel('weighted +1.0').first().click();
@@ -503,9 +587,24 @@ async function capture(
 				fullPage: true,
 				animations: 'disabled'
 			});
+			await page.getByRole('combobox', { name: 'Projected grade' }).first().selectOption('B');
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/gpa-calculator-letter-edited.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await page.getByRole('button', { name: 'Reset all' }).click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/gpa-calculator-reset.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
 		}
 		if (name === 'feedback') {
 			await page.locator('textarea').focus();
+			await page.locator('textarea').fill('Visual parity keyboard check');
 			await page.screenshot({
 				path: `${directory}/feedback-focused.png`,
 				fullPage: true,
@@ -520,15 +619,41 @@ async function capture(
 				fullPage: true,
 				animations: 'disabled'
 			});
-		}
-		if (name === 'documents') {
-			await page.getByRole('tab', { name: 'Transcript', exact: true }).click();
+			await page.getByRole('button', { name: 'Previous month' }).click();
 			await settlePage(page);
 			await page.screenshot({
-				path: `${directory}/documents-filtered.png`,
+				path: `${directory}/attendance-previous-month.png`,
 				fullPage: true,
 				animations: 'disabled'
 			});
+			await page.getByRole('button', { name: 'Next month' }).click();
+			await page.getByRole('button', { name: 'Next month' }).click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/attendance-next-month.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await page.getByRole('button', { name: 'Today', exact: true }).click();
+			await page.getByRole('button', { name: 'Overview', exact: true }).click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/attendance-overview.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+		}
+		if (name === 'documents') {
+			for (const tab of ['Transcript', 'Report Card', 'MAP Growth Family Report']) {
+				await page.getByRole('tab', { name: tab, exact: true }).click();
+				await settlePage(page);
+				await page.screenshot({
+					path: `${directory}/documents-${tab.toLowerCase().replaceAll(' ', '-')}.png`,
+					fullPage: true,
+					animations: 'disabled'
+				});
+			}
+			await page.getByRole('tab', { name: 'All', exact: true }).click();
 		}
 		if (name === 'mail') {
 			await page.getByTestId('mail-message').first().click();
@@ -536,6 +661,15 @@ async function capture(
 			await settlePage(page);
 			await page.screenshot({
 				path: `${directory}/mail-message-open.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await page.keyboard.press('Escape');
+			await page.getByTestId('mail-message').nth(1).click();
+			await page.getByRole('dialog').waitFor({ state: 'visible' });
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/mail-second-message-open.png`,
 				fullPage: true,
 				animations: 'disabled'
 			});
@@ -573,6 +707,15 @@ async function capturePublic(
 			animations: 'disabled'
 		});
 		metrics[name] = await measurePage(page);
+		if (name === 'login') {
+			await page.getByRole('button', { name: 'Change', exact: true }).click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/login-district-change.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+		}
 	}
 	await writeFile(`${directory}/metrics.json`, `${JSON.stringify(metrics, null, 2)}\n`);
 	await browser.close();
