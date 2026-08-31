@@ -35,8 +35,6 @@
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
 	import CircleXIcon from '@lucide/svelte/icons/circle-x';
 	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
-	import Grid2x2PlusIcon from '@lucide/svelte/icons/grid-2x2-plus';
-	import RotateCCWIcon from '@lucide/svelte/icons/rotate-ccw';
 	import NumberFlow from '@number-flow/svelte';
 	import { untrack } from 'svelte';
 	import { fade } from 'svelte/transition';
@@ -152,18 +150,24 @@
 	);
 	let showAllAssignmentsRevision = $state(0);
 
-	function addHypotheticalAssignment() {
+	function addHypotheticalAssignment(
+		category: string | undefined,
+		pointsEarned: number,
+		pointsPossible: number
+	) {
+		const whatIfNumber =
+			reactiveAssignments.filter((assignment) => assignment.newHypothetical).length + 1;
 		const newHypotheticalAssignment: NewHypotheticalAssignment = $state({
-			name: 'Hypothetical Assignment',
+			name: `What-if ${whatIfNumber}`,
 			id: randomAssignmentID(),
-			pointsEarned: undefined,
-			pointsPossible: undefined,
+			pointsEarned,
+			pointsPossible,
 			unscaledPoints: undefined,
 			extraCredit: false,
 			gradePercentageChange: undefined,
 			notForGrade: false,
 			hidden: false,
-			category: undefined,
+			category,
 			newHypothetical: true,
 			date: new Date(),
 			reactive: true
@@ -171,9 +175,15 @@
 
 		reactiveAssignments = [newHypotheticalAssignment, ...reactiveAssignments];
 		showAllAssignmentsRevision += 1;
+		recalculateGradePercentage();
 	}
 
-	const prefix = $derived(mark?._CalculatedScoreString ? `${mark._CalculatedScoreString} ` : '');
+	function removeHypotheticalAssignment(id: string) {
+		reactiveAssignments = reactiveAssignments.filter((assignment) => assignment.id !== id);
+		recalculateGradePercentage();
+	}
+
+	const markLabel = $derived(mark?._CalculatedScoreString ?? '');
 	const hypotheticalDelta = $derived(
 		synergyGradePercentage === undefined || !Number.isFinite(hypotheticalGrade)
 			? undefined
@@ -247,10 +257,10 @@
 			<ArrowLeftIcon class="size-4" /> All courses
 		</a>
 
-		<header class="mb-[1.125rem] flex items-start justify-between gap-5">
-			<div class="min-w-0">
+		<header class="mb-[1.125rem] flex items-start justify-between gap-4">
+			<div class="min-w-0 flex-1">
 				<h1
-					class="font-heading truncate text-[1.75rem] leading-[1.5] font-bold tracking-normal sm:tracking-[-0.035em]"
+					class="font-heading text-[1.75rem] leading-[1.5] font-bold tracking-normal sm:tracking-[-0.035em]"
 				>
 					{courseName}
 				</h1>
@@ -266,21 +276,33 @@
 				</p>
 			</div>
 
-			<div class="-mt-2 shrink-0 text-right">
-				<div class="{gradeTone} flex items-center justify-end font-mono text-[1.65rem] font-bold">
+			<div class="shrink-0 text-right">
+				<div class="flex items-baseline justify-end gap-[0.625rem]">
 					{#if hypotheticalMode && !categories && !rawGradeCalcMatches}<CircleAlertIcon
-							class="mr-2 size-5"
+							class="text-grade-risk size-5"
 						/>{/if}
+					{#if markLabel}<span
+							class="font-heading {gradeTone} text-[2.125rem] leading-none font-bold"
+							>{markLabel}</span
+						>{/if}
 					{#if grade !== undefined}<NumberFlow
-							{prefix}
+							class="font-mono text-[1.375rem] font-semibold"
 							value={grade}
-							format={{ style: 'percent', maximumFractionDigits: 3 }}
+							format={{
+								style: 'percent',
+								minimumFractionDigits: 1,
+								maximumFractionDigits: 1
+							}}
 							spinTiming={{ duration: 400, easing: numberFlowDefaultEasing }}
 						/>{/if}
 				</div>
-				<p class="text-muted-foreground mt-1 font-mono text-xs">
+				<p class="text-muted-foreground mt-1 font-mono text-[0.78125rem] leading-[1.5]">
 					{#if hypotheticalMode && hypotheticalDelta !== undefined}
-						what-if · {hypotheticalDelta >= 0 ? '+' : ''}{hypotheticalDelta.toFixed(3)}% vs actual
+						what-if · {hypotheticalDelta === 0
+							? '±'
+							: hypotheticalDelta > 0
+								? '+'
+								: ''}{hypotheticalDelta.toFixed(2)}% vs actual
 					{:else}
 						{realAssignments.filter((assignment) => assignment.pointsEarned !== undefined).length}
 						graded of {realAssignments.length}
@@ -319,7 +341,7 @@
 		</section>
 
 		{#if !rawGradeCalcMatches}
-			<div class="m-4 flex justify-center" in:fade>
+			<div class="my-3 flex justify-center" in:fade>
 				<CalculationError
 					{hypotheticalMode}
 					officialPercentage={synergyGradePercentage}
@@ -346,24 +368,27 @@
 			/>
 		{/snippet}
 
-		<div class="my-4 flex flex-wrap items-center gap-x-3 gap-y-3 sm:gap-x-5">
+		<div class="my-[0.875rem] flex flex-wrap items-center gap-x-5 gap-y-3">
 			<div class="flex items-center gap-2">
 				<Checkbox
 					bind:checked={hypotheticalMode}
 					id="hypothetical-mode"
 					title="Hypothetical mode allows you to see what your grade would be if you got a certain score on an assignment."
 				/>
-				<Label for="hypothetical-mode">Hypothetical Mode</Label>
+				<Label for="hypothetical-mode">Hypothetical mode</Label>
 			</div>
 
 			{#if hypotheticalMode}
-				<Button variant="card" onclick={initReactiveAssignments}>
-					<RotateCCWIcon class="mr-2 h-4 w-4" />
-					Reset changes
+				<Button
+					variant="outline"
+					size="sm"
+					class="h-[1.9375rem] px-3 text-[0.78125rem] font-semibold"
+					onclick={initReactiveAssignments}
+					>Reset changes
 				</Button>
 			{/if}
 
-			{#if categories && gradeCategories}
+			{#if categories && gradeCategories && !hypotheticalMode}
 				<div class="flex items-center gap-2">
 					<Checkbox bind:checked={showCategoryTable} id="show-category-breakdown" />
 					<Label for="show-category-breakdown"
@@ -373,18 +398,9 @@
 					>
 				</div>
 			{/if}
-
-			{#if hypotheticalMode}
-				<div transition:fade={{ duration: 200 }} class="ml-auto">
-					<Button variant="card" onclick={addHypotheticalAssignment}>
-						<Grid2x2PlusIcon class="mr-2 h-4 w-4" />
-						Add Hypothetical Assignment
-					</Button>
-				</div>
-			{/if}
 		</div>
 
-		{#if categories && gradeCategories && showCategoryTable}
+		{#if categories && gradeCategories && showCategoryTable && !hypotheticalMode}
 			<div class="m-4 flex justify-center" transition:fade={{ duration: 200 }}>
 				<GradeCategoryTable {gradeCategories} {hypotheticalMode} {pointsByCategory} />
 			</div>
@@ -401,6 +417,8 @@
 					{hypotheticalMode}
 					{rawGradeCalcMatches}
 					{showAllAssignmentsRevision}
+					{addHypotheticalAssignment}
+					{removeHypotheticalAssignment}
 					{recalculateGradePercentage}
 					{seenAssignmentIDs}
 				/>

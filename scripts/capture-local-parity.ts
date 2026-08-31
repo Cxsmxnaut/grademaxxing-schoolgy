@@ -463,13 +463,6 @@ async function capture(
 				animations: 'disabled'
 			});
 			await page.getByTitle('Teacher comments').first().click();
-			await page.getByLabel('Hypothetical Mode').check();
-			await settlePage(page);
-			await page.screenshot({
-				path: `${directory}/course-hypothetical.png`,
-				fullPage: true,
-				animations: 'disabled'
-			});
 			await page.getByLabel('Show category breakdown').check();
 			await settlePage(page);
 			await page.screenshot({
@@ -477,7 +470,24 @@ async function capture(
 				fullPage: true,
 				animations: 'disabled'
 			});
-			await page.getByRole('button', { name: 'Add Hypothetical Assignment' }).click();
+			await page.getByLabel('Show category breakdown').uncheck();
+			await page.getByLabel('Hypothetical Mode').check();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-hypothetical.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			const whatIfForm = page.getByRole('form', { name: 'Add what-if assignment' });
+			await whatIfForm.getByLabel('What-if score').focus();
+			await page.screenshot({
+				path: `${directory}/course-hypothetical-focused.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await whatIfForm.getByLabel('What-if score').fill('10');
+			await whatIfForm.getByLabel('What-if points possible').fill('10');
+			await whatIfForm.getByRole('button', { name: 'Add' }).click();
 			await settlePage(page);
 			await page.screenshot({
 				path: `${directory}/course-hypothetical-added.png`,

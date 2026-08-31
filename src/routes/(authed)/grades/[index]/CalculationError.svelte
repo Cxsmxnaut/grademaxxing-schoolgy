@@ -20,7 +20,7 @@
 		new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 }).format(percentage) + '%';
 </script>
 
-<Alert.Root class="border-grade-watch bg-grade-watch-soft max-w-3xl py-3">
+<Alert.Root class="border-grade-watch bg-grade-watch-soft w-full py-2.5">
 	<AlertCircleIcon class="text-grade-watch" />
 
 	<Alert.Title>
@@ -32,17 +32,18 @@
 	</Alert.Title>
 
 	<Alert.Description>
-		{#if officialPercentage !== undefined && estimatedPercentage !== undefined}
-			<p>
+		<p>
+			{#if officialPercentage !== undefined && estimatedPercentage !== undefined}
 				StudentVUE reports <strong>{formatPercentage(officialPercentage)}</strong>. Work visible to
-				{brand} estimates <strong>{formatPercentage(estimatedPercentage)}</strong>.
-			</p>
-		{/if}
-		{#if hiddenAssignmentCount > 0}
-			<p>
+				{brand} estimates
+				<strong>{formatPercentage(estimatedPercentage)}</strong>{hiddenAssignmentCount > 0
+					? '; '
+					: '.'}
+			{/if}
+			{#if hiddenAssignmentCount > 0}
 				{hiddenAssignmentCount} hidden point
 				{hiddenAssignmentCount === 1 ? 'record was' : 'records were'} reconstructed from category totals.
-			</p>
-		{/if}
+			{/if}
+		</p>
 	</Alert.Description>
 </Alert.Root>

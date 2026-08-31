@@ -441,15 +441,15 @@ test('2 — a student opens a course and uses the grade-planning controls', asyn
 	await expect(
 		page.getByRole('button', { name: 'Target Grade Calculator', exact: true })
 	).toBeVisible();
-	await expect(
-		page.getByRole('button', { name: 'Add Hypothetical Assignment', exact: true })
-	).toBeVisible();
+	const whatIfForm = page.getByRole('form', { name: 'Add what-if assignment', exact: true });
+	await expect(whatIfForm).toBeVisible();
 
-	const assignmentNameInputs = page.getByRole('textbox', { name: 'Assignment name', exact: true });
-	const assignmentNameInputCount = await assignmentNameInputs.count();
-	await page.getByRole('button', { name: 'Add Hypothetical Assignment', exact: true }).click();
-	await expect(assignmentNameInputs).toHaveCount(assignmentNameInputCount + 1);
-	await expect(assignmentNameInputs.first()).toHaveValue('Hypothetical Assignment');
+	await whatIfForm.getByLabel('What-if score', { exact: true }).fill('8');
+	await whatIfForm.getByLabel('What-if points possible', { exact: true }).fill('10');
+	await whatIfForm.getByRole('button', { name: 'Add', exact: true }).click();
+	await expect(
+		page.getByText('What-if 1', { exact: true }).filter({ visible: true }).first()
+	).toBeVisible();
 
 	const earnedInputs = page.locator('input[title="Points earned"]');
 	const possibleInputs = page.locator('input[title="Points possible"]');

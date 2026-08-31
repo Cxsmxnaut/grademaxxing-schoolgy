@@ -131,14 +131,28 @@ test('gradebook calculator, course planner, and attendance views are interactive
 	await page.getByLabel('Show category breakdown').check();
 	await expect(page.getByRole('columnheader', { name: 'Category' })).toBeVisible();
 	await page.getByLabel('Hypothetical Mode').check();
-	await expect(page.getByRole('button', { name: 'Add Hypothetical Assignment' })).toBeVisible();
-	await page.getByRole('button', { name: 'Add Hypothetical Assignment' }).click();
-	await expect(page.getByLabel('Assignment name').first()).toHaveValue('Hypothetical Assignment');
-	await page.getByTitle('Points earned').first().fill('10');
-	await page.getByTitle('Points possible').first().fill('10');
-	await expect(page.getByText('Hypothetical', { exact: true })).toBeVisible();
+	const whatIfForm = page.getByRole('form', { name: 'Add what-if assignment' });
+	await expect(whatIfForm).toBeVisible();
+	await whatIfForm.getByLabel('What-if score').fill('10');
+	await whatIfForm.getByLabel('What-if points possible').fill('10');
+	await whatIfForm.getByRole('button', { name: 'Add' }).click();
+	await expect(
+		page.getByText('What-if 1', { exact: true }).filter({ visible: true }).first()
+	).toBeVisible();
+	await expect(
+		page.getByText('what-if', { exact: true }).filter({ visible: true }).first()
+	).toBeVisible();
+	await page
+		.getByRole('button', { name: 'Remove this what-if' })
+		.filter({ visible: true })
+		.first()
+		.click();
+	await expect(page.getByText('What-if 1', { exact: true })).toHaveCount(0);
+	await whatIfForm.getByLabel('What-if score').fill('10');
+	await whatIfForm.getByLabel('What-if points possible').fill('10');
+	await whatIfForm.getByRole('button', { name: 'Add' }).click();
 	await page.getByRole('button', { name: 'Reset changes' }).click();
-	await expect(page.getByLabel('Assignment name').filter({ visible: true })).toHaveCount(1);
+	await expect(page.getByText('What-if 1', { exact: true })).toHaveCount(0);
 
 	await page.getByRole('link', { name: 'All courses' }).click();
 	await expect(page).toHaveURL(/\/grades$/);
@@ -156,6 +170,55 @@ test('gradebook calculator, course planner, and attendance views are interactive
 	await expect(monthHeading).toHaveText(initialMonth ?? '');
 	await page.getByRole('button', { name: 'Overview' }).click();
 	await expect(page.getByRole('heading', { name: 'By class' })).toBeVisible();
+});
+
+test('course what-if controls preserve compact mobile geometry and keyboard operation', async ({
+	page
+}) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.goto('/grades/preview');
+	await page.getByLabel('Hypothetical mode').check();
+
+	const form = page.getByRole('form', { name: 'Add what-if assignment' });
+	const formBox = await form.boundingBox();
+	const category = form.getByLabel('Category for the what-if assignment');
+	const categoryBox = await category.boundingBox();
+	expect(formBox?.width).toBeGreaterThanOrEqual(357);
+	expect(categoryBox?.width).toBeGreaterThanOrEqual(315);
+
+	const score = form.getByLabel('What-if score');
+	const possible = form.getByLabel('What-if points possible');
+	await score.focus();
+	await expect(score).toBeFocused();
+	await score.fill('9');
+	await page.keyboard.press('Tab');
+	await expect(possible).toBeFocused();
+	await possible.fill('10');
+	await page.keyboard.press('Enter');
+
+	await expect(
+		page.getByText('What-if 1', { exact: true }).filter({ visible: true }).first()
+	).toBeVisible();
+	const addedCard = page
+		.getByText('What-if 1', { exact: true })
+		.filter({ visible: true })
+		.first()
+		.locator('xpath=ancestor::*[@data-slot="card"]');
+	const cardBox = await addedCard.boundingBox();
+	expect(cardBox?.width).toBeGreaterThanOrEqual(357);
+
+	const remove = page
+		.getByRole('button', { name: 'Remove this what-if' })
+		.filter({ visible: true })
+		.first();
+	await remove.focus();
+	await expect(remove).toBeFocused();
+	await page.keyboard.press('Enter');
+	await expect(page.getByText('What-if 1', { exact: true })).toHaveCount(0);
+
+	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+		await page.evaluate(() => window.innerWidth)
+	);
 });
 
 test('empty records, feedback state, mobile navigation, and theme controls are clear', async ({
