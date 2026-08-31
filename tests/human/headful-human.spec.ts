@@ -162,18 +162,21 @@ test('1 — a student signs in and sees the Gradebook home', async () => {
 });
 
 test('1b — a student refreshes grades and opens every course without broken metadata', async () => {
-	const reportPeriodButton = page.locator('main button[aria-haspopup="listbox"]');
-	expect(await reportPeriodButton.count()).toBe(1);
-	const defaultPeriodName = (await reportPeriodButton.textContent())?.trim();
+	const reportPeriodMenu = page.getByRole('combobox', { name: 'Report period' });
+	expect(await reportPeriodMenu.count()).toBe(1);
+	const defaultPeriodName = (
+		await reportPeriodMenu.locator('option:checked').textContent()
+	)?.trim();
 	expect(defaultPeriodName).toBeTruthy();
-	await reportPeriodButton.click();
-	const reportPeriodOptions = page.getByRole('option');
+	const reportPeriodOptions = reportPeriodMenu.getByRole('option');
 	expect(await reportPeriodOptions.count()).toBeGreaterThan(0);
 	if ((await reportPeriodOptions.count()) > 1) {
-		let historicalOption = reportPeriodOptions.first();
+		const activeValue = await reportPeriodMenu.inputValue();
+		let historicalValue = await reportPeriodOptions.first().getAttribute('value');
 		for (let index = 0; index < (await reportPeriodOptions.count()); index += 1) {
-			if ((await reportPeriodOptions.nth(index).getAttribute('aria-selected')) !== 'true') {
-				historicalOption = reportPeriodOptions.nth(index);
+			const optionValue = await reportPeriodOptions.nth(index).getAttribute('value');
+			if (optionValue !== activeValue) {
+				historicalValue = optionValue;
 				break;
 			}
 		}
@@ -181,14 +184,14 @@ test('1b — a student refreshes grades and opens every course without broken me
 			page.waitForResponse((response) =>
 				/\/api\/studentvue\/gradebook\?reportPeriod=\d+/.test(response.url())
 			),
-			historicalOption.click()
+			reportPeriodMenu.selectOption(historicalValue ?? '')
 		]);
 		expect(historicalResponse.status()).toBe(200);
 		await expect(page.getByText(/Viewing grades from/)).toBeVisible({ timeout: 60_000 });
 		await page.getByRole('button', { name: `Return to ${defaultPeriodName}`, exact: true }).click();
 		await expect(page.getByText(/Viewing grades from/)).toBeHidden();
 	} else {
-		await page.keyboard.press('Escape');
+		expect(await reportPeriodMenu.inputValue()).toBeTruthy();
 	}
 
 	const refreshButton = page.getByRole('button', { name: 'Refresh', exact: true });

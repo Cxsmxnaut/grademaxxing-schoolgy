@@ -280,6 +280,12 @@ async function capture(
 		await page.waitForTimeout(350);
 		await page.screenshot({ path: `${directory}/${name}.png`, fullPage: true });
 		metrics[name] = await measurePage(page);
+		if (mode.startsWith('mobile') && name === 'gradebook') {
+			await page.locator('details > summary').click();
+			await page.waitForTimeout(120);
+			await page.screenshot({ path: `${directory}/gradebook-gpa-open.png`, fullPage: true });
+			metrics['gradebook-gpa-open'] = await measurePage(page);
+		}
 		if (mode.startsWith('desktop') && name === 'gradebook') {
 			await page.screenshot({
 				path: `${directory}/sidebar.png`,

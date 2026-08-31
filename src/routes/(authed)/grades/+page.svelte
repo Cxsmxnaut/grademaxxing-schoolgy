@@ -140,14 +140,11 @@
 							><CalculatorIcon class="size-[0.9375rem]" /> GPA calculator</Button
 						>
 						<ReportPeriodSwitcher
-							activeName={activeReportPeriod._GradePeriod}
 							activeIndex={activeReportPeriodIndex}
 							reportPeriods={gradebookCatalog?.canonicalReportPeriodEntries ??
 								gradebook.ReportingPeriods.ReportPeriod}
 							switchReportPeriod={changeReportPeriod}
-							hasReportPeriodCached={(index) => gradebookCatalog?.recordCache[index] !== undefined}
 							disabled={gradebookCatalog?.loadingIndex !== undefined}
-							defaultIndex={gradebookCatalog?.defaultIndex}
 						/>
 					</div>
 				</div>
@@ -158,29 +155,67 @@
 					>
 						<span>GPA and rank</span>
 						<span class="text-muted-foreground flex items-center gap-[0.4375rem] font-mono">
-							{#if rank}<RankEmblem
-									color={rank.current.color}
-									size={26}
-									label={`${rank.current.name} GPA rank`}
-								/>{/if}
-							{gpas.unweighted?.toFixed(2) ?? '—'}
+							{#if rank}<span class="contents group-open:hidden"
+									><RankEmblem
+										color={rank.current.color}
+										size={26}
+										label={`${rank.current.name} GPA rank`}
+									/></span
+								>{/if}
+							<span class="group-open:hidden">{gpas.unweighted?.toFixed(2) ?? '—'}</span>
 							<ChevronDownIcon class="size-4 transition-transform group-open:rotate-180" /></span
 						>
 					</summary>
-					<div class="border-border/70 grid grid-cols-3 border-t">
-						<div class="p-4">
-							<p class="metric-label">Unweighted</p>
-							<p class="mt-1 font-mono text-2xl font-bold">{gpas.unweighted?.toFixed(2) ?? '—'}</p>
+					<div class="border-border/70 grid grid-cols-2 border-t">
+						<div class="flex h-[6.375rem] items-center px-4 py-[0.875rem]">
+							<div>
+								<p class="metric-label">GPA · Unweighted</p>
+								<div class="mt-2 flex items-baseline gap-2.5">
+									<p class="text-grade-strong text-[1.625rem] leading-[1.5] font-bold">
+										{gpas.unweighted?.toFixed(2) ?? '—'}
+									</p>
+									<span class="text-tertiary-foreground font-mono text-xs leading-[1.5]"
+										>{gpas.graded.length} graded courses</span
+									>
+								</div>
+							</div>
 						</div>
-						<div class="border-border/70 border-l p-4">
-							<p class="metric-label">Weighted</p>
-							<p class="mt-1 font-mono text-2xl font-bold">{gpas.weighted?.toFixed(2) ?? '—'}</p>
+						<div
+							class="border-border/70 flex h-[6.375rem] items-center border-l px-4 py-[0.875rem]"
+						>
+							<div>
+								<p class="metric-label">GPA · Weighted</p>
+								<p class="mt-2 text-[1.625rem] leading-[1.5] font-bold">
+									{gpas.weighted?.toFixed(2) ?? '—'}
+								</p>
+							</div>
 						</div>
-						<div class="border-border/70 border-l p-4">
-							<p class="metric-label">Rank</p>
-							<p class="mt-1 truncate text-sm font-bold" style:color={rank?.current.color}>
-								{rank?.current.name ?? '—'}
-							</p>
+						<div
+							class="rank-summary border-border/70 col-span-2 flex h-[5.90625rem] items-center border-t px-4 py-[0.875rem]"
+							style:--rank-color={rank?.current.color ?? 'transparent'}
+						>
+							<div>
+								<p class="metric-label">Rank</p>
+								<div class="mt-1.5 flex items-center gap-2">
+									{#if rank}<RankEmblem
+											color={rank.current.color}
+											size={34}
+											label={`${rank.current.name} GPA rank`}
+										/>{/if}
+									<strong
+										class="truncate text-[1.5625rem] leading-[1.5] tracking-[-0.02em]"
+										style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif; color: {rank
+											?.current.color};">{rank?.current.name ?? '—'}</strong
+									>
+									{#if rank}<button
+											type="button"
+											onclick={() => void shareRank()}
+											class="rank-share hover:text-foreground ml-1 size-[2.3125rem] rounded-[0.625rem] p-2 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+											title="Share your rank"
+											aria-label="Share your rank"><ShareIcon class="size-[1.0625rem]" /></button
+										>{/if}
+								</div>
+							</div>
 						</div>
 					</div>
 				</details>
@@ -229,7 +264,8 @@
 									type="button"
 									onclick={() => void shareRank()}
 									class="rank-share hover:text-foreground ml-1 size-[2.3125rem] rounded-md p-2 transition-colors focus-visible:ring-2 focus-visible:outline-none"
-									aria-label="Share GPA rank"><ShareIcon class="size-[1.3125rem]" /></button
+									title="Share your rank"
+									aria-label="Share your rank"><ShareIcon class="size-[1.3125rem]" /></button
 								>{/if}
 						</div>
 					</div>

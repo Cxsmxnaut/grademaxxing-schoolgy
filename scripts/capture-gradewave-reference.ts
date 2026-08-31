@@ -2,6 +2,8 @@ import { chromium, type BrowserContext, type Page } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 
 const outputRoot = '/tmp/grademaxxing-parity/reference';
+const requestedPage = process.env.PARITY_PAGE;
+const requestedMode = process.env.PARITY_MODE;
 const publicRoutes = [
 	['landing', 'https://gradewave.org/'],
 	['login', 'https://gradewave.org/#/login'],
@@ -36,7 +38,9 @@ async function capture(
 	const metrics: Record<string, unknown> = {};
 	const useLightMode = mode.endsWith('light');
 
-	for (const [name, url] of publicRoutes) {
+	for (const [name, url] of requestedPage
+		? publicRoutes.filter(([name]) => name === requestedPage)
+		: publicRoutes) {
 		await page.goto(url, { waitUntil: 'networkidle' });
 		await page.mouse.move(0, 0);
 		if (useLightMode && name === 'landing') {
@@ -49,12 +53,20 @@ async function capture(
 	}
 
 	await enableDemo(page);
-	for (const [name, url] of appRoutes) {
+	for (const [name, url] of requestedPage
+		? appRoutes.filter(([name]) => name === requestedPage)
+		: appRoutes) {
 		await page.goto(url, { waitUntil: 'networkidle' });
 		await page.mouse.move(0, 0);
 		await page.waitForTimeout(250);
 		await page.screenshot({ path: `${directory}/${name}.png`, fullPage: true });
 		metrics[name] = await collectMetrics(page);
+		if (mode.startsWith('mobile') && name === 'gradebook') {
+			await page.locator('.gpa-fold-btn').click();
+			await page.waitForTimeout(120);
+			await page.screenshot({ path: `${directory}/gradebook-gpa-open.png`, fullPage: true });
+			metrics['gradebook-gpa-open'] = await collectMetrics(page);
+		}
 	}
 
 	await writeFile(`${directory}/metrics.json`, `${JSON.stringify(metrics, null, 2)}\n`);
@@ -117,10 +129,11 @@ const mobileLight = await browser.newContext({
 	colorScheme: 'light'
 });
 
-await capture(desktopDark, 'desktop-dark');
-await capture(mobileDark, 'mobile-dark');
-await capture(desktopLight, 'desktop-light');
-await capture(mobileLight, 'mobile-light');
+if (!requestedMode || requestedMode === 'desktop-dark') await capture(desktopDark, 'desktop-dark');
+if (!requestedMode || requestedMode === 'mobile-dark') await capture(mobileDark, 'mobile-dark');
+if (!requestedMode || requestedMode === 'desktop-light')
+	await capture(desktopLight, 'desktop-light');
+if (!requestedMode || requestedMode === 'mobile-light') await capture(mobileLight, 'mobile-light');
 await browser.close();
 
 console.log(outputRoot);

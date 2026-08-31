@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
 
-const gradebookXml =
-	'<Gradebook><ReportingPeriod Index="0" GradePeriod="Semester 1"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Semester 1"/></ReportingPeriods><Courses><Course CourseID="preview" CourseName="Theme Preview" Period="1" Staff="Teacher Example" StaffEMail="teacher@example.edu" Room="101"><Marks><Mark MarkName="Semester 1" CalculatedScoreRaw="95" CalculatedScoreString="A"><Assignments></Assignments></Mark></Marks></Course></Courses></Gradebook>';
+function gradebookXml(index: number, name: string, score: string, letter: string) {
+	return `<Gradebook><ReportingPeriod Index="${index}" GradePeriod="${name}"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Semester 1"/><ReportPeriod Index="1" GradePeriod="Semester 2"/></ReportingPeriods><Courses><Course CourseID="preview" CourseName="Theme Preview" Period="1" Staff="Teacher Example" StaffEMail="teacher@example.edu" Room="101"><Marks><Mark MarkName="${name}" CalculatedScoreRaw="${score}" CalculatedScoreString="${letter}"><Assignments></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
+}
 
 test.beforeEach(async ({ page }) => {
 	await page.addInitScript(() => {
@@ -28,9 +29,16 @@ test.beforeEach(async ({ page }) => {
 	);
 
 	await page.route('**/api/studentvue/**', (route) => {
-		const resource = new URL(route.request().url()).pathname.split('/').at(-1);
+		const url = new URL(route.request().url());
+		const resource = url.pathname.split('/').at(-1);
+		const requestedPeriod = url.searchParams.get('reportPeriod');
 		const bodies: Record<string, unknown> = {
-			gradebook: { xml: gradebookXml },
+			gradebook: {
+				xml:
+					requestedPeriod === '1'
+						? gradebookXml(1, 'Semester 2', '87', 'B+')
+						: gradebookXml(0, 'Semester 1', '95', 'A')
+			},
 			attendance: {
 				Absences: {},
 				DailyRecords: [],
@@ -91,17 +99,35 @@ test('gradebook calculator, course planner, and attendance views are interactive
 	await expect(page.getByText('4.00').first()).toBeVisible();
 	await page.getByLabel('weighted +1.0').click();
 	await expect(page.getByText('5.00')).toBeVisible();
+	await page.getByRole('combobox', { name: 'Projected grade' }).selectOption('B');
+	await expect(page.getByText('3.00')).toBeVisible();
 	await page.getByRole('button', { name: 'Reset all' }).click();
 	await expect(page.getByText('5.00')).toHaveCount(0);
+	await page.getByRole('link', { name: 'Back to Gradebook' }).click();
+	await expect(page).toHaveURL(/\/grades$/);
 
 	await page.goto('/grades/preview');
-	await page.getByRole('button', { name: /Finals Planner/ }).click();
+	const finalsPlanner = page.getByRole('button', { name: /Finals Planner/ });
+	await finalsPlanner.click();
 	await expect(page.getByText(/Target Grade/i).first()).toBeVisible();
+	await finalsPlanner.click();
+	await expect(page.getByText(/Target Grade/i)).toHaveCount(0);
+	await page.getByRole('link', { name: 'All courses' }).click();
+	await expect(page).toHaveURL(/\/grades$/);
 
 	await page.goto('/attendance');
 	await expect(page.getByRole('heading', { name: 'By class' })).toBeVisible();
 	await page.getByRole('button', { name: 'Calendar' }).click();
-	await expect(page.getByRole('button', { name: 'Previous month' })).toBeVisible();
+	const monthHeading = page.locator('#attendance-month');
+	const initialMonth = await monthHeading.textContent();
+	await page.getByRole('button', { name: 'Previous month' }).click();
+	await expect(monthHeading).not.toHaveText(initialMonth ?? '');
+	await page.getByRole('button', { name: 'Next month' }).click();
+	await expect(monthHeading).toHaveText(initialMonth ?? '');
+	await page.getByRole('button', { name: 'Today' }).click();
+	await expect(monthHeading).toHaveText(initialMonth ?? '');
+	await page.getByRole('button', { name: 'Overview' }).click();
+	await expect(page.getByRole('heading', { name: 'By class' })).toBeVisible();
 });
 
 test('empty records, feedback state, mobile navigation, and theme controls are clear', async ({
@@ -125,6 +151,21 @@ test('empty records, feedback state, mobile navigation, and theme controls are c
 		await expect(
 			page.getByRole('navigation', { name: 'Mobile navigation' }).getByText(label, { exact: true })
 		).toBeVisible();
+	for (const [label, path] of [
+		['Attendance', '/attendance'],
+		['Documents', '/documents'],
+		['Mail', '/mail'],
+		['Grades', '/grades']
+	] as const) {
+		await page
+			.getByRole('navigation', { name: 'Mobile navigation' })
+			.getByRole('link', { name: label })
+			.click();
+		await expect(page).toHaveURL(new RegExp(`${path}$`));
+		await expect(
+			page.getByRole('navigation', { name: 'Mobile navigation' }).getByRole('link', { name: label })
+		).toHaveAttribute('aria-current', 'page');
+	}
 });
 
 test('legacy dashboard bookmarks resolve to the Gradebook home', async ({ page }) => {
@@ -139,13 +180,54 @@ test('Gradebook exposes the GPA rank summary on desktop and mobile', async ({ pa
 	const summary = page.getByRole('region', { name: 'Grade summary' });
 	await expect(summary.getByText('Rank', { exact: true })).toBeVisible();
 	await expect(summary.getByText('Diamond', { exact: true })).toBeVisible();
-	await expect(page.getByRole('button', { name: 'Share GPA rank' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Share your rank' })).toBeVisible();
 	await expect(page.getByRole('heading', { name: 'Next rank' })).toBeVisible();
 	await expect(page.getByText('Highest rank reached')).toBeVisible();
 
 	await page.setViewportSize({ width: 390, height: 844 });
 	await expect(page.getByText('GPA and rank', { exact: true })).toBeVisible();
 	await page.getByText('GPA and rank', { exact: true }).click();
-	await expect(page.getByText('Unweighted', { exact: true })).toBeVisible();
-	await expect(page.getByText('Weighted', { exact: true })).toBeVisible();
+	const mobileSummary = page.locator('details');
+	await expect(mobileSummary.getByText('GPA · Unweighted', { exact: true })).toBeVisible();
+	await expect(mobileSummary.getByText('GPA · Weighted', { exact: true })).toBeVisible();
+	await expect(mobileSummary.getByRole('button', { name: 'Share your rank' })).toBeVisible();
+});
+
+test('Gradebook report period menu switches data and preserves native menu semantics', async ({
+	page
+}) => {
+	await page.goto('/grades');
+	const reportPeriod = page.getByRole('combobox', { name: 'Report period' });
+	await expect(reportPeriod).toHaveValue('0');
+	await expect(reportPeriod.getByRole('option')).toHaveCount(2);
+	await reportPeriod.selectOption('1');
+	await expect(reportPeriod).toHaveValue('1');
+	await expect(
+		page.getByRole('region', { name: 'Grade summary' }).getByText('3.30').first()
+	).toBeVisible();
+	await expect(
+		page.locator('main ol').getByRole('link', { name: /B\+ Theme Preview/ })
+	).toBeVisible();
+});
+
+test('Gradebook class and rank controls perform their real actions', async ({ page }) => {
+	await page.addInitScript(() => {
+		Object.defineProperty(navigator, 'share', {
+			configurable: true,
+			value: async (payload: ShareData) =>
+				sessionStorage.setItem('shared-rank', JSON.stringify(payload))
+		});
+	});
+	await page.goto('/grades');
+	await page.getByRole('button', { name: 'Share your rank' }).click();
+	await expect
+		.poll(() => page.evaluate(() => sessionStorage.getItem('shared-rank')))
+		.toContain('GPA rank');
+
+	await page
+		.locator('main ol')
+		.getByRole('link', { name: /Theme Preview/ })
+		.click();
+	await expect(page).toHaveURL(/\/grades\/preview$/);
+	await expect(page.getByRole('heading', { level: 1, name: 'Theme Preview' })).toBeVisible();
 });

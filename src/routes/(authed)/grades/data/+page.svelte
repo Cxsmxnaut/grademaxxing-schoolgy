@@ -46,14 +46,11 @@
 	<div class="flex flex-1 flex-col items-center gap-4">
 		{#if gradebookCatalog && gradebook}
 			<ReportPeriodSwitcher
-				activeName={gradebook?.ReportingPeriod._GradePeriod}
 				activeIndex={gradebookCatalog.overrideIndex ?? gradebookCatalog.defaultIndex}
 				reportPeriods={gradebookCatalog?.canonicalReportPeriodEntries ??
 					gradebook.ReportingPeriods.ReportPeriod}
 				switchReportPeriod={changeReportPeriod}
-				hasReportPeriodCached={(index) => gradebookCatalog?.recordCache[index] !== undefined}
 				disabled={gradebookCatalog?.loadingIndex !== undefined}
-				defaultIndex={gradebookCatalog?.defaultIndex}
 			/>
 		{/if}
 
