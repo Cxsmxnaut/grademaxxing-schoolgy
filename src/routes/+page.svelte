@@ -56,7 +56,7 @@
 	<nav class="landing-nav" aria-label="Primary navigation">
 		<a class="wordmark" href="/" aria-label="{brand} home">
 			<img src="/favicon.svg" width="28" height="28" alt="" />
-			<span>Grade<span class="accent-word">maxxing</span></span>
+			<span>Grade<span class="accent-word">maxxing</span> <small>(Beta)</small></span>
 		</a>
 		<div class="nav-actions">
 			<a class="button button-ghost button-small" href="/login">Log in</a>
@@ -82,7 +82,7 @@
 			</div>
 			<p class="human-line">Built around the school data students actually use.</p>
 
-			<div class="product-frame" aria-label="Preview of the Grademaxxing gradebook">
+			<div class="product-frame" aria-label={`Preview of the ${brand} gradebook`}>
 				<div class="frame-bar" aria-hidden="true">
 					<span class="dot dot-red"></span><span class="dot dot-yellow"></span><span
 						class="dot dot-green"
@@ -93,13 +93,13 @@
 						src="/demo_dark.png"
 						width="1484"
 						height="1060"
-						alt="Grademaxxing showing a class grade trend and hypothetical assignments"
+						alt={`${brand} showing a class grade trend and hypothetical assignments`}
 					/>
 				</div>
 			</div>
 		</section>
 
-		<section id="features" class="feature-grid" aria-label="Grademaxxing features">
+		<section id="features" class="feature-grid" aria-label={`${brand} features`}>
 			{#each features as { icon: Icon, title, description } (title)}
 				<article class="feature-card">
 					<div class="feature-icon"><Icon aria-hidden="true" strokeWidth={1.6} /></div>
@@ -115,7 +115,7 @@
 			<p class="eyebrow">THE FULL PICTURE</p>
 			<h2 id="context-heading">Every number has context.</h2>
 			<p class="showcase-subtitle">
-				Grademaxxing turns a final percentage into the information you need to act on it.
+				{brand} turns a final percentage into the information you need to act on it.
 			</p>
 
 			<div class="detail-grid">
@@ -187,7 +187,7 @@
 				<h2 id="privacy-heading">Your password is never stored.</h2>
 				<p>
 					Your credentials travel over encrypted HTTPS only to establish your StudentVUE session.
-					Grademaxxing keeps the experience local to your browser.
+					{brand} keeps the experience local to your browser.
 				</p>
 			</div>
 			<a class="button button-ghost" href="/privacy"
@@ -281,6 +281,13 @@
 	}
 	.accent-word {
 		color: var(--accent);
+	}
+	.wordmark small {
+		color: var(--muted);
+		font-family: 'IBM Plex Mono', monospace;
+		font-size: 0.58em;
+		font-weight: 600;
+		letter-spacing: 0;
 	}
 	.nav-actions,
 	.hero-actions {

@@ -249,6 +249,9 @@ async function settlePage(page: Page) {
 }
 
 async function measurePage(page: Page) {
+	// tsx can preserve nested function names with a small `__name` helper. Playwright serializes
+	// this callback without that module helper, so make the capture self-contained in the browser.
+	await page.evaluate('globalThis.__name ??= (target) => target');
 	return page.evaluate(() => {
 		function measure(selector: string) {
 			const element = document.querySelector<HTMLElement>(selector);

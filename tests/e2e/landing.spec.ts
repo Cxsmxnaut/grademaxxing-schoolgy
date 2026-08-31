@@ -6,7 +6,7 @@ test('the landing page presents the product and every destination works', async 
 	await expect(
 		page.getByRole('heading', { level: 1, name: 'Know where your grades are headed.' })
 	).toBeVisible();
-	await expect(page.getByLabel('Preview of the Grademaxxing gradebook')).toBeVisible();
+	await expect(page.getByLabel('Preview of the Grademaxxing (Beta) gradebook')).toBeVisible();
 
 	const navigation = page.getByRole('navigation', { name: 'Primary navigation' });
 	await expect(navigation.getByRole('link', { name: 'Log in' })).toHaveAttribute('href', '/login');
@@ -32,7 +32,7 @@ test('the landing page presents the product and every destination works', async 
 	await expect(page).toHaveURL(/\/privacy$/);
 
 	await page.goto('/');
-	await page.getByRole('link', { name: 'Open Grademaxxing' }).click();
+	await page.getByRole('link', { name: 'Open Grademaxxing (Beta)' }).click();
 	await expect(page).toHaveURL(/\/login$/);
 });
 

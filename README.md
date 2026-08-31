@@ -1,8 +1,8 @@
-# Grademaxxing
+# Grademaxxing (Beta)
 
 An advanced grade calculator designed to interface with StudentVUE®.
 
-<sub>StudentVUE is a registered trademark of Edupoint Educational Systems LLC. Grademaxxing is not affiliated with or endorsed by Edupoint Educational Systems LLC.</sub>
+<sub>StudentVUE is a registered trademark of Edupoint Educational Systems LLC. Grademaxxing (Beta) is not affiliated with or endorsed by Edupoint Educational Systems LLC.</sub>
 
 ## Developing
 
@@ -50,7 +50,7 @@ Follow the [production hardening and reverse-proxy checklist](./docs/production-
 
 ## License
 
-Grademaxxing is a modified version of the AGPLv3-licensed GradeCompass project. The product-facing name and identity are Grademaxxing; the repository history and license remain intact as required for an AGPL-derived work. If you
+Grademaxxing (Beta) is a modified version of the AGPLv3-licensed GradeCompass project. The product-facing name and identity are Grademaxxing (Beta); the repository history and license remain intact as required for an AGPL-derived work. If you
 
 - modify the source code, and
 - host this modified version on the internet,

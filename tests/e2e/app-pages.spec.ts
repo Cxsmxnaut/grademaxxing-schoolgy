@@ -229,7 +229,11 @@ test('empty records, feedback state, mobile navigation, and theme controls are c
 	await page.goto('/mail');
 	await expect(page.getByRole('heading', { name: 'Your inbox is empty' })).toBeVisible();
 	await page.goto('/feedback');
-	await expect(page.getByRole('button', { name: 'Send' })).toBeDisabled();
+	const report = page.getByRole('link', { name: 'Open report' });
+	await expect(report).toHaveAttribute('aria-disabled', 'true');
+	await page.getByLabel('Feedback message').fill('The latest assignment is missing');
+	await expect(report).toHaveAttribute('href', /github\.com\/Cxsmxnaut\/grademaxxing\/issues\/new/);
+	await expect(report).toHaveAttribute('href', /0\.2\.0-beta\.1/);
 
 	await page.getByRole('button', { name: 'Light' }).click();
 	await expect(page.locator('html')).not.toHaveClass(/dark/);

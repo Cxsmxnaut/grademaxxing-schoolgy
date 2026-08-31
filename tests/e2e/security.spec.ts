@@ -46,7 +46,11 @@ test('cross-site and malformed session requests are rejected before authenticati
 test('health and unknown-resource behavior are deterministic', async ({ request }) => {
 	const health = await request.get('/api/health');
 	expect(health.status()).toBe(200);
-	expect(await health.json()).toEqual({ status: 'ok' });
+	expect(await health.json()).toEqual({
+		status: 'ok',
+		release: 'beta',
+		version: '0.2.0-beta.1'
+	});
 	expect(health.headers()['cache-control']).toContain('no-store');
 
 	const unknown = await request.get('/api/studentvue/not-a-resource');

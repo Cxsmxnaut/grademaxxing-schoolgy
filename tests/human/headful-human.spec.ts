@@ -680,7 +680,7 @@ test('6b — a student can read privacy information and reach feedback', async (
 	await privacyLink.click();
 	await expect(page).toHaveURL(/\/privacy$/);
 	await expect(
-		page.getByText('How Grademaxxing handles your information', { exact: true })
+		page.getByText('How Grademaxxing (Beta) handles your information', { exact: true })
 	).toBeVisible();
 	await expect(
 		page.getByText('Your password is not written to disk', { exact: false })

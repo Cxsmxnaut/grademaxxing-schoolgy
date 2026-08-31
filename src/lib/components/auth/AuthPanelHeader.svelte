@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { brand } from '$lib/brand';
+	import { brandName, releaseChannel } from '$lib/brand';
 	import { Button } from '$lib/components/ui/button';
 	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
 	interface Props {
@@ -15,7 +15,12 @@
 		style="font-family: 'Space Grotesk', sans-serif"
 	>
 		<img src="/favicon.svg" class="size-[1.875rem] shrink-0" alt="" />
-		<span class="truncate text-[#e4eef8]">{brand}</span>
+		<span class="flex min-w-0 items-baseline gap-1.5 whitespace-nowrap text-[#e4eef8]">
+			<span class="text-[1rem] sm:text-[1.1875rem]">{brandName}</span>
+			<small class="text-[0.6875rem] font-semibold tracking-[0.03em] text-[#8fa9c2] sm:text-xs"
+				>({releaseChannel})</small
+			>
+		</span>
 	</a>
 	<Button
 		href={backHref}

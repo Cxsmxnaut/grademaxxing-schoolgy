@@ -35,8 +35,9 @@
 			<section>
 				<h2 class="mb-2 text-lg font-semibold text-[#e4eef8]">While you are signed in</h2>
 				<p>
-					The server keeps only the active StudentVUE session in memory for up to 12 hours and
-					proxies read-only student information to your browser.
+					The active StudentVUE session state is encrypted and authenticated inside a secure,
+					HTTP-only app cookie for up to 12 hours. The server uses it only to proxy read-only
+					student information, and browser scripts cannot read it.
 				</p>
 			</section>
 

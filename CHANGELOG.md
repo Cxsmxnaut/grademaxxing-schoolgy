@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0-beta.1
+
+- Rebrands every product-facing surface as Grademaxxing (Beta).
+- Adds a privacy-aware, prefilled beta feedback path for the controlled tester pool.
+- Publishes the beta channel and version through the health endpoint.
+- Adds a portable GitHub release gate covering audit, types, lint, unit tests, build, and Playwright.
+- Adds a seven-day tester plan with daily checks, severity levels, and launch criteria.
+- Corrects the privacy page to describe the encrypted HTTP-only session cookie accurately.
+
 ## 0.2.0-alpha.1
 
 - Labels the primary course grade as an official StudentVUE value with its sync freshness.

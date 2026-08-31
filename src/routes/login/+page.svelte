@@ -118,8 +118,7 @@
 			resetNonGradeRecords();
 			acc.studentAccount = undefined;
 			loggingIn = false;
-			loginError =
-				'Grademaxxing could not securely save this browser session. Enable site storage and try again.';
+			loginError = `${brand} could not securely save this browser session. Enable site storage and try again.`;
 			return;
 		}
 

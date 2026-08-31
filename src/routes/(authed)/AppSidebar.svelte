@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { getRelativeTime, removeCourseType } from '$lib';
 	import { acc } from '$lib/account.svelte';
-	import { brand } from '$lib/brand';
+	import { brand, brandName, releaseChannel } from '$lib/brand';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Spinner } from '$lib/components/ui/spinner';
 	import {
@@ -119,9 +119,12 @@
 		>
 			<img src="/favicon.svg" class="size-7" alt="" />
 			<span
-				class="text-[1.1875rem] leading-7 font-bold tracking-[-0.01em]"
+				class="flex min-w-0 flex-col text-[1.1875rem] leading-5 font-bold tracking-[-0.01em]"
 				style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
-				>{brand}</span
+				><span>{brandName}</span><small
+					class="mt-0.5 text-[0.625rem] leading-3 font-semibold tracking-[0.04em] text-[#8fa9c2]"
+					>({releaseChannel})</small
+				></span
 			>
 		</a>
 	</Sidebar.Header>

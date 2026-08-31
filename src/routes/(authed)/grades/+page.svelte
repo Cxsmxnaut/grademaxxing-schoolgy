@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { removeCourseType } from '$lib';
 	import { acc } from '$lib/account.svelte';
-	import { brand } from '$lib/brand';
+	import { brand, brandName } from '$lib/brand';
 	import AppPageShell from '$lib/components/AppPageShell.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
@@ -129,7 +129,7 @@
 		const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
 		const anchor = document.createElement('a');
 		anchor.href = url;
-		anchor.download = `${brand.toLowerCase()}-${rank.current.name.toLowerCase()}-rank.svg`;
+		anchor.download = `${brandName.toLowerCase()}-${rank.current.name.toLowerCase()}-rank.svg`;
 		anchor.click();
 		URL.revokeObjectURL(url);
 	}

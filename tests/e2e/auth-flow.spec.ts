@@ -8,7 +8,7 @@ test('the sign-in and district-password setup flow matches the current product',
 	await page.setViewportSize({ width: 1440, height: 1000 });
 	await page.goto('/login');
 
-	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing (Beta)' })).toBeVisible();
 	await expect(page.getByLabel('StudentVUE email')).toBeVisible();
 	await expect(page.getByLabel('StudentVUE Password')).toBeVisible();
 	await expect(page.getByText('Pleasanton Unified School District', { exact: true })).toBeVisible();
@@ -21,7 +21,7 @@ test('the sign-in and district-password setup flow matches the current product',
 	await page.screenshot({ path: 'test-results/auth-flow/login.png', fullPage: true });
 
 	await page.getByRole('link', { name: 'create one', exact: true }).click();
-	await expect(page.getByText('Sign up for Grademaxxing', { exact: true })).toBeVisible();
+	await expect(page.getByText('Sign up for Grademaxxing (Beta)', { exact: true })).toBeVisible();
 	await expect(page.getByText('How do you sign in to StudentVUE?', { exact: true })).toBeVisible();
 	await expect(page.getByRole('link', { name: 'With Google', exact: true })).toBeVisible();
 	await expect(page.getByRole('link', { name: 'With a password', exact: true })).toHaveAttribute(
@@ -31,7 +31,7 @@ test('the sign-in and district-password setup flow matches the current product',
 	await page.screenshot({ path: 'test-results/auth-flow/signup.png', fullPage: true });
 
 	await page.getByRole('link', { name: 'With Google', exact: true }).click();
-	await expect(page.getByText('Sign up for Grademaxxing', { exact: true })).toBeVisible();
+	await expect(page.getByText('Sign up for Grademaxxing (Beta)', { exact: true })).toBeVisible();
 	await page.getByRole('button', { name: 'Set your StudentVUE password' }).click();
 	await expect(page.getByRole('dialog')).toBeVisible();
 	await page
@@ -47,7 +47,7 @@ test('the sign-in and district-password setup flow matches the current product',
 test('the sign-in flow fits a phone without horizontal overflow', async ({ page }) => {
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.goto('/login');
-	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing (Beta)' })).toBeVisible();
 	const widths = await page.evaluate(() => ({
 		viewport: window.innerWidth,
 		document: document.documentElement.scrollWidth,
