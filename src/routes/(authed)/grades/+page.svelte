@@ -24,7 +24,7 @@
 	import CalculatorIcon from '@lucide/svelte/icons/calculator';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import CircleXIcon from '@lucide/svelte/icons/circle-x';
-	import Share2Icon from '@lucide/svelte/icons/share-2';
+	import ShareIcon from '@lucide/svelte/icons/share';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import CourseButton from './CourseButton.svelte';
@@ -127,15 +127,17 @@
 					class="mb-[1.21875rem] flex flex-col gap-[0.75rem] sm:mb-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
 				>
 					<h1
-						class="font-heading text-2xl leading-[1.5] font-bold tracking-[-0.02em] sm:text-[1.875rem]"
+						class="font-heading -translate-y-[0.5px] text-2xl leading-[1.5] font-bold tracking-[-0.02em] sm:translate-y-0 sm:text-[1.875rem]"
 					>
 						Gradebook
 					</h1>
-					<div class="grid grid-cols-2 items-center gap-2.5 sm:flex">
+					<div
+						class="grid -translate-y-[0.5px] grid-cols-2 items-center gap-2.5 sm:flex sm:translate-y-[3.5px]"
+					>
 						<Button
 							href="/gpa-calculator"
-							class="h-[2.1875rem] w-full gap-[0.4375rem] rounded-lg px-3 text-[0.78125rem] leading-[1.5] font-semibold sm:h-10 sm:w-auto sm:px-4 sm:text-sm"
-							><CalculatorIcon class="size-4" /> GPA calculator</Button
+							class="border-primary h-[2.171875rem] w-full gap-[0.4375rem] rounded-[0.4375rem] border px-3 py-[0.4375rem] text-[0.78125rem] leading-[1.5] font-semibold tracking-[0.015625rem] shadow-none sm:w-[8.6328125rem]"
+							><CalculatorIcon class="size-[0.9375rem]" /> GPA calculator</Button
 						>
 						<ReportPeriodSwitcher
 							activeName={activeReportPeriod._GradePeriod}
@@ -150,7 +152,7 @@
 					</div>
 				</div>
 
-				<details class="border-border/80 bg-card group mb-6 rounded-xl border shadow-sm sm:hidden">
+				<details class="gradebook-panel border-border bg-card group mb-6 border sm:hidden">
 					<summary
 						class="flex h-[2.625rem] cursor-pointer list-none items-center justify-between px-[0.875rem] text-[0.84375rem] leading-[normal] font-semibold"
 					>
@@ -184,7 +186,7 @@
 				</details>
 
 				<section
-					class="border-border/80 bg-card mb-6 hidden h-28 grid-cols-[1.4fr_1fr_1fr] overflow-hidden rounded-xl border shadow-sm sm:grid"
+					class="gradebook-panel border-border bg-card mb-6 hidden h-28 grid-cols-[1.4fr_1fr_1fr] overflow-hidden border sm:grid"
 					aria-label="Grade summary"
 				>
 					<div class="flex flex-col px-5 py-[1.125rem]">
@@ -192,18 +194,18 @@
 						<div class="mt-2 flex items-baseline gap-[0.625rem]">
 							<strong
 								class="text-grade-strong text-[2rem] leading-[1.5]"
-								style="font-family: 'Space Grotesk Variable', 'Instrument Sans Variable', system-ui, sans-serif;"
+								style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
 								>{gpas.unweighted?.toFixed(2) ?? '—'}</strong
 							><span class="text-tertiary-foreground font-mono text-xs leading-[1.5]"
 								>{gpas.graded.length} graded courses</span
 							>
 						</div>
 					</div>
-					<div class="border-border/70 flex flex-col border-x px-5 py-[1.125rem]">
+					<div class="border-border flex flex-col border-x px-5 py-[1.125rem]">
 						<p class="metric-label">GPA · Weighted</p>
 						<strong
 							class="mt-2 text-[2rem] leading-[1.5]"
-							style="font-family: 'Space Grotesk Variable', 'Instrument Sans Variable', system-ui, sans-serif;"
+							style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
 							>{gpas.weighted?.toFixed(2) ?? '—'}</strong
 						>
 					</div>
@@ -220,14 +222,14 @@
 								/>{/if}
 							<strong
 								class="truncate text-[1.5625rem] leading-[1.5] tracking-[-0.02em]"
-								style="font-family: 'Space Grotesk Variable', 'Instrument Sans Variable', system-ui, sans-serif; color: {rank
+								style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif; color: {rank
 									?.current.color};">{rank?.current.name ?? '—'}</strong
 							>
 							{#if rank}<button
 									type="button"
 									onclick={() => void shareRank()}
-									class="text-muted-foreground hover:text-foreground ml-1 size-[2.3125rem] rounded-md p-2.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
-									aria-label="Share GPA rank"><Share2Icon class="size-4" /></button
+									class="rank-share hover:text-foreground ml-1 size-[2.3125rem] rounded-md p-2 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+									aria-label="Share GPA rank"><ShareIcon class="size-[1.3125rem]" /></button
 								>{/if}
 						</div>
 					</div>
@@ -268,8 +270,8 @@
 			</div>
 
 			<aside class="hidden space-y-3.5 xl:block" aria-label="Gradebook details">
-				<section class="border-border/80 bg-card overflow-hidden rounded-xl border shadow-sm">
-					<h2 class="border-border/70 border-b px-5 py-4 text-sm leading-[1.5] font-semibold">
+				<section class="gradebook-panel border-border bg-card overflow-hidden border">
+					<h2 class="border-border border-b px-5 py-4 text-sm leading-[1.5] font-semibold">
 						Next rank
 					</h2>
 					<div class="px-5 py-4">
@@ -283,7 +285,7 @@
 								<div class="flex min-w-0 flex-1 items-baseline gap-2">
 									<p
 										class="text-base leading-[1.5] font-bold"
-										style="font-family: 'Space Grotesk Variable', 'Instrument Sans Variable', system-ui, sans-serif; color: {rank
+										style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif; color: {rank
 											.next.color};"
 									>
 										{rank.next.name}
@@ -323,11 +325,11 @@
 					</div>
 				</section>
 
-				<section class="border-border/80 bg-card overflow-hidden rounded-xl border shadow-sm">
-					<h2 class="border-border/70 border-b px-5 py-4 text-sm leading-[1.5] font-semibold">
+				<section class="gradebook-panel border-border bg-card overflow-hidden border">
+					<h2 class="border-border border-b px-5 py-4 text-sm leading-[1.5] font-semibold">
 						Recently graded
 					</h2>
-					{#if recentAssignments.length}<ol class="divide-border/70 divide-y">
+					{#if recentAssignments.length}<ol class="divide-border divide-y">
 							{#each recentAssignments as item (`${item.course._CourseID}-${item.assignment._GradebookID}`)}{@const score =
 									assignmentPercentage(item.assignment)}
 								<li class="px-[1.125rem] py-[0.625rem]">
@@ -364,6 +366,17 @@
 </AppPageShell>
 
 <style>
+	.gradebook-panel {
+		border-radius: 0.75rem;
+		box-shadow:
+			0 1px 2px rgb(0 0 0 / 40%),
+			0 8px 24px rgb(0 0 0 / 30%);
+	}
+
+	.rank-share {
+		color: color-mix(in srgb, var(--rank-color) 60%, var(--tertiary-foreground));
+	}
+
 	.metric-label {
 		color: var(--muted-foreground);
 		font-size: 0.75rem;

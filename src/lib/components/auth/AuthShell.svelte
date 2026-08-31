@@ -1,7 +1,4 @@
 <script lang="ts">
-	import '@fontsource-variable/instrument-sans';
-	import '@fontsource-variable/space-grotesk';
-	import '@fontsource/ibm-plex-mono';
 	import { brand } from '$lib/brand';
 	import CalculatorIcon from '@lucide/svelte/icons/calculator';
 	import ChartLineIcon from '@lucide/svelte/icons/chart-line';
@@ -20,7 +17,7 @@
 		'min-h-screen bg-[#081522] text-[0.90625rem] leading-[1.5] text-[#e4eef8] lg:grid',
 		promo && 'lg:grid-cols-[46%_54%]'
 	]}
-	style="font-family: 'Instrument Sans Variable', system-ui, sans-serif"
+	style="font-family: 'Instrument Sans', system-ui, sans-serif"
 >
 	{#if promo}
 		<aside
@@ -30,7 +27,7 @@
 				<img src="/favicon.svg" class="mb-8 size-18" alt="" />
 				<h1
 					class="max-w-2xl text-[2.7rem] leading-[1.15] font-bold tracking-[-0.02em] text-balance"
-					style="font-family: 'Space Grotesk Variable', sans-serif"
+					style="font-family: 'Space Grotesk', sans-serif"
 				>
 					Know where your grades are headed.
 				</h1>

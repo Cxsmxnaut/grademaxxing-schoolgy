@@ -12,7 +12,7 @@
 	<a
 		href="/"
 		class="flex min-w-0 items-center gap-[0.5625rem] text-[1.1875rem] leading-[1.5] font-bold tracking-[-0.01em]"
-		style="font-family: 'Space Grotesk Variable', sans-serif"
+		style="font-family: 'Space Grotesk', sans-serif"
 	>
 		<img src="/favicon.svg" class="size-[1.875rem] shrink-0" alt="" />
 		<span class="truncate text-[#e4eef8]">{brand}</span>

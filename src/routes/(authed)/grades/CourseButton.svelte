@@ -33,11 +33,11 @@
 
 <a
 	href="/grades/{encodeURIComponent(courseId)}"
-	class="group border-border/80 bg-card hover:border-primary focus-visible:ring-ring grid grid-cols-[44px_minmax(0,1fr)_45px] items-center gap-3 rounded-xl border px-[0.875rem] py-[0.8125rem] shadow-sm transition-[border-color,background-color] focus-visible:ring-2 focus-visible:outline-none sm:min-h-[82px] sm:grid-cols-[56px_minmax(0,1fr)_minmax(180px,209px)] sm:gap-4 sm:px-5 sm:py-4"
+	class="group border-border bg-card hover:border-primary focus-visible:ring-ring grid grid-cols-[44px_minmax(0,1fr)_45px] items-center gap-3 rounded-[0.75rem] border px-[0.875rem] py-[0.8125rem] shadow-[0_1px_2px_rgb(0_0_0_/_40%),0_8px_24px_rgb(0_0_0_/_30%)] transition-[border-color,background-color] focus-visible:ring-2 focus-visible:outline-none sm:min-h-[82px] sm:grid-cols-[56px_minmax(0,1fr)_minmax(180px,209px)] sm:gap-4 sm:px-5 sm:py-4"
 >
 	<div
-		style="font-family: 'Space Grotesk Variable', 'Instrument Sans Variable', system-ui, sans-serif;"
-		class="text-[1.375rem] leading-[normal] font-bold tracking-[-0.03em] sm:text-[1.6875rem] {grade
+		style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
+		class="text-center text-[1.375rem] leading-[normal] font-bold tracking-[-0.03em] sm:text-[1.6875rem] {grade
 			? gradeTone(grade.percentage)
 			: 'text-muted-foreground'}"
 	>

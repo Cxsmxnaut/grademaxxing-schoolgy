@@ -218,7 +218,7 @@
 }
 
 html {
-	font-family: 'Instrument Sans Variable', system-ui, sans-serif;
+	font-family: 'Instrument Sans', system-ui, sans-serif;
 	font-size: 1rem;
 	line-height: 1.5;
 }
@@ -229,7 +229,7 @@ h3,
 h4,
 h5,
 h6 {
-	font-family: 'Space Grotesk Variable', 'Instrument Sans Variable', system-ui, sans-serif;
+	font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;
 }
 
 code,

@@ -52,7 +52,7 @@
 		<p class="mb-2 text-xs font-bold tracking-[0.14em] text-[#4db6f5] uppercase">Data import</p>
 		<h1
 			class="mb-5 text-[1.4375rem] leading-[2.15625rem] font-bold tracking-[-0.01em]"
-			style="font-family: 'Space Grotesk Variable', sans-serif"
+			style="font-family: 'Space Grotesk', sans-serif"
 		>
 			Move your local app data
 		</h1>

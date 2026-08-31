@@ -49,7 +49,7 @@
 			radial-gradient(980px 620px at 82% -18%, rgba(18, 55, 89, 0.34), transparent 65%),
 			linear-gradient(145deg, #071724, #081522 58%, #06131f);
 		color: #e4eef8;
-		font-family: 'Instrument Sans Variable', system-ui, sans-serif;
+		font-family: 'Instrument Sans', system-ui, sans-serif;
 	}
 	.post-login-loading::before,
 	.post-login-loading::after {

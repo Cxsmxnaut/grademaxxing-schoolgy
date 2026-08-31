@@ -38,6 +38,7 @@ async function capture(
 
 	for (const [name, url] of publicRoutes) {
 		await page.goto(url, { waitUntil: 'networkidle' });
+		await page.mouse.move(0, 0);
 		if (useLightMode && name === 'landing') {
 			const lightButton = page.getByRole('button', { name: 'Light', exact: false });
 			if ((await lightButton.count()) === 1) await lightButton.click();
@@ -50,6 +51,7 @@ async function capture(
 	await enableDemo(page);
 	for (const [name, url] of appRoutes) {
 		await page.goto(url, { waitUntil: 'networkidle' });
+		await page.mouse.move(0, 0);
 		await page.waitForTimeout(250);
 		await page.screenshot({ path: `${directory}/${name}.png`, fullPage: true });
 		metrics[name] = await collectMetrics(page);

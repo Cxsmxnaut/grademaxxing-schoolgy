@@ -281,7 +281,7 @@
 		<button
 			type="button"
 			onclick={toggleTargetGradeCalculator}
-			style="font-family: 'Space Grotesk Variable', 'Instrument Sans Variable', system-ui, sans-serif; line-height: normal;"
+			style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif; line-height: normal;"
 			class="border-border/80 bg-card hover:border-primary font-heading mb-4 flex h-[3.3125rem] w-full items-center justify-between rounded-[0.75rem] border px-5 text-left text-base font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.12),0_8px_24px_rgba(0,0,0,0.08)] transition-[border-color,box-shadow,transform] hover:-translate-y-px hover:shadow-md dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)]"
 		>
 			<span>Finals Planner</span><span class="text-muted-foreground flex items-center text-xs"

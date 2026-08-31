@@ -120,7 +120,7 @@
 			<img src="/favicon.svg" class="size-7" alt="" />
 			<span
 				class="text-[1.1875rem] leading-7 font-bold tracking-[-0.01em]"
-				style="font-family: 'Space Grotesk Variable', 'Instrument Sans Variable', system-ui, sans-serif;"
+				style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
 				>{brand}</span
 			>
 		</a>

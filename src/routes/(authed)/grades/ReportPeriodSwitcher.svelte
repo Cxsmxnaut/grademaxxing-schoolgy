@@ -37,7 +37,7 @@
 	{disabled}
 >
 	<Select.Trigger
-		class="h-[2.375rem] w-full px-3 text-[0.84375rem] leading-[normal] font-medium sm:h-10 sm:w-[11.125rem] sm:text-sm"
+		class="bg-card! h-[2.375rem]! w-full rounded-[0.5rem] px-3 py-[0.5625rem] text-left text-[0.84375rem] leading-[normal] font-medium shadow-none sm:w-[11.125rem]"
 	>
 		{activeName}
 	</Select.Trigger>

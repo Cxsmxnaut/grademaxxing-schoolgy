@@ -8,7 +8,7 @@
 
 <h1
 	class="mb-[1.359375rem] text-[1.4375rem] leading-[2.15625rem] font-bold tracking-[-0.01em]"
-	style="font-family: 'Space Grotesk Variable', sans-serif"
+	style="font-family: 'Space Grotesk', sans-serif"
 >
 	Sign up for {brand}
 </h1>

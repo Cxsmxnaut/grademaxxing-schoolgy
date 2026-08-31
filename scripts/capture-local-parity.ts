@@ -161,6 +161,7 @@ async function measurePage(page: Page) {
 				fontWeight: style.fontWeight,
 				lineHeight: style.lineHeight,
 				letterSpacing: style.letterSpacing,
+				textAlign: style.textAlign,
 				color: style.color,
 				backgroundColor: style.backgroundColor,
 				borderColor: style.borderColor,
@@ -179,6 +180,12 @@ async function measurePage(page: Page) {
 		}
 
 		const assignmentTitle = findExactText('Unit 2 Test — Derivatives');
+		const gpaCalculator = Array.from(
+			document.querySelectorAll<HTMLElement>('main a, main button')
+		).find((element) => element.textContent?.trim() === 'GPA calculator');
+		const reportPeriod = Array.from(document.querySelectorAll<HTMLElement>('main button')).find(
+			(element) => element.textContent?.trim() === 'Quarter 1'
+		);
 		const finalsPlanner = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find(
 			(button) => button.textContent?.includes('Finals Planner')
 		);
@@ -197,6 +204,10 @@ async function measurePage(page: Page) {
 			input: measure('input'),
 			allCoursesLink: allCoursesLink ? measureElement(allCoursesLink) : null,
 			finalsPlanner: finalsPlanner ? measureElement(finalsPlanner) : null,
+			gpaCalculator: gpaCalculator ? measureElement(gpaCalculator) : null,
+			reportPeriod: reportPeriod ? measureElement(reportPeriod) : null,
+			mobileGpaFold: measure('details'),
+			courseCard: measure('main ol > li:first-child > a'),
 			gradeChart: measure('section[aria-label="Grade trend"]'),
 			assignmentTabs: measure('[data-slot="tabs-list"]'),
 			assignmentCard: assignmentTitle?.closest<HTMLElement>('[data-slot="card"]')
@@ -265,6 +276,7 @@ async function capture(
 		? pages.filter(([name]) => name === requestedPage)
 		: pages) {
 		await page.goto(`${baseUrl}${path}`, { waitUntil: 'networkidle' });
+		await page.mouse.move(0, 0);
 		await page.waitForTimeout(350);
 		await page.screenshot({ path: `${directory}/${name}.png`, fullPage: true });
 		metrics[name] = await measurePage(page);
@@ -304,6 +316,7 @@ async function capturePublic(
 		? pages.filter(([name]) => name === requestedPage)
 		: pages) {
 		await page.goto(`${baseUrl}${path}`, { waitUntil: 'networkidle' });
+		await page.mouse.move(0, 0);
 		await page.waitForTimeout(250);
 		await page.screenshot({ path: `${directory}/${name}.png`, fullPage: true });
 		metrics[name] = await measurePage(page);

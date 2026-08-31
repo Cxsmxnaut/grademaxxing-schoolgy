@@ -1,7 +1,4 @@
 <script lang="ts">
-	import '@fontsource-variable/instrument-sans';
-	import '@fontsource-variable/space-grotesk';
-	import '@fontsource/ibm-plex-mono';
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { LocalStorageKey } from '$lib';
@@ -244,7 +241,7 @@
 		overflow-x: hidden;
 		isolation: isolate;
 		color: var(--ink);
-		font-family: 'Instrument Sans Variable', system-ui, sans-serif;
+		font-family: 'Instrument Sans', system-ui, sans-serif;
 		font-size: 14.5px;
 		line-height: 1.5;
 		background:
@@ -268,7 +265,7 @@
 		align-items: center;
 		gap: 9px;
 		color: var(--ink);
-		font-family: 'Space Grotesk Variable', sans-serif;
+		font-family: 'Space Grotesk', sans-serif;
 		font-size: 19px;
 		font-weight: 700;
 		letter-spacing: -0.01em;
@@ -378,7 +375,7 @@
 	.showcase h2,
 	.privacy-section h2,
 	.final-cta h2 {
-		font-family: 'Space Grotesk Variable', sans-serif;
+		font-family: 'Space Grotesk', sans-serif;
 		font-weight: 700;
 		letter-spacing: -0.03em;
 	}
@@ -540,7 +537,7 @@
 	}
 	.feature-card h2 {
 		margin: 1px 0 3px;
-		font-family: 'Space Grotesk Variable', sans-serif;
+		font-family: 'Space Grotesk', sans-serif;
 		font-size: 14.5px;
 		font-weight: 650;
 		letter-spacing: -0.01em;
@@ -679,7 +676,7 @@
 	}
 	.calc-top strong {
 		color: var(--ink);
-		font-family: 'Space Grotesk Variable', sans-serif;
+		font-family: 'Space Grotesk', sans-serif;
 		font-size: 18px;
 	}
 	.calc-row {
@@ -758,7 +755,7 @@
 	}
 	.detail-copy h3 {
 		margin: 0 0 8px;
-		font-family: 'Space Grotesk Variable', sans-serif;
+		font-family: 'Space Grotesk', sans-serif;
 		font-size: 18px;
 		line-height: 1.25;
 	}
