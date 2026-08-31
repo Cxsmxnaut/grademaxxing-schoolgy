@@ -235,7 +235,7 @@
 	<main class="w-full max-w-[67.5rem] px-4 pt-2 pb-24 sm:px-6 lg:px-11 lg:pt-9 lg:pb-16">
 		<a
 			href="/grades"
-			class="text-primary mb-5 inline-flex items-center gap-2 text-sm font-semibold hover:underline"
+			class="text-primary mb-4 inline-flex items-center gap-2 text-sm font-semibold hover:underline sm:mb-5"
 		>
 			<ArrowLeftIcon class="size-4" /> All courses
 		</a>
@@ -243,7 +243,7 @@
 		<header class="mb-4 flex items-start justify-between gap-5">
 			<div class="min-w-0">
 				<h1
-					class="font-heading truncate text-[1.875rem] leading-tight font-bold tracking-[-0.035em]"
+					class="font-heading truncate text-[1.75rem] leading-[1.5] font-bold tracking-[-0.035em]"
 				>
 					{courseName}
 				</h1>
@@ -283,8 +283,11 @@
 			onclick={toggleTargetGradeCalculator}
 			class="border-border/80 bg-card hover:border-primary mb-4 flex h-14 w-full items-center justify-between rounded-xl border px-5 text-left shadow-sm transition-colors"
 		>
-			<span class="font-bold">Finals Planner</span><span class="text-muted-foreground text-xs"
-				>what do I need on the final? <span class="ml-2">⌄</span></span
+			<span class="font-bold">Finals Planner</span><span
+				class="text-muted-foreground flex items-center text-xs"
+				><span class="hidden sm:inline">what do I need on the final?</span><span class="ml-2"
+					>⌄</span
+				></span
 			>
 		</button>
 

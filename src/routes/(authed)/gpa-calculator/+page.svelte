@@ -76,16 +76,18 @@
 		</div>
 
 		<p class="text-primary mt-3 text-[0.68rem] font-bold tracking-[0.15em] uppercase">Projected</p>
-		<h1 class="font-heading mt-2 text-[1.875rem] font-bold tracking-[-0.035em]">GPA calculator</h1>
+		<h1 class="font-heading mt-2 text-2xl font-bold tracking-[-0.035em] sm:text-[1.875rem]">
+			GPA calculator
+		</h1>
 		<p class="text-muted-foreground mt-1.5 text-sm">
 			Try hypothetical grades and see how your GPA moves — nothing here touches your real grades.
 		</p>
 
 		<section
-			class="border-border/80 bg-card mt-5 grid overflow-hidden rounded-xl border shadow-sm sm:grid-cols-2"
+			class="border-border/80 bg-card mt-3 grid overflow-hidden rounded-xl border shadow-sm sm:mt-5 sm:grid-cols-2"
 			aria-label="Estimated GPA"
 		>
-			<div class="min-h-[5.625rem] px-5 py-4 sm:min-h-28 sm:px-7 sm:py-5">
+			<div class="h-[5.6875rem] px-5 pt-3 pb-1 sm:h-auto sm:min-h-28 sm:px-7 sm:py-5">
 				<p class="metric-label">GPA · Unweighted</p>
 				<div class="mt-2 flex items-baseline gap-3">
 					<p class="text-success font-heading text-[2rem] font-bold tracking-[-0.035em]">
@@ -95,7 +97,7 @@
 				</div>
 			</div>
 			<div
-				class="border-border/70 min-h-[5.625rem] border-t px-5 py-4 sm:min-h-28 sm:border-t-0 sm:border-l sm:px-7 sm:py-5"
+				class="border-border/70 h-[5.6875rem] border-t px-5 pt-3 pb-1 sm:h-auto sm:min-h-28 sm:border-t-0 sm:border-l sm:px-7 sm:py-5"
 			>
 				<p class="metric-label">GPA · Weighted</p>
 				<p class="font-heading mt-2 text-[2rem] font-bold tracking-[-0.035em]">
@@ -109,7 +111,9 @@
 			courses count, so correct any course below.
 		</p>
 
-		<section class="border-border/80 bg-card mt-5 overflow-hidden rounded-xl border shadow-sm">
+		<section
+			class="border-border/80 bg-card mt-4 overflow-hidden rounded-xl border shadow-sm sm:mt-5"
+		>
 			<div class="border-border/70 border-b px-5 py-4">
 				<h2 class="font-bold">Courses</h2>
 			</div>

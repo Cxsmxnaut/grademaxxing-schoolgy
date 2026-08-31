@@ -125,7 +125,7 @@
 			<div class="min-w-0 space-y-6">
 				<div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
 					<h1
-						class="font-heading text-[1.75rem] leading-tight font-bold tracking-[-0.035em] sm:text-[1.875rem]"
+						class="font-heading text-2xl leading-[1.5] font-bold tracking-[-0.035em] sm:text-[1.875rem] sm:leading-tight"
 					>
 						Gradebook
 					</h1>

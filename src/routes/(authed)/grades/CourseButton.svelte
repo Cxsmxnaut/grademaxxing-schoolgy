@@ -33,7 +33,7 @@
 
 <a
 	href="/grades/{encodeURIComponent(courseId)}"
-	class="group border-border/80 bg-card hover:border-primary focus-visible:ring-ring grid min-h-[82px] grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-4 rounded-xl border px-4 py-3.5 shadow-sm transition-[border-color,background-color] focus-visible:ring-2 focus-visible:outline-none sm:grid-cols-[44px_minmax(0,1fr)_minmax(180px,210px)] sm:px-5"
+	class="group border-border/80 bg-card hover:border-primary focus-visible:ring-ring grid min-h-[82px] grid-cols-[30px_minmax(0,1fr)_auto] items-center gap-4 rounded-xl border py-2.5 pr-4 pl-[25px] shadow-sm transition-[border-color,background-color] focus-visible:ring-2 focus-visible:outline-none sm:grid-cols-[42px_minmax(0,1fr)_minmax(180px,210px)] sm:py-3.5 sm:pr-5 sm:pl-[34px]"
 >
 	<div
 		class="font-mono text-[1.65rem] leading-none font-bold {grade
@@ -63,10 +63,12 @@
 				</span>
 			{/if}
 			{#if teacher}
-				<span class="bg-secondary inline-flex min-w-0 items-center gap-1 rounded-full px-2 py-1">
-					<UserRoundIcon class="size-3 shrink-0" />
-					<span class="max-w-28 truncate sm:max-w-36">{teacher}</span>
-				</span>
+				<div class="basis-full sm:basis-auto">
+					<span class="bg-secondary inline-flex min-w-0 items-center gap-1 rounded-full px-2 py-1">
+						<UserRoundIcon class="size-3 shrink-0" />
+						<span class="max-w-28 truncate sm:max-w-36">{teacher}</span>
+					</span>
+				</div>
 			{/if}
 		</div>
 	</div>

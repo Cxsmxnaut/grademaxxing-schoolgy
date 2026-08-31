@@ -227,12 +227,10 @@
 <svelte:head><title>Attendance - {brand}</title></svelte:head>
 
 <AppPageShell class="max-w-[67.5rem]">
-	<div class="mb-5 flex items-start justify-between gap-4 sm:mb-7">
+	<div class="mb-7 flex items-start justify-between gap-4">
 		<div>
 			<p class="text-primary text-[0.68rem] font-bold tracking-[0.14em] uppercase">School year</p>
-			<h1
-				class="font-heading mt-0.5 text-[1.625rem] font-bold tracking-[-0.035em] sm:mt-2 sm:text-[1.875rem]"
-			>
+			<h1 class="font-heading mt-2 text-2xl font-bold tracking-[-0.035em] sm:text-[1.875rem]">
 				Attendance
 			</h1>
 		</div>
