@@ -278,30 +278,34 @@
 			</div>
 		</header>
 
-		<button
-			type="button"
-			onclick={toggleTargetGradeCalculator}
-			style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif; line-height: normal;"
-			class="border-border/80 bg-card hover:border-primary font-heading mb-4 flex h-[3.3125rem] w-full items-center justify-between rounded-[0.75rem] border px-5 text-left text-base font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.12),0_8px_24px_rgba(0,0,0,0.08)] transition-[border-color,box-shadow,transform] hover:-translate-y-px hover:shadow-md dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)]"
+		<section
+			class="border-border/80 bg-card mb-4 overflow-hidden rounded-[0.75rem] border shadow-[0_1px_2px_rgba(15,28,46,0.06),0_8px_24px_rgba(11,125,194,0.08)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)]"
 		>
-			<span>Finals Planner</span><span class="text-muted-foreground flex items-center text-xs"
-				><span class="hidden sm:inline">what do I need on the final?</span><span class="ml-2"
-					>⌄</span
-				></span
+			<button
+				type="button"
+				onclick={toggleTargetGradeCalculator}
+				aria-expanded={showTargetGradeCalculator}
+				style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif; line-height: normal;"
+				class="hover:bg-accent/30 flex h-[3.3125rem] w-full items-center justify-between px-5 text-left text-base font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
 			>
-		</button>
+				<span>Finals Planner</span><span class="text-muted-foreground flex items-center text-xs"
+					><span class="hidden sm:inline">what do I need on the final?</span><span
+						class="ml-2 transition-transform {showTargetGradeCalculator ? 'rotate-180' : ''}"
+						>⌄</span
+					></span
+				>
+			</button>
 
-		{#if showTargetGradeCalculator}
-			<div class="mb-4" transition:fade={{ duration: 160 }}>
-				<TargetGradeCalculator
-					initialGradePercentage={roundedGradePercentage}
-					assignments={reactiveAssignments}
-					categoryColors={assignmentCategoryColors}
-					{gradeCategoryWeightProportions}
-					onclose={toggleTargetGradeCalculator}
-				/>
-			</div>
-		{/if}
+			{#if showTargetGradeCalculator}
+				<div transition:fade={{ duration: 160 }}>
+					<TargetGradeCalculator
+						initialGradePercentage={roundedGradePercentage}
+						assignments={reactiveAssignments}
+						{gradeCategoryWeightProportions}
+					/>
+				</div>
+			{/if}
+		</section>
 
 		{#if !rawGradeCalcMatches}
 			<div class="m-4 flex justify-center" in:fade>
@@ -316,7 +320,7 @@
 
 		<section
 			aria-label="Grade trend"
-			class="border-border/80 bg-card overflow-hidden rounded-[0.75rem] border shadow-[0_1px_2px_rgba(0,0,0,0.12),0_8px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)]"
+			class="border-border/80 bg-card overflow-hidden rounded-[0.75rem] border shadow-[0_1px_2px_rgba(15,28,46,0.06),0_8px_24px_rgba(11,125,194,0.08)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)]"
 		>
 			{@render chart()}
 		</section>

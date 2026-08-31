@@ -109,9 +109,15 @@ test('gradebook calculator, course planner, and attendance views are interactive
 	await page.goto('/grades/preview');
 	const finalsPlanner = page.getByRole('button', { name: /Finals Planner/ });
 	await finalsPlanner.click();
-	await expect(page.getByText(/Target Grade/i).first()).toBeVisible();
+	const plannerRegion = page.getByRole('region', { name: 'Finals Planner' });
+	await expect(plannerRegion).toBeVisible();
+	await expect(plannerRegion.getByLabel('Target grade')).toHaveValue('93');
+	const initialRequirement = await plannerRegion.getByText(/You need/).textContent();
+	await plannerRegion.getByLabel('Target grade').selectOption('90');
+	await plannerRegion.getByLabel('Final points possible').fill('50');
+	await expect(plannerRegion.getByText(/You need/)).not.toHaveText(initialRequirement ?? '');
 	await finalsPlanner.click();
-	await expect(page.getByText(/Target Grade/i)).toHaveCount(0);
+	await expect(plannerRegion).toHaveCount(0);
 	await page.getByRole('link', { name: 'All courses' }).click();
 	await expect(page).toHaveURL(/\/grades$/);
 

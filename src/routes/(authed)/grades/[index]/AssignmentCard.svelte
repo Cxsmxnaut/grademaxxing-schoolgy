@@ -108,7 +108,7 @@
 
 <Card.Root
 	class={[
-		'border-border/80 hover:border-foreground/15 max-w-full items-center gap-[1.171875rem] rounded-[0.75rem] px-[1.125rem] py-[0.875rem] shadow-[0_1px_2px_rgba(0,0,0,0.12),0_8px_24px_rgba(0,0,0,0.08)] transition-[border-color,background-color,box-shadow,transform] duration-300 hover:-translate-y-px hover:shadow-md sm:flex-row sm:gap-4 dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)] [&_[data-slot=badge]]:h-6',
+		'border-border/80 hover:border-foreground/15 max-w-full items-center gap-[1.171875rem] rounded-[0.75rem] px-[1.125rem] py-[0.875rem] shadow-[0_1px_2px_rgba(15,28,46,0.06),0_8px_24px_rgba(11,125,194,0.08)] transition-[border-color,background-color,box-shadow,transform] duration-300 hover:-translate-y-px hover:shadow-md sm:flex-row sm:gap-4 dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)] [&_[data-slot=badge]]:h-6',
 		unseen && 'border-l-grade-strong bg-grade-strong-soft/30 border-l-4'
 	]}
 >

@@ -34,7 +34,9 @@ export function getRelativeTime(date: Date) {
 }
 
 export const shortDateFormatter = new Intl.DateTimeFormat('en-US', {
-	dateStyle: 'short'
+	month: 'numeric',
+	day: 'numeric',
+	year: 'numeric'
 });
 
 export const fullDateFormatter = new Intl.DateTimeFormat('en-US', {

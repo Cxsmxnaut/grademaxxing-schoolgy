@@ -128,6 +128,14 @@ async function mockApp(context: BrowserContext) {
 	});
 }
 
+async function settlePage(page: Page) {
+	await page.evaluate(async () => {
+		await document.fonts.ready;
+		window.scrollTo(0, 0);
+	});
+	await page.waitForTimeout(250);
+}
+
 async function measurePage(page: Page) {
 	return page.evaluate(() => {
 		function measure(selector: string) {
@@ -255,10 +263,13 @@ async function capture(
 	const browser = await chromium.launch({ channel: 'chrome' });
 	const context = await browser.newContext({ viewport, colorScheme: light ? 'light' : 'dark' });
 	await mockApp(context);
+	await context.addInitScript(
+		(theme) => {
+			localStorage.setItem('mode-watcher-mode', theme);
+		},
+		light ? 'light' : 'dark'
+	);
 	const page: Page = await context.newPage();
-	await page.goto(`${baseUrl}/grades`, { waitUntil: 'networkidle' });
-	if (light) await page.evaluate(() => localStorage.setItem('mode-watcher-mode', 'light'));
-	await page.reload({ waitUntil: 'networkidle' });
 	const directory = `${outputRoot}/${mode}`;
 	await mkdir(directory, { recursive: true });
 	const metrics: Record<string, Awaited<ReturnType<typeof measurePage>>> = {};
@@ -277,24 +288,88 @@ async function capture(
 		: pages) {
 		await page.goto(`${baseUrl}${path}`, { waitUntil: 'networkidle' });
 		await page.mouse.move(0, 0);
-		await page.waitForTimeout(350);
-		await page.screenshot({ path: `${directory}/${name}.png`, fullPage: true });
+		await settlePage(page);
+		await page.screenshot({
+			path: `${directory}/${name}.png`,
+			fullPage: true,
+			animations: 'disabled'
+		});
 		metrics[name] = await measurePage(page);
 		if (mode.startsWith('mobile') && name === 'gradebook') {
 			await page.locator('details > summary').click();
-			await page.waitForTimeout(120);
-			await page.screenshot({ path: `${directory}/gradebook-gpa-open.png`, fullPage: true });
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/gradebook-gpa-open.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
 			metrics['gradebook-gpa-open'] = await measurePage(page);
 		}
 		if (mode.startsWith('desktop') && name === 'gradebook') {
 			await page.screenshot({
 				path: `${directory}/sidebar.png`,
-				clip: { x: 0, y: 0, width: 240, height: viewport.height }
+				clip: { x: 0, y: 0, width: 240, height: viewport.height },
+				animations: 'disabled'
 			});
 			await page.getByTestId('sidebar-nav-attendance').hover();
+			await page.waitForTimeout(100);
 			await page.screenshot({
 				path: `${directory}/sidebar-hover.png`,
-				clip: { x: 0, y: 0, width: 240, height: viewport.height }
+				clip: { x: 0, y: 0, width: 240, height: viewport.height },
+				animations: 'disabled'
+			});
+		}
+		if (name === 'gradebook') {
+			await page.locator('main ol a').first().hover();
+			await page.screenshot({
+				path: `${directory}/gradebook-course-hover.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await page.mouse.move(0, 0);
+		}
+		if (name === 'course') {
+			const planner = page.getByRole('button', { name: /Finals Planner/ });
+			await planner.click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-finals-open.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await planner.click();
+			await page.getByRole('tab', { name: 'Assessments', exact: true }).click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-assessments.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+		}
+		if (name === 'gpa-calculator') {
+			await page.getByLabel('weighted +1.0').first().click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/gpa-calculator-edited.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+		}
+		if (name === 'feedback') {
+			await page.locator('textarea').focus();
+			await page.screenshot({
+				path: `${directory}/feedback-focused.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+		}
+		if (name === 'attendance') {
+			await page.getByRole('button', { name: 'Calendar', exact: true }).click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/attendance-calendar.png`,
+				fullPage: true,
+				animations: 'disabled'
 			});
 		}
 	}
@@ -323,8 +398,12 @@ async function capturePublic(
 		: pages) {
 		await page.goto(`${baseUrl}${path}`, { waitUntil: 'networkidle' });
 		await page.mouse.move(0, 0);
-		await page.waitForTimeout(250);
-		await page.screenshot({ path: `${directory}/${name}.png`, fullPage: true });
+		await settlePage(page);
+		await page.screenshot({
+			path: `${directory}/${name}.png`,
+			fullPage: true,
+			animations: 'disabled'
+		});
 		metrics[name] = await measurePage(page);
 	}
 	await writeFile(`${directory}/metrics.json`, `${JSON.stringify(metrics, null, 2)}\n`);

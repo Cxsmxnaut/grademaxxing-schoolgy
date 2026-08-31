@@ -28,27 +28,41 @@ async function enableDemo(page: Page) {
 	}
 }
 
+async function settlePage(page: Page) {
+	await page.evaluate(async () => {
+		await document.fonts.ready;
+		window.scrollTo(0, 0);
+	});
+	await page.waitForTimeout(250);
+}
+
 async function capture(
 	context: BrowserContext,
 	mode: 'desktop-dark' | 'mobile-dark' | 'desktop-light' | 'mobile-light'
 ) {
 	const directory = `${outputRoot}/${mode}`;
 	await mkdir(directory, { recursive: true });
+	const useLightMode = mode.endsWith('light');
+	await context.addInitScript(
+		(theme) => {
+			localStorage.setItem('gradewave.theme', theme);
+		},
+		useLightMode ? 'light' : 'dark'
+	);
 	const page = await context.newPage();
 	const metrics: Record<string, unknown> = {};
-	const useLightMode = mode.endsWith('light');
 
 	for (const [name, url] of requestedPage
 		? publicRoutes.filter(([name]) => name === requestedPage)
 		: publicRoutes) {
 		await page.goto(url, { waitUntil: 'networkidle' });
 		await page.mouse.move(0, 0);
-		if (useLightMode && name === 'landing') {
-			const lightButton = page.getByRole('button', { name: 'Light', exact: false });
-			if ((await lightButton.count()) === 1) await lightButton.click();
-		}
-		await page.waitForTimeout(250);
-		await page.screenshot({ path: `${directory}/${name}.png`, fullPage: true });
+		await settlePage(page);
+		await page.screenshot({
+			path: `${directory}/${name}.png`,
+			fullPage: true,
+			animations: 'disabled'
+		});
 		metrics[name] = await collectMetrics(page);
 	}
 
@@ -58,14 +72,66 @@ async function capture(
 		: appRoutes) {
 		await page.goto(url, { waitUntil: 'networkidle' });
 		await page.mouse.move(0, 0);
-		await page.waitForTimeout(250);
-		await page.screenshot({ path: `${directory}/${name}.png`, fullPage: true });
+		await settlePage(page);
+		await page.screenshot({
+			path: `${directory}/${name}.png`,
+			fullPage: true,
+			animations: 'disabled'
+		});
 		metrics[name] = await collectMetrics(page);
 		if (mode.startsWith('mobile') && name === 'gradebook') {
 			await page.locator('.gpa-fold-btn').click();
-			await page.waitForTimeout(120);
-			await page.screenshot({ path: `${directory}/gradebook-gpa-open.png`, fullPage: true });
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/gradebook-gpa-open.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
 			metrics['gradebook-gpa-open'] = await collectMetrics(page);
+		}
+		if (name === 'gradebook') {
+			await page.locator('.course-btn').first().hover();
+			await page.screenshot({
+				path: `${directory}/gradebook-course-hover.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await page.mouse.move(0, 0);
+		}
+		if (name === 'course') {
+			const planner = page.locator('.fold-head');
+			await planner.click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-finals-open.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+			await planner.click();
+			await page.getByRole('button', { name: 'Assessments', exact: true }).click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/course-assessments.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+		}
+		if (name === 'gpa-calculator') {
+			await page.locator('input[type="checkbox"]').first().click();
+			await settlePage(page);
+			await page.screenshot({
+				path: `${directory}/gpa-calculator-edited.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
+		}
+		if (name === 'feedback') {
+			await page.locator('textarea').focus();
+			await page.screenshot({
+				path: `${directory}/feedback-focused.png`,
+				fullPage: true,
+				animations: 'disabled'
+			});
 		}
 	}
 

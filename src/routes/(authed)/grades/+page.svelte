@@ -405,6 +405,12 @@
 	.gradebook-panel {
 		border-radius: 0.75rem;
 		box-shadow:
+			0 1px 2px rgb(15 28 46 / 6%),
+			0 8px 24px rgb(11 125 194 / 8%);
+	}
+
+	:global(.dark) .gradebook-panel {
+		box-shadow:
 			0 1px 2px rgb(0 0 0 / 40%),
 			0 8px 24px rgb(0 0 0 / 30%);
 	}

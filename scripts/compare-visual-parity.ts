@@ -4,11 +4,13 @@ import { PNG } from 'pngjs';
 
 const root = '/tmp/grademaxxing-parity';
 const mode = process.env.VISUAL_MODE ?? process.argv[2] ?? 'desktop-dark';
+const referenceMode = process.env.VISUAL_REFERENCE_MODE ?? mode;
+const localMode = process.env.VISUAL_LOCAL_MODE ?? mode;
 const page = process.env.VISUAL_PAGE ?? process.argv[3] ?? 'gradebook';
 const threshold = Number(process.env.VISUAL_THRESHOLD ?? '0.1');
 
-const referencePath = `${root}/reference/${mode}/${page}.png`;
-const localPath = `${root}/local/${mode}/${page}.png`;
+const referencePath = `${root}/reference/${referenceMode}/${page}.png`;
+const localPath = `${root}/local/${localMode}/${page}.png`;
 const outputDirectory = `${root}/diff`;
 const outputPath = `${outputDirectory}/${page}-${mode}-pixelmatch.png`;
 const reportPath = `${outputDirectory}/${page}-${mode}-pixelmatch.json`;
@@ -41,6 +43,8 @@ const totalPixels = width * height;
 const report = {
 	page,
 	mode,
+	referenceMode,
+	localMode,
 	width,
 	height,
 	threshold,

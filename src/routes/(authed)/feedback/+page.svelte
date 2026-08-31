@@ -9,7 +9,9 @@
 
 <AppPageShell class="max-w-[67.5rem]">
 	<p class="text-primary text-[0.68rem] font-bold tracking-[0.2em] uppercase">We read every one</p>
-	<h1 class="font-heading mt-2 text-2xl font-bold tracking-[-0.035em] sm:text-[1.875rem]">
+	<h1
+		class="font-heading mt-2 text-2xl leading-[1.5] font-bold tracking-[-0.035em] sm:text-[1.875rem] sm:leading-[1.2]"
+	>
 		Chat with the team
 	</h1>
 	<p class="text-muted-foreground mt-2 max-w-5xl text-sm leading-5">

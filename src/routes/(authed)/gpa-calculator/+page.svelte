@@ -76,15 +76,17 @@
 		</div>
 
 		<p class="text-primary mt-3 text-[0.68rem] font-bold tracking-[0.15em] uppercase">Projected</p>
-		<h1 class="font-heading mt-2 text-2xl font-bold tracking-[-0.035em] sm:text-[1.875rem]">
+		<h1
+			class="font-heading mt-2 text-2xl leading-[1.5] font-bold tracking-[-0.035em] sm:text-[1.875rem] sm:leading-[1.2]"
+		>
 			GPA calculator
 		</h1>
-		<p class="text-muted-foreground mt-1.5 text-sm">
+		<p class="text-muted-foreground mt-1 text-sm">
 			Try hypothetical grades and see how your GPA moves — nothing here touches your real grades.
 		</p>
 
 		<section
-			class="border-border/80 bg-card mt-3 grid overflow-hidden rounded-xl border shadow-sm sm:mt-5 sm:grid-cols-2"
+			class="border-border/80 bg-card mt-2 grid overflow-hidden rounded-xl border shadow-sm sm:mt-5 sm:grid-cols-2"
 			aria-label="Estimated GPA"
 		>
 			<div class="h-[5.6875rem] px-5 pt-3 pb-1 sm:h-auto sm:min-h-28 sm:px-7 sm:py-5">
@@ -121,10 +123,10 @@
 				<ol class="divide-border/70 divide-y">
 					{#each rows as row, index (row.id)}
 						<li
-							class="grid grid-cols-[minmax(0,1fr)_7rem] items-center gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_150px] sm:gap-4"
+							class="grid grid-cols-[minmax(0,1fr)_230px] items-center gap-2 px-3 py-2.5 text-[13px] leading-[1.5] sm:gap-3 sm:px-5 sm:py-[0.8125rem] sm:text-sm"
 						>
 							<div class="min-w-0">
-								<p class="truncate font-semibold">{row.name}</p>
+								<p class="font-semibold">{row.name}</p>
 								<p class="text-muted-foreground mt-0.5 font-mono text-xs">
 									current: {getGpaCourses(courses)[index]?.letter ?? row.letter}
 								</p>
@@ -139,7 +141,7 @@
 							<label class="grid gap-1 justify-self-end text-xs font-semibold"
 								><span class="sr-only">Projected grade</span><select
 									bind:value={row.letter}
-									class="border-input bg-background h-10 w-28 rounded-lg border px-3 text-sm font-semibold sm:w-36"
+									class="border-input bg-background h-[2.375rem] w-[7.375rem] justify-self-end rounded-[0.625rem] border px-2.5 text-sm font-semibold"
 									>{#each gradeOptions as grade (grade)}<option value={grade}
 											>{grade}{grade === getGpaCourses(courses)[index]?.letter
 												? ' (current)'
@@ -156,10 +158,6 @@
 				</p>
 			{/if}
 		</section>
-
-		<p class="text-muted-foreground mt-4 text-xs leading-relaxed">
-			This is an estimate, not an official transcript GPA.
-		</p>
 	</div>
 </AppPageShell>
 

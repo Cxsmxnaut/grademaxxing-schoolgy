@@ -1,215 +1,135 @@
 <script lang="ts">
-	import { numberFlowDefaultEasing, type BadgeColor } from '$lib';
-	import { Button, buttonVariants } from '$lib/components/ui/button';
-	import * as Dialog from '$lib/components/ui/dialog';
-	import * as Field from '$lib/components/ui/field';
-	import { NumberInput } from '$lib/components/ui/input';
-	import * as Item from '$lib/components/ui/item';
-	import { Label } from '$lib/components/ui/label';
-	import * as RadioGroup from '$lib/components/ui/radio-group';
 	import {
 		calculatePointsNeededForTargetGrade,
 		getCalculableAssignments,
 		getCalculableAssignmentsWithCategories,
-		type ReactiveAssignment,
-		type TargetGradeCalculatorCategoryDependentOptions
+		type ReactiveAssignment
 	} from '$lib/grades/assignments';
-	import SquareDashedMousePointerIcon from '@lucide/svelte/icons/square-dashed-mouse-pointer';
-	import SquareMousePointerIcon from '@lucide/svelte/icons/square-mouse-pointer';
-	import XIcon from '@lucide/svelte/icons/x';
-	import NumberFlow, { NumberFlowGroup } from '@number-flow/svelte';
-	import AssignmentCard from './AssignmentCard.svelte';
 
 	interface Props {
 		initialGradePercentage?: number;
 		assignments: ReactiveAssignment[];
-		categoryColors: Map<string, BadgeColor>;
-		onclose: () => void;
 		gradeCategoryWeightProportions?: Map<string, number>;
 	}
 
-	const {
-		assignments,
-		categoryColors,
-		initialGradePercentage,
-		gradeCategoryWeightProportions,
-		onclose
-	}: Props = $props();
+	const { assignments, initialGradePercentage, gradeCategoryWeightProportions }: Props = $props();
 
-	let targetGradePercentage: number | undefined = $state();
-	let previousInitialGradePercentage: number | undefined;
-	$effect.pre(() => {
-		// Keep an untouched target aligned with a live grade refresh, while preserving
-		// a target the student has intentionally edited.
-		if (
-			previousInitialGradePercentage === undefined ||
-			targetGradePercentage === previousInitialGradePercentage
-		)
-			targetGradePercentage = initialGradePercentage;
-		previousInitialGradePercentage = initialGradePercentage;
+	const gradeTargets = [
+		{ label: 'A', value: 93 },
+		{ label: 'A-', value: 90 },
+		{ label: 'B+', value: 87 },
+		{ label: 'B', value: 83 },
+		{ label: 'B-', value: 80 },
+		{ label: 'C+', value: 77 },
+		{ label: 'C', value: 73 },
+		{ label: 'C-', value: 70 },
+		{ label: 'D', value: 60 }
+	] as const;
+
+	let targetGradePercentage = $state(93);
+	let finalPointsPossible = $state(100);
+	let selectedCategory = $state('');
+
+	const categories = $derived(
+		gradeCategoryWeightProportions ? [...gradeCategoryWeightProportions.keys()] : []
+	);
+
+	$effect(() => {
+		if (!selectedCategory && categories.length) selectedCategory = categories[0] ?? '';
 	});
 
-	let targetAssignmentId = $state('');
+	const requiredPoints = $derived.by(() => {
+		if (!Number.isFinite(finalPointsPossible) || finalPointsPossible <= 0) return undefined;
 
-	let targetAssignment = $derived(
-		targetAssignmentId !== ''
-			? assignments.find((assignment) => assignment.id === targetAssignmentId)
-			: undefined
-	);
-
-	const categoryDependentOptions:
-		TargetGradeCalculatorCategoryDependentOptions<ReactiveAssignment> | undefined = $derived(
-		gradeCategoryWeightProportions && targetAssignment?.category
-			? {
-					hasCategories: true,
-					otherAssignments: getCalculableAssignmentsWithCategories(assignments).filter(
-						({ id }) => id !== targetAssignment?.id
-					),
-					gradeCategoryWeightProportions,
-					assignmentCategoryName: targetAssignment.category
-				}
-			: gradeCategoryWeightProportions === undefined
-				? {
+		const value =
+			gradeCategoryWeightProportions && selectedCategory
+				? calculatePointsNeededForTargetGrade({
+						targetGradePercentage,
+						assignmentPointsPossible: finalPointsPossible,
+						hasCategories: true,
+						otherAssignments: getCalculableAssignmentsWithCategories(assignments),
+						gradeCategoryWeightProportions,
+						assignmentCategoryName: selectedCategory
+					})
+				: calculatePointsNeededForTargetGrade({
+						targetGradePercentage,
+						assignmentPointsPossible: finalPointsPossible,
 						hasCategories: false,
-						otherAssignments: getCalculableAssignments(assignments).filter(
-							({ id }) => id !== targetAssignment?.id
-						)
-					}
-				: undefined
+						otherAssignments: getCalculableAssignments(assignments)
+					});
+
+		return Number.isFinite(value) ? value : undefined;
+	});
+
+	const requiredPercentage = $derived(
+		requiredPoints === undefined ? undefined : (requiredPoints / finalPointsPossible) * 100
 	);
 
-	const targetGradePointsNeeded = $derived(
-		targetGradePercentage !== undefined &&
-			targetAssignment?.pointsPossible !== undefined &&
-			categoryDependentOptions
-			? calculatePointsNeededForTargetGrade({
-					targetGradePercentage,
-					assignmentPointsPossible: targetAssignment.pointsPossible,
-					...categoryDependentOptions
-				})
-			: undefined
-	);
+	function format(value: number) {
+		return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
+	}
 </script>
 
-<Item.Root
-	variant="outline"
-	class="mx-auto w-fit flex-col"
+<div
+	class="border-border/70 border-t px-[1.125rem] py-3.5"
 	role="region"
-	aria-labelledby="target-grade-calculator-title"
+	aria-label="Finals Planner"
 >
-	<div class="flex w-full justify-between">
-		<Item.Title id="target-grade-calculator-title">Target Grade Calculator</Item.Title>
-
-		<Button
-			onclick={onclose}
-			variant="outline"
-			size="icon-sm"
-			aria-label="Close target grade calculator"
-		>
-			<XIcon />
-		</Button>
-	</div>
-
-	<div class="grid grid-flow-col grid-rows-2 gap-x-4">
-		<Label for="target-grade-input">Target grade</Label>
-		<p class="flex items-center text-sm">
-			<NumberInput
+	<div class="flex flex-wrap items-center gap-x-2 gap-y-2 text-sm">
+		<span class="text-muted-foreground">To get</span>
+		<label>
+			<span class="sr-only">Target grade</span>
+			<select
 				bind:value={targetGradePercentage}
-				id="target-grade-input"
-				class="w-20 text-right"
-			/>%
-		</p>
-
-		<Label for="target-assignment-input">Target assignment</Label>
-
-		<Dialog.Root>
-			{#if targetAssignment}
-				<p class="flex items-center gap-2">
-					{targetAssignment.name}
-					<Dialog.Trigger
-						class={buttonVariants({ variant: 'outline', size: 'icon' })}
-						title="Select another assignment"
-					>
-						<SquareDashedMousePointerIcon />
-					</Dialog.Trigger>
-				</p>
-			{:else}
-				<Dialog.Trigger class={[buttonVariants({ variant: 'default' }), 'w-fit']}>
-					<SquareMousePointerIcon />
-					Select
-				</Dialog.Trigger>
-			{/if}
-
-			<Dialog.Content
-				class="flex h-[calc(100%-2rem)] max-h-full w-[calc(100%-2rem)] flex-col sm:max-w-3xl"
+				class="border-input bg-background h-[2.375rem] w-[3.75rem] rounded-[0.625rem] border px-2.5 font-semibold"
 			>
-				<Dialog.Header class="text-start">
-					<Dialog.Title>Select Assignment</Dialog.Title>
-					<Dialog.Description>
-						To use an assignment that has not yet been entered, first create it as a hypothetical
-						assignment, then select it in this menu.
-					</Dialog.Description>
-				</Dialog.Header>
-
-				<RadioGroup.Root bind:value={targetAssignmentId} class="overflow-y-scroll">
-					{#each assignments as { name, id, pointsEarned, pointsPossible, unscaledPoints, extraCredit, notForGrade, hidden, newHypothetical, category, date, comments } (id)}
-						<Field.Field orientation="horizontal">
-							<RadioGroup.Item value={id} id="assignment-picker-{id}" />
-
-							<Field.Label for="assignment-picker-{id}" class="block">
-								<AssignmentCard
-									{name}
-									{id}
-									{pointsEarned}
-									{pointsPossible}
-									{unscaledPoints}
-									{extraCredit}
-									{notForGrade}
-									{hidden}
-									showHypotheticalLabel={newHypothetical}
-									categoryBadge={category !== undefined
-										? { name: category, color: categoryColors.get(category) ?? 'default' }
-										: undefined}
-									{date}
-									{comments}
-								/>
-							</Field.Label>
-						</Field.Field>
+				{#each gradeTargets as target (target.value)}
+					<option value={target.value}>{target.label}</option>
+				{/each}
+			</select>
+		</label>
+		<span class="text-muted-foreground">with a final worth</span>
+		<label>
+			<span class="sr-only">Final points possible</span>
+			<input
+				type="number"
+				min="1"
+				step="1"
+				bind:value={finalPointsPossible}
+				class="border-input bg-background h-[2.375rem] w-20 rounded-[0.625rem] border px-2.5 font-mono"
+			/>
+		</label>
+		<span class="text-muted-foreground">points{categories.length ? ' in' : ''}</span>
+		{#if categories.length}
+			<label>
+				<span class="sr-only">Final category</span>
+				<select
+					bind:value={selectedCategory}
+					class="border-input bg-background h-[2.375rem] min-w-[8rem] rounded-[0.625rem] border px-2.5 font-semibold"
+				>
+					{#each categories as category (category)}
+						<option value={category}>{category}</option>
 					{/each}
-				</RadioGroup.Root>
-			</Dialog.Content>
-		</Dialog.Root>
-	</div>
-
-	<div class="w-full">
-		{#if targetAssignment?.pointsPossible !== undefined && !(gradeCategoryWeightProportions && targetAssignment.category === undefined) && targetGradePointsNeeded !== undefined}
-			<p class="text-sm">Required assignment grade:</p>
-
-			<div class="mt-2 ml-auto w-fit text-lg">
-				<NumberFlowGroup>
-					<NumberFlow
-						value={targetGradePointsNeeded}
-						format={{ maximumFractionDigits: 3 }}
-						spinTiming={{ duration: 400, easing: numberFlowDefaultEasing }}
-						suffix="/{targetAssignment.pointsPossible} "
-						class="[&::part(suffix)]:text-muted-foreground font-bold [&::part(suffix)]:ml-[0.0625em] [&::part(suffix)]:text-sm [&::part(suffix)]:font-normal"
-					/>
-					<NumberFlow
-						value={targetGradePointsNeeded / targetAssignment.pointsPossible}
-						format={{ style: 'percent', maximumFractionDigits: 3 }}
-						spinTiming={{ duration: 400, easing: numberFlowDefaultEasing }}
-						class="font-bold"
-					/>
-				</NumberFlowGroup>
-			</div>
-		{/if}
-
-		{#if targetAssignment && targetAssignment.pointsPossible === undefined}
-			<p class="mt-4 text-sm">Selected assignment is missing the "points possible" value.</p>
-		{/if}
-
-		{#if targetAssignment && gradeCategoryWeightProportions && targetAssignment.category === undefined}
-			<p class="mt-4 text-sm">Selected assignment is missing a category.</p>
+				</select>
+			</label>
 		{/if}
 	</div>
-</Item.Root>
+
+	<p class="text-muted-foreground mt-3 text-sm">
+		{#if requiredPoints !== undefined && requiredPercentage !== undefined}
+			You need <strong class="text-grade-strong font-mono text-base"
+				>{format(requiredPercentage)}%</strong
+			>
+			— that's
+			<strong class="text-foreground font-mono"
+				>{format(requiredPoints)} / {format(finalPointsPossible)}</strong
+			>
+			on the final.
+		{:else if initialGradePercentage !== undefined}
+			Choose valid final points to calculate what you need from your current
+			{format(initialGradePercentage)}%.
+		{:else}
+			There is not enough graded work to calculate a final target yet.
+		{/if}
+	</p>
+</div>
