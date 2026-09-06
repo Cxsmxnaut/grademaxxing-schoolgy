@@ -1,0 +1,28 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "grademaxxing-beta",
+	"account_id": "11d9c54af4e4fcae112a298e32cd2d59",
+	"main": ".svelte-kit/cloudflare/_worker.js",
+	"assets": {
+		"directory": ".svelte-kit/cloudflare",
+		"binding": "ASSETS"
+	},
+	"compatibility_date": "2026-09-05",
+	"workers_dev": true,
+	"routes": [
+		{
+			"pattern": "grademaxxing.app/*",
+			"zone_id": "5da817dc2387bdda9145f245ed2974a4"
+		}
+	],
+	"preview_urls": false,
+	"observability": {
+		"enabled": false
+	},
+	"secrets": {
+		"required": ["GRADEMAXXING_SESSION_SECRET"]
+	},
+	"vars": {
+		"NODE_ENV": "production"
+	}
+}

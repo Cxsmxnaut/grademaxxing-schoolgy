@@ -1,9 +1,12 @@
+import adapterCloudflare from '@sveltejs/adapter-cloudflare';
 import adapterNode from '@sveltejs/adapter-node';
 import adapterVercel from '@sveltejs/adapter-vercel';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 const adapter =
-	process.env.VERCEL === '1'
+	process.env.DEPLOY_TARGET === 'cloudflare'
+		? adapterCloudflare()
+		: process.env.VERCEL === '1'
 		? adapterVercel({ maxDuration: 300, runtime: 'nodejs24.x' })
 		: adapterNode();
 
