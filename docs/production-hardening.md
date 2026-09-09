@@ -32,7 +32,9 @@ The proxy should preserve the public `Host`, set the forwarded headers itself, r
 
 StudentVUE credentials are used only for the initial upstream login and discarded immediately. Live upstream cookie state is compressed, authenticated, and encrypted with AES-256-GCM inside the Secure, HttpOnly application cookie. `GRADEMAXXING_SESSION_SECRET` is required in production, must contain at least 32 random characters, and must be identical across every instance. Rotate it only when intentionally invalidating every active session.
 
-The official Vercel adapter is selected automatically when `VERCEL=1`; other environments use adapter-node. Sessions expire after 12 hours and survive function cold starts without a session database. Browsers serialize session-bound StudentVUE requests across tabs to protect StudentVUE's mutable gradebook focus and prevent stale encrypted-cookie responses from winning a race.
+The official Vercel adapter is selected automatically when `VERCEL=1`; other environments use adapter-node. App sessions expire after 12 hours and survive function cold starts without a session database. While an authenticated page is visible, the browser periodically touches a lightweight StudentVUE page so the portal's sliding session remains active, and it refreshes a gradebook that is more than five minutes old. Visibility, focus, page restore, and network-reconnect events also trigger a coalesced check. Browsers serialize session-bound StudentVUE requests across tabs to protect StudentVUE's mutable gradebook focus and prevent stale encrypted-cookie responses from winning a race.
+
+StudentVUE does not issue Grademaxxing a refresh token, and Grademaxxing never retains the student's password. If the district expires its session while the app is closed or suspended, cached account-scoped grades remain visible and the UI requests a password-only reconnect. A successful reconnect replaces the encrypted session and refreshes the current page without clearing same-student caches. Do not claim that a closed browser can renew an already-expired StudentVUE session silently.
 
 Portal operations are also bounded across the whole process. The defaults allow 96 active student operations and queue 1,000 more for at most 30 seconds; excess or timed-out work receives a retryable `503` instead of exhausting memory, sockets, or StudentVUE. Work abandoned by a disconnected browser is removed from the queue. Tune these settings only after measuring the deployment host and coordinating acceptable traffic with the district portal owner.
 
@@ -43,7 +45,7 @@ Sign-in traffic is bounded globally and per account. Failed authentication is th
 - Readiness/liveness: `GET /api/health` should return `200 {"status":"ok"}`.
 - Every response contains `X-Request-ID`; unexpected and 30-second requests log that ID.
 - `Server-Timing` reports app processing time.
-- Alert on elevated 401, 429, 502, and 504 rates and on process restarts.
+- Alert separately on `UPSTREAM_SESSION_EXPIRED` and `APP_SESSION_INVALID`, plus elevated 429, 502, and 504 rates and process restarts.
 - Do not log request bodies, cookies, query identifiers, usernames, passwords, or API response bodies.
 
 ## Security properties

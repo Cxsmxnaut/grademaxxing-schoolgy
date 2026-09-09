@@ -20,8 +20,25 @@
 		"enabled": false
 	},
 	"secrets": {
-		"required": ["GRADEMAXXING_SESSION_SECRET"]
+		"required": [
+			"GRADEMAXXING_SESSION_SECRET",
+			"GRADEMAXXING_ANALYTICS_HMAC_SECRET"
+		]
 	},
+	"analytics_engine_datasets": [
+		{
+			"binding": "GRADEMAXXING_USAGE_ANALYTICS",
+			"dataset": "grademaxxing_usage"
+		}
+	],
+	"d1_databases": [
+		{
+			"binding": "GRADEMAXXING_USAGE_DB",
+			"database_name": "grademaxxing-usage",
+			"database_id": "4061cd79-6b55-4379-bd99-ca7558c3baab",
+			"migrations_dir": "migrations"
+		}
+	],
 	"vars": {
 		"NODE_ENV": "production"
 	}

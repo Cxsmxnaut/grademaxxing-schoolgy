@@ -1,4 +1,5 @@
 import type { AssignmentEntity } from '../types/Gradebook';
+import { isNotForGrade } from './course';
 
 export interface Category {
 	name: string;
@@ -501,7 +502,7 @@ export function parseSynergyAssignment(synergyAssignment: AssignmentEntity) {
 		};
 	}
 
-	const notesFormatted = _Notes.replace('(Not For Grading)', '').trim();
+	const notesFormatted = _Notes.replace(/^\s*\(\s*not\s+for\s+grading\s*\)\s*/i, '').trim();
 	const assignmentDate = new Date(_Date);
 	const dueDate = new Date(_DueDate);
 	const safeDate = Number.isFinite(assignmentDate.getTime())
@@ -518,7 +519,7 @@ export function parseSynergyAssignment(synergyAssignment: AssignmentEntity) {
 		unscaledPoints,
 		extraCredit: _PointPossible === '',
 		gradePercentageChange: undefined,
-		notForGrade: _Notes.startsWith('(Not For Grading)'),
+		notForGrade: isNotForGrade(_Notes),
 		hidden: false,
 		category: _Type,
 		date: safeDate,

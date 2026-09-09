@@ -2,7 +2,6 @@
 	import Clock3Icon from '@lucide/svelte/icons/clock-3';
 	import MapPinIcon from '@lucide/svelte/icons/map-pin';
 	import UserRoundIcon from '@lucide/svelte/icons/user-round';
-	import NumberFlow from '@number-flow/svelte';
 
 	interface Props {
 		courseId: string;
@@ -88,13 +87,12 @@
 
 	<div class="hidden items-center gap-3.5 sm:flex">
 		{#if grade}
-			<NumberFlow
-				value={grade.percentage / 100}
-				format={{ style: 'percent', maximumFractionDigits: 1 }}
+			<span
 				class="{gradeTone(
 					grade.percentage
 				)} h-[1.1875rem] text-right font-mono text-[0.9375rem] leading-[normal] font-semibold"
-			/>
+				>{grade.percentage.toLocaleString(undefined, { maximumFractionDigits: 1 })}%</span
+			>
 			<div class="bg-secondary h-1.5 min-w-0 flex-1 overflow-hidden rounded-full">
 				<div
 					class="h-full rounded-full {indicatorTone(grade.percentage)}"
@@ -107,13 +105,12 @@
 	</div>
 
 	{#if grade}
-		<NumberFlow
-			value={grade.percentage / 100}
-			format={{ style: 'percent', maximumFractionDigits: 1 }}
+		<span
 			class="{gradeTone(
 				grade.percentage
 			)} h-[1.1875rem] text-right font-mono text-[0.9375rem] leading-[normal] font-semibold sm:hidden"
-		/>
+			>{grade.percentage.toLocaleString(undefined, { maximumFractionDigits: 1 })}%</span
+		>
 	{:else}
 		<span class="text-muted-foreground text-xs sm:hidden">Not graded</span>
 	{/if}

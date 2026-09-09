@@ -4,8 +4,10 @@ import type { DocumentsResult } from '$lib/types/Documents';
 import type { MailResult } from '$lib/types/MailData';
 import type { StudentInfoResult } from '$lib/types/StudentInfo';
 import { XMLBuilder, XMLParser } from 'fast-xml-parser';
+import { markPortalConnected, markPortalOffline, markPortalReconnect } from './session.svelte';
 import type { GradebookResult } from './types/Gradebook';
 import type { ReportCardResult } from './types/ReportCard';
+import type { TranscriptImport } from './grades/transcript';
 
 export const Operation = {
 	Request: 'ProcessWebServiceRequest',
@@ -137,11 +139,24 @@ export class StudentAccount {
 		this.password = '';
 	}
 
-	async gradebookRequest(reportPeriod?: number) {
-		const result = await this.request<{ xml: string }>(
-			`/api/studentvue/gradebook${reportPeriod === undefined ? '' : `?reportPeriod=${reportPeriod}`}`
+	async keepAlive() {
+		const result = await this.request<{ signedIn: true; updatedAt: number }>(
+			'/api/session/keepalive'
 		);
-		return new Response(wrapEnvelope(result.xml, Operation.Request));
+		markPortalConnected(result.updatedAt);
+		return result;
+	}
+
+	async gradebookRequest(reportPeriod?: number, summary = false) {
+		const parameters = new URLSearchParams();
+		if (reportPeriod !== undefined) parameters.set('reportPeriod', String(reportPeriod));
+		if (summary) parameters.set('summary', 'true');
+		const result = await this.request<{ xml: string; detailed: boolean }>(
+			`/api/studentvue/gradebook${parameters.size ? `?${parameters}` : ''}`
+		);
+		return new Response(wrapEnvelope(result.xml, Operation.Request), {
+			headers: { 'X-Grademaxxing-Gradebook-Detail': String(result.detailed) }
+		});
 	}
 
 	async attendance() {
@@ -160,6 +175,10 @@ export class StudentAccount {
 		return this.request<ReportCardResult['DocumentData']>(
 			`/api/studentvue/document?id=${encodeURIComponent(documentGU)}`
 		);
+	}
+
+	async transcript() {
+		return this.request<{ transcript: TranscriptImport }>('/api/studentvue/report-cards');
 	}
 
 	async mailData() {
@@ -194,16 +213,28 @@ export class StudentAccount {
 		);
 	}
 
-	private request<T>(path: string) {
+	private request<T>(path: string, init: RequestInit = {}) {
 		if (!this.sessionId)
 			return Promise.reject(
 				new Error('Your StudentVUE session has expired. Please sign in again.')
 			);
 		const sessionId = this.sessionId;
 		return serializedStudentVueRequest(sessionId, () =>
-			apiRequest<T>(path, { headers: { 'X-Grademaxxing-Session': sessionId } }, true, sessionId)
+			apiRequest<T>(
+				path,
+				{
+					...init,
+					headers: { 'X-Grademaxxing-Session': sessionId, ...init.headers }
+				},
+				true,
+				sessionId
+			)
 		);
 	}
+}
+
+export class StudentVueSessionExpiredError extends Error {
+	readonly code = 'UPSTREAM_SESSION_EXPIRED';
 }
 
 const localSessionRequestTails = new Map<string, Promise<void>>();
@@ -236,7 +267,10 @@ export async function apiRequest<T>(
 	expectedSessionId?: string
 ): Promise<T> {
 	const method = (init.method ?? 'GET').toUpperCase();
-	const retryableStatuses = new Set([429, 502, 503, 504]);
+	// A Worker/platform 500 is sometimes transient during a cold start or a
+	// short-lived upstream failure. Safe read requests may retry it; mutations
+	// (including sign-in) never do.
+	const retryableStatuses = new Set([429, 500, 502, 503, 504]);
 	const maximumRetries = method === 'GET' ? 2 : 0;
 	for (let attempt = 0; ; attempt += 1) {
 		let response: Response;
@@ -259,10 +293,20 @@ export async function apiRequest<T>(
 
 		if (response.ok) return response.json() as Promise<T>;
 		const payload = (await response.json().catch(() => undefined)) as
-			{ message?: string } | undefined;
+			{ message?: string; code?: string } | undefined;
 		if (attempt < maximumRetries && retryableStatuses.has(response.status)) {
 			await retryDelay(attempt, response.headers.get('retry-after'));
 			continue;
+		}
+		if (
+			redirectOnUnauthorized &&
+			response.status === 401 &&
+			payload?.code === 'UPSTREAM_SESSION_EXPIRED'
+		) {
+			if (typeof window !== 'undefined') markPortalReconnect(payload.message);
+			throw new StudentVueSessionExpiredError(
+				payload.message ?? 'Reconnect to StudentVUE to update your school data.'
+			);
 		}
 		if (redirectOnUnauthorized && response.status === 401 && typeof window !== 'undefined') {
 			// An expired or invalid portal session must clear every cached client store. Use a
@@ -271,6 +315,7 @@ export async function apiRequest<T>(
 				localStorage.removeItem('token');
 			window.location.assign('/login?sessionExpired=true');
 		}
+		if (response.status === 0 || response.status >= 500) markPortalOffline();
 		throw new Error(payload?.message ?? `StudentVUE API request failed (HTTP ${response.status}).`);
 	}
 }

@@ -8,6 +8,7 @@ import {
 	StudentSessionCapacityError,
 	StudentSessionConfigurationError
 } from '$lib/server/student-session';
+import { recordUniqueStudentUsage } from '$lib/server/usage-analytics';
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
@@ -22,7 +23,7 @@ const attempts = new Map<string, { count: number; resetAt: number }>();
 const activeLogins = new Map<string, number>();
 let activeLoginCount = 0;
 
-export const POST: RequestHandler = async ({ request, cookies, getClientAddress }) => {
+export const POST: RequestHandler = async ({ request, cookies, getClientAddress, platform }) => {
 	const rawBody = await request.text();
 	if (new TextEncoder().encode(rawBody).byteLength > 16 * 1024)
 		throw error(413, 'Request body is too large.');
@@ -115,6 +116,9 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 		secure: !dev,
 		maxAge: sessionMaxAge
 	});
+	// Analytics is deliberately best-effort: a private counter outage can never
+	// block StudentVUE sign-in, and no raw identity is stored in the database.
+	await recordUniqueStudentUsage(platform, session.domain, session.username).catch(() => undefined);
 	return json({
 		username: session.username,
 		domain: session.domain,

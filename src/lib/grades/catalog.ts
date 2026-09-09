@@ -9,6 +9,8 @@ export { cacheGradebookRecord, getReportPeriodIndex } from './refresh';
 export interface GradebookRecord {
 	xml: string;
 	lastRefresh: number;
+	/** Summary records have official course marks but deliberately omit assignment detail. */
+	detailed?: boolean;
 }
 
 interface GradebookCatalogLocalStorageCache {
@@ -55,7 +57,8 @@ export function getGradebookCatalogFromLocalStorage() {
 					record.xml.length === 0 ||
 					record.xml.length > 5 * 1024 * 1024 ||
 					!Number.isFinite(record.lastRefresh) ||
-					record.lastRefresh < 0)
+					record.lastRefresh < 0 ||
+					(record.detailed !== undefined && typeof record.detailed !== 'boolean'))
 		)
 	)
 		throw new Error('Saved grade data is invalid.');
@@ -97,11 +100,15 @@ export function getGradebookCacheOwner() {
 	return getGradebookCacheOwnerFor(acc.studentAccount);
 }
 
-export async function getGradebookRecord(onReceivingData?: () => void, reportPeriod?: number) {
+export async function getGradebookRecord(
+	onReceivingData?: () => void,
+	reportPeriod?: number,
+	summary = false
+) {
 	const { studentAccount } = acc;
 	if (!studentAccount) throw new Error('Cannot get synergy gradebook: student account not loaded');
 
-	const res = await studentAccount.gradebookRequest(reportPeriod);
+	const res = await studentAccount.gradebookRequest(reportPeriod, summary);
 
 	onReceivingData?.();
 
@@ -109,13 +116,14 @@ export async function getGradebookRecord(onReceivingData?: () => void, reportPer
 
 	const record: GradebookRecord = {
 		xml: unwrapEnvelope(envelopeStr, Operation.Request),
-		lastRefresh: Date.now()
+		lastRefresh: Date.now(),
+		detailed: res.headers.get('X-Grademaxxing-Gradebook-Detail') !== 'false'
 	};
 	return record;
 }
 
 export async function getInitialGradebookCatalog() {
-	const defaultGradebookRecord = await getGradebookRecord();
+	const defaultGradebookRecord = await getGradebookRecord(undefined, undefined, true);
 
 	const defaultGradebook = parseGradebookXML(defaultGradebookRecord.xml);
 

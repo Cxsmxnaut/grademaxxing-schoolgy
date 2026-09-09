@@ -1,4 +1,5 @@
 import { parseSynergyAssignment, type RealAssignment } from '$lib/grades/assignments';
+import { estimateHypotheticalLetter } from '$lib/grades/grade-scale';
 import type { AssignmentEntity } from '$lib/types/Gradebook';
 import { expect, test } from 'vitest';
 
@@ -316,6 +317,58 @@ test('Not For Grading Assignment', () => {
 		date: new Date('1/1/2024'),
 		newHypothetical: false
 	});
+});
+
+test('recognizes a non-graded marker despite StudentVUE capitalization or whitespace', () => {
+	const assignment: AssignmentEntity = {
+		Resources: null,
+		Standards: null,
+		_GradebookID: 'not-graded-marker',
+		_Measure: 'Practice',
+		_Type: 'Practice',
+		_Date: '1/1/2024',
+		_DueDate: '1/1/2024',
+		_DisplayScore: '4 out of 4',
+		_ScoreCalValue: '4',
+		_TimeSincePost: '',
+		_TotalSecondsSincePost: '0',
+		_ScoreMaxValue: '4',
+		_ScoreType: 'Raw Score',
+		_Points: '4 / 4',
+		_Point: '4',
+		_PointPossible: '4',
+		_Notes: '  (not for grading) teacher feedback',
+		_TeacherID: '',
+		_StudentID: '',
+		_MeasureDescription: '',
+		_HasDropBox: false,
+		_DropStartDate: '',
+		_DropEndDate: ''
+	};
+
+	const parsed = parseSynergyAssignment(assignment);
+	expect(parsed.notForGrade).toBe(true);
+	expect(parsed.comments).toBe('teacher feedback');
+});
+
+test('uses a class’s observed whole-letter style for hypothetical letters', () => {
+	expect(estimateHypotheticalLetter(91, [{ percentage: 91, letter: 'A' }])).toEqual({
+		letter: 'A',
+		basis: 'observed'
+	});
+	expect(estimateHypotheticalLetter(90, [{ percentage: 91, letter: 'A' }])).toEqual({
+		letter: 'A',
+		basis: 'class-pattern'
+	});
+	expect(estimateHypotheticalLetter(91, [{ percentage: 91, letter: 'A-' }])).toEqual({
+		letter: 'A-',
+		basis: 'observed'
+	});
+	expect(estimateHypotheticalLetter(92, [{ percentage: 91, letter: 'A-' }])).toEqual({
+		letter: 'A-',
+		basis: 'class-pattern'
+	});
+	expect(estimateHypotheticalLetter(Number.NaN, [])).toBeUndefined();
 });
 
 test('Scaled Assignment', () => {

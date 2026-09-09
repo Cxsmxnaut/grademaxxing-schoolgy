@@ -4,9 +4,75 @@ import {
 	normalizeDistrictUrl,
 	parseGradebookAssignmentDetail,
 	parseGradebookClassDetail,
-	Pxp2InputError
+	Pxp2Client,
+	Pxp2InputError,
+	Pxp2SessionExpiredError
 } from '$lib/server/pxp2';
-import { expect, test } from 'vitest';
+import { afterEach, expect, test, vi } from 'vitest';
+
+afterEach(() => vi.unstubAllGlobals());
+
+test('keep-alive touches an authenticated lightweight StudentVUE page', async () => {
+	const fetchMock = vi
+		.fn<typeof fetch>()
+		.mockResolvedValue(new Response('<title>StudentVUE</title>'));
+	vi.stubGlobal('fetch', fetchMock);
+	const client = Pxp2Client.resume({
+		baseUrl: 'https://ca-example-psv.edupoint.com/',
+		cookies: { ASP_NET_SessionId: 'upstream-session' }
+	});
+
+	await client.keepAlive();
+	expect(fetchMock).toHaveBeenCalledTimes(1);
+	const [url, init] = fetchMock.mock.calls[0]!;
+	expect(String(url)).toBe('https://ca-example-psv.edupoint.com/PXP2_Student.aspx?AGU=0');
+	expect(new Headers(init?.headers).get('cookie')).toBe('ASP_NET_SessionId=upstream-session');
+});
+
+test('keep-alive detects StudentVUE login redirects as upstream expiry', async () => {
+	const response = new Response('<title>StudentVUE login</title>');
+	Object.defineProperty(response, 'url', {
+		value: 'https://ca-example-psv.edupoint.com/PXP2_Login_Student.aspx'
+	});
+	vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(response));
+	const client = Pxp2Client.resume({
+		baseUrl: 'https://ca-example-psv.edupoint.com/',
+		cookies: { ASP_NET_SessionId: 'expired-session' }
+	});
+
+	await expect(client.keepAlive()).rejects.toBeInstanceOf(Pxp2SessionExpiredError);
+});
+
+test('summary gradebook skips serial class detail only when every class has a usable header', async () => {
+	const focus = JSON.stringify({
+		LoadParams: { ControlName: 'Gradebook_ClassDetails' },
+		FocusArgs: { classID: 'course-1' }
+	}).replaceAll('"', '&quot;');
+	const page = `<title>StudentVUE</title>
+		<script>PXP.GBCurrentFocus = {"FocusArgs":{"gradePeriodGU":"period-1","AGU":"student"}};</script>
+		<script>PXP.GBFocusData = {"GradingPeriods":[{"GU":"period-1","schoolID":"school","OrgYearGU":"year","defaultFocus":true,"Name":"Quarter 1","MarkPeriods":[{"GU":"mark-1","Name":"Quarter 1"}]}]};</script>
+		<div class="gb-class-header"><span class="course-title" data-focus="${focus}">1: Biology</span></div>
+		<div class="gb-class-row" data-guid="course-1"><span class="mark">A</span></div>`;
+	const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (input) => {
+		const path = String(input);
+		if (path.includes('PXP2_Gradebook.aspx')) return new Response(page);
+		if (path.includes('GradebookFocusClassInfo'))
+			return new Response(
+				JSON.stringify({ d: { Data: { Classes: [{ ID: 'class-info-id', Name: 'Biology' }] } } })
+			);
+		throw new Error(`Unexpected portal request: ${path}`);
+	});
+	vi.stubGlobal('fetch', fetchMock);
+	const client = Pxp2Client.resume({
+		baseUrl: 'https://ca-example-psv.edupoint.com/',
+		cookies: { ASP_NET_SessionId: 'summary-session' }
+	});
+
+	const gradebook = await client.gradebook(undefined, true);
+
+	expect(gradebook.courses).toMatchObject([{ id: 'class-info-id', title: 'Biology', score: 'A' }]);
+	expect(fetchMock).toHaveBeenCalledTimes(2);
+});
 
 test('modern attendance HTML preserves SOAP-equivalent per-course events', () => {
 	const html = `

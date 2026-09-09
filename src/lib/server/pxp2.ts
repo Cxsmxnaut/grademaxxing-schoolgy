@@ -1,5 +1,6 @@
 import { DISTRICTS } from '$lib/data/districts';
 import { load } from 'cheerio';
+import { parseStudentVueTranscript } from '$lib/grades/transcript';
 import { Buffer } from 'node:buffer';
 
 function portalBasePath(pathname: string) {
@@ -178,10 +179,19 @@ export class Pxp2Client {
 		};
 	}
 
-	async gradebook(reportPeriod?: number): Promise<PortalGradebook> {
+	/**
+	 * Touch a lightweight authenticated page so StudentVUE's sliding server session
+	 * remains alive while the student is actively using the app. No profile data is
+	 * parsed or returned; following a login redirect is treated as an expired session.
+	 */
+	async keepAlive() {
+		await this.pageHtml('studentInfo');
+	}
+
+	async gradebook(reportPeriod?: number, summary = false): Promise<PortalGradebook> {
 		// A StudentVUE login has one mutable gradebook focus. Serialize whole gradebook
 		// reads so two tabs requesting different periods cannot corrupt one another.
-		const result = this.gradebookTail.then(() => this.loadGradebook(reportPeriod));
+		const result = this.gradebookTail.then(() => this.loadGradebook(reportPeriod, summary));
 		this.gradebookTail = result.then(
 			() => undefined,
 			() => undefined
@@ -189,7 +199,7 @@ export class Pxp2Client {
 		return result;
 	}
 
-	private async loadGradebook(reportPeriod?: number): Promise<PortalGradebook> {
+	private async loadGradebook(reportPeriod?: number, summary = false): Promise<PortalGradebook> {
 		const html = await this.pageHtml('gradebook');
 		const focus = jsonAssignment(html, 'PXP.GBCurrentFocus') as {
 			FocusArgs?: Record<string, unknown>;
@@ -246,6 +256,29 @@ export class Pxp2Client {
 		);
 
 		const headers = extractCourseHeaders(gradebookHtml);
+		const focuses = courseFocuses(gradebookHtml);
+		const headerEntries = [...headers.values()];
+		const summaryHeaders = classes.map((course, index) => {
+			const courseId =
+				identifier(course.ID) || identifier(course.ClassID) || identifier(course.SectionGU);
+			const byId = headers.get(courseId);
+			if (byId) return byId;
+			// Some StudentVUE builds use one internal id in GradebookFocusClassInfo and
+			// another in the rendered header. Only use positional matching when the class
+			// counts agree and the visible titles independently match.
+			const byPosition = headerEntries[index];
+			return headers.size === classes.length &&
+				byPosition &&
+				normalizeCourseTitle(byPosition.title) === normalizeCourseTitle(text(course.Name))
+				? byPosition
+				: undefined;
+		});
+		// Do not return an incomplete summary. District markup differs, so fall back to the
+		// complete proven path unless every returned class has a matching, usable header.
+		const safeSummary =
+			summary &&
+			summaryHeaders.length > 0 &&
+			summaryHeaders.every((header) => Boolean(header?.score));
 		const assignmentsByCourse = new Map<string, Array<Record<string, string>>>();
 		const gradesByCourse = new Map<
 			string,
@@ -255,7 +288,7 @@ export class Pxp2Client {
 		// must remain serial. Gradebook_ClassDetails contains the complete category and
 		// assignment grids in one response. The newer course-content endpoint is faster to
 		// parse, but silently omits some rows that still contribute to the official grade.
-		for (const focus of courseFocuses(gradebookHtml)) {
+		for (const focus of safeSummary ? [] : focuses) {
 			const loaded = await this.serviceCall<{ html?: unknown }>('LoadControl', {
 				request: {
 					control: focus.control,
@@ -361,7 +394,7 @@ export class Pxp2Client {
 			const portalId =
 				identifier(course.ID) || identifier(course.ClassID) || identifier(course.SectionGU);
 			const id = portalId || `course-${index + 1}`;
-			const header = headers.get(portalId);
+			const header = summaryHeaders[index] ?? headers.get(portalId);
 			const structuredGrade = gradesByCourse.get(portalId);
 			const headerScore = header?.score ?? '';
 			return {
@@ -483,7 +516,9 @@ export class Pxp2Client {
 		const documents = (await this.documents()).filter((document) =>
 			/report card|progress report/i.test(`${document.category} ${document.title}`)
 		);
-		return { grades, documents };
+		// Do not send the raw PXP.GradesData object to the browser. It can contain more
+		// student-record detail than the GPA screen needs, and its shape varies by district.
+		return { transcript: parseStudentVueTranscript(grades), documents };
 	}
 
 	async schedule() {
@@ -824,7 +859,15 @@ export class Pxp2Client {
 		for (const cookie of response.headers.getSetCookie()) {
 			const first = cookie.split(';', 1)[0] ?? '';
 			const equal = first.indexOf('=');
-			if (equal > 0) this.cookies.set(first.slice(0, equal), first.slice(equal + 1));
+			if (equal > 0) {
+				const name = first.slice(0, equal);
+				const value = first.slice(equal + 1);
+				const deleted =
+					/(?:^|;)\s*max-age=0(?:;|$)/i.test(cookie) ||
+					/(?:^|;)\s*expires=(?:Thu, 01 Jan 1970|Wed, 31 Dec 1969)/i.test(cookie);
+				if (deleted) this.cookies.delete(name);
+				else this.cookies.set(name, value);
+			}
 		}
 		return response;
 	}
@@ -1051,6 +1094,10 @@ function extractCourseHeaders(html: string) {
 		});
 	});
 	return output;
+}
+
+function normalizeCourseTitle(value: string) {
+	return value.replace(/\s+/g, ' ').trim().toLocaleLowerCase();
 }
 
 function tableFields(html: string) {

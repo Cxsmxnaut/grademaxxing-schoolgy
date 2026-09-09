@@ -1,6 +1,6 @@
 import { LocalStorageKey } from '$lib';
 import { acc, loadStudentAccount } from '$lib/account.svelte';
-import { parseGradebookXML } from '$lib/synergy';
+import { parseGradebookXML, StudentVueSessionExpiredError } from '$lib/synergy';
 import { toast } from 'svelte-sonner';
 import {
 	cacheGradebookRecord,
@@ -34,10 +34,14 @@ export const getReportPeriodName = (index: number) =>
 
 export async function switchReportPeriod({
 	overrideIndex,
-	forceRefresh
+	forceRefresh,
+	silent,
+	summary = false
 }: {
 	overrideIndex?: number;
 	forceRefresh?: boolean;
+	silent?: boolean;
+	summary?: boolean;
 } = {}) {
 	if (!gradebookState.gradebookCatalog)
 		throw new Error(`Cannot switch report periods: gradebook catalog not initialized`);
@@ -60,7 +64,7 @@ export async function switchReportPeriod({
 				if (requestID !== requestSequence || gradebookState.gradebookCatalog !== catalog) return;
 				catalog.receivingData = true;
 				gradebookState.version += 1;
-			}, overrideIndex);
+			}, overrideIndex, summary);
 			// A newer request owns the screen. Do not let this response overwrite it.
 			if (requestID !== requestSequence) return;
 
@@ -84,7 +88,8 @@ export async function switchReportPeriod({
 				}
 			} else {
 				catalog.overrideIndex = overrideIndex !== catalog.defaultIndex ? overrideIndex : undefined;
-				if (forceRefresh) toast.success(`${gradebook.ReportingPeriod._GradePeriod} grades updated`);
+				if (forceRefresh && !silent)
+					toast.success(`${gradebook.ReportingPeriod._GradePeriod} grades updated`);
 			}
 		} else {
 			setReportPeriodIndex(requestedIndex);
@@ -94,10 +99,11 @@ export async function switchReportPeriod({
 	} catch (error) {
 		if (requestID === requestSequence) {
 			gradebookState.loadingError = error;
-			toast.error(`Couldn't update ${getReportPeriodName(requestedIndex)} grades`, {
-				description: error instanceof Error ? error.message : String(error),
-				duration: 6000
-			});
+			if (!silent && !(error instanceof StudentVueSessionExpiredError))
+				toast.error(`Couldn't update ${getReportPeriodName(requestedIndex)} grades`, {
+					description: error instanceof Error ? error.message : String(error),
+					duration: 6000
+				});
 		}
 		throw error;
 	} finally {
@@ -186,6 +192,9 @@ async function initializeGradebookCatalogOnce() {
 			const { overrideIndex } = catalog;
 			if (overrideIndex !== undefined) {
 				try {
+					// Assignment data is required for trend charts and "new" markers. A
+					// summary response deliberately omits it, so it must never replace the
+					// selected period during normal refresh/reload.
 					await switchReportPeriod({ overrideIndex });
 				} catch (error) {
 					console.error(

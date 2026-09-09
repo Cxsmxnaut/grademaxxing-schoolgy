@@ -46,6 +46,13 @@ test.beforeEach(async ({ page }) => {
 			})
 		})
 	);
+	await page.route('**/api/session/keepalive', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({ signedIn: true, updatedAt: Date.now() })
+		})
+	);
 	await page.route('**/api/studentvue/**', (route) => {
 		const resource = new URL(route.request().url()).pathname.split('/').at(-1) ?? 'unknown';
 		requestCounts[resource] = (requestCounts[resource] ?? 0) + 1;
@@ -197,6 +204,7 @@ test('every sidebar action works and preserves a single active destination', asy
 	const beforeRefresh = { ...requestCounts };
 	await page.getByTestId('sidebar-refresh').click();
 	await expect(page.getByTestId('sidebar-refresh')).toBeEnabled();
+	await expect(page.getByTestId('sidebar-refresh')).toContainText('Updated');
 	for (const resource of ['gradebook', 'attendance', 'documents', 'messages', 'student-info'])
 		expect(requestCounts[resource] ?? 0).toBeGreaterThan(beforeRefresh[resource] ?? 0);
 

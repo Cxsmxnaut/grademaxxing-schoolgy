@@ -3,7 +3,6 @@ import { gradebookXml } from '$lib/server/gradebook-adapter';
 import { Pxp2InputError, Pxp2SessionExpiredError, Pxp2TimeoutError } from '$lib/server/pxp2';
 import {
 	clientSessionHeader,
-	deleteStudentSession,
 	getStudentSession,
 	requireStudentSessionContext,
 	runStudentOperation,
@@ -62,7 +61,11 @@ export const GET: RequestHandler = async ({ params, cookies, request, url }) => 
 							999,
 							'reportPeriod'
 						);
-						return json({ xml: gradebookXml(await session.client.gradebook(reportPeriod)) });
+						const summary = url.searchParams.get('summary') === 'true';
+						return json({
+							xml: gradebookXml(await session.client.gradebook(reportPeriod, summary)),
+							detailed: !summary
+						});
 					}
 					case 'attendance':
 						return json(adaptAttendance(await session.client.attendanceDetails()));
@@ -147,9 +150,15 @@ export const GET: RequestHandler = async ({ params, cookies, request, url }) => 
 		if (cause instanceof StudentServiceBusyError) throw error(503, cause.message);
 		if (cause instanceof Pxp2InputError) throw error(400, cause.message);
 		if (cause instanceof Pxp2SessionExpiredError) {
-			deleteStudentSession(cookies.get(sessionCookie));
-			cookies.delete(sessionCookie, { path: '/' });
-			throw error(401, cause.message);
+			// Preserve the encrypted app identity long enough to offer a password-only
+			// reconnect. It contains StudentVUE cookies, never the student's password.
+			return json(
+				{
+					code: 'UPSTREAM_SESSION_EXPIRED',
+					message: 'Reconnect to StudentVUE to update your school data.'
+				},
+				{ status: 401 }
+			);
 		}
 		if (cause instanceof Pxp2TimeoutError) throw error(504, cause.message);
 		throw error(502, cause instanceof Error ? cause.message : 'StudentVUE request failed.');
@@ -164,7 +173,10 @@ const capabilities = {
 	resources: {
 		gradebook: {
 			path: '/api/studentvue/gradebook?reportPeriod=0',
-			parameters: { reportPeriod: 'zero-based index from ReportingPeriods' },
+			parameters: {
+				reportPeriod: 'zero-based index from ReportingPeriods',
+				summary: 'optional true: fast header-only response; falls back to complete data if unsafe'
+			},
 			legacySoap: 'Gradebook',
 			modernSource: [
 				'PXP.GBFocusData',

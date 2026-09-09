@@ -27,6 +27,13 @@ test.beforeEach(async ({ page }) => {
 			})
 		})
 	);
+	await page.route('**/api/session/keepalive', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({ signedIn: true, updatedAt: Date.now() })
+		})
+	);
 
 	await page.route('**/api/studentvue/**', (route) => {
 		const url = new URL(route.request().url());
@@ -131,6 +138,7 @@ test('gradebook calculator, course planner, and attendance views are interactive
 	await page.getByLabel('Show category breakdown').check();
 	await expect(page.getByRole('columnheader', { name: 'Category' })).toBeVisible();
 	await page.getByLabel('Hypothetical Mode').check();
+	await expect(page.getByTestId('hypothetical-letter')).toBeVisible();
 	const whatIfForm = page.getByRole('form', { name: 'Add what-if assignment' });
 	await expect(whatIfForm).toBeVisible();
 	await whatIfForm.getByLabel('What-if score').fill('10');

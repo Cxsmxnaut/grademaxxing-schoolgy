@@ -87,6 +87,13 @@ test.beforeEach(async ({ context }) => {
 			})
 		})
 	);
+	await context.route('**/api/session/keepalive', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({ signedIn: true, updatedAt: Date.now() })
+		})
+	);
 
 	await context.route('**/api/studentvue/**', (route) => {
 		const resource = new URL(route.request().url()).pathname.split('/').at(-1);

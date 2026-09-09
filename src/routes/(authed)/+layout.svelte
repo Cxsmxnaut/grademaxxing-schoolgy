@@ -8,7 +8,20 @@
 	import BoundaryFailure from '$lib/components/BoundaryFailure.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Spinner } from '$lib/components/ui/spinner';
-	import { resetGradebookCatalog } from '$lib/grades/catalog.svelte';
+	import {
+		gradebookState,
+		initializeGradebookCatalog,
+		resetGradebookCatalog,
+		switchReportPeriod
+	} from '$lib/grades/catalog.svelte';
+	import {
+		markPortalChecking,
+		markPortalConnected,
+		markPortalOffline,
+		portalConnection,
+		resetPortalConnection
+	} from '$lib/session.svelte';
+	import { StudentVueSessionExpiredError } from '$lib/synergy';
 	import BookOpenIcon from '@lucide/svelte/icons/book-open';
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
 	import FileTextIcon from '@lucide/svelte/icons/file-text';
@@ -18,10 +31,16 @@
 	import SunIcon from '@lucide/svelte/icons/sun';
 	import { mode, setMode } from 'mode-watcher';
 	import AppSidebar from './AppSidebar.svelte';
+	import ReconnectStudentVue from './ReconnectStudentVue.svelte';
 	import { resetNonGradeRecords } from './resetNonGradeRecords.svelte';
 	import { onMount } from 'svelte';
 
 	let { children } = $props();
+	const KEEPALIVE_INTERVAL_MS = 8 * 60 * 1000;
+	const BACKGROUND_GRADE_REFRESH_MS = 5 * 60 * 1000;
+	const RESUME_DEBOUNCE_MS = 30 * 1000;
+	let lastMaintenanceAttempt = 0;
+	let maintenancePromise: Promise<void> | undefined;
 
 	const mobileNavigation = [
 		{ title: 'Grades', url: '/grades', icon: BookOpenIcon },
@@ -34,6 +53,11 @@
 		return page.url.pathname === url || page.url.pathname.startsWith(`${url}/`);
 	}
 
+	function isDefinitiveAppSessionFailure(error: unknown) {
+		const message = error instanceof Error ? error.message : String(error);
+		return /session has expired|sign in again|different StudentVUE session/i.test(message);
+	}
+
 	async function logOut() {
 		const response = await fetch('/api/session', { method: 'DELETE' }).catch(() => undefined);
 		await response?.arrayBuffer().catch(() => undefined);
@@ -41,7 +65,45 @@
 		resetGradebookCatalog();
 		resetNonGradeRecords();
 		acc.studentAccount = undefined;
+		resetPortalConnection();
 		location.assign('/login');
+	}
+
+	async function maintainStudentVueSession(force = false) {
+		if (
+			!acc.studentAccount ||
+			document.visibilityState !== 'visible' ||
+			!navigator.onLine ||
+			portalConnection.state === 'reconnect'
+		)
+			return;
+		const now = Date.now();
+		if (!force && now - lastMaintenanceAttempt < RESUME_DEBOUNCE_MS) return;
+		if (maintenancePromise) return maintenancePromise;
+		lastMaintenanceAttempt = now;
+		const account = acc.studentAccount;
+		maintenancePromise = (async () => {
+			markPortalChecking();
+			try {
+				await account.keepAlive();
+				if (acc.studentAccount !== account) return;
+				await initializeGradebookCatalog();
+				const catalog = gradebookState.gradebookCatalog;
+				if (!catalog || catalog.loadingIndex !== undefined) return;
+				const index = catalog.overrideIndex ?? catalog.defaultIndex;
+				const lastRefresh = catalog.recordCache[index]?.lastRefresh ?? 0;
+				if (Date.now() - lastRefresh >= BACKGROUND_GRADE_REFRESH_MS) {
+					await switchReportPeriod({ forceRefresh: true, silent: true });
+					markPortalConnected();
+				}
+			} catch (error) {
+				if (error instanceof StudentVueSessionExpiredError) return;
+				if (!navigator.onLine || error instanceof TypeError) markPortalOffline();
+			} finally {
+				maintenancePromise = undefined;
+			}
+		})();
+		return maintenancePromise;
 	}
 
 	if (browser && !acc.studentAccount) {
@@ -51,17 +113,37 @@
 
 	onMount(() => {
 		if (!acc.studentAccount) return;
-		void acc.studentAccount.checkLogin().catch(() => {
-			try {
-				localStorage.removeItem(LocalStorageKey.token);
-			} catch {
-				// The active module session is still cleared when managed storage is unavailable.
+		void acc.studentAccount.checkLogin().then(
+			() => void maintainStudentVueSession(true),
+			(error) => {
+				// A Worker cold start, network interruption, or temporary 5xx must never be
+				// mistaken for sign-out. Retain the local session metadata and cached records;
+				// only a confirmed invalid app session should take the student to login.
+				if (!isDefinitiveAppSessionFailure(error)) {
+					markPortalOffline();
+					return;
+				}
+				try {
+					localStorage.removeItem(LocalStorageKey.token);
+				} catch {
+					// The active module session is still cleared when managed storage is unavailable.
+				}
+				resetGradebookCatalog();
+				resetNonGradeRecords();
+				acc.studentAccount = undefined;
+				void goto('/login');
 			}
-			resetGradebookCatalog();
-			resetNonGradeRecords();
-			acc.studentAccount = undefined;
-			void goto('/login');
-		});
+		);
+
+		const resume = () => void maintainStudentVueSession();
+		const visibility = () => {
+			if (document.visibilityState === 'visible') resume();
+		};
+		const interval = window.setInterval(resume, KEEPALIVE_INTERVAL_MS);
+		window.addEventListener('focus', resume);
+		window.addEventListener('pageshow', resume);
+		window.addEventListener('online', resume);
+		document.addEventListener('visibilitychange', visibility);
 
 		const currentSessionId = acc.studentAccount.sessionId;
 		const handleStorage = (event: StorageEvent) => {
@@ -84,7 +166,14 @@
 			location.assign(replacementSessionId ? '/grades' : '/login');
 		};
 		window.addEventListener('storage', handleStorage);
-		return () => window.removeEventListener('storage', handleStorage);
+		return () => {
+			window.clearInterval(interval);
+			window.removeEventListener('focus', resume);
+			window.removeEventListener('pageshow', resume);
+			window.removeEventListener('online', resume);
+			document.removeEventListener('visibilitychange', visibility);
+			window.removeEventListener('storage', handleStorage);
+		};
 	});
 </script>
 
@@ -93,6 +182,7 @@
 		<AppSidebar />
 
 		<Sidebar.Inset class="min-w-0 pb-[3.75rem] md:pb-0">
+			<ReconnectStudentVue />
 			<header
 				class="bg-card border-border/70 sticky top-0 z-30 flex h-[3.09375rem] shrink-0 items-center border-b px-4 md:hidden"
 			>

@@ -327,7 +327,7 @@
 				: undefined}
 			{date}
 			{comments}
-			unseen={seenAssignmentIDs && !seenAssignmentIDs.has(id) && !hidden}
+		unseen={seenAssignmentIDs && !seenAssignmentIDs.has(id) && !hidden && !notForGrade}
 		/>
 	</li>
 {/snippet}

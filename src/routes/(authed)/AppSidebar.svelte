@@ -12,9 +12,12 @@
 		switchReportPeriod
 	} from '$lib/grades/catalog.svelte';
 	import { getActiveGradebook } from '$lib/grades/gradebook';
+	import { markPortalConnected, resetPortalConnection } from '$lib/session.svelte';
+	import { StudentVueSessionExpiredError } from '$lib/synergy';
 	import AppWindowMacIcon from '@lucide/svelte/icons/app-window-mac';
 	import BookOpenIcon from '@lucide/svelte/icons/book-open';
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
+	import CheckIcon from '@lucide/svelte/icons/check';
 	import FileTextIcon from '@lucide/svelte/icons/file-text';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import MailIcon from '@lucide/svelte/icons/mail';
@@ -22,6 +25,7 @@
 	import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
 	import SunIcon from '@lucide/svelte/icons/sun';
 	import { mode, setMode } from 'mode-watcher';
+	import { toast } from 'svelte-sonner';
 	import { onMount, type Component } from 'svelte';
 	import { installPrompt } from '../../hooks.client';
 	import { attendanceState, loadAttendance } from './attendance/attendance.svelte';
@@ -37,6 +41,7 @@
 	});
 
 	let refreshingAll = $state(false);
+	let lastSuccessfulRefresh = $state<number | undefined>();
 
 	async function logOut() {
 		const response = await fetch('/api/session', { method: 'DELETE' }).catch(() => undefined);
@@ -45,6 +50,7 @@
 		resetGradebookCatalog();
 		resetNonGradeRecords();
 		acc.studentAccount = undefined;
+		resetPortalConnection();
 		location.assign('/login');
 	}
 
@@ -55,16 +61,7 @@
 		const index = catalog.overrideIndex ?? catalog.defaultIndex;
 		return catalog.recordCache[index]?.lastRefresh;
 	});
-	const lastSync = $derived.by(() => {
-		const values = [
-			gradebookLastRefresh,
-			attendanceState.lastRefresh,
-			documentsState.lastRefresh,
-			mailDataState.lastRefresh,
-			studentInfoState.lastRefresh
-		].filter((value): value is number => value !== undefined);
-		return values.length ? Math.max(...values) : undefined;
-	});
+	const lastSync = $derived(lastSuccessfulRefresh ?? gradebookLastRefresh);
 	const profileName = $derived.by(() => {
 		const formattedName = studentInfoState.data?.FormattedName.trim();
 		if (!formattedName) return 'Student profile';
@@ -77,15 +74,38 @@
 	async function refreshAll() {
 		if (refreshingAll) return;
 		refreshingAll = true;
-		const refreshes: Promise<unknown>[] = [
-			loadAttendance(true),
-			loadDocuments(true),
-			loadMailData(true),
-			loadStudentInfo(true)
-		];
-		if (gradebookState.gradebookCatalog) refreshes.push(switchReportPeriod({ forceRefresh: true }));
-		await Promise.allSettled(refreshes);
-		refreshingAll = false;
+		try {
+			// A single lightweight probe stops a dead upstream session from causing five
+			// duplicate failed requests and opens the reconnect prompt immediately.
+			await acc.studentAccount?.keepAlive();
+			const refreshes: Promise<unknown>[] = [
+				loadAttendance(true),
+				loadDocuments(true),
+				loadMailData(true),
+				loadStudentInfo(true)
+			];
+			if (gradebookState.gradebookCatalog)
+				refreshes.push(switchReportPeriod({ forceRefresh: true }));
+			const results = await Promise.allSettled(refreshes);
+			const recordFailed = [
+				attendanceState.error,
+				documentsState.error,
+				mailDataState.error,
+				studentInfoState.error
+			].some(Boolean);
+			if (results.every((result) => result.status === 'fulfilled') && !recordFailed) {
+				lastSuccessfulRefresh = Date.now();
+				markPortalConnected(lastSuccessfulRefresh);
+			}
+		} catch (error) {
+			if (!(error instanceof StudentVueSessionExpiredError))
+				toast.error("Couldn't refresh StudentVUE", {
+					description: error instanceof Error ? error.message : String(error),
+					duration: 6000
+				});
+		} finally {
+			refreshingAll = false;
+		}
 	}
 
 	function installWebApp() {
@@ -225,11 +245,15 @@
 				aria-busy={refreshingAll}
 				data-testid="sidebar-refresh"
 			>
-				<RefreshCwIcon class="size-3.5 {refreshingAll ? 'animate-spin' : ''}" strokeWidth={1.5} />
+				{#if lastSync !== undefined && !refreshingAll}
+					<CheckIcon class="size-3.5" strokeWidth={1.75} />
+				{:else}
+					<RefreshCwIcon class="size-3.5 {refreshingAll ? 'animate-spin' : ''}" strokeWidth={1.5} />
+				{/if}
 				<span>{refreshingAll ? 'Refreshing' : 'Refresh'}</span>
 				{#if lastSync !== undefined && !refreshingAll}
 					<span class="text-muted-foreground font-normal"
-						>{getRelativeTime(new Date(lastSync))}</span
+						>Updated {getRelativeTime(new Date(lastSync))}</span
 					>
 				{/if}
 			</button>

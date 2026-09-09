@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { numberFlowDefaultEasing, removeCourseType, tailwindColors } from '$lib';
+	import { removeCourseType, tailwindColors } from '$lib';
 	import { brand } from '$lib/brand';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
@@ -28,14 +28,18 @@
 		type RealAssignment
 	} from '$lib/grades/assignments';
 	import { getSynergyCourseAssignmentCategories } from '$lib/grades/course';
+	import {
+		estimateHypotheticalLetter,
+		getCourseGradeScaleObservations
+	} from '$lib/grades/grade-scale';
 	import { getActiveGradebook } from '$lib/grades/gradebook';
 	import { gradebookState } from '$lib/grades/catalog.svelte';
+	import { switchReportPeriod } from '$lib/grades/catalog.svelte';
 	import { saveSeenAssignmentsToLocalStorage } from '$lib/grades/seenAssignments';
 	import { seenAssignmentIDs } from '$lib/grades/seenAssignments.svelte';
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
 	import CircleXIcon from '@lucide/svelte/icons/circle-x';
 	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
-	import NumberFlow from '@number-flow/svelte';
 	import { untrack } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import AssignmentTabs from './AssignmentTabs.svelte';
@@ -53,7 +57,19 @@
 
 	const mark = $derived(synergyCourse?.Marks?.Mark[0]);
 	const courseName = $derived(synergyCourse ? removeCourseType(synergyCourse._CourseName) : '');
-
+	const needsCourseDetail = $derived.by(() => {
+		gradebookState.version;
+		const catalog = gradebookState.gradebookCatalog;
+		if (!catalog) return false;
+		const index = catalog.overrideIndex ?? catalog.defaultIndex;
+		return catalog.recordCache[index]?.detailed === false;
+	});
+	let detailRequested = $state(false);
+	$effect(() => {
+		if (!needsCourseDetail || detailRequested) return;
+		detailRequested = true;
+		void switchReportPeriod({ forceRefresh: true, silent: true }).catch(() => undefined);
+	});
 	const synergyGradePercentage = $derived.by(() => {
 		const percentage = Number.parseFloat(mark?._CalculatedScoreRaw ?? '');
 		return Number.isFinite(percentage) ? percentage : undefined;
@@ -86,6 +102,9 @@
 	]);
 
 	let hypotheticalMode = $state(false);
+	const gradeScaleObservations = $derived(
+		synergyCourse ? getCourseGradeScaleObservations(synergyCourse._CourseID) : []
+	);
 
 	let calculatedGrade = $state(NaN);
 	let hypotheticalGrade = $state(NaN);
@@ -197,8 +216,11 @@
 				? synergyGradePercentage / 100
 				: undefined
 	);
+	const hypotheticalLetter = $derived(
+		estimateHypotheticalLetter(hypotheticalGrade, gradeScaleObservations)
+	);
 	const unseenAssignments = $derived(
-		realAssignments.filter(({ id }) => !seenAssignmentIDs.has(id))
+		realAssignments.filter(({ id, notForGrade }) => !notForGrade && !seenAssignmentIDs.has(id))
 	);
 
 	let showTargetGradeCalculator = $state(false);
@@ -281,24 +303,26 @@
 					{#if hypotheticalMode && !categories && !rawGradeCalcMatches}<CircleAlertIcon
 							class="text-grade-risk size-5"
 						/>{/if}
-					{#if markLabel}<span
+					{#if hypotheticalMode}<span
+							data-testid="hypothetical-letter"
 							class="font-heading {gradeTone} text-[2.125rem] leading-none font-bold"
-							>{markLabel}</span
-						>{/if}
-					{#if grade !== undefined}<NumberFlow
-							class="font-mono text-[1.375rem] font-semibold"
-							value={grade}
-							format={{
-								style: 'percent',
+							title={hypotheticalLetter?.basis === 'observed' || hypotheticalLetter?.basis === 'observed-range'
+								? 'Estimated from this class’s previous StudentVUE marks'
+							: 'Estimated from this class’s observed letter style'}>{hypotheticalLetter?.letter ?? '—'}</span
+					>{:else if markLabel}<span
+						class="font-heading {gradeTone} text-[2.125rem] leading-none font-bold"
+						>{markLabel}</span
+					>{/if}
+					{#if grade !== undefined}<span class="font-mono text-[1.375rem] font-semibold"
+							>{(grade * 100).toLocaleString(undefined, {
 								minimumFractionDigits: 1,
 								maximumFractionDigits: 1
-							}}
-							spinTiming={{ duration: 400, easing: numberFlowDefaultEasing }}
-						/>{/if}
+							})}%</span
+						>{/if}
 				</div>
 				<p class="text-muted-foreground mt-1 font-mono text-[0.78125rem] leading-[1.5]">
 					{#if hypotheticalMode && hypotheticalDelta !== undefined}
-						what-if · {hypotheticalDelta === 0
+						estimated {hypotheticalLetter?.basis === 'observed' || hypotheticalLetter?.basis === 'observed-range' ? 'from class history' : 'from class style'} · {hypotheticalDelta === 0
 							? '±'
 							: hypotheticalDelta > 0
 								? '+'

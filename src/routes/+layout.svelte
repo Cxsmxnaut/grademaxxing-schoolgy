@@ -6,6 +6,7 @@
 	import '@fontsource/space-grotesk/700.css';
 	import '@fontsource/ibm-plex-mono/400.css';
 	import '@fontsource/ibm-plex-mono/600.css';
+	import { browser } from '$app/environment';
 	import { Toaster } from '$lib/components/ui/sonner';
 	import { ModeWatcher } from 'mode-watcher';
 	import '../app.css';
@@ -18,6 +19,10 @@
      disabling that injection keeps the strict script CSP intact. -->
 <ModeWatcher disableHeadScriptInjection />
 
-<Toaster />
+<!-- svelte-sonner reads HTMLElement while rendering. Render it only after hydration so
+     edge runtimes without DOM globals can still server-render every app route. -->
+{#if browser}
+	<Toaster />
+{/if}
 
 {@render children()}

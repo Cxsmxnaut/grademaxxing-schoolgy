@@ -61,6 +61,15 @@ test('health and unknown-resource behavior are deterministic', async ({ request 
 	expect(logout.headers()['clear-site-data']).toBe('"cache", "cookies", "storage"');
 });
 
+test('session keep-alive requires the encrypted app session and tab binding', async ({
+	request
+}) => {
+	const response = await request.get('/api/session/keepalive');
+	expect(response.status()).toBe(401);
+	expect(await response.json()).toMatchObject({ code: 'APP_SESSION_INVALID' });
+	expect(response.headers()['cache-control']).not.toContain('public');
+});
+
 test('sign-in rejects unsafe district destinations before making an upstream request', async ({
 	request,
 	baseURL

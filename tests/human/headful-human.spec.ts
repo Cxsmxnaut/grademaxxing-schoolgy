@@ -371,7 +371,7 @@ test('1c — the complete modern StudentVUE API returns every read-only contract
 	expect(Object.keys(profile.fields).length).toBeGreaterThan(0);
 
 	const reportCards = await fetchJson('/api/studentvue/report-cards');
-	expect(reportCards.grades).toHaveProperty('schoolGrades');
+	expect(reportCards.transcript).toHaveProperty('enrollments');
 	expect(Array.isArray(reportCards.documents)).toBeTruthy();
 
 	const schedule = await fetchJson('/api/studentvue/schedule');
@@ -737,7 +737,7 @@ test('7 — a student logs out and receives a safe visible sign-in error', async
 	expect(pageErrors).toEqual([]);
 });
 
-test('7b — an expired server session clears protected state and explains the required sign-in', async () => {
+test('7b — an expired StudentVUE session preserves cached grades and offers reconnect', async () => {
 	const expiryContext = await browser.newContext({ viewport: { width: 1280, height: 800 } });
 	const expiryPage = await expiryContext.newPage();
 	try {
@@ -758,20 +758,19 @@ test('7b — an expired server session clears protected state and explains the r
 				status: 401,
 				contentType: 'application/json',
 				body: JSON.stringify({
-					message: 'Your StudentVUE session has expired. Please sign in again.'
+					code: 'UPSTREAM_SESSION_EXPIRED',
+					message: 'Reconnect to StudentVUE to update your school data.'
 				})
 			});
 		});
 		await expiryPage.getByRole('button', { name: 'Refresh', exact: true }).click();
-		await expect(expiryPage).toHaveURL(/\/login\?sessionExpired=true$/, { timeout: 15_000 });
+		await expect(expiryPage).toHaveURL(/\/grades$/, { timeout: 15_000 });
+		await expect(expiryPage.getByTestId('studentvue-reconnect-banner')).toBeVisible();
 		await expect(
-			expiryPage.getByText('Your StudentVUE session expired', { exact: true })
-		).toBeVisible();
-		await expect(
-			expiryPage.getByText('Sign in again to reconnect and refresh your school data.')
+			expiryPage.getByText('Grades are saved on this device', { exact: true })
 		).toBeVisible();
 		const token = await expiryPage.evaluate(() => localStorage.getItem('token'));
-		expect(token).toBeNull();
+		expect(token).not.toBeNull();
 	} finally {
 		await expiryContext.close();
 	}

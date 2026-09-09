@@ -18,7 +18,10 @@
 		getCourseGrade,
 		getCourseUnseenAssignmentsCount
 	} from '$lib/grades/course';
-	import { calculateCourseGpas } from '$lib/grades/gpa';
+	import { saveSeenAssignmentsToLocalStorage } from '$lib/grades/seenAssignments';
+	import { seenAssignmentIDs } from '$lib/grades/seenAssignments.svelte';
+	import { calculateCourseGpas, formatGpa } from '$lib/grades/gpa';
+	import { recordCourseGradeScaleObservation } from '$lib/grades/grade-scale';
 	import { getGpaRank } from '$lib/grades/rank';
 	import { parseGradebookXML } from '$lib/synergy';
 	import type { AssignmentEntity } from '$lib/types/Gradebook';
@@ -32,9 +35,21 @@
 	import ReportPeriodSwitcher from './ReportPeriodSwitcher.svelte';
 
 	let rankShareOpen = $state(false);
+	let currentGradeLevel = $state<number | undefined>(undefined);
 
 	onMount(() => {
-		if (acc.studentAccount) void initializeGradebookCatalog();
+		const account = acc.studentAccount;
+		if (!account) return;
+		void initializeGradebookCatalog();
+		void account
+			.studentInfo()
+			.then((profile) => {
+				currentGradeLevel = profile.Grade ?? undefined;
+			})
+			.catch(() => {
+				// GPA remains a clearly labeled current-gradebook estimate when the profile is unavailable.
+				currentGradeLevel = undefined;
+			});
 	});
 
 	const gradebookCatalog = $derived.by(() => {
@@ -53,6 +68,17 @@
 		gradebookCatalog ? (gradebookCatalog.overrideIndex ?? gradebookCatalog.defaultIndex) : undefined
 	);
 	const courses = $derived(gradebook?.Courses.Course ?? []);
+	$effect(() => {
+		for (const course of courses) {
+			const mark = course.Marks?.Mark[0];
+			const percentage = Number.parseFloat(mark?._CalculatedScoreRaw ?? '');
+			recordCourseGradeScaleObservation(
+				course._CourseID,
+				Number.isFinite(percentage) ? percentage : undefined,
+				mark?._CalculatedScoreString
+			);
+		}
+	});
 	const hasNoGrades = $derived(
 		courses
 			.map((course) => course.Marks?.Mark[0]?._CalculatedScoreString ?? 'N/A')
@@ -61,7 +87,7 @@
 	const totalUnseenAssignments = $derived(
 		courses.reduce((total, course) => total + getCourseUnseenAssignmentsCount(course), 0)
 	);
-	const gpas = $derived(calculateCourseGpas(courses));
+	const gpas = $derived(calculateCourseGpas(courses, currentGradeLevel));
 	const rank = $derived(getGpaRank(gpas.unweighted));
 	const recentAssignments = $derived(
 		courses
@@ -104,9 +130,14 @@
 		}
 	}
 
+	function markAllAssignmentsSeen() {
+		courses.forEach(clearCourseUnseenAssignments);
+		saveSeenAssignmentsToLocalStorage(seenAssignmentIDs);
+	}
+
 	async function shareRank() {
 		if (!rank || gpas.unweighted === undefined) return;
-		const text = `My ${brand} GPA rank is ${rank.current.name} with a ${gpas.unweighted.toFixed(2)} estimated unweighted GPA.`;
+		const text = `My ${brand} GPA rank is ${rank.current.name} with a ${formatGpa(gpas.unweighted)} estimated unweighted GPA.`;
 		try {
 			if (navigator.share) await navigator.share({ title: `${brand} GPA rank`, text });
 			else {
@@ -180,7 +211,7 @@
 										label={`${rank.current.name} GPA rank`}
 									/></span
 								>{/if}
-							<span class="group-open:hidden">{gpas.unweighted?.toFixed(2) ?? '—'}</span>
+							<span class="group-open:hidden">{formatGpa(gpas.unweighted)}</span>
 							<ChevronDownIcon class="size-4 transition-transform group-open:rotate-180" /></span
 						>
 					</summary>
@@ -190,7 +221,7 @@
 								<p class="metric-label">GPA · Unweighted</p>
 								<div class="mt-2 flex items-baseline gap-2.5">
 									<p class="text-grade-strong text-[1.625rem] leading-[1.5] font-bold">
-										{gpas.unweighted?.toFixed(2) ?? '—'}
+										{formatGpa(gpas.unweighted)}
 									</p>
 									<span class="text-tertiary-foreground font-mono text-xs leading-[1.5]"
 										>{gpas.graded.length} graded courses</span
@@ -204,7 +235,7 @@
 							<div>
 								<p class="metric-label">GPA · Weighted</p>
 								<p class="mt-2 text-[1.625rem] leading-[1.5] font-bold">
-									{gpas.weighted?.toFixed(2) ?? '—'}
+									{formatGpa(gpas.weighted)}
 								</p>
 							</div>
 						</div>
@@ -248,7 +279,7 @@
 							<strong
 								class="text-grade-strong text-[2rem] leading-[1.5]"
 								style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
-								>{gpas.unweighted?.toFixed(2) ?? '—'}</strong
+								>{formatGpa(gpas.unweighted)}</strong
 							><span class="text-tertiary-foreground font-mono text-xs leading-[1.5]"
 								>{gpas.graded.length} graded courses</span
 							>
@@ -259,7 +290,7 @@
 						<strong
 							class="mt-2 text-[2rem] leading-[1.5]"
 							style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
-							>{gpas.weighted?.toFixed(2) ?? '—'}</strong
+							>{formatGpa(gpas.weighted)}</strong
 						>
 					</div>
 					<div
@@ -316,7 +347,7 @@
 				</ol>
 
 				{#if courses.length > 0 && totalUnseenAssignments > 0}<div class="flex justify-center">
-						<Button variant="outline" onclick={() => courses.forEach(clearCourseUnseenAssignments)}
+						<Button variant="outline" onclick={markAllAssignmentsSeen}
 							>Mark {totalUnseenAssignments} new assignment{totalUnseenAssignments === 1 ? '' : 's'} as
 							seen</Button
 						>

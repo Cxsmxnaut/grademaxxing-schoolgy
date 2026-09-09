@@ -1,7 +1,6 @@
 <script lang="ts">
 	import * as Item from '$lib/components/ui/item';
 	import { Spinner } from '$lib/components/ui/spinner';
-	import NumberFlow from '@number-flow/svelte';
 	import { onMount } from 'svelte';
 
 	interface Props {
@@ -34,7 +33,7 @@
 
 		<Item.Description>
 			{status}
-			<NumberFlow value={stopwatch} suffix="s" />
+			<span>{stopwatch}s</span>
 		</Item.Description>
 	</Item.Content>
 </Item.Root>
