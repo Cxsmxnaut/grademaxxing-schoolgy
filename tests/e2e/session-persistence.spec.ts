@@ -126,7 +126,7 @@ test('an expired StudentVUE session preserves cached grades and supports passwor
 	expect(replacementSessionId).toBe('replacement-session');
 });
 
-test('a temporary session-status failure does not sign the student out or discard cached grades', async ({
+test('an ambiguous upstream 401 does not sign the student out or discard cached grades', async ({
 	page
 }) => {
 	await page.addInitScript(() => {
@@ -141,9 +141,9 @@ test('a temporary session-status failure does not sign the student out or discar
 	});
 	await page.route('**/api/session/status', (route) =>
 		route.fulfill({
-			status: 500,
+			status: 401,
 			contentType: 'application/json',
-			body: JSON.stringify({ message: 'Temporary service failure' })
+			body: JSON.stringify({ message: 'Temporary portal gateway response' })
 		})
 	);
 	await page.route('**/api/session/keepalive', (route) =>

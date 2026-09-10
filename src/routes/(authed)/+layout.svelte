@@ -18,6 +18,7 @@
 		markPortalChecking,
 		markPortalConnected,
 		markPortalOffline,
+		markPortalRetryScheduled,
 		portalConnection,
 		resetPortalConnection
 	} from '$lib/session.svelte';
@@ -39,8 +40,11 @@
 	const KEEPALIVE_INTERVAL_MS = 8 * 60 * 1000;
 	const BACKGROUND_GRADE_REFRESH_MS = 5 * 60 * 1000;
 	const RESUME_DEBOUNCE_MS = 30 * 1000;
+	const PORTAL_RETRY_DELAYS_MS = [15_000, 30_000, 60_000, 2 * 60_000, 5 * 60_000];
 	let lastMaintenanceAttempt = 0;
 	let maintenancePromise: Promise<void> | undefined;
+	let portalRetryAttempts = 0;
+	let portalRetryTimer: number | undefined;
 
 	const mobileNavigation = [
 		{ title: 'Grades', url: '/grades', icon: BookOpenIcon },
@@ -87,6 +91,8 @@
 			try {
 				await account.keepAlive();
 				if (acc.studentAccount !== account) return;
+				portalRetryAttempts = 0;
+				markPortalConnected();
 				await initializeGradebookCatalog();
 				const catalog = gradebookState.gradebookCatalog;
 				if (!catalog || catalog.loadingIndex !== undefined) return;
@@ -98,12 +104,38 @@
 				}
 			} catch (error) {
 				if (error instanceof StudentVueSessionExpiredError) return;
-				if (!navigator.onLine || error instanceof TypeError) markPortalOffline();
+				markPortalOffline(
+					!navigator.onLine
+						? 'You appear to be offline. Showing your last saved data.'
+						: 'StudentVUE is temporarily unavailable. Showing your last saved data.'
+				);
+				schedulePortalRetry();
 			} finally {
 				maintenancePromise = undefined;
 			}
 		})();
 		return maintenancePromise;
+	}
+
+	function schedulePortalRetry() {
+		if (
+			portalRetryTimer ||
+			!acc.studentAccount ||
+			document.visibilityState !== 'visible' ||
+			!navigator.onLine ||
+			portalConnection.state !== 'offline'
+		)
+			return;
+		const delay = PORTAL_RETRY_DELAYS_MS[Math.min(portalRetryAttempts, PORTAL_RETRY_DELAYS_MS.length - 1)]!;
+		portalRetryAttempts += 1;
+		const nextRetryAt = Date.now() + delay;
+		markPortalRetryScheduled(nextRetryAt);
+		portalRetryTimer = window.setTimeout(() => {
+			portalRetryTimer = undefined;
+			void maintainStudentVueSession(true).finally(() => {
+				if (portalConnection.state === 'offline') schedulePortalRetry();
+			});
+		}, delay);
 	}
 
 	if (browser && !acc.studentAccount) {
@@ -121,6 +153,7 @@
 				// only a confirmed invalid app session should take the student to login.
 				if (!isDefinitiveAppSessionFailure(error)) {
 					markPortalOffline();
+					schedulePortalRetry();
 					return;
 				}
 				try {
@@ -135,7 +168,10 @@
 			}
 		);
 
-		const resume = () => void maintainStudentVueSession();
+		const resume = () => {
+			if (portalConnection.state === 'offline') schedulePortalRetry();
+			void maintainStudentVueSession();
+		};
 		const visibility = () => {
 			if (document.visibilityState === 'visible') resume();
 		};
@@ -167,6 +203,7 @@
 		};
 		window.addEventListener('storage', handleStorage);
 		return () => {
+			if (portalRetryTimer) window.clearTimeout(portalRetryTimer);
 			window.clearInterval(interval);
 			window.removeEventListener('focus', resume);
 			window.removeEventListener('pageshow', resume);

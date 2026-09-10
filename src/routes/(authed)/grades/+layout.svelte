@@ -14,6 +14,7 @@
 	import HistoryIcon from '@lucide/svelte/icons/history';
 	import { onMount } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
+	import { portalConnection } from '$lib/session.svelte';
 	import GradebookLoadingBanner from './GradebookLoadingBanner.svelte';
 
 	let { children } = $props();
@@ -86,13 +87,23 @@
 {/if}
 
 {#if loadingError !== undefined}
-	<Alert.Root variant="destructive" class="mx-auto w-fit min-w-sm">
+	<Alert.Root
+		variant={gradebookCatalog ? 'default' : 'destructive'}
+		class="mx-auto w-fit min-w-sm {gradebookCatalog ? 'border-amber-400/30 bg-amber-400/10' : ''}"
+		data-testid="gradebook-stale-indicator"
+	>
 		<AlertCircleIcon />
-		<Alert.Title>An error occurred while loading grades.</Alert.Title>
+		<Alert.Title>{gradebookCatalog ? 'Showing saved grades.' : 'An error occurred while loading grades.'}</Alert.Title>
 		<Alert.Description>
-			{loadingError instanceof Error ? loadingError.message : String(loadingError)}
+			{#if gradebookCatalog}
+				StudentVUE is temporarily unavailable. Your saved grades remain on screen and the app will retry automatically.
+			{:else}
+				{loadingError instanceof Error ? loadingError.message : String(loadingError)}
+			{/if}
 		</Alert.Description>
-		<Button variant="outline" onclick={() => void retryGradebook()}>Try again</Button>
+		<Button variant="outline" onclick={() => void retryGradebook()}>
+			{portalConnection.state === 'offline' ? 'Retry now' : 'Try again'}
+		</Button>
 	</Alert.Root>
 {/if}
 

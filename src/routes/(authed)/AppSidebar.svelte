@@ -12,7 +12,7 @@
 		switchReportPeriod
 	} from '$lib/grades/catalog.svelte';
 	import { getActiveGradebook } from '$lib/grades/gradebook';
-	import { markPortalConnected, resetPortalConnection } from '$lib/session.svelte';
+	import { markPortalConnected, portalConnection, resetPortalConnection } from '$lib/session.svelte';
 	import { StudentVueSessionExpiredError } from '$lib/synergy';
 	import AppWindowMacIcon from '@lucide/svelte/icons/app-window-mac';
 	import BookOpenIcon from '@lucide/svelte/icons/book-open';
@@ -221,6 +221,15 @@
 		</section>
 
 		<div class="mt-auto flex flex-col gap-3 pt-4" data-testid="sidebar-utilities">
+			{#if portalConnection.state === 'offline'}
+				<div
+					class="border-amber-400/30 bg-amber-400/10 text-tertiary-foreground rounded-[0.5625rem] border px-[0.6875rem] py-[0.5625rem] text-[0.71875rem] leading-[1.45]"
+					role="status"
+					data-testid="portal-offline-indicator"
+				>
+					StudentVUE is temporarily unavailable. Saved records stay available and we'll retry automatically.
+				</div>
+			{/if}
 			<a
 				href="/privacy"
 				class="border-border text-tertiary-foreground hover:bg-sidebar-accent block rounded-[0.5625rem] border px-[0.6875rem] py-[0.5625rem] text-[0.71875rem] leading-[1.45] transition-colors"
@@ -250,7 +259,7 @@
 				{:else}
 					<RefreshCwIcon class="size-3.5 {refreshingAll ? 'animate-spin' : ''}" strokeWidth={1.5} />
 				{/if}
-				<span>{refreshingAll ? 'Refreshing' : 'Refresh'}</span>
+				<span>{refreshingAll ? 'Refreshing' : portalConnection.state === 'offline' ? 'Retry now' : 'Refresh'}</span>
 				{#if lastSync !== undefined && !refreshingAll}
 					<span class="text-muted-foreground font-normal"
 						>Updated {getRelativeTime(new Date(lastSync))}</span

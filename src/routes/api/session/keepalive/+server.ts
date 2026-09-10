@@ -13,9 +13,10 @@ import {
 	StudentSessionBusyError
 } from '$lib/server/student-session';
 import { error, json } from '@sveltejs/kit';
+import { recordStudentVueUpstreamFailure } from '$lib/server/usage-analytics';
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = async ({ cookies, request }) => {
+export const GET: RequestHandler = async ({ cookies, request, platform }) => {
 	let session: ReturnType<typeof getStudentSession>;
 	try {
 		session = getStudentSession(cookies.get(sessionCookie));
@@ -56,7 +57,11 @@ export const GET: RequestHandler = async ({ cookies, request }) => {
 				},
 				{ status: 401 }
 			);
-		if (cause instanceof Pxp2TimeoutError) throw error(504, cause.message);
+		if (cause instanceof Pxp2TimeoutError) {
+			recordStudentVueUpstreamFailure(platform, 'keepalive', 'portal_timeout');
+			throw error(504, cause.message);
+		}
+		recordStudentVueUpstreamFailure(platform, 'keepalive', 'portal_error');
 		throw error(502, cause instanceof Error ? cause.message : 'StudentVUE request failed.');
 	}
 };

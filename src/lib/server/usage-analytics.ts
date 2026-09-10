@@ -21,6 +21,8 @@ type WorkerPlatform = {
 	};
 };
 
+export type UpstreamFailureKind = 'portal_error' | 'portal_timeout';
+
 export type UsageSummary = {
 	uniqueStudents: number;
 	activeStudentsLast30Days: number;
@@ -100,4 +102,25 @@ export async function getUsageSummary(platform: unknown): Promise<UsageSummary |
 		uniqueStudents: Number(result?.uniqueStudents ?? 0),
 		activeStudentsLast30Days: Number(result?.activeStudentsLast30Days ?? 0)
 	};
+}
+
+/**
+ * Emits only an aggregate operational signal. It intentionally contains no
+ * identity, district, request ID, error text, or school-record value.
+ */
+export function recordStudentVueUpstreamFailure(
+	platform: unknown,
+	resource: string,
+	kind: UpstreamFailureKind
+) {
+	const safeResource = /^[a-z-]{1,32}$/.test(resource) ? resource : 'unknown';
+	try {
+		workerEnvironment(platform)?.GRADEMAXXING_USAGE_ANALYTICS?.writeDataPoint({
+			blobs: ['studentvue_upstream_failure', kind],
+			doubles: [1],
+			indexes: [safeResource]
+		});
+	} catch {
+		// Observability must never change a student's StudentVUE result.
+	}
 }

@@ -308,14 +308,23 @@ export async function apiRequest<T>(
 				payload.message ?? 'Reconnect to StudentVUE to update your school data.'
 			);
 		}
-		if (redirectOnUnauthorized && response.status === 401 && typeof window !== 'undefined') {
+		if (
+			redirectOnUnauthorized &&
+			response.status === 401 &&
+			payload?.code === 'APP_SESSION_INVALID' &&
+			typeof window !== 'undefined'
+		) {
 			// An expired or invalid portal session must clear every cached client store. Use a
 			// full navigation so module-level Svelte state cannot survive into the next account.
 			if (!expectedSessionId || storedSessionId() === expectedSessionId)
 				localStorage.removeItem('token');
 			window.location.assign('/login?sessionExpired=true');
 		}
-		if (response.status === 0 || response.status >= 500) markPortalOffline();
+		// Unknown 401s must not erase local data. Only the explicit app-session code above
+		// proves this browser cannot resume; portal outages and proxy failures can otherwise
+		// look deceptively similar.
+		if (response.status === 0 || response.status >= 500 || response.status === 401)
+			markPortalOffline();
 		throw new Error(payload?.message ?? `StudentVUE API request failed (HTTP ${response.status}).`);
 	}
 }

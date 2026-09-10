@@ -84,3 +84,14 @@ test('upstream expiry is distinguished from an invalid app session', async () =>
 		StudentVueSessionExpiredError
 	);
 });
+
+test('an ambiguous upstream 401 is treated as a temporary portal failure, not a sign-out', async () => {
+	vi.stubGlobal(
+		'fetch',
+		vi.fn<typeof fetch>().mockResolvedValue(
+			Response.json({ message: 'Temporary gateway response' }, { status: 401 })
+		)
+	);
+
+	await expect(apiRequest('/api/studentvue/gradebook')).rejects.toThrow('Temporary gateway response');
+});

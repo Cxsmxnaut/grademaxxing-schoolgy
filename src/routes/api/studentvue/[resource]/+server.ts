@@ -14,6 +14,7 @@ import {
 	StudentSessionBusyError
 } from '$lib/server/student-session';
 import { adaptAttendance, adaptStudentInfo } from '$lib/server/studentvue-adapters';
+import { recordStudentVueUpstreamFailure } from '$lib/server/usage-analytics';
 import { error, isHttpError, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
@@ -37,7 +38,7 @@ const resources = [
 ] as const;
 type Resource = (typeof resources)[number];
 
-export const GET: RequestHandler = async ({ params, cookies, request, url }) => {
+export const GET: RequestHandler = async ({ params, cookies, request, url, platform }) => {
 	if (!resources.includes(params.resource as Resource))
 		throw error(404, 'Unknown StudentVUE API resource.');
 	let session: ReturnType<typeof getStudentSession>;
@@ -160,7 +161,11 @@ export const GET: RequestHandler = async ({ params, cookies, request, url }) => 
 				{ status: 401 }
 			);
 		}
-		if (cause instanceof Pxp2TimeoutError) throw error(504, cause.message);
+		if (cause instanceof Pxp2TimeoutError) {
+			recordStudentVueUpstreamFailure(platform, params.resource, 'portal_timeout');
+			throw error(504, cause.message);
+		}
+		recordStudentVueUpstreamFailure(platform, params.resource, 'portal_error');
 		throw error(502, cause instanceof Error ? cause.message : 'StudentVUE request failed.');
 	}
 };
