@@ -124,7 +124,7 @@
 	}
 	async function changeReportPeriod(index: number) {
 		try {
-			await switchReportPeriod({ overrideIndex: index });
+			await switchReportPeriod({ overrideIndex: index, delta: true });
 		} catch {
 			// The shared loading state surfaces the request failure.
 		}

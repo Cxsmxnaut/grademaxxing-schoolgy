@@ -19,7 +19,8 @@
 			How {brand} handles your information
 		</h1>
 		<p class="mb-10 max-w-2xl text-base leading-7 text-[#8fa9c2]">
-			{brand} is designed to show private school records without retaining your StudentVUE password.
+			{brand} keeps the convenience of a persistent sign-in without putting your StudentVUE password on
+			our servers.
 		</p>
 
 		<div class="space-y-9 text-[0.9375rem] leading-7 text-[#8fa9c2]">
@@ -27,8 +28,8 @@
 				<h2 class="mb-2 text-lg font-semibold text-[#e4eef8]">Signing in</h2>
 				<p>
 					Your browser sends your credentials over HTTPS to this {brand} server. The server uses them
-					to establish a session with the official StudentVUE portal. Your password is not written to
-					disk, added to browser storage, or retained in the app session.
+					to establish a session with the official StudentVUE portal, then discards the password. It is
+					never written to our disk, logs, or server session.
 				</p>
 			</section>
 
@@ -44,8 +45,11 @@
 			<section>
 				<h2 class="mb-2 text-lg font-semibold text-[#e4eef8]">Local data and signing out</h2>
 				<p>
-					Grade data used by the interface may be cached on your device and can be cleared from
-					Student Info. Signing out deletes the active server session.
+					If you choose “Keep me signed in,” your district, username, and password are encrypted on
+					this device. The encryption key is held in IndexedDB as a non-exportable browser key,
+					while only ciphertext is stored in browser storage. Grade data used by the interface may
+					also be cached on your device. Signing out deletes the active server session, saved
+					credentials, and local caches.
 				</p>
 			</section>
 		</div>

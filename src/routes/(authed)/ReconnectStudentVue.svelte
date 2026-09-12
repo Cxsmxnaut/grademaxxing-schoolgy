@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { LocalStorageKey } from '$lib';
-	import { acc } from '$lib/account.svelte';
+	import { acc, persistStudentAccount } from '$lib/account.svelte';
+	import { loadStoredCredentials, saveStoredCredentials } from '$lib/auth/credential-vault';
 	import { brand } from '$lib/brand';
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
@@ -20,17 +20,18 @@
 		if (!current || reconnecting) return;
 		reconnecting = true;
 		reconnectError = undefined;
-		const replacement = new StudentAccount(current.domain, current.userID, password);
+		const submittedPassword = password;
+		const shouldRemember = (await loadStoredCredentials()) !== undefined;
+		const replacement = new StudentAccount(current.domain, current.userID, submittedPassword);
 		try {
 			await replacement.checkLogin();
-			localStorage.setItem(
-				LocalStorageKey.token,
-				JSON.stringify({
-					username: replacement.userID,
+			if (shouldRemember)
+				await saveStoredCredentials({
 					domain: replacement.domain,
-					sessionId: replacement.sessionId
-				})
-			);
+					username: replacement.userID,
+					password: submittedPassword
+				});
+			persistStudentAccount(replacement);
 			acc.studentAccount = replacement;
 			password = '';
 			markPortalConnected();
@@ -65,7 +66,7 @@
 				<Dialog.Title>Reconnect to StudentVUE</Dialog.Title>
 				<Dialog.Description>
 					Your district ended its session. Enter your StudentVUE password to update {brand}; it will
-					not be stored.
+					be encrypted on this device if you chose to stay signed in.
 				</Dialog.Description>
 			</Dialog.Header>
 

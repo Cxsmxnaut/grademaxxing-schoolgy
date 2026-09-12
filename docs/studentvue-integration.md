@@ -9,11 +9,11 @@ This was necessary because the legacy SOAP experience is no longer reliable for 
 ## Session lifecycle
 
 1. The browser submits a district portal URL, username, and password to `POST /api/session` over HTTPS.
-2. The password is passed to StudentVUE to sign in, then discarded. It must never be saved in browser storage, app logs, source, or test data.
+2. The password is passed to StudentVUE to sign in, then discarded by the server. If the student opts to stay signed in, the browser stores only an AES-GCM-encrypted credential envelope; the non-exportable encryption key remains in IndexedDB. It must never appear in app logs, source, or test data.
 3. The server encrypts the resumable upstream session state into an HttpOnly `grademaxxing_session` cookie using `GRADEMAXXING_SESSION_SECRET`.
 4. On reload, the server decrypts and resumes that portal state. The browser should remain signed in until either the configured application TTL or StudentVUE's upstream session expires.
 5. `GET /api/session/keepalive` runs only while the page is visible or resumes. It rolls the encrypted cookie after a lightweight authenticated StudentVUE request.
-6. If the upstream portal expires, the application preserves local cached identity/grades where safe and asks for a password-only reconnect. It does not ask for the username/district again unless the app session is invalid.
+6. If the upstream portal expires, the application first attempts a silent reauthentication from the encrypted device vault. If no vault is available or reauthentication fails, it preserves local cached identity/grades where safe and asks for a password-only reconnect. It does not ask for the username/district again unless the app session is invalid.
 
 The default app-session TTL is 12 hours and can be adjusted with `GRADEMAXXING_SESSION_TTL_HOURS`. The session secret must be at least 32 random characters and must be configured separately in each deployment environment.
 
@@ -31,6 +31,8 @@ Do not reduce these errors to a generic "logged out" message: reconnect behavior
 ## Gradebook fidelity details
 
 The gradebook requires multiple portal interactions. The portal's selected reporting period and focused class are mutable upstream-session state, so the server serializes whole logical gradebook operations per student. It then parallelizes only safe independent class requests.
+
+After the first complete gradebook load, the browser keeps the detailed record locally for immediate rendering. On a later reload, it requests only the lightweight official-mark summary; when course marks and structure are unchanged, it reuses the cached assignment details instead of repeating the complete gradebook traversal. A complete refresh still runs at least every 30 minutes so assignment-only changes are eventually picked up, and an explicit refresh always requests complete data.
 
 `GetClassData` is the authoritative source for official percentage, letter mark, weighting rules, categories, points, missing marks, dropped scores, rounding rules, and all graded assignment IDs. The visible course-content feed may omit assignments, including hidden/previous assignments. For graded IDs absent from that feed, Grademaxxing requests only targeted assignment-detail fragments and merges the authoritative data. This is why the app can show more complete charts and calculations than a simplistic scraper.
 

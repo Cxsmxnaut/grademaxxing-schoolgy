@@ -71,6 +71,7 @@ test('summary gradebook skips serial class detail only when every class has a us
 	const gradebook = await client.gradebook(undefined, true);
 
 	expect(gradebook.courses).toMatchObject([{ id: 'class-info-id', title: 'Biology', score: 'A' }]);
+	expect(gradebook.detailed).toBe(false);
 	expect(fetchMock).toHaveBeenCalledTimes(2);
 });
 

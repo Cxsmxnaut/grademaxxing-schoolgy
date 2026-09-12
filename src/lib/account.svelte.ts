@@ -28,3 +28,14 @@ export const loadStudentAccount = () => {
 		acc.studentAccount = undefined;
 	}
 };
+
+export const persistStudentAccount = (account: StudentAccount) => {
+	localStorage.setItem(
+		LocalStorageKey.token,
+		JSON.stringify({
+			username: account.userID,
+			domain: account.domain,
+			sessionId: account.sessionId
+		})
+	);
+};

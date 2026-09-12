@@ -139,7 +139,7 @@
 							</div>
 							<div class="flex items-center justify-between gap-4">
 								<dt class="text-muted-foreground">Password</dt>
-								<dd class="text-success font-medium">Never stored</dd>
+								<dd class="text-success font-medium">Encrypted on this device</dd>
 							</div>
 							<div class="flex items-center justify-between gap-4">
 								<dt class="text-muted-foreground">District portal</dt>

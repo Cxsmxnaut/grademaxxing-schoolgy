@@ -184,10 +184,11 @@
 			<div class="privacy-icon"><ShieldCheckIcon aria-hidden="true" strokeWidth={1.5} /></div>
 			<div class="privacy-copy">
 				<p class="eyebrow">PRIVATE BY DESIGN</p>
-				<h2 id="privacy-heading">Your password is never stored.</h2>
+				<h2 id="privacy-heading">Your password stays encrypted on your device.</h2>
 				<p>
-					Your credentials travel over encrypted HTTPS only to establish your StudentVUE session.
-					{brand} keeps the experience local to your browser.
+					Your credentials travel over encrypted HTTPS to establish your StudentVUE session. If you
+					choose to stay signed in, the password is encrypted locally and never stored on our
+					servers.
 				</p>
 			</div>
 			<a class="button button-ghost" href="/privacy"

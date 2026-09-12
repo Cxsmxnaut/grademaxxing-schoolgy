@@ -12,7 +12,11 @@
 		switchReportPeriod
 	} from '$lib/grades/catalog.svelte';
 	import { getActiveGradebook } from '$lib/grades/gradebook';
-	import { markPortalConnected, portalConnection, resetPortalConnection } from '$lib/session.svelte';
+	import {
+		markPortalConnected,
+		portalConnection,
+		resetPortalConnection
+	} from '$lib/session.svelte';
 	import { StudentVueSessionExpiredError } from '$lib/synergy';
 	import AppWindowMacIcon from '@lucide/svelte/icons/app-window-mac';
 	import BookOpenIcon from '@lucide/svelte/icons/book-open';
@@ -41,6 +45,7 @@
 	});
 
 	let refreshingAll = $state(false);
+	let backgroundRefreshPromise: Promise<void> | undefined;
 	let lastSuccessfulRefresh = $state<number | undefined>();
 
 	async function logOut() {
@@ -63,7 +68,7 @@
 	});
 	const lastSync = $derived(lastSuccessfulRefresh ?? gradebookLastRefresh);
 	const profileName = $derived.by(() => {
-		const formattedName = studentInfoState.data?.FormattedName.trim();
+		const formattedName = studentInfoState.data?.FormattedName?.trim();
 		if (!formattedName) return 'Student profile';
 		const givenNames = formattedName.includes(',')
 			? formattedName.split(',').slice(1).join(' ').trim()
@@ -72,31 +77,39 @@
 	});
 
 	async function refreshAll() {
-		if (refreshingAll) return;
+		if (refreshingAll || backgroundRefreshPromise) return;
 		refreshingAll = true;
 		try {
 			// A single lightweight probe stops a dead upstream session from causing five
 			// duplicate failed requests and opens the reconnect prompt immediately.
 			await acc.studentAccount?.keepAlive();
-			const refreshes: Promise<unknown>[] = [
+			// Gradebook is the page's primary refresh target. StudentVUE requests for one
+			// session are serialized, so enqueue it before the lower-priority records.
+			const gradebookRefresh = gradebookState.gradebookCatalog
+				? switchReportPeriod({ forceRefresh: true, delta: true })
+				: Promise.resolve();
+			const backgroundRefreshes: Promise<unknown>[] = [
 				loadAttendance(true),
 				loadDocuments(true),
 				loadMailData(true),
 				loadStudentInfo(true)
 			];
-			if (gradebookState.gradebookCatalog)
-				refreshes.push(switchReportPeriod({ forceRefresh: true }));
-			const results = await Promise.allSettled(refreshes);
-			const recordFailed = [
-				attendanceState.error,
-				documentsState.error,
-				mailDataState.error,
-				studentInfoState.error
-			].some(Boolean);
-			if (results.every((result) => result.status === 'fulfilled') && !recordFailed) {
-				lastSuccessfulRefresh = Date.now();
-				markPortalConnected(lastSuccessfulRefresh);
-			}
+			backgroundRefreshPromise = Promise.allSettled(backgroundRefreshes)
+				.then(() => {
+					const recordFailed = [
+						attendanceState.error,
+						documentsState.error,
+						mailDataState.error,
+						studentInfoState.error
+					].some(Boolean);
+					if (!recordFailed) markPortalConnected(Date.now());
+				})
+				.finally(() => {
+					backgroundRefreshPromise = undefined;
+				});
+			await gradebookRefresh;
+			lastSuccessfulRefresh = Date.now();
+			markPortalConnected(lastSuccessfulRefresh);
 		} catch (error) {
 			if (!(error instanceof StudentVueSessionExpiredError))
 				toast.error("Couldn't refresh StudentVUE", {
@@ -223,11 +236,12 @@
 		<div class="mt-auto flex flex-col gap-3 pt-4" data-testid="sidebar-utilities">
 			{#if portalConnection.state === 'offline'}
 				<div
-					class="border-amber-400/30 bg-amber-400/10 text-tertiary-foreground rounded-[0.5625rem] border px-[0.6875rem] py-[0.5625rem] text-[0.71875rem] leading-[1.45]"
+					class="text-tertiary-foreground rounded-[0.5625rem] border border-amber-400/30 bg-amber-400/10 px-[0.6875rem] py-[0.5625rem] text-[0.71875rem] leading-[1.45]"
 					role="status"
 					data-testid="portal-offline-indicator"
 				>
-					StudentVUE is temporarily unavailable. Saved records stay available and we'll retry automatically.
+					StudentVUE is temporarily unavailable. Saved records stay available and we'll retry
+					automatically.
 				</div>
 			{/if}
 			<a
@@ -235,7 +249,8 @@
 				class="border-border text-tertiary-foreground hover:bg-sidebar-accent block rounded-[0.5625rem] border px-[0.6875rem] py-[0.5625rem] text-[0.71875rem] leading-[1.45] transition-colors"
 				data-testid="sidebar-privacy"
 			>
-				Your password is never stored. Signing out deletes your secure server session.
+				Your password stays encrypted on this device. Signing out deletes your secure server session
+				and saved credentials.
 			</a>
 
 			<div
@@ -259,7 +274,13 @@
 				{:else}
 					<RefreshCwIcon class="size-3.5 {refreshingAll ? 'animate-spin' : ''}" strokeWidth={1.5} />
 				{/if}
-				<span>{refreshingAll ? 'Refreshing' : portalConnection.state === 'offline' ? 'Retry now' : 'Refresh'}</span>
+				<span
+					>{refreshingAll
+						? 'Refreshing'
+						: portalConnection.state === 'offline'
+							? 'Retry now'
+							: 'Refresh'}</span
+				>
 				{#if lastSync !== undefined && !refreshingAll}
 					<span class="text-muted-foreground font-normal"
 						>Updated {getRelativeTime(new Date(lastSync))}</span

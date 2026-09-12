@@ -24,7 +24,7 @@ Each tester should check:
 
 ## Severity
 
-- **Stop beta:** wrong student, exposed private data, stored password, cross-account data, or destructive portal behavior.
+- **Stop beta:** wrong student, exposed private data, plaintext/server-stored password, cross-account data, or destructive portal behavior.
 - **Critical:** wrong official percentage, missing class, wrong report period, or sign-in/session failure affecting multiple testers.
 - **High:** missing assignments, attendance, documents, or mail; refresh never completes; mobile page is unusable.
 - **Normal:** visual mismatch, unclear text, spacing issue, or a non-blocking interaction problem.

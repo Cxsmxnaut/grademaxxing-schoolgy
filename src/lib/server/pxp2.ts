@@ -1,6 +1,6 @@
 import { DISTRICTS } from '$lib/data/districts';
-import { load } from 'cheerio';
 import { parseStudentVueTranscript } from '$lib/grades/transcript';
+import { load } from 'cheerio';
 import { Buffer } from 'node:buffer';
 
 function portalBasePath(pathname: string) {
@@ -19,6 +19,14 @@ export type Pxp2SessionState = {
 	baseUrl: string;
 	cookies: Record<string, string>;
 	messageToken?: string;
+};
+
+/** A payload-free timing record for local performance diagnostics. */
+export type Pxp2RequestMetric = {
+	path: string;
+	status?: number;
+	durationMs: number;
+	outcome: 'response' | 'network-error' | 'timeout';
 };
 
 export type PortalDocument = { id: string; title: string; date: string; category: string };
@@ -53,6 +61,12 @@ export type PortalGradebook = {
 	courses: PortalCourse[];
 	reportingPeriods: PortalReportingPeriod[];
 	selectedPeriod: PortalReportingPeriod;
+	/**
+	 * False only when the portal's rendered course headers were safely used as a
+	 * quick first view. Those headers contain official current marks but not the
+	 * assignment/category detail required by charts and what-if calculations.
+	 */
+	detailed?: boolean;
 };
 
 export class Pxp2InputError extends Error {}
@@ -139,17 +153,24 @@ export class Pxp2Client {
 	private gradebookTail: Promise<void> = Promise.resolve();
 	private messageToken?: string;
 
-	private constructor(private readonly baseUrl: URL) {}
+	private constructor(
+		private readonly baseUrl: URL,
+		private readonly onRequestMetric?: (metric: Pxp2RequestMetric) => void
+	) {}
 
-	static async login(districtUrl: string, credentials: Credentials) {
-		const client = new Pxp2Client(normalizeDistrictUrl(districtUrl));
+	static async login(
+		districtUrl: string,
+		credentials: Credentials,
+		onRequestMetric?: (metric: Pxp2RequestMetric) => void
+	) {
+		const client = new Pxp2Client(normalizeDistrictUrl(districtUrl), onRequestMetric);
 		await client.authenticate(credentials);
 		return client;
 	}
 
-	static resume(state: Pxp2SessionState) {
+	static resume(state: Pxp2SessionState, onRequestMetric?: (metric: Pxp2RequestMetric) => void) {
 		const baseUrl = normalizeDistrictUrl(state.baseUrl);
-		const client = new Pxp2Client(baseUrl);
+		const client = new Pxp2Client(baseUrl, onRequestMetric);
 		const entries = Object.entries(state.cookies ?? {});
 		if (entries.length === 0 || entries.length > 50)
 			throw new Error('StudentVUE session cookie state is invalid.');
@@ -417,7 +438,12 @@ export class Pxp2Client {
 			startDate: '',
 			endDate: ''
 		}));
-		return { courses, reportingPeriods, selectedPeriod: reportingPeriods[selectedIndex]! };
+		return {
+			courses,
+			reportingPeriods,
+			selectedPeriod: reportingPeriods[selectedIndex]!,
+			detailed: !safeSummary
+		};
 	}
 
 	async attendance() {
@@ -839,6 +865,7 @@ export class Pxp2Client {
 			throw new Error('Blocked unexpected StudentVUE request destination.');
 		const headers = new Headers(init.headers);
 		if (!headers.has('Accept')) headers.set('Accept', 'text/html,application/xhtml+xml');
+		if (!headers.has('Accept-Encoding')) headers.set('Accept-Encoding', 'gzip, deflate, br');
 		if (this.cookies.size)
 			headers.set(
 				'Cookie',
@@ -847,15 +874,26 @@ export class Pxp2Client {
 		const controller = new AbortController();
 		const timeout = setTimeout(() => controller.abort(), 45_000);
 		let response: Response;
+		const startedAt = performance.now();
 		try {
 			response = await fetch(url, { ...init, headers, signal: init.signal ?? controller.signal });
 		} catch (cause) {
-			if (controller.signal.aborted)
+			const durationMs = Math.round(performance.now() - startedAt);
+			if (controller.signal.aborted) {
+				this.onRequestMetric?.({ path: url.pathname, durationMs, outcome: 'timeout' });
 				throw new Pxp2TimeoutError('StudentVUE took too long to respond. Please try again.');
+			}
+			this.onRequestMetric?.({ path: url.pathname, durationMs, outcome: 'network-error' });
 			throw cause;
 		} finally {
 			clearTimeout(timeout);
 		}
+		this.onRequestMetric?.({
+			path: url.pathname,
+			status: response.status,
+			durationMs: Math.round(performance.now() - startedAt),
+			outcome: 'response'
+		});
 		for (const cookie of response.headers.getSetCookie()) {
 			const first = cookie.split(';', 1)[0] ?? '';
 			const equal = first.indexOf('=');

@@ -27,7 +27,7 @@
 
 	async function changeReportPeriod(index: number) {
 		try {
-			await switchReportPeriod({ overrideIndex: index });
+			await switchReportPeriod({ overrideIndex: index, delta: true });
 		} catch {
 			// The parent grade layout surfaces the shared loading error.
 		}

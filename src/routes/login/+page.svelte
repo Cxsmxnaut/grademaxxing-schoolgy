@@ -3,7 +3,12 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { LocalStorageKey } from '$lib';
-	import { acc, loadStudentAccount } from '$lib/account.svelte';
+	import { acc, loadStudentAccount, persistStudentAccount } from '$lib/account.svelte';
+	import {
+		clearStoredCredentials,
+		loadStoredCredentials,
+		saveStoredCredentials
+	} from '$lib/auth/credential-vault';
 	import { brand } from '$lib/brand';
 	import AuthPanelHeader from '$lib/components/auth/AuthPanelHeader.svelte';
 	import AuthShell from '$lib/components/auth/AuthShell.svelte';
@@ -35,9 +40,11 @@
 	let loggingIn = $state(false);
 	let loginStage = $state('Connecting to StudentVUE…');
 	let interactive = $state(false);
+	let rememberMe = $state(true);
 
 	onMount(() => {
 		interactive = true;
+		void restoreSavedSession();
 	});
 
 	const sessionExpired = $derived(
@@ -52,13 +59,85 @@
 		);
 	}
 
+	async function finishLogin(loginAccount: StudentAccount, passwordToStore?: string) {
+		resetGradebookCatalog();
+		resetNonGradeRecords();
+		const ownerFingerprint = await gradebookOwnerFingerprint(
+			loginAccount.userID,
+			loginAccount.domain
+		);
+		let sameStudent = localStorage.getItem(LocalStorageKey.gradebookOwner) === ownerFingerprint;
+		const previousToken = localStorage.getItem(LocalStorageKey.token);
+		if (!sameStudent && previousToken !== null) {
+			try {
+				const previous = JSON.parse(previousToken) as { username?: unknown; domain?: unknown };
+				sameStudent =
+					typeof previous.username === 'string' &&
+					typeof previous.domain === 'string' &&
+					previous.username.toLowerCase() === loginAccount.userID.toLowerCase() &&
+					previous.domain.toLowerCase() === loginAccount.domain.toLowerCase();
+			} catch {
+				/* Invalid identity metadata never authorizes cache reuse. */
+			}
+		}
+
+		if (!sameStudent) {
+			seenAssignmentIDs.clear();
+			for (const key of [
+				LocalStorageKey.gradebook,
+				LocalStorageKey.seenAssignmentIDs,
+				LocalStorageKey.attendance,
+				LocalStorageKey.documents,
+				LocalStorageKey.mailData,
+				LocalStorageKey.studentInfo
+			])
+				localStorage.removeItem(key);
+		}
+		localStorage.setItem(LocalStorageKey.gradebookOwner, ownerFingerprint);
+		persistStudentAccount(loginAccount);
+		if (rememberMe && passwordToStore) {
+			await saveStoredCredentials({
+				domain: loginAccount.domain,
+				username: loginAccount.userID,
+				password: passwordToStore
+			});
+		} else if (!rememberMe) {
+			await clearStoredCredentials();
+		}
+		acc.studentAccount = loginAccount;
+	}
+
+	async function restoreSavedSession() {
+		if (loggingIn || acc.studentAccount) return;
+		const stored = await loadStoredCredentials();
+		if (!stored || localStorage.getItem(LocalStorageKey.token) !== null) return;
+
+		loggingIn = true;
+		loginStage = 'Restoring your session…';
+		loginError = undefined;
+		const savedAccount = new StudentAccount(stored.domain, stored.username, stored.password);
+		try {
+			await savedAccount.checkLogin();
+			await finishLogin(savedAccount, stored.password);
+			loginStage = 'Loading your grades…';
+			await initializeGradebookCatalog();
+			await goto('/grades');
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			if (/invalid|password|credential|unauthor/i.test(message)) await clearStoredCredentials();
+			loggingIn = false;
+			loginError = 'Your saved StudentVUE sign-in needs attention. Enter your password again.';
+		}
+	}
+
 	async function login(event: SubmitEvent) {
 		event.preventDefault();
 		if (loggingIn) return;
 		loggingIn = true;
 		loginStage = 'Connecting to StudentVUE…';
 		loginError = undefined;
-		const loginAccount = new StudentAccount(domain, username, password);
+		const submittedPassword = password;
+		const loginAccount = new StudentAccount(domain, username, submittedPassword);
 
 		try {
 			await loginAccount.checkLogin();
@@ -69,49 +148,7 @@
 		}
 
 		try {
-			resetGradebookCatalog();
-			resetNonGradeRecords();
-			const ownerFingerprint = await gradebookOwnerFingerprint(
-				loginAccount.userID,
-				loginAccount.domain
-			);
-			let sameStudent = localStorage.getItem(LocalStorageKey.gradebookOwner) === ownerFingerprint;
-			const previousToken = localStorage.getItem(LocalStorageKey.token);
-			if (!sameStudent && previousToken !== null) {
-				try {
-					const previous = JSON.parse(previousToken) as { username?: unknown; domain?: unknown };
-					sameStudent =
-						typeof previous.username === 'string' &&
-						typeof previous.domain === 'string' &&
-						previous.username.toLowerCase() === loginAccount.userID.toLowerCase() &&
-						previous.domain.toLowerCase() === loginAccount.domain.toLowerCase();
-				} catch {
-					/* Invalid identity metadata never authorizes cache reuse. */
-				}
-			}
-
-			if (!sameStudent) {
-				seenAssignmentIDs.clear();
-				for (const key of [
-					LocalStorageKey.gradebook,
-					LocalStorageKey.seenAssignmentIDs,
-					LocalStorageKey.attendance,
-					LocalStorageKey.documents,
-					LocalStorageKey.mailData,
-					LocalStorageKey.studentInfo
-				])
-					localStorage.removeItem(key);
-			}
-			localStorage.setItem(LocalStorageKey.gradebookOwner, ownerFingerprint);
-			localStorage.setItem(
-				LocalStorageKey.token,
-				JSON.stringify({
-					username: loginAccount.userID,
-					domain: loginAccount.domain,
-					sessionId: loginAccount.sessionId
-				})
-			);
-			acc.studentAccount = loginAccount;
+			await finishLogin(loginAccount, submittedPassword);
 		} catch {
 			await fetch('/api/session', { method: 'DELETE' }).catch(() => undefined);
 			resetGradebookCatalog();
@@ -216,6 +253,16 @@
 					/>
 				</div>
 
+				<label class="flex items-start gap-2 text-[0.78125rem] leading-[1.172rem] text-[#8fa9c2]">
+					<input type="checkbox" bind:checked={rememberMe} class="mt-0.5 size-4 accent-[#4db6f5]" />
+					<span>
+						Keep me signed in on this device
+						<span class="block text-xs text-[#7d98b1]"
+							>Your password is encrypted locally and sent only over HTTPS when reconnecting.</span
+						>
+					</span>
+				</label>
+
 				<Button
 					type="submit"
 					class="mt-1.5 h-[2.6875rem] w-full rounded-[0.5rem] border border-[#4db6f5] bg-[#4db6f5] text-[0.90625rem] font-semibold text-[#06131f] shadow-none transition-none hover:brightness-[1.08]"
@@ -227,8 +274,8 @@
 
 			<div class="mt-[1.125rem] text-center text-[0.8125rem] leading-[1.259375rem] text-[#8fa9c2]">
 				<p>
-					Your password is encrypted in transit and passed directly to your district. We never store
-					it, and we never save your grades.
+					Your password is encrypted on this device and passed directly to your district when {brand}
+					reconnects. We never store it on our servers.
 				</p>
 				<p class="mt-2.5">
 					{brand} is independent and is not affiliated with Edupoint. If you have never used a StudentVUE

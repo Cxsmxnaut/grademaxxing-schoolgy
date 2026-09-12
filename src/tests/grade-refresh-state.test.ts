@@ -2,7 +2,8 @@ import type { GradebookCatalog } from '$lib/grades/catalog';
 import {
 	cacheGradebookRecord,
 	getGradebookCacheOwnerFor,
-	getReportPeriodIndex
+	getReportPeriodIndex,
+	gradebookSummaryMatches
 } from '$lib/grades/refresh';
 import { gradebookXml } from '$lib/server/gradebook-adapter';
 import type { ReportPeriod } from '$lib/types/Gradebook';
@@ -38,4 +39,74 @@ test('grade-refresh cache ownership is stable and account-specific', () => {
 	expect(getGradebookCacheOwnerFor({ domain: 'portal.example.test', userID: 'StudentB' })).toBe(
 		'portal.example.test\nstudentb'
 	);
+});
+
+test('grade-refresh reuses details when only assignment payloads differ', () => {
+	const cached = gradebookXml([
+		{
+			id: '1',
+			period: '1',
+			title: 'History',
+			room: '101',
+			teacher: 'Teacher',
+			teacherEmail: '',
+			score: 'A',
+			scoreRaw: '95',
+			missing: '',
+			categories: [],
+			assignments: [{ AssignmentID: 'old', Measure: 'Quiz' }]
+		}
+	]);
+	const refreshed = gradebookXml([
+		{
+			id: '1',
+			period: '1',
+			title: 'History',
+			room: '101',
+			teacher: 'Teacher',
+			teacherEmail: '',
+			score: 'A',
+			scoreRaw: '95',
+			missing: '',
+			categories: [],
+			assignments: [{ AssignmentID: 'new', Measure: 'Project' }]
+		}
+	]);
+
+	expect(gradebookSummaryMatches(cached, refreshed)).toBe(true);
+});
+
+test('grade-refresh detects changed official marks', () => {
+	const cached = gradebookXml([
+		{
+			id: '1',
+			period: '1',
+			title: 'History',
+			room: '101',
+			teacher: 'Teacher',
+			teacherEmail: '',
+			score: 'A',
+			scoreRaw: '95',
+			missing: '',
+			categories: [],
+			assignments: []
+		}
+	]);
+	const refreshed = gradebookXml([
+		{
+			id: '1',
+			period: '1',
+			title: 'History',
+			room: '101',
+			teacher: 'Teacher',
+			teacherEmail: '',
+			score: 'B',
+			scoreRaw: '85',
+			missing: '',
+			categories: [],
+			assignments: []
+		}
+	]);
+
+	expect(gradebookSummaryMatches(cached, refreshed)).toBe(false);
 });

@@ -29,6 +29,10 @@
 	});
 
 	const loadingIndex = $derived(gradebookCatalog?.loadingIndex);
+	const hasCachedLoadingRecord = $derived.by(() => {
+		gradebookState.version;
+		return loadingIndex !== undefined && gradebookCatalog?.recordCache[loadingIndex] !== undefined;
+	});
 
 	const defaultReportPeriodName = $derived(
 		gradebookCatalog ? getReportPeriodName(gradebookCatalog.defaultIndex) : undefined
@@ -40,7 +44,7 @@
 
 	async function resetReportPeriodOverride() {
 		try {
-			await switchReportPeriod();
+			await switchReportPeriod({ delta: true });
 		} catch {
 			// The shared gradebook state and toast already expose the failure.
 		}
@@ -50,7 +54,8 @@
 		try {
 			await switchReportPeriod({
 				overrideIndex: gradebookCatalog?.overrideIndex,
-				forceRefresh: true
+				forceRefresh: true,
+				delta: true
 			});
 		} catch {
 			// The shared gradebook state and toast already expose the failure.
@@ -75,7 +80,7 @@
 	<div class="flex justify-center" in:fade out:fly={{ y: '-50%' }}>
 		<GradebookLoadingBanner status="Pending" />
 	</div>
-{:else if loadingIndex !== undefined}
+{:else if loadingIndex !== undefined && !hasCachedLoadingRecord}
 	<div class="flex justify-center" in:fade out:fly={{ y: '-50%' }}>
 		{#key gradebookCatalog?.receivingData}
 			<GradebookLoadingBanner
@@ -93,10 +98,15 @@
 		data-testid="gradebook-stale-indicator"
 	>
 		<AlertCircleIcon />
-		<Alert.Title>{gradebookCatalog ? 'Showing saved grades.' : 'An error occurred while loading grades.'}</Alert.Title>
+		<Alert.Title
+			>{gradebookCatalog
+				? 'Showing saved grades.'
+				: 'An error occurred while loading grades.'}</Alert.Title
+		>
 		<Alert.Description>
 			{#if gradebookCatalog}
-				StudentVUE is temporarily unavailable. Your saved grades remain on screen and the app will retry automatically.
+				StudentVUE is temporarily unavailable. Your saved grades remain on screen and the app will
+				retry automatically.
 			{:else}
 				{loadingError instanceof Error ? loadingError.message : String(loadingError)}
 			{/if}

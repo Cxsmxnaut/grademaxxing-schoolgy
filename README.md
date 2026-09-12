@@ -42,6 +42,17 @@ Set `DISTRICT_URL`, `STUDENTVUE_USERNAME`, and `STUDENTVUE_PASSWORD` in the envi
 
 After sign-in, the read-only same-origin API is available under `/api/studentvue`. Its discoverable contract inventory is `/api/studentvue/capabilities`. See [the SOAP-to-PXP2 contract map](./docs/studentvue-modern-api.md) for every route and its first-party modern source.
 
+### StudentVUE API performance CLI
+
+For approved test-account diagnostics, configure credentials once in macOS Keychain and run the real upstream benchmark:
+
+```bash
+npm run benchmark:studentvue -- configure
+npm run benchmark:studentvue
+```
+
+See [`docs/studentvue-api-benchmark.md`](./docs/studentvue-api-benchmark.md) for complete-mode, JSON, timing-history, and non-macOS instructions. The CLI never prints or records StudentVUE payloads or credentials.
+
 ## Hosting
 
 Use HTTPS in production and configure `GRADEMAXXING_SESSION_SECRET` with at least 32 random characters. StudentVUE credentials are discarded immediately after login. The resulting StudentVUE cookie state is encrypted into an HttpOnly application session, which allows the official Vercel adapter and multi-instance Node deployments without a shared session database. Failed logins are rate-limited per user and client address, and session-bound requests are serialized in the browser to protect StudentVUE's mutable gradebook focus.

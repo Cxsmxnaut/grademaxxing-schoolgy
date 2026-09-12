@@ -169,3 +169,78 @@ test('an ambiguous upstream 401 does not sign the student out or discard cached 
 	await expect(page.getByText('Persistence Test', { exact: true }).first()).toBeVisible();
 	expect(await page.evaluate(() => localStorage.getItem('token'))).not.toBeNull();
 });
+
+test('restores an expired app session from the encrypted device vault', async ({ page }) => {
+	let sessionRequests = 0;
+	const passwords: string[] = [];
+	const gradebookXml =
+		'<Gradebook><ReportingPeriod Index="0" GradePeriod="Quarter 1"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1"/></ReportingPeriods><Courses><Course CourseID="vault" CourseName="Vault Test" Period="1" Staff="Teacher" Room="101"><Marks><Mark MarkName="Quarter 1" CalculatedScoreRaw="94" CalculatedScoreString="A"><Assignments></Assignments></Mark></Marks></Course></Courses></Gradebook>';
+
+	await page.route('**/api/session', async (route) => {
+		if (route.request().method() !== 'POST')
+			return route.fulfill({ status: 204, contentType: 'application/json', body: '' });
+		const body = route.request().postDataJSON() as { password?: string };
+		sessionRequests += 1;
+		passwords.push(body.password ?? '');
+		return route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				username: 'vault-preview',
+				domain: 'ca-pleas-psv.edupoint.com',
+				sessionId: `vault-session-${sessionRequests}`
+			})
+		});
+	});
+	await page.route('**/api/session/status', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				signedIn: true,
+				username: 'vault-preview',
+				domain: 'ca-pleas-psv.edupoint.com'
+			})
+		})
+	);
+	await page.route('**/api/session/keepalive', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({ signedIn: true, updatedAt: Date.now() })
+		})
+	);
+	await page.route('**/api/studentvue/**', (route) => {
+		const resource = new URL(route.request().url()).pathname.split('/').at(-1);
+		const body =
+			resource === 'gradebook'
+				? { xml: gradebookXml }
+				: resource === 'student-info'
+					? { FormattedName: 'Vault Preview', Grade: 10, Photo: '' }
+					: {};
+		return route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify(body)
+		});
+	});
+
+	await page.goto('/login');
+	await page.getByLabel('StudentVUE email').fill('vault-preview');
+	await page.getByLabel('StudentVUE Password').fill('preview-password');
+	await page.getByRole('button', { name: 'Log in' }).click();
+	await expect(page).toHaveURL(/\/grades$/);
+	await expect(page.getByText('Vault Test', { exact: true }).first()).toBeVisible();
+
+	const storedEnvelope = await page.evaluate(() => localStorage.getItem('studentvueCredentials'));
+	expect(storedEnvelope).not.toBeNull();
+	expect(storedEnvelope).not.toContain('preview-password');
+	expect(sessionRequests).toBe(1);
+
+	await page.evaluate(() => localStorage.removeItem('token'));
+	await page.reload();
+	await expect(page).toHaveURL(/\/grades$/, { timeout: 20_000 });
+	await expect(page.getByText('Vault Test', { exact: true }).first()).toBeVisible();
+	expect(sessionRequests).toBe(2);
+	expect(passwords).toEqual(['preview-password', 'preview-password']);
+});

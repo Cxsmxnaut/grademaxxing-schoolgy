@@ -4,7 +4,7 @@ import { Operation, parseGradebookXML, unwrapEnvelope } from '$lib/synergy';
 import type { ReportPeriod } from '$lib/types/Gradebook';
 import { getGradebookCacheOwnerFor, getReportPeriodIndex } from './refresh';
 
-export { cacheGradebookRecord, getReportPeriodIndex } from './refresh';
+export { cacheGradebookRecord, getReportPeriodIndex, gradebookSummaryMatches } from './refresh';
 
 export interface GradebookRecord {
 	xml: string;

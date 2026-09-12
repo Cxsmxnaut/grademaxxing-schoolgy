@@ -3,7 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { LocalStorageKey } from '$lib';
-	import { acc, loadStudentAccount } from '$lib/account.svelte';
+	import { acc, loadStudentAccount, persistStudentAccount } from '$lib/account.svelte';
+	import { clearStoredCredentials, loadStoredCredentials } from '$lib/auth/credential-vault';
 	import { brandName, releaseChannel } from '$lib/brand';
 	import BoundaryFailure from '$lib/components/BoundaryFailure.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
@@ -22,7 +23,7 @@
 		portalConnection,
 		resetPortalConnection
 	} from '$lib/session.svelte';
-	import { StudentVueSessionExpiredError } from '$lib/synergy';
+	import { StudentAccount, StudentVueSessionExpiredError } from '$lib/synergy';
 	import BookOpenIcon from '@lucide/svelte/icons/book-open';
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
 	import FileTextIcon from '@lucide/svelte/icons/file-text';
@@ -62,9 +63,40 @@
 		return /session has expired|sign in again|different StudentVUE session/i.test(message);
 	}
 
+	function normalizedDomain(value: string) {
+		return value
+			.trim()
+			.replace(/^https?:\/\//i, '')
+			.replace(/\/+$/, '')
+			.toLowerCase();
+	}
+
+	async function restoreExpiredSession(current: NonNullable<typeof acc.studentAccount>) {
+		const stored = await loadStoredCredentials();
+		if (
+			!stored ||
+			stored.username.toLowerCase() !== current.userID.toLowerCase() ||
+			normalizedDomain(stored.domain) !== normalizedDomain(current.domain)
+		)
+			return false;
+
+		const replacement = new StudentAccount(stored.domain, stored.username, stored.password);
+		try {
+			await replacement.checkLogin();
+			persistStudentAccount(replacement);
+			acc.studentAccount = replacement;
+			return true;
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			if (/invalid|password|credential|unauthor/i.test(message)) await clearStoredCredentials();
+			return false;
+		}
+	}
+
 	async function logOut() {
 		const response = await fetch('/api/session', { method: 'DELETE' }).catch(() => undefined);
 		await response?.arrayBuffer().catch(() => undefined);
+		await clearStoredCredentials();
 		localStorage.clear();
 		resetGradebookCatalog();
 		resetNonGradeRecords();
@@ -99,7 +131,7 @@
 				const index = catalog.overrideIndex ?? catalog.defaultIndex;
 				const lastRefresh = catalog.recordCache[index]?.lastRefresh ?? 0;
 				if (Date.now() - lastRefresh >= BACKGROUND_GRADE_REFRESH_MS) {
-					await switchReportPeriod({ forceRefresh: true, silent: true });
+					await switchReportPeriod({ forceRefresh: true, silent: true, delta: true });
 					markPortalConnected();
 				}
 			} catch (error) {
@@ -126,7 +158,8 @@
 			portalConnection.state !== 'offline'
 		)
 			return;
-		const delay = PORTAL_RETRY_DELAYS_MS[Math.min(portalRetryAttempts, PORTAL_RETRY_DELAYS_MS.length - 1)]!;
+		const delay =
+			PORTAL_RETRY_DELAYS_MS[Math.min(portalRetryAttempts, PORTAL_RETRY_DELAYS_MS.length - 1)]!;
 		portalRetryAttempts += 1;
 		const nextRetryAt = Date.now() + delay;
 		markPortalRetryScheduled(nextRetryAt);
@@ -145,15 +178,20 @@
 
 	onMount(() => {
 		if (!acc.studentAccount) return;
-		void acc.studentAccount.checkLogin().then(
+		const initialAccount = acc.studentAccount;
+		void initialAccount.checkLogin().then(
 			() => void maintainStudentVueSession(true),
-			(error) => {
+			async (error) => {
 				// A Worker cold start, network interruption, or temporary 5xx must never be
 				// mistaken for sign-out. Retain the local session metadata and cached records;
 				// only a confirmed invalid app session should take the student to login.
 				if (!isDefinitiveAppSessionFailure(error)) {
 					markPortalOffline();
 					schedulePortalRetry();
+					return;
+				}
+				if (await restoreExpiredSession(initialAccount)) {
+					location.reload();
 					return;
 				}
 				try {

@@ -41,7 +41,7 @@
 					</li>
 					<li class="flex items-center gap-3">
 						<ShieldCheckIcon class="size-[1.1875rem] text-[#4db6f5]" strokeWidth={1.5} /> Your login is
-						never stored
+						encrypted on your device
 					</li>
 				</ul>
 				<p
@@ -54,7 +54,7 @@
 		</aside>
 	{/if}
 	<main
-		class="flex min-h-screen items-start justify-center overflow-y-auto bg-[#081522] px-4 py-6 sm:px-8 lg:items-center lg:p-10"
+		class="flex min-h-screen items-start justify-center overflow-y-auto bg-[#081522] px-4 py-6 sm:px-8 lg:items-center lg:px-10 lg:py-0"
 		style="background-image: radial-gradient(900px 520px at 85% -10%, rgba(91, 142, 245, 0.12), transparent 62%), radial-gradient(720px 440px at -12% 22%, rgba(91, 142, 245, 0.08), transparent 60%);"
 	>
 		{@render children()}

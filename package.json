@@ -15,6 +15,7 @@
 		"test:e2e": "playwright test",
 		"test:human": "playwright test -c playwright.human.config.ts",
 		"test:parity": "vite-node scripts/verify-studentvue-parity.ts",
+		"benchmark:studentvue": "vite-node scripts/benchmark-studentvue-api.ts",
 		"visual:diff": "vite-node scripts/compare-visual-parity.ts",
 		"visual:audit": "vite-node scripts/report-visual-parity.ts",
 		"test:release": "bash scripts/release-test.sh",

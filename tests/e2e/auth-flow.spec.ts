@@ -11,10 +11,11 @@ test('the sign-in and district-password setup flow matches the current product',
 	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing (Beta)' })).toBeVisible();
 	await expect(page.getByLabel('StudentVUE email')).toBeVisible();
 	await expect(page.getByLabel('StudentVUE Password')).toBeVisible();
+	await expect(page.getByLabel('Keep me signed in on this device')).toBeChecked();
 	await expect(page.getByText('Pleasanton Unified School District', { exact: true })).toBeVisible();
 	await expect(
 		page.getByText(
-			'Your password is encrypted in transit and passed directly to your district. We never store it, and we never save your grades.',
+			'Your password is encrypted on this device and passed directly to your district when Grademaxxing (Beta) reconnects. We never store it on our servers.',
 			{ exact: true }
 		)
 	).toBeVisible();
@@ -95,6 +96,12 @@ test('sign-in keeps the app hidden until the gradebook is ready', async ({ page 
 	const gradebookGate = new Promise<void>((resolve) => (releaseGradebook = resolve));
 	let markGradebookRequested!: () => void;
 	const gradebookRequested = new Promise<void>((resolve) => (markGradebookRequested = resolve));
+	let releaseGradebookDetails!: () => void;
+	const gradebookDetailsGate = new Promise<void>((resolve) => (releaseGradebookDetails = resolve));
+	let markGradebookDetailsRequested!: () => void;
+	const gradebookDetailsRequested = new Promise<void>(
+		(resolve) => (markGradebookDetailsRequested = resolve)
+	);
 
 	await page.route('**/api/session', async (route) => {
 		if (route.request().method() !== 'POST') return route.fallback();
@@ -127,16 +134,24 @@ test('sign-in keeps the app hidden until the gradebook is ready', async ({ page 
 			body: JSON.stringify({ signedIn: true, updatedAt: Date.now() })
 		})
 	);
+	let gradebookRequestCount = 0;
 	await page.route('**/api/studentvue/**', async (route) => {
 		if (new URL(route.request().url()).pathname.endsWith('/gradebook')) {
-			markGradebookRequested();
-			await gradebookGate;
+			gradebookRequestCount += 1;
+			if (gradebookRequestCount === 1) {
+				expect(new URL(route.request().url()).searchParams.get('summary')).toBe('true');
+				markGradebookRequested();
+				await gradebookGate;
+			} else {
+				markGradebookDetailsRequested();
+				await gradebookDetailsGate;
+			}
 			const xml =
 				'<Gradebook><ReportingPeriod Index="0" GradePeriod="Semester 1"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Semester 1"/></ReportingPeriods><Courses><Course CourseID="preview" CourseName="Theme Preview" Period="1" Staff="Teacher" Room="101"><Marks><Mark MarkName="Semester 1" CalculatedScoreRaw="95" CalculatedScoreString="A"><Assignments></Assignments></Mark></Marks></Course></Courses></Gradebook>';
 			await route.fulfill({
 				status: 200,
 				contentType: 'application/json',
-				body: JSON.stringify({ xml })
+				body: JSON.stringify({ xml, detailed: gradebookRequestCount > 1 })
 			});
 			return;
 		}
@@ -173,4 +188,9 @@ test('sign-in keeps the app hidden until the gradebook is ready', async ({ page 
 	await expect(page).toHaveURL(/\/grades$/);
 	await expect(page.getByRole('heading', { level: 1, name: 'Gradebook' })).toBeVisible();
 	await expect(loadingScreen).toHaveCount(0);
+	// Assignment hydration is deliberately slower, but it must not keep a student
+	// on the post-login loading screen after their official course grades arrive.
+	await gradebookDetailsRequested;
+	await expect(page.getByRole('heading', { level: 1, name: 'Gradebook' })).toBeVisible();
+	releaseGradebookDetails();
 });

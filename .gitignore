@@ -29,3 +29,6 @@ vite.config.ts.timestamp-*
 # Mocked data
 src/lib/mocks/data
 .env*.local
+
+# Local-only StudentVUE diagnostic timings. Never commit benchmark runs.
+/.local/
