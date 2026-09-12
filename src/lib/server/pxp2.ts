@@ -19,6 +19,8 @@ export type Pxp2SessionState = {
 	baseUrl: string;
 	cookies: Record<string, string>;
 	messageToken?: string;
+	/** Minimal encrypted context needed to probe grade headers without reloading the slow page. */
+	gradebookContext?: GradebookContext;
 };
 
 /** A payload-free timing record for local performance diagnostics. */
@@ -107,6 +109,21 @@ type GradingPeriod = {
 	MarkPeriods?: Array<{ Name?: unknown; GU?: unknown }>;
 };
 
+type GradebookContextPeriod = {
+	GU: string;
+	OrgYearGU: string;
+	schoolID: string;
+	GroupName: string;
+	Name: string;
+	markPeriodGU?: string;
+	defaultFocus: boolean;
+};
+
+type GradebookContext = {
+	AGU: string;
+	periods: GradebookContextPeriod[];
+};
+
 type PortalCourse = {
 	id: string;
 	period: string;
@@ -152,6 +169,7 @@ export class Pxp2Client {
 	private readonly cookies = new Map<string, string>();
 	private gradebookTail: Promise<void> = Promise.resolve();
 	private messageToken?: string;
+	private gradebookContext?: GradebookContext;
 
 	private constructor(
 		private readonly baseUrl: URL,
@@ -189,6 +207,10 @@ export class Pxp2Client {
 				throw new Error('StudentVUE message session state is invalid.');
 			client.messageToken = state.messageToken;
 		}
+		if (state.gradebookContext) {
+			const context = normalizeGradebookContext(state.gradebookContext);
+			if (context) client.gradebookContext = context;
+		}
 		return client;
 	}
 
@@ -196,7 +218,8 @@ export class Pxp2Client {
 		return {
 			baseUrl: this.baseUrl.toString(),
 			cookies: Object.fromEntries(this.cookies),
-			...(this.messageToken ? { messageToken: this.messageToken } : {})
+			...(this.messageToken ? { messageToken: this.messageToken } : {}),
+			...(this.gradebookContext ? { gradebookContext: this.gradebookContext } : {})
 		};
 	}
 
@@ -221,14 +244,32 @@ export class Pxp2Client {
 	}
 
 	private async loadGradebook(reportPeriod?: number, summary = false): Promise<PortalGradebook> {
-		const html = await this.pageHtml('gradebook');
-		const focus = jsonAssignment(html, 'PXP.GBCurrentFocus') as {
-			FocusArgs?: Record<string, unknown>;
-		};
-		if (!focus?.FocusArgs) throw new Error('StudentVUE grade book context was not found.');
-		const focusData = jsonAssignment(html, 'PXP.GBFocusData') as
-			{ GradingPeriods?: GradingPeriod[] } | undefined;
-		const periods = (focusData?.GradingPeriods ?? []).filter((period) => identifier(period.GU));
+		let html = '';
+		let focus: { FocusArgs?: Record<string, unknown> } | undefined;
+		let periods: GradingPeriod[] = [];
+		const cached = await this.loadCachedGradebookState(reportPeriod);
+		if (cached) {
+			html = cached.html;
+			periods = cached.context.periods.map((period) => ({
+				Name: period.Name,
+				GroupName: period.GroupName,
+				GU: period.GU,
+				OrgYearGU: period.OrgYearGU,
+				schoolID: period.schoolID,
+				defaultFocus: period.defaultFocus,
+				MarkPeriods: period.markPeriodGU ? [{ GU: period.markPeriodGU }] : []
+			}));
+		} else {
+			html = await this.pageHtml('gradebook');
+			focus = jsonAssignment(html, 'PXP.GBCurrentFocus') as {
+				FocusArgs?: Record<string, unknown>;
+			};
+			if (!focus?.FocusArgs) throw new Error('StudentVUE grade book context was not found.');
+			const focusData = jsonAssignment(html, 'PXP.GBFocusData') as
+				{ GradingPeriods?: GradingPeriod[] } | undefined;
+			periods = (focusData?.GradingPeriods ?? []).filter((period) => identifier(period.GU));
+			this.gradebookContext = buildGradebookContext(focus.FocusArgs, periods);
+		}
 		if (periods.length === 0) throw new Error('StudentVUE grading periods were not found.');
 		if (
 			reportPeriod !== undefined &&
@@ -242,7 +283,10 @@ export class Pxp2Client {
 		);
 		const selectedIndex = reportPeriod ?? defaultIndex;
 		const selected = periods[selectedIndex]!;
-		const args = focus.FocusArgs;
+		const args = focus?.FocusArgs ?? {
+			AGU: cached?.context.AGU,
+			gradePeriodGU: selected.GU
+		};
 		let gradebookHtml = html;
 		if (identifier(selected.GU) !== identifier(args.gradePeriodGU)) {
 			const loaded = await this.serviceCall<{ html?: unknown }>('LoadControl', {
@@ -278,6 +322,13 @@ export class Pxp2Client {
 
 		const headers = extractCourseHeaders(gradebookHtml);
 		const focuses = courseFocuses(gradebookHtml);
+		// The compact class control is expected to include the same focus metadata as the
+		// full page. If a district omits it, reload once through the proven compatibility
+		// path instead of returning a misleading incomplete detailed response.
+		if (cached && !summary && focuses.length === 0) {
+			this.gradebookContext = undefined;
+			return this.loadGradebook(reportPeriod, summary);
+		}
 		const headerEntries = [...headers.values()];
 		const summaryHeaders = classes.map((course, index) => {
 			const courseId =
@@ -444,6 +495,40 @@ export class Pxp2Client {
 			selectedPeriod: reportingPeriods[selectedIndex]!,
 			detailed: !safeSummary
 		};
+	}
+
+	private async loadCachedGradebookState(reportPeriod?: number) {
+		const context = this.gradebookContext;
+		if (!context) return undefined;
+		const defaultIndex = Math.max(
+			0,
+			context.periods.findIndex((period) => period.defaultFocus)
+		);
+		const selectedIndex = reportPeriod ?? defaultIndex;
+		if (
+			reportPeriod !== undefined &&
+			(!Number.isSafeInteger(reportPeriod) ||
+				reportPeriod < 0 ||
+				reportPeriod >= context.periods.length)
+		)
+			throw new Pxp2InputError(`reportPeriod must be between 0 and ${context.periods.length - 1}.`);
+		const selected = context.periods[selectedIndex];
+		if (!selected) return undefined;
+		const loaded = await this.serviceCall<{ html?: unknown }>('LoadControl', {
+			request: {
+				control: 'Gradebook_SchoolClasses',
+				parameters: {
+					schoolID: selected.schoolID,
+					OrgYearGU: selected.OrgYearGU,
+					gradePeriodGU: selected.GU,
+					GradingPeriodGroup: selected.GroupName,
+					AGU: context.AGU
+				}
+			}
+		});
+		const html = typeof loaded.html === 'string' ? loaded.html : '';
+		if (!html.includes('data-focus') || extractCourseHeaders(html).size === 0) return undefined;
+		return { html, context };
 	}
 
 	async attendance() {
@@ -993,6 +1078,71 @@ function text(value: unknown) {
 function identifier(value: unknown) {
 	return typeof value === 'string' || typeof value === 'number' ? String(value).trim() : '';
 }
+
+function normalizeGradebookContext(value: unknown): GradebookContext | undefined {
+	if (!value || typeof value !== 'object') return undefined;
+	const candidate = value as Partial<GradebookContext>;
+	if (
+		typeof candidate.AGU !== 'string' ||
+		candidate.AGU.length === 0 ||
+		candidate.AGU.length > 1024 ||
+		!Array.isArray(candidate.periods) ||
+		candidate.periods.length === 0 ||
+		candidate.periods.length > 100
+	)
+		return undefined;
+	const periods = candidate.periods.map((value) => {
+		if (!value || typeof value !== 'object') return undefined;
+		const period = value as Partial<GradebookContextPeriod>;
+		const required = [period.GU, period.OrgYearGU, period.schoolID, period.GroupName, period.Name];
+		if (
+			!required.every((item) => typeof item === 'string' && item.length <= 1024) ||
+			(period.markPeriodGU !== undefined &&
+				(typeof period.markPeriodGU !== 'string' || period.markPeriodGU.length > 1024))
+		)
+			return undefined;
+		return {
+			GU: period.GU!,
+			OrgYearGU: period.OrgYearGU!,
+			schoolID: period.schoolID!,
+			GroupName: period.GroupName!,
+			Name: period.Name!,
+			...(period.markPeriodGU ? { markPeriodGU: period.markPeriodGU } : {}),
+			defaultFocus: period.defaultFocus === true
+		};
+	});
+	return periods.every((period): period is GradebookContextPeriod => Boolean(period))
+		? { AGU: candidate.AGU, periods }
+		: undefined;
+}
+
+function buildGradebookContext(
+	focusArgs: Record<string, unknown>,
+	periods: GradingPeriod[]
+): GradebookContext | undefined {
+	const AGU = identifier(focusArgs.AGU);
+	if (!AGU) return undefined;
+	const contextPeriods = periods.flatMap((period) => {
+		const GU = identifier(period.GU);
+		const OrgYearGU = identifier(period.OrgYearGU);
+		const schoolID = identifier(period.schoolID);
+		if (!GU || !OrgYearGU || !schoolID) return [];
+		const markPeriodGU = identifier(period.MarkPeriods?.[0]?.GU);
+		return [
+			{
+				GU,
+				OrgYearGU,
+				schoolID,
+				GroupName: text(period.GroupName),
+				Name: text(period.Name),
+				...(markPeriodGU ? { markPeriodGU } : {}),
+				defaultFocus: period.defaultFocus === true
+			}
+		];
+	});
+	return normalizeGradebookContext({ AGU, periods: contextPeriods });
+}
+
 function numericText(value: unknown) {
 	return identifier(value).match(/-?\d+(?:\.\d+)?/)?.[0] ?? '';
 }

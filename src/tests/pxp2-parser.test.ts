@@ -75,6 +75,53 @@ test('summary gradebook skips serial class detail only when every class has a us
 	expect(fetchMock).toHaveBeenCalledTimes(2);
 });
 
+test('subsequent gradebook reads use the compact class control context', async () => {
+	const focus = JSON.stringify({
+		LoadParams: { ControlName: 'Gradebook_ClassDetails' },
+		FocusArgs: { classID: 'course-1' }
+	}).replaceAll('"', '&quot;');
+	const page = `<title>StudentVUE</title>
+		<script>PXP.GBCurrentFocus = {"FocusArgs":{"gradePeriodGU":"period-1","AGU":"student"}};</script>
+		<script>PXP.GBFocusData = {"GradingPeriods":[{"GU":"period-1","schoolID":"school","OrgYearGU":"year","defaultFocus":true,"Name":"Quarter 1","MarkPeriods":[{"GU":"mark-1","Name":"Quarter 1"}]}]};</script>
+		<div class="gb-class-header"><span class="course-title" data-focus="${focus}">1: Biology</span></div>
+		<div class="gb-class-row" data-guid="course-1"><span class="mark">A</span></div>`;
+	let gradebookPageCalls = 0;
+	const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+		const path = String(input);
+		if (path.includes('PXP2_Gradebook.aspx')) {
+			gradebookPageCalls += 1;
+			if (gradebookPageCalls > 1) throw new Error('slow gradebook page should not be reloaded');
+			return new Response(page);
+		}
+		if (path.includes('PXP2Communication.asmx/LoadControl')) {
+			const body = JSON.parse(String(init?.body)) as { request?: { control?: string } };
+			if (body.request?.control === 'Gradebook_SchoolClasses')
+				return new Response(JSON.stringify({ d: { Data: { html: page } } }));
+		}
+		if (path.includes('GradebookFocusClassInfo'))
+			return new Response(
+				JSON.stringify({ d: { Data: { Classes: [{ ID: 'class-info-id', Name: 'Biology' }] } } })
+			);
+		throw new Error(`Unexpected portal request: ${path}`);
+	});
+	vi.stubGlobal('fetch', fetchMock);
+	const firstClient = Pxp2Client.resume({
+		baseUrl: 'https://ca-example-psv.edupoint.com/',
+		cookies: { ASP_NET_SessionId: 'summary-session' }
+	});
+
+	await firstClient.gradebook(undefined, true);
+	const secondClient = Pxp2Client.resume(firstClient.exportSessionState());
+	const gradebook = await secondClient.gradebook(undefined, true);
+
+	expect(gradebook.courses).toMatchObject([{ id: 'class-info-id', title: 'Biology', score: 'A' }]);
+	expect(gradebook.detailed).toBe(false);
+	expect(gradebookPageCalls).toBe(1);
+	expect(
+		fetchMock.mock.calls.filter(([input]) => String(input).includes('LoadControl'))
+	).toHaveLength(1);
+});
+
 test('modern attendance HTML preserves SOAP-equivalent per-course events', () => {
 	const html = `
 		<div id="attendance-by-course"><div class="detail-grid"><div class="school-detail">
