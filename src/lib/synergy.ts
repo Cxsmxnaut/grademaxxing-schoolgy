@@ -4,10 +4,10 @@ import type { DocumentsResult } from '$lib/types/Documents';
 import type { MailResult } from '$lib/types/MailData';
 import type { StudentInfoResult } from '$lib/types/StudentInfo';
 import { XMLBuilder, XMLParser } from 'fast-xml-parser';
+import type { TranscriptImport } from './grades/transcript';
 import { markPortalConnected, markPortalOffline, markPortalReconnect } from './session.svelte';
 import type { GradebookResult } from './types/Gradebook';
 import type { ReportCardResult } from './types/ReportCard';
-import type { TranscriptImport } from './grades/transcript';
 
 export const Operation = {
 	Request: 'ProcessWebServiceRequest',
@@ -93,6 +93,7 @@ export class StudentAccount {
 	userID: string;
 	password: string;
 	sessionId?: string;
+	private silentReconnectPromise?: Promise<boolean>;
 
 	constructor(domain: string, userID: string, password: string, sessionId?: string) {
 		this.domain = domain;
@@ -218,18 +219,93 @@ export class StudentAccount {
 			return Promise.reject(
 				new Error('Your StudentVUE session has expired. Please sign in again.')
 			);
-		const sessionId = this.sessionId;
-		return serializedStudentVueRequest(sessionId, () =>
-			apiRequest<T>(
-				path,
-				{
-					...init,
-					headers: { 'X-Grademaxxing-Session': sessionId, ...init.headers }
-				},
-				true,
-				sessionId
-			)
+		const initialSessionId = this.sessionId;
+		return serializedStudentVueRequest(initialSessionId, async () => {
+			const requestWithCurrentSession = () => {
+				const sessionId = this.sessionId;
+				if (!sessionId)
+					return Promise.reject(
+						new Error('Your StudentVUE session has expired. Please sign in again.')
+					);
+				return apiRequest<T>(
+					path,
+					{
+						...init,
+						headers: { 'X-Grademaxxing-Session': sessionId, ...init.headers }
+					},
+					true,
+					sessionId
+				);
+			};
+
+			try {
+				return await requestWithCurrentSession();
+			} catch (cause) {
+				if (
+					!(cause instanceof StudentVueSessionExpiredError) ||
+					!(await this.silentlyReconnect(initialSessionId).catch(() => false))
+				)
+					throw cause;
+				return requestWithCurrentSession();
+			}
+		});
+	}
+
+	private silentlyReconnect(failedSessionId: string) {
+		if (this.sessionId !== failedSessionId) return Promise.resolve(true);
+		if (this.silentReconnectPromise) return this.silentReconnectPromise;
+		this.silentReconnectPromise = this.performSilentReconnect(failedSessionId).finally(() => {
+			this.silentReconnectPromise = undefined;
+		});
+		return this.silentReconnectPromise;
+	}
+
+	private async performSilentReconnect(failedSessionId: string) {
+		if (typeof window === 'undefined') return false;
+		const { loadStoredCredentials } = await import('./auth/credential-vault');
+		const stored = await loadStoredCredentials();
+		if (
+			!stored ||
+			stored.username.toLowerCase() !== this.userID.toLowerCase() ||
+			normalizedDomain(stored.domain) !== normalizedDomain(this.domain)
+		)
+			return false;
+
+		const session = await apiRequest<{ username: string; domain: string; sessionId: string }>(
+			'/api/session',
+			{
+				method: 'POST',
+				body: JSON.stringify({
+					domain: stored.domain,
+					username: stored.username,
+					password: stored.password
+				})
+			},
+			false
 		);
+		this.userID = session.username;
+		this.domain = session.domain;
+		this.sessionId = session.sessionId;
+		try {
+			const current = JSON.parse(window.localStorage.getItem('token') ?? '') as {
+				username?: unknown;
+				domain?: unknown;
+				sessionId?: unknown;
+			};
+			if (current.sessionId === failedSessionId)
+				window.localStorage.setItem(
+					'token',
+					JSON.stringify({
+						username: this.userID,
+						domain: this.domain,
+						sessionId: this.sessionId
+					})
+				);
+		} catch {
+			// The active account can still use the replacement session when storage is unavailable.
+		}
+		markPortalConnected();
+		return true;
 	}
 }
 
