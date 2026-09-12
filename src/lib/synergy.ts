@@ -241,11 +241,14 @@ export class StudentAccount {
 			try {
 				return await requestWithCurrentSession();
 			} catch (cause) {
-				if (
-					!(cause instanceof StudentVueSessionExpiredError) ||
-					!(await this.silentlyReconnect(initialSessionId).catch(() => false))
-				)
+				if (!(cause instanceof StudentVueSessionExpiredError)) throw cause;
+				const reconnected = await this.silentlyReconnect(initialSessionId).catch(() => false);
+				if (!reconnected) {
+					// Do not show the reconnect banner until the device-vault recovery has
+					// actually failed. The first 401 is expected during silent recovery.
+					if (typeof window !== 'undefined') markPortalReconnect(cause.message);
 					throw cause;
+				}
 				return requestWithCurrentSession();
 			}
 		});
@@ -379,7 +382,6 @@ export async function apiRequest<T>(
 			response.status === 401 &&
 			payload?.code === 'UPSTREAM_SESSION_EXPIRED'
 		) {
-			if (typeof window !== 'undefined') markPortalReconnect(payload.message);
 			throw new StudentVueSessionExpiredError(
 				payload.message ?? 'Reconnect to StudentVUE to update your school data.'
 			);
