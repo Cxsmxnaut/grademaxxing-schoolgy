@@ -270,7 +270,7 @@
 
 {#if synergyCourse}
 	<main
-		class="min-h-[calc(100vh-3.09375rem)] w-full max-w-[67.5rem] px-4 pt-[0.84375rem] pb-[5.25rem] sm:px-6 md:min-h-screen lg:px-11 lg:pt-9 lg:pb-16"
+		class="min-h-[calc(100vh-3.09375rem)] w-full max-w-[67.5rem] overflow-x-clip px-4 pt-[0.84375rem] pb-[5.25rem] sm:px-6 md:min-h-screen lg:px-11 lg:pt-9 lg:pb-16"
 	>
 		<a
 			href="/grades"

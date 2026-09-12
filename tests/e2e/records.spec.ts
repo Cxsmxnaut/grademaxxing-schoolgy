@@ -1,4 +1,17 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+async function expectPassiveFileOpen(filePage: Page) {
+	// Headed Chrome renders supported files at their blob URL. Chromium's
+	// headless shell downloads the same blob instead because it has no PDF viewer.
+	const outcome = await Promise.race([
+		filePage
+			.waitForURL(/^blob:/, { timeout: 20_000 })
+			.then(() => 'inline')
+			.catch(() => new Promise<never>(() => {})),
+		filePage.waitForEvent('download', { timeout: 20_000 }).then(() => 'download')
+	]);
+	expect(['inline', 'download']).toContain(outcome);
+}
 
 const gradebookXml = `<Gradebook><ReportingPeriod Index="0" GradePeriod="Quarter 1"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1"/></ReportingPeriods><Courses><Course CourseID="preview" CourseName="Theme Preview" Period="1" Staff="Teacher Example" Room="101"><Marks><Mark MarkName="Quarter 1" CalculatedScoreRaw="95" CalculatedScoreString="A"><Assignments></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
 
@@ -164,7 +177,7 @@ test('published documents render, filter, and open through the real document flo
 	const documentPagePromise = context.waitForEvent('page');
 	await page.getByRole('link', { name: /Quarter 4 Report Card/ }).click();
 	const documentPage = await documentPagePromise;
-	await expect.poll(() => documentPage.url()).toMatch(/^blob:/);
+	await expectPassiveFileOpen(documentPage);
 	await documentPage.close();
 });
 
@@ -201,7 +214,7 @@ test('mail behaves like an inbox and safely opens message links and attachments'
 	const attachmentPagePromise = context.waitForEvent('page');
 	await dialog.getByRole('link', { name: /College Night.pdf/ }).click();
 	const attachmentPage = await attachmentPagePromise;
-	await expect.poll(() => attachmentPage.url()).toMatch(/^blob:/);
+	await expectPassiveFileOpen(attachmentPage);
 	await attachmentPage.close();
 });
 
