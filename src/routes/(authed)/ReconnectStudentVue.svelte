@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { acc, persistStudentAccount } from '$lib/account.svelte';
-	import { loadStoredCredentials, saveStoredCredentials } from '$lib/auth/credential-vault';
+	import {
+		clearStoredCredentials,
+		saveStoredCredentials
+	} from '$lib/auth/credential-vault';
 	import { brand } from '$lib/brand';
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
@@ -11,6 +14,7 @@
 
 	let open = $state(false);
 	let password = $state('');
+	let rememberMe = $state(true);
 	let reconnecting = $state(false);
 	let reconnectError = $state<string | undefined>();
 
@@ -21,19 +25,22 @@
 		reconnecting = true;
 		reconnectError = undefined;
 		const submittedPassword = password;
-		const shouldRemember = (await loadStoredCredentials()) !== undefined;
 		const replacement = new StudentAccount(current.domain, current.userID, submittedPassword);
 		try {
 			await replacement.checkLogin();
-			if (shouldRemember)
+			if (rememberMe) {
 				await saveStoredCredentials({
 					domain: replacement.domain,
 					username: replacement.userID,
 					password: submittedPassword
 				});
+			} else {
+				await clearStoredCredentials();
+			}
 			persistStudentAccount(replacement);
 			acc.studentAccount = replacement;
 			password = '';
+			rememberMe = true;
 			markPortalConnected();
 			open = false;
 			// Reload the current route so every data loader adopts the replacement session,
@@ -84,6 +91,15 @@
 						autofocus
 					/>
 				</div>
+				<label class="flex items-start gap-2 text-muted-foreground text-xs">
+					<input type="checkbox" bind:checked={rememberMe} class="mt-0.5 size-4 accent-[#4db6f5]" />
+					<span>
+						Keep me signed in on this device
+						<span class="block text-[0.6875rem]">
+							Your password is encrypted locally for automatic reconnects.
+						</span>
+					</span>
+				</label>
 				{#if reconnectError}
 					<p class="text-destructive text-sm" role="alert">{reconnectError}</p>
 				{/if}
