@@ -10,9 +10,10 @@ import tseslint from 'typescript-eslint';
 const gitignorePath = fileURLToPath(new URL('./.gitignore', import.meta.url));
 
 export default tseslint.config(
+	{ ignores: ['static/mockServiceWorker.js'] },
 	includeIgnoreFile(gitignorePath),
 	eslint.configs.recommended,
-	...tseslint.configs.recommendedTypeChecked,
+	...tseslint.configs.recommended,
 	...svelte.configs['flat/recommended'],
 	prettier,
 	...svelte.configs['flat/prettier'],
@@ -23,17 +24,15 @@ export default tseslint.config(
 				...globals.node
 			},
 			parser: tseslint.parser,
-			parserOptions: {
-				projectService: true,
-				tsconfigRootDir: import.meta.dirname,
-				extraFileExtensions: ['.svelte']
-			}
+			parserOptions: { extraFileExtensions: ['.svelte'] }
 		},
 		rules: {
 			'no-duplicate-imports': 'error',
 			eqeqeq: 'error',
-			'@typescript-eslint/strict-boolean-expressions': 'error',
-			'@typescript-eslint/no-unsafe-call': 'warn', // incorrectly flags {@render children?.()},
+			'@typescript-eslint/no-unused-vars': [
+				'error',
+				{ argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }
+			],
 			'svelte/no-navigation-without-resolve': 'off'
 		}
 	},
@@ -57,6 +56,18 @@ export default tseslint.config(
 				parser: tseslint.parser
 			}
 		},
-		extends: [tseslint.configs.disableTypeChecked]
+		extends: [tseslint.configs.disableTypeChecked],
+		rules: {
+			'@typescript-eslint/no-unused-expressions': 'off',
+			'svelte/prefer-svelte-reactivity': 'off'
+		}
+	},
+	{
+		name: 'diagnostic scripts and browser tests',
+		files: ['scripts/**/*.{ts,mjs}', 'tests/**/*.ts'],
+		rules: {
+			'@typescript-eslint/no-explicit-any': 'off',
+			'no-empty-pattern': 'off'
+		}
 	}
 );

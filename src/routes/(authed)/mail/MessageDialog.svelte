@@ -4,6 +4,7 @@
 	import type { InboxItemListingsMessageXML } from '$lib/types/MailData';
 	import LinkIcon from '@lucide/svelte/icons/link';
 	import PaperclipIcon from '@lucide/svelte/icons/paperclip';
+	import UserIcon from '@lucide/svelte/icons/user';
 	import { srcdoc } from './message';
 
 	interface Props {
@@ -43,56 +44,66 @@
 			? 'Tap and hold the link to open it in a new tab'
 			: 'Ctrl+click or right-click the link to open it in a new tab'
 	);
-
-	function extractHostname(url: string) {
-		try {
-			return new URL(url).hostname;
-		} catch (error) {
-			console.warn('Invalid URL in email body:', url, error);
-			return '';
-		}
-	}
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Content class="flex h-[calc(100%-2rem)] w-[calc(100%-2rem)] flex-col sm:max-w-3xl">
-		<Dialog.Header class="text-start">
-			<Dialog.Title>{message._Subject}</Dialog.Title>
+	<Dialog.Content
+		class="flex h-[calc(100%-2rem)] w-[calc(100%-2rem)] flex-col overflow-hidden p-0 sm:max-w-4xl"
+	>
+		<Dialog.Header class="border-border border-b px-5 py-5 text-start sm:px-7">
+			<div class="text-primary mb-1 text-xs font-bold tracking-[0.14em] uppercase">
+				School message
+			</div>
+			<Dialog.Title class="pr-8 text-xl sm:text-2xl"
+				>{message._Subject || '(No subject)'}</Dialog.Title
+			>
 
-			<Dialog.Description>
-				<p>{message._SendDateTimeFormattedLong}</p>
+			<Dialog.Description class="mt-4 flex items-start gap-3">
+				<span
+					class="bg-primary/12 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+				>
+					<UserIcon class="h-4 w-4" />
+				</span>
+				<div class="min-w-0">
+					<p class="text-foreground font-semibold">{from._Details1}</p>
+					<p>{from._Details2} · {message._SendDateTimeFormattedLong}</p>
 
-				<p>From: {from._Details1} ({from._Details2})</p>
+					{#if recipients}
+						{#if recipients.length > 1}
+							<p class="mt-1">To:</p>
 
-				{#if recipients}
-					{#if recipients.length > 1}
-						<p>To:</p>
-
-						<ul class="list-inside list-disc">
-							{#each recipients as recipient (recipient._GU)}
-								<li>{recipient._Details1} ({recipient._Details2})</li>
-							{/each}
-						</ul>
-					{:else if recipients[0]}
-						<p>To: {recipients[0]._Details1} ({recipients[0]._Details2})</p>
+							<ul class="list-inside list-disc">
+								{#each recipients as recipient (recipient._GU)}
+									<li>{recipient._Details1} ({recipient._Details2})</li>
+								{/each}
+							</ul>
+						{:else if recipients[0]}
+							<p class="mt-1">To: {recipients[0]._Details1} ({recipients[0]._Details2})</p>
+						{/if}
 					{/if}
-				{/if}
+				</div>
 			</Dialog.Description>
 		</Dialog.Header>
 
 		<iframe
 			srcdoc={srcdoc(content, openNewTabInstruction)}
 			sandbox=""
-			class="h-full bg-white"
+			class="h-full min-h-0 bg-white sm:mx-7 sm:my-5 sm:rounded-lg sm:border"
 			title="Message Content"
 		></iframe>
 
 		{#if attachments || links.size > 0}
-			<Dialog.Footer class="flex-wrap sm:justify-start">
+			<Dialog.Footer class="border-border flex-wrap border-t px-5 py-4 sm:justify-start sm:px-7">
 				{#each links as link (link)}
-					<Button href={link} target="_blank" variant="outline" title="Link">
+					<Button
+						href={link}
+						target="_blank"
+						rel="noopener noreferrer"
+						variant="outline"
+						title="Link"
+					>
 						<LinkIcon class="h-5 w-5 shrink-0" />
-						<span class="truncate">{extractHostname(link)}</span>
+						<span class="truncate">{new URL(link).hostname}</span>
 					</Button>
 				{/each}
 
@@ -100,7 +111,8 @@
 					<Button
 						href="/mail/attachment?attachmentGU={attachment._SmAttachmentGU}"
 						target="_blank"
-						variant="default"
+						rel="noopener noreferrer"
+						variant="outline"
 						title="Attachment"
 					>
 						<PaperclipIcon class="h-5 w-5 shrink-0" />

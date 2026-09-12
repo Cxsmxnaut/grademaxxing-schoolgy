@@ -34,7 +34,9 @@ export function getRelativeTime(date: Date) {
 }
 
 export const shortDateFormatter = new Intl.DateTimeFormat('en-US', {
-	dateStyle: 'short'
+	month: 'numeric',
+	day: 'numeric',
+	year: 'numeric'
 });
 
 export const fullDateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -42,38 +44,64 @@ export const fullDateFormatter = new Intl.DateTimeFormat('en-US', {
 });
 
 export async function getBlobURLFromBase64String(base64: string) {
+	if (base64.length === 0 || base64.length > 36 * 1024 * 1024)
+		throw new Error('The file has an invalid size');
 	const byteArray = new Uint8Array(Buffer.from(base64, 'base64'));
+	if (byteArray.length === 0 || byteArray.length > 25 * 1024 * 1024)
+		throw new Error('The file has an invalid size');
 
 	const mimeType = (await fileTypeFromBuffer(byteArray))?.mime;
 
 	if (mimeType === undefined) throw new Error('Could not determine MIME type');
 
-	const blob = new Blob([byteArray], { type: mimeType });
+	// Blob URLs inherit the app's origin. Never navigate to active content such as
+	// HTML or SVG supplied by an upstream message/document because it could execute
+	// with access to this origin. Only browser-safe passive formats render inline;
+	// everything else is treated as an opaque download.
+	const inlineTypes = new Set([
+		'application/pdf',
+		'image/gif',
+		'image/jpeg',
+		'image/png',
+		'image/webp'
+	]);
+	const blob = new Blob([byteArray], {
+		type: inlineTypes.has(mimeType) ? mimeType : 'application/octet-stream'
+	});
 
 	return URL.createObjectURL(blob);
 }
 
 export enum LocalStorageKey {
 	token = 'token',
-	gradebook = 'gradebook4',
+	gradebook = 'gradebook5',
+	gradebookOwner = 'gradebookOwner',
 	seenAssignmentIDs = 'seenAssignmentIDs',
-	triedHypotheticalMode = 'triedHypotheticalMode',
-	attendance = 'attendance',
+	gradeScaleObservations = 'gradeScaleObservations',
+	attendance = 'attendance5',
 	documents = 'documents',
 	mailData = 'mailData',
-	studentInfo = 'studentInfo',
-	demo = 'demo'
+	studentInfo = 'studentInfo2'
 }
 
 export interface RecordState<T> {
 	data?: T;
 	loaded: boolean;
+	refreshing?: boolean;
+	error?: string;
 	lastRefresh?: number;
 }
 
 export interface LocalStorageCache<T> {
 	data: T;
 	lastRefresh: number;
+	owner: string;
+}
+
+const recordGenerations = new WeakMap<object, number>();
+
+export function invalidateRecordState(recordState: RecordState<unknown>) {
+	recordGenerations.set(recordState, (recordGenerations.get(recordState) ?? 0) + 1);
 }
 
 export const loadRecord = async <T>(
@@ -83,45 +111,98 @@ export const loadRecord = async <T>(
 	cacheExpirationTime: number | undefined,
 	forceRefresh = false
 ) => {
-	if ((recordState.data !== undefined && !forceRefresh) || acc.studentAccount === undefined) return;
+	if (
+		(recordState.data !== undefined && !forceRefresh) ||
+		acc.studentAccount === undefined ||
+		recordState.refreshing
+	)
+		return;
+	const account = acc.studentAccount;
+	const generation = (recordGenerations.get(recordState) ?? 0) + 1;
+	recordGenerations.set(recordState, generation);
+	const isCurrent = () =>
+		recordGenerations.get(recordState) === generation && acc.studentAccount === account;
 
-	recordState.loaded = false;
+	recordState.refreshing = true;
+	recordState.error = undefined;
 
-	let refresh = true;
-
-	const cacheStr = localStorage.getItem(localStorageKey);
-	if (cacheStr !== null) {
+	try {
+		let refresh = true;
+		let owner: string | null = null;
+		let cacheStr: string | null = null;
 		try {
-			const cache: LocalStorageCache<T> = JSON.parse(cacheStr);
+			owner = localStorage.getItem(LocalStorageKey.gradebookOwner);
+			cacheStr = localStorage.getItem(localStorageKey);
+		} catch {
+			// Private browsing policies may disable storage while live API access still works.
+		}
+		if (cacheStr !== null) {
+			try {
+				if (cacheStr.length > 10 * 1024 * 1024) throw new Error('Saved data is too large.');
+				const cache = JSON.parse(cacheStr) as Partial<LocalStorageCache<T>>;
+				if (
+					!owner ||
+					cache.owner !== owner ||
+					!Number.isFinite(cache.lastRefresh) ||
+					cache.lastRefresh! < 0 ||
+					!Object.hasOwn(cache, 'data')
+				)
+					throw new Error('Saved data belongs to a different or invalid session.');
 
-			recordState.data = cache.data;
-			recordState.lastRefresh = cache.lastRefresh;
+				if (!isCurrent()) return;
+				recordState.data = cache.data as T;
+				recordState.lastRefresh = cache.lastRefresh!;
 
-			if (cacheExpirationTime !== undefined && Date.now() - cache.lastRefresh < cacheExpirationTime)
-				refresh = false;
-		} catch (error) {
-			console.error(error);
-			localStorage.removeItem(localStorageKey);
+				if (
+					cacheExpirationTime !== undefined &&
+					Date.now() - cache.lastRefresh! < cacheExpirationTime
+				)
+					refresh = false;
+			} catch {
+				try {
+					localStorage.removeItem(localStorageKey);
+				} catch {
+					// Storage is an optional acceleration layer, never a prerequisite for live data.
+				}
+			}
+		}
+
+		if (refresh || forceRefresh) {
+			try {
+				const data = await loadFunc();
+				if (!isCurrent()) return;
+				recordState.data = data;
+				recordState.lastRefresh = Date.now();
+
+				const newCache: LocalStorageCache<T> | undefined = owner
+					? {
+							data: recordState.data,
+							lastRefresh: recordState.lastRefresh,
+							owner
+						}
+					: undefined;
+
+				if (newCache) {
+					try {
+						localStorage.setItem(localStorageKey, JSON.stringify(newCache));
+					} catch {
+						// A full/disabled cache must not turn a successful StudentVUE response into an error.
+					}
+				}
+			} catch (error) {
+				recordState.error =
+					error instanceof Error ? error.message : 'The request failed unexpectedly.';
+			}
+		}
+	} catch (error) {
+		if (!isCurrent()) return;
+		recordState.error = error instanceof Error ? error.message : 'The request failed unexpectedly.';
+	} finally {
+		if (isCurrent()) {
+			recordState.loaded = true;
+			recordState.refreshing = false;
 		}
 	}
-
-	if (refresh || forceRefresh) {
-		try {
-			recordState.data = await loadFunc();
-			recordState.lastRefresh = Date.now();
-
-			const newCache: LocalStorageCache<T> = {
-				data: recordState.data,
-				lastRefresh: recordState.lastRefresh
-			};
-
-			localStorage.setItem(localStorageKey, JSON.stringify(newCache));
-		} catch (error) {
-			console.error(error);
-		}
-	}
-
-	recordState.loaded = true;
 };
 
 // https://github.com/barvian/number-flow/blob/e9fc6999417df7cb7e7b290f7f2019f570c18cc7/packages/number-flow/src/index.ts#L73

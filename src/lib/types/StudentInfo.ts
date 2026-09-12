@@ -4,10 +4,11 @@ export interface StudentInfoResult {
 
 export interface StudentInfo {
 	FormattedName: string;
-	PermID: number;
+	PermID: number | null;
 	Gender: string;
-	Grade: number;
+	Grade: number | null;
 	Photo: string;
+	PhotoMimeType?: string;
 	'_xmlns:xsd': string;
 	'_xmlns:xsi': string;
 	_Type: string;

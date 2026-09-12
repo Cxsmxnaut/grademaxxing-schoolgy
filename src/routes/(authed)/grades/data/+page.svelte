@@ -1,12 +1,21 @@
 <script lang="ts">
+	import { brand } from '$lib/brand';
+	import AppPageHeader from '$lib/components/AppPageHeader.svelte';
+	import AppPageShell from '$lib/components/AppPageShell.svelte';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { gradebookState, switchReportPeriod } from '$lib/grades/catalog.svelte';
 	import { getActiveGradebook } from '$lib/grades/gradebook';
 	import ReportPeriodSwitcher from '../ReportPeriodSwitcher.svelte';
 
-	const gradebookCatalog = $derived(gradebookState.gradebookCatalog);
+	const gradebookCatalog = $derived.by(() => {
+		gradebookState.version;
+		return gradebookState.gradebookCatalog;
+	});
 
-	const gradebook = $derived(getActiveGradebook());
+	const gradebook = $derived.by(() => {
+		gradebookState.version;
+		return getActiveGradebook();
+	});
 
 	const gradebookRecord = $derived(
 		gradebookCatalog
@@ -15,23 +24,38 @@
 				]
 			: undefined
 	);
+
+	async function changeReportPeriod(index: number) {
+		try {
+			await switchReportPeriod({ overrideIndex: index, delta: true });
+		} catch {
+			// The parent grade layout surfaces the shared loading error.
+		}
+	}
 </script>
 
-<div class="m-4 flex flex-col gap-4 h-full items-center">
-	{#if gradebookCatalog && gradebook}
-		<ReportPeriodSwitcher
-			activeName={gradebook?.ReportingPeriod._GradePeriod}
-			activeIndex={gradebookCatalog.overrideIndex ?? gradebookCatalog.defaultIndex}
-			reportPeriods={gradebookCatalog?.canonicalReportPeriodEntries ??
-				gradebook.ReportingPeriods.ReportPeriod}
-			switchReportPeriod={(index) => switchReportPeriod({ overrideIndex: index })}
-			hasReportPeriodCached={(index) => gradebookCatalog?.recordCache[index] !== undefined}
-			disabled={gradebookCatalog?.loadingIndex !== undefined}
-			defaultIndex={gradebookCatalog?.defaultIndex}
-		/>
-	{/if}
+<svelte:head><title>Grade Data - {brand}</title></svelte:head>
 
-	{#if gradebookRecord}
-		<Textarea value={gradebookRecord.xml} class="h-full" />
-	{/if}
-</div>
+<AppPageShell class="flex min-h-[calc(100vh-4rem)] flex-col">
+	<AppPageHeader
+		eyebrow="Developer view"
+		title="Grade data"
+		description="The raw StudentVUE gradebook response for the selected report period."
+	/>
+
+	<div class="flex flex-1 flex-col items-center gap-4">
+		{#if gradebookCatalog && gradebook}
+			<ReportPeriodSwitcher
+				activeIndex={gradebookCatalog.overrideIndex ?? gradebookCatalog.defaultIndex}
+				reportPeriods={gradebookCatalog?.canonicalReportPeriodEntries ??
+					gradebook.ReportingPeriods.ReportPeriod}
+				switchReportPeriod={changeReportPeriod}
+				disabled={gradebookCatalog?.loadingIndex !== undefined}
+			/>
+		{/if}
+
+		{#if gradebookRecord}
+			<Textarea value={gradebookRecord.xml} class="h-full" />
+		{/if}
+	</div>
+</AppPageShell>

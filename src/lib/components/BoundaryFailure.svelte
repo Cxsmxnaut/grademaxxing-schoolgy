@@ -18,13 +18,13 @@
 
 <div class="flex min-h-screen w-full items-center justify-center p-2">
 	<Alert.Root variant="destructive" class="w-fit gap-y-2">
-		<Alert.Title>Something went wrong.</Alert.Title>
+		<Alert.Title>The app hit a snag. Naturally.</Alert.Title>
 
 		<Alert.Description class="space-y-2">
 			<p>
-				Try <button onclick={reset} class="underline">refreshing</button> the page. If the problem
-				persists, please
-				<a href="/feedback" class="underline" data-sveltekit-reload>contact us</a>.
+				Try <button onclick={reset} class="underline">refreshing</button> the page. If it keeps
+				happening, send us the details through
+				<a href="/feedback" class="underline" data-sveltekit-reload>feedback</a>.
 			</p>
 
 			<button class="text-muted-foreground text-xs underline" onclick={toggleViewError}>

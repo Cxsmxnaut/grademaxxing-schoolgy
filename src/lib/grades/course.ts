@@ -7,10 +7,12 @@ const getMark = (course: Course) => course.Marks?.Mark[0];
 export function getCourseGrade(course: Course) {
 	const mark = getMark(course);
 	if (!mark) return;
+	const percentage = Number.parseFloat(mark._CalculatedScoreRaw ?? '');
+	if (!Number.isFinite(percentage)) return;
 
 	return {
 		letter: mark._CalculatedScoreString,
-		percentage: parseFloat(mark._CalculatedScoreRaw ?? '0')
+		percentage
 	};
 }
 
@@ -26,7 +28,8 @@ export const getSynergyCourseAssignmentCategories = (course: Course): Category[]
 
 export const getCourseUnseenAssignmentsCount = (course: Course) =>
 	getMark(course)?.Assignments?.Assignment.filter(
-		({ _GradebookID: id }) => !seenAssignmentIDs.has(id)
+		({ _GradebookID: id, _Notes: notes }) =>
+			!isNotForGrade(notes) && !seenAssignmentIDs.has(id)
 	).length ?? 0;
 
 export function clearCourseUnseenAssignments(course: Course) {
@@ -34,3 +37,7 @@ export function clearCourseUnseenAssignments(course: Course) {
 		seenAssignmentIDs.add(id)
 	);
 }
+
+/** StudentVUE marks non-calculating work in the assignment-note prefix. */
+export const isNotForGrade = (notes: string | undefined) =>
+	/^\s*\(\s*not\s+for\s+grading\s*\)/i.test(notes ?? '');

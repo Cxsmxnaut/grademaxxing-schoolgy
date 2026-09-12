@@ -1,49 +1,57 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
-	import { brand, contactEmail } from '$lib/brand';
-	import BackButton from '$lib/components/BackButton.svelte';
-	import * as Card from '$lib/components/ui/card';
-
-	let email = $state('[email protected]');
-	if (browser) email = contactEmail;
+	import { brand } from '$lib/brand';
+	import AuthPanelHeader from '$lib/components/auth/AuthPanelHeader.svelte';
+	import AuthShell from '$lib/components/auth/AuthShell.svelte';
 </script>
 
 <svelte:head>
 	<title>Privacy - {brand}</title>
 </svelte:head>
 
-<div class="flex min-h-screen flex-col items-center">
-	<main class="flex grow items-center">
-		<div class="m-4 max-w-xl space-y-2">
-			<BackButton />
+<AuthShell promo={false}>
+	<article class="w-full max-w-[46rem] py-2 text-[#e4eef8] sm:py-8">
+		<AuthPanelHeader />
+		<p class="mb-2 text-xs font-bold tracking-[0.14em] text-[#4db6f5] uppercase">Privacy</p>
+		<h1
+			class="mb-4 text-3xl font-bold tracking-[-0.03em]"
+			style="font-family: 'Space Grotesk', sans-serif"
+		>
+			How {brand} handles your information
+		</h1>
+		<p class="mb-10 max-w-2xl text-base leading-7 text-[#8fa9c2]">
+			{brand} keeps the convenience of a persistent sign-in without putting your StudentVUE password on
+			our servers.
+		</p>
 
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>About the privacy of {brand}</Card.Title>
-				</Card.Header>
+		<div class="space-y-9 text-[0.9375rem] leading-7 text-[#8fa9c2]">
+			<section>
+				<h2 class="mb-2 text-lg font-semibold text-[#e4eef8]">Signing in</h2>
+				<p>
+					Your browser sends your credentials over HTTPS to this {brand} server. The server uses them
+					to establish a session with the official StudentVUE portal, then discards the password. It is
+					never written to our disk, logs, or server session.
+				</p>
+			</section>
 
-				<Card.Content class="text-tertiary-foreground space-y-4">
-					<p>
-						{brand} was designed to keep students' information private.
-					</p>
+			<section>
+				<h2 class="mb-2 text-lg font-semibold text-[#e4eef8]">While you are signed in</h2>
+				<p>
+					The active StudentVUE session state is encrypted and authenticated inside a secure,
+					HTTP-only app cookie for up to 12 hours. The server uses it only to proxy read-only
+					student information, and browser scripts cannot read it.
+				</p>
+			</section>
 
-					<p>
-						When a student used the {brand} interface, their own device transmitted their username and
-						password directly to the official student portal, which returned their student information
-						directly to their device.
-					</p>
-
-					<p>
-						{brand} servers did not receive any student data or login information. The GradeCompass interface
-						was purely client-side: all data was retrieved, processed, and stored on-device.
-					</p>
-
-					<p>
-						If you have questions or concerns about {brand}, you can contact us at
-						<a href="mailto:{email}" class="underline">{email}</a>.
-					</p>
-				</Card.Content>
-			</Card.Root>
+			<section>
+				<h2 class="mb-2 text-lg font-semibold text-[#e4eef8]">Local data and signing out</h2>
+				<p>
+					If you choose “Keep me signed in,” your district, username, and password are encrypted on
+					this device. The encryption key is held in IndexedDB as a non-exportable browser key,
+					while only ciphertext is stored in browser storage. Grade data used by the interface may
+					also be cached on your device. Signing out deletes the active server session, saved
+					credentials, and local caches.
+				</p>
+			</section>
 		</div>
-	</main>
-</div>
+	</article>
+</AuthShell>

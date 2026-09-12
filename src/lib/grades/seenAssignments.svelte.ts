@@ -11,6 +11,10 @@ if (browser) {
 		if (lsCache) lsCache.forEach((id) => seenAssignmentIDs.add(id));
 	} catch (e) {
 		console.error(e);
-		localStorage.removeItem(LocalStorageKey.seenAssignmentIDs);
+		try {
+			localStorage.removeItem(LocalStorageKey.seenAssignmentIDs);
+		} catch {
+			// Invalid data stays ignored when managed storage cannot be changed.
+		}
 	}
 }

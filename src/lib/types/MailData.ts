@@ -212,6 +212,7 @@ export interface InboxItemListingsMessageXML {
 	_MeetingHost: string;
 	_Recurrence: string;
 	_RecurrenceText: string;
+	_IsSystemMessage?: string;
 }
 
 export interface AttachmentsClass {

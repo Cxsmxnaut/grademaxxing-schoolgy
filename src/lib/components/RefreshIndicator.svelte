@@ -4,21 +4,27 @@
 	import { Badge } from '$lib/components/ui/badge';
 
 	interface Props {
-		lastRefresh: number;
+		lastRefresh?: number;
 		canRefresh: boolean;
-		refresh: () => unknown;
+		refreshing?: boolean;
+		refresh: () => unknown | Promise<unknown>;
 	}
-	let { lastRefresh, canRefresh, refresh }: Props = $props();
+	let { lastRefresh, canRefresh, refreshing = false, refresh }: Props = $props();
 </script>
 
 <Badge variant="secondary" class="text-tertiary-foreground mx-auto my-2 p-1 px-3 text-sm">
 	<ClockIcon class="h-4 w-4" />
-	Last updated {getRelativeTime(new Date(lastRefresh))}
+	{#if lastRefresh === undefined}
+		Not synced yet
+	{:else}
+		Last updated {getRelativeTime(new Date(lastRefresh))}
+	{/if}
 	<button
-		class={canRefresh ? 'cursor-pointer underline' : 'cursor-not-allowed'}
+		class={canRefresh && !refreshing ? 'cursor-pointer underline' : 'cursor-not-allowed'}
 		onclick={refresh}
-		disabled={!canRefresh}
+		disabled={!canRefresh || refreshing}
+		aria-busy={refreshing}
 	>
-		Refresh
+		{refreshing ? 'Refreshing…' : 'Refresh'}
 	</button>
 </Badge>

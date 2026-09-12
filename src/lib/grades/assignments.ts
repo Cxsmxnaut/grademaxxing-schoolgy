@@ -1,4 +1,5 @@
 import type { AssignmentEntity } from '../types/Gradebook';
+import { isNotForGrade } from './course';
 
 export interface Category {
 	name: string;
@@ -103,8 +104,8 @@ export function calculateCourseGradePercentageFromCategories(
 
 	gradePercentage = (gradePercentage / totalWeight) * 100;
 
-	if (isNaN(gradePercentage)) {
-		console.error('Grade percentage is NaN');
+	if (!Number.isFinite(gradePercentage)) {
+		console.error('Grade percentage is not finite');
 		return 0;
 	}
 
@@ -215,13 +216,9 @@ export function calculateAssignmentGPCsFromTotals<T extends Assignment>(assignme
 	const flowedAssignments: (T | Flowed<T>)[] = assignments
 		.toReversed()
 		.map((assignment) => {
-			const { pointsEarned, pointsPossible, notForGrade, } = assignment;
+			const { pointsEarned, pointsPossible, notForGrade } = assignment;
 
-			if (
-				pointsEarned === undefined ||
-				pointsPossible === undefined ||
-				notForGrade
-			)
+			if (pointsEarned === undefined || pointsPossible === undefined || notForGrade)
 				return assignment;
 
 			const calculable: Calculable<T> = {
@@ -258,16 +255,20 @@ export function getHiddenAssignmentsFromCategories(
 ) {
 	return categories
 		.filter((category) => {
-			const categoryPoints = pointsByCategory[category.name];
-			if (categoryPoints === undefined) return false;
+			const categoryPoints = pointsByCategory[category.name] ?? {
+				pointsEarned: 0,
+				pointsPossible: 0
+			};
 			return (
 				category.pointsEarned !== categoryPoints.pointsEarned ||
 				category.pointsPossible !== categoryPoints.pointsPossible
 			);
 		})
 		.map((category) => {
-			const categoryPoints = pointsByCategory[category.name];
-			if (categoryPoints === undefined) return null;
+			const categoryPoints = pointsByCategory[category.name] ?? {
+				pointsEarned: 0,
+				pointsPossible: 0
+			};
 
 			const { pointsEarned, pointsPossible } = categoryPoints;
 
@@ -443,6 +444,7 @@ export function getCalculableAssignmentsWithCategories<T extends Assignment>(ass
 export function parseSynergyAssignment(synergyAssignment: AssignmentEntity) {
 	const {
 		_Date,
+		_DueDate,
 		_Measure,
 		_MeasureDescription,
 		_Notes,
@@ -454,16 +456,26 @@ export function parseSynergyAssignment(synergyAssignment: AssignmentEntity) {
 		_Type
 	} = synergyAssignment;
 
-	const pointsEarned = _Point !== undefined ? (_Point === '' ? 0 : parseFloat(_Point)) : undefined; // _Point can be empty; equivalent to 0
+	const finiteNumber = (value: string | undefined) => {
+		if (value === undefined || value === '') return undefined;
+		const parsed = Number.parseFloat(value);
+		return Number.isFinite(parsed) ? parsed : undefined;
+	};
+	const displayedPointsPossible = _Points?.includes('/')
+		? finiteNumber(_Points.split('/')[1]?.trim())
+		: finiteNumber(_Points?.split(' Points Possible')[0]);
+
+	const pointsEarned =
+		_Point !== undefined ? (_Point === '' ? 0 : finiteNumber(_Point)) : undefined; // _Point can be empty; equivalent to 0
 
 	const pointsPossible =
 		_PointPossible !== undefined && _PointPossible !== ''
-			? parseFloat(_PointPossible)
-			: _ScoreMaxValue !== undefined
-				? parseFloat(_ScoreMaxValue)
-				: _Points === 'Points Possible'
+			? finiteNumber(_PointPossible)
+			: _ScoreMaxValue !== undefined && _ScoreMaxValue !== ''
+				? finiteNumber(_ScoreMaxValue)
+				: _Points === undefined || _Points === 'Points Possible'
 					? undefined
-					: parseFloat(_Points.split(' Points Possible')[0]);
+					: displayedPointsPossible;
 
 	const pointsEarnedIsScaled =
 		_Point !== undefined &&
@@ -490,7 +502,14 @@ export function parseSynergyAssignment(synergyAssignment: AssignmentEntity) {
 		};
 	}
 
-	const notesFormatted = _Notes.replace('(Not For Grading)', '').trim();
+	const notesFormatted = _Notes.replace(/^\s*\(\s*not\s+for\s+grading\s*\)\s*/i, '').trim();
+	const assignmentDate = new Date(_Date);
+	const dueDate = new Date(_DueDate);
+	const safeDate = Number.isFinite(assignmentDate.getTime())
+		? assignmentDate
+		: Number.isFinite(dueDate.getTime())
+			? dueDate
+			: new Date(0);
 
 	const assignment: RealAssignment = {
 		name: _Measure,
@@ -500,10 +519,10 @@ export function parseSynergyAssignment(synergyAssignment: AssignmentEntity) {
 		unscaledPoints,
 		extraCredit: _PointPossible === '',
 		gradePercentageChange: undefined,
-		notForGrade: _Notes.startsWith('(Not For Grading)'),
+		notForGrade: isNotForGrade(_Notes),
 		hidden: false,
 		category: _Type,
-		date: new Date(_Date),
+		date: safeDate,
 		newHypothetical: false,
 		description: _MeasureDescription.length > 0 ? _MeasureDescription : undefined,
 		comments: notesFormatted.length > 0 ? notesFormatted : undefined

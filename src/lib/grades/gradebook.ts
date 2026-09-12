@@ -2,8 +2,7 @@ import { parseGradebookXML } from '$lib/synergy';
 import type { Gradebook } from '$lib/types/Gradebook';
 import { gradebookState } from './catalog.svelte';
 
-let parsedGradebook: { index: number; lastRefresh: number; gradebook: Gradebook } | undefined =
-	undefined;
+let parsedGradebook: { index: number; xml: string; gradebook: Gradebook } | undefined = undefined;
 
 export function getActiveGradebook() {
 	const { gradebookCatalog } = gradebookState;
@@ -13,16 +12,12 @@ export function getActiveGradebook() {
 	const record = gradebookCatalog.recordCache[index];
 	if (!record) return;
 
-	if (
-		parsedGradebook &&
-		index === parsedGradebook.index &&
-		parsedGradebook.lastRefresh === record.lastRefresh
-	)
+	if (parsedGradebook && index === parsedGradebook.index && parsedGradebook.xml === record.xml)
 		return parsedGradebook.gradebook;
 
 	parsedGradebook = {
 		index,
-		lastRefresh: record.lastRefresh,
+		xml: record.xml,
 		gradebook: parseGradebookXML(record.xml)
 	};
 	return parsedGradebook.gradebook;

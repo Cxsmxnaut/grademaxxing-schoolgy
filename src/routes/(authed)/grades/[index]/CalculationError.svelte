@@ -5,28 +5,45 @@
 
 	interface Props {
 		hypotheticalMode?: boolean;
+		officialPercentage?: number;
+		estimatedPercentage?: number;
+		hiddenAssignmentCount?: number;
 	}
-	let { hypotheticalMode = false }: Props = $props();
+	let {
+		hypotheticalMode = false,
+		officialPercentage,
+		estimatedPercentage,
+		hiddenAssignmentCount = 0
+	}: Props = $props();
+
+	const formatPercentage = (percentage: number) =>
+		new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 }).format(percentage) + '%';
 </script>
 
-<Alert.Root variant="destructive" class="max-w-3xl">
-	<AlertCircleIcon />
+<Alert.Root class="border-grade-watch bg-grade-watch-soft w-full py-2.5">
+	<AlertCircleIcon class="text-grade-watch" />
 
 	<Alert.Title>
 		{#if hypotheticalMode}
-			Grade calculations in Hypothetical Mode are inaccurate
+			What-if estimate is limited
 		{:else}
-			Grade calculation error
+			Official and visible-work grades differ
 		{/if}
 	</Alert.Title>
 
 	<Alert.Description>
 		<p>
-			{brand}'s calculations don't match your official grade percentage. This could mean that there
-			are hidden assignments that {brand} can't see, or that {brand} isn't calculating your grade correctly.
-			Your overall grade is still correct, but {brand}'s calculations and charts might be off.
+			{#if officialPercentage !== undefined && estimatedPercentage !== undefined}
+				StudentVUE reports <strong>{formatPercentage(officialPercentage)}</strong>. Work visible to
+				{brand} estimates
+				<strong>{formatPercentage(estimatedPercentage)}</strong>{hiddenAssignmentCount > 0
+					? '; '
+					: '.'}
+			{/if}
+			{#if hiddenAssignmentCount > 0}
+				{hiddenAssignmentCount} hidden point
+				{hiddenAssignmentCount === 1 ? 'record was' : 'records were'} reconstructed from category totals.
+			{/if}
 		</p>
-
-		<p>If this happens continuously, please contact us.</p>
 	</Alert.Description>
 </Alert.Root>

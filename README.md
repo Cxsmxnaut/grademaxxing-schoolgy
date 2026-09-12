@@ -1,40 +1,86 @@
-# GradeCompass
+# Grademaxxing (Beta)
 
-An advanced grade calculator.
+An advanced grade calculator designed to interface with StudentVUE®.
 
-> [!WARNING]
-> GradeCompass is now obsolete. It is not compatible with the new API and cannot be updated to support it.
+<sub>StudentVUE is a registered trademark of Edupoint Educational Systems LLC. Grademaxxing (Beta) is not affiliated with or endorsed by Edupoint Educational Systems LLC.</sub>
 
 ## Developing
 
-Make sure to have [Bun](https://bun.sh) installed, then run `bun install` to install dependencies.
+Install Node.js, then run `npm install` and `npm run dev`. Live PXP2 StudentVUE access is the default.
+
+### Mocking
+
+Mocking is opt-in. Set `PUBLIC_MOCK_STUDENTVUE_ORIGIN` only when you want the generated mock service worker and cached portal data.
+
+```bash
+bun run generate-mocks
+```
+
+The script will prompt you for your login information. If you do not want to have to enter it every time, you can set the [environment variables used](./generate_mock_data.ts#L101) in a `.env` file.
+
+You must also set the environment variable `PUBLIC_MOCK_STUDENTVUE_ORIGIN` to your StudentVUE domain origin (e.g. `https://[your-district]-psv.edupoint.com`) when mocking is enabled. This can be done in a `.env` file.
 
 ### Dev Server
 
 ```bash
-bun run dev
+npm run dev
 ```
 
 ### Building
 
 ```bash
-bun run build
+npm run build
 ```
 
-You can preview the production build with `bun run preview`.
+You can preview the production build with `npm run preview`.
+
+### Live end-to-end tests
+
+Set `DISTRICT_URL`, `STUDENTVUE_USERNAME`, and `STUDENTVUE_PASSWORD` in the environment, start the app, and run `npm run test:e2e`. The Playwright suite exercises login, grades and course details, attendance, documents and PDF downloads, mail and attachments, student info, session reload, errors, and logout. Credentials are never embedded in test files or traces by the application.
+
+### StudentVUE JSON API
+
+After sign-in, the read-only same-origin API is available under `/api/studentvue`. Its discoverable contract inventory is `/api/studentvue/capabilities`. See [the SOAP-to-PXP2 contract map](./docs/studentvue-modern-api.md) for every route and its first-party modern source.
+
+### StudentVUE API performance CLI
+
+For approved test-account diagnostics, configure credentials once in macOS Keychain and run the real upstream benchmark:
+
+```bash
+npm run benchmark:studentvue -- configure
+npm run benchmark:studentvue
+```
+
+See [`docs/studentvue-api-benchmark.md`](./docs/studentvue-api-benchmark.md) for complete-mode, JSON, timing-history, and non-macOS instructions. The CLI never prints or records StudentVUE payloads or credentials.
 
 ## Hosting
 
-The GradeCompass project is open source and can be self-hosted. However, if you plan on hosting it for others on the public internet, keep in mind that the MIT license **does not grant trademark rights**. You cannot use the GradeCompass name or logo without permission. Otherwise, unaware users would think that we were responsible for your site.
+Use HTTPS in production and configure `GRADEMAXXING_SESSION_SECRET` with at least 32 random characters. StudentVUE credentials are discarded immediately after login. The resulting StudentVUE cookie state is encrypted into an HttpOnly application session, which allows the official Vercel adapter and multi-instance Node deployments without a shared session database. Failed logins are rate-limited per user and client address, and session-bound requests are serialized in the browser to protect StudentVUE's mutable gradebook focus.
 
-Therefore, you must change the **name** in [brand.ts](src/lib/brand.ts) and the **icons** in the [/static](static) folder to your own, distinct designs. (Simply changing a prefix or suffix of an existing name or modifying the icon _does not suffice_.) We advise you to be very careful of trademark confusion when choosing a name. Please also update the **contact email** and **repository link** in [brand.ts](src/lib/brand.ts) so your users don't get confused with our version.
+Follow the [production hardening and reverse-proxy checklist](./docs/production-hardening.md) and [release gate](./docs/release-checklist.md) before exposing the app to students.
 
-<sup> This is not legal advice.</sup>
+## License
 
-Vercel and Netlify are both good options for hosting SvelteKit apps like GradeCompass.
+Grademaxxing (Beta) is a modified version of the AGPLv3-licensed GradeCompass project. The product-facing name and identity are Grademaxxing (Beta); the repository history and license remain intact as required for an AGPL-derived work. If you
 
-## Contributing
+- modify the source code, and
+- host this modified version on the internet,
 
-GradeCompass cannot support the new API in its current form as a website. CORS restrictions on the new API prevent client-side connections from a different origin, meaning that connecting to the student portal would requie a server-side proxy. Regardless of whether student data is encrypted through this proxy, any solution which involves a third-party server connecting to the student portal is inherently legally problematic.
+you are required to publish the source code of your modified version under the same GNU AGPL license and document the changes you have made.
 
-For this reason, GradeCompass will not be accepting contributions to "restart" the project.
+## Example .env file
+
+Only `PUBLIC_MOCK_STUDENTVUE_ORIGIN` is required.
+
+```dotenv
+# dev server
+PUBLIC_DISABLE_MSW=false
+PUBLIC_MOCK_STUDENTVUE_ORIGIN=
+
+# generating mocks
+STUDENTVUE_DOMAIN=
+STUDENTVUE_USERNAME=
+STUDENTVUE_PASSWORD=
+STUDENTVUE_MOCK_DOCUMENT_GU=
+STUDENTVUE_MOCK_ATTACHMENT_GU=
+```

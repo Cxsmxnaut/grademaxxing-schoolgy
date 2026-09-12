@@ -1,16 +1,21 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { acc } from '$lib/account.svelte';
 	import { brand } from '$lib/brand';
+	import AppPageHeader from '$lib/components/AppPageHeader.svelte';
+	import AppPageShell from '$lib/components/AppPageShell.svelte';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
-	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
+	import RecordLoadFailure from '$lib/components/RecordLoadFailure.svelte';
 	import type { InboxItemListingsMessageXML } from '$lib/types/MailData';
+	import InboxIcon from '@lucide/svelte/icons/inbox';
+	import MailCheckIcon from '@lucide/svelte/icons/mail-check';
 	import { SvelteSet } from 'svelte/reactivity';
+	import { toast } from 'svelte-sonner';
 	import MessageButton from './MessageButton.svelte';
 	import MessageDialog from './MessageDialog.svelte';
 	import { loadMailData, mailDataState } from './mailData.svelte';
 
 	loadMailData();
-
 	let domParser: DOMParser;
 	if (browser) domParser = new DOMParser();
 
@@ -18,32 +23,56 @@
 	let openedMessage: InboxItemListingsMessageXML | undefined = $state(undefined);
 	let openedMessageContent = $state('');
 	const openedMessageLinks: SvelteSet<string> = new SvelteSet();
-
+	let openingMessageId = $state<string | undefined>();
+	let openSequence = 0;
+	const messageDetails = new Map<string, InboxItemListingsMessageXML>();
 	let touchscreen = $state(false);
 
-	function openMessage(message: InboxItemListingsMessageXML) {
+	let allMessages = $derived(mailDataState.data?.InboxItemListings.MessageXML ?? []);
+	let unreadMessages = $derived(
+		allMessages.filter((message) => message._MailRead !== 'true').length
+	);
+
+	async function openMessage(summary: InboxItemListingsMessageXML) {
+		const id = summary._SMMsgPersonGU || summary._SMMessageGU;
+		if (!id || openingMessageId !== undefined) return;
+		const sequence = ++openSequence;
+		openingMessageId = id;
+		let message = messageDetails.get(id) ?? summary;
+		try {
+			if (!messageDetails.has(id)) {
+				message = {
+					...summary,
+					...(await acc.studentAccount?.message(id, summary._IsSystemMessage === 'true'))
+				};
+				messageDetails.set(id, message);
+			}
+		} catch (error) {
+			if (sequence !== openSequence) return;
+			toast.error('Could not open this message', {
+				description: error instanceof Error ? error.message : String(error)
+			});
+			return;
+		} finally {
+			if (sequence === openSequence) openingMessageId = undefined;
+		}
+		if (sequence !== openSequence) return;
 		openedMessage = message;
-
 		const doc = domParser.parseFromString(message._MessageText, 'text/html');
-
-		const links = doc.querySelectorAll('a');
-
 		openedMessageLinks.clear();
-
-		links.forEach((link) => {
-			link.setAttribute('target', '_blank');
-
+		doc.querySelectorAll('a').forEach((link) => {
 			try {
-				if (new URL(link.href).hostname) {
-					openedMessageLinks.add(link.href);
-				}
-			} catch (error) {
-				console.warn('Invalid URL in email body:', link.href, error);
+				const url = new URL(link.href);
+				if (url.protocol === 'https:' || url.protocol === 'http:') {
+					link.setAttribute('target', '_blank');
+					link.setAttribute('rel', 'noopener noreferrer');
+					openedMessageLinks.add(url.href);
+				} else link.removeAttribute('href');
+			} catch {
+				link.removeAttribute('href');
 			}
 		});
-
 		openedMessageContent = doc.body.innerHTML;
-
 		messageOpen = true;
 	}
 </script>
@@ -52,39 +81,85 @@
 	<title>Mail - {brand}</title>
 </svelte:head>
 
-{#if !mailDataState.loaded}
-	<LoadingBanner>Loading mail...</LoadingBanner>
-{/if}
-
-{#if mailDataState.lastRefresh !== undefined}
-	<RefreshIndicator
-		canRefresh={mailDataState.loaded}
-		lastRefresh={mailDataState.lastRefresh}
-		refresh={() => loadMailData(true)}
+<AppPageShell>
+	<AppPageHeader
+		eyebrow="StudentVUE inbox"
+		title="Mail"
+		description="Messages, links, and attachments sent through your school portal."
 	/>
-{/if}
 
-{#if mailDataState.data}
-	<ol class="m-4 flex flex-col items-center gap-4">
-		{#each mailDataState.data.InboxItemListings.MessageXML as message (message._SMMessageGU)}
-			<li
-				class="w-full max-w-3xl"
-				ontouchend={() => {
-					touchscreen = true;
-				}}
-			>
-				<MessageButton {message} onclick={() => openMessage(message)} />
-			</li>
-		{/each}
-	</ol>
+	{#if !mailDataState.loaded && !mailDataState.data}
+		<LoadingBanner>Loading mail. Checking the digital hallway.</LoadingBanner>
+	{/if}
 
-	{#if openedMessage}
-		<MessageDialog
-			bind:open={messageOpen}
-			message={openedMessage}
-			content={openedMessageContent}
-			links={openedMessageLinks}
-			{touchscreen}
+	{#if openingMessageId !== undefined}
+		<LoadingBanner>Opening message. It better be important.</LoadingBanner>
+	{/if}
+
+	{#if mailDataState.error}
+		<RecordLoadFailure
+			label="mail"
+			error={mailDataState.error}
+			refreshing={mailDataState.refreshing}
+			retry={() => loadMailData(true)}
 		/>
 	{/if}
-{/if}
+
+	{#if mailDataState.data}
+		{#if allMessages.length > 0}
+			<section
+				class="bg-card mx-auto mt-5 max-w-4xl overflow-hidden rounded-xl shadow-sm"
+				aria-labelledby="inbox-heading"
+			>
+				<header
+					class="border-border/70 flex items-center justify-between border-b px-4 py-3 sm:px-5"
+				>
+					<div class="flex items-center gap-2.5">
+						<InboxIcon class="text-primary size-4" />
+						<h2 id="inbox-heading" class="font-semibold">Inbox</h2>
+					</div>
+					<span class="text-muted-foreground text-xs tabular-nums">
+						{#if unreadMessages > 0}
+							<strong class="text-primary font-semibold">{unreadMessages} unread</strong>
+							<span aria-hidden="true"> · </span>
+						{/if}
+						{allMessages.length}
+						{allMessages.length === 1 ? 'message' : 'messages'}
+					</span>
+				</header>
+				<ol aria-label="Inbox messages">
+					{#each allMessages as message (message._SMMessageGU)}
+						<li
+							class="border-border/70 border-b last:border-b-0"
+							ontouchend={() => (touchscreen = true)}
+						>
+							<MessageButton
+								{message}
+								disabled={openingMessageId !== undefined}
+								onclick={() => void openMessage(message)}
+							/>
+						</li>
+					{/each}
+				</ol>
+			</section>
+		{:else}
+			<div class="py-16 text-center" role="status">
+				<MailCheckIcon class="text-success mx-auto size-9" />
+				<h2 class="mt-3 font-semibold">Your inbox is empty. Enjoy the silence.</h2>
+				<p class="text-muted-foreground mt-1 text-sm">
+					New school messages will show up here when they do.
+				</p>
+			</div>
+		{/if}
+
+		{#if openedMessage}
+			<MessageDialog
+				bind:open={messageOpen}
+				message={openedMessage}
+				content={openedMessageContent}
+				links={openedMessageLinks}
+				{touchscreen}
+			/>
+		{/if}
+	{/if}
+</AppPageShell>

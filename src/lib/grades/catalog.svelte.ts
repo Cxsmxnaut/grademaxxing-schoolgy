@@ -1,86 +1,164 @@
 import { LocalStorageKey } from '$lib';
-import { loadStudentAccount } from '$lib/account.svelte';
-import { parseGradebookXML } from '$lib/synergy';
+import { acc, loadStudentAccount } from '$lib/account.svelte';
+import { parseGradebookXML, StudentVueSessionExpiredError } from '$lib/synergy';
 import { toast } from 'svelte-sonner';
 import {
+	cacheGradebookRecord,
 	getGradebookCatalogFromLocalStorage,
 	getGradebookRecord,
 	getInitialGradebookCatalog,
 	gradebookRefreshNeeded,
+	gradebookSummaryMatches,
 	saveGradebookCatalogToLocalStorage,
 	type GradebookCatalog
 } from './catalog';
 import { saveSeenAssignmentsToLocalStorage } from './seenAssignments';
 import { seenAssignmentIDs } from './seenAssignments.svelte';
 
-export const gradebookState = $state({}) as {
+export const gradebookState = $state<{
 	gradebookCatalog?: GradebookCatalog;
 	loadingError?: unknown;
-};
+	version: number;
+}>({
+	gradebookCatalog: undefined,
+	loadingError: undefined,
+	version: 0
+});
+
+let requestSequence = 0;
+let catalogGeneration = 0;
+
+// Summary marks are cheap to validate on every reload. Assignment-only changes
+// are picked up by a complete refresh at least once per half hour.
+const completeGradebookRefreshInterval = 1000 * 60 * 30;
 
 export const getReportPeriodName = (index: number) =>
-	gradebookState.gradebookCatalog?.canonicalReportPeriodEntries?.[index]?._GradePeriod ??
-	`Report Period ${index}`;
-
-const onReceivingData = () => {
-	if (!gradebookState.gradebookCatalog) return;
-	gradebookState.gradebookCatalog.receivingData = true;
-};
+	gradebookState.gradebookCatalog?.canonicalReportPeriodEntries?.find(
+		(reportPeriod) => Number.parseInt(reportPeriod._Index) === index
+	)?._GradePeriod ?? `Report Period ${index}`;
 
 export async function switchReportPeriod({
 	overrideIndex,
-	forceRefresh
+	forceRefresh,
+	silent,
+	summary = false,
+	delta = false
 }: {
 	overrideIndex?: number;
 	forceRefresh?: boolean;
+	silent?: boolean;
+	summary?: boolean;
+	/** Check a cached detailed record with a summary before fetching assignments. */
+	delta?: boolean;
 } = {}) {
 	if (!gradebookState.gradebookCatalog)
 		throw new Error(`Cannot switch report periods: gradebook catalog not initialized`);
 
+	const catalog = gradebookState.gradebookCatalog;
 	const requestedIndex = overrideIndex ?? gradebookState.gradebookCatalog.defaultIndex;
-	gradebookState.gradebookCatalog.loadingIndex = requestedIndex;
+	const requestID = ++requestSequence;
+	catalog.loadingIndex = requestedIndex;
+	catalog.receivingData = false;
+	gradebookState.loadingError = undefined;
+	gradebookState.version += 1;
 
-	const record = gradebookState.gradebookCatalog.recordCache[requestedIndex];
+	const record = catalog.recordCache[requestedIndex];
 
-	if (record) setReportPeriodIndex(overrideIndex ?? gradebookState.gradebookCatalog.defaultIndex);
+	if (record) setReportPeriodIndex(requestedIndex);
 
-	if (forceRefresh || !record || gradebookRefreshNeeded(record)) {
-		gradebookState.gradebookCatalog.receivingData = false;
-		const gradebookRecord = await getGradebookRecord(onReceivingData, overrideIndex);
+	try {
+		if (forceRefresh || !record || gradebookRefreshNeeded(record)) {
+			const cachedDetailedRecord = record && record.detailed !== false ? record : undefined;
+			let gradebookRecord = await getGradebookRecord(
+				() => {
+					if (requestID !== requestSequence || gradebookState.gradebookCatalog !== catalog) return;
+					catalog.receivingData = true;
+					gradebookState.version += 1;
+				},
+				overrideIndex,
+				cachedDetailedRecord && delta ? true : summary
+			);
+			// A newer request owns the screen. Do not let this response overwrite it.
+			if (requestID !== requestSequence) return;
 
-		const gradebook = parseGradebookXML(gradebookRecord.xml);
+			const canReuseCachedDetails =
+				delta && cachedDetailedRecord && gradebookRecord.detailed === false;
+			if (canReuseCachedDetails && cachedDetailedRecord) {
+				const summaryUnchanged = gradebookSummaryMatches(
+					cachedDetailedRecord.xml,
+					gradebookRecord.xml
+				);
+				const completeRefreshDue =
+					Date.now() - cachedDetailedRecord.lastRefresh >= completeGradebookRefreshInterval;
 
-		const receivedIndex = parseInt(gradebook.ReportingPeriod._Index);
+				if (summaryUnchanged && !completeRefreshDue) {
+					// Keep the detailed XML and its assignment history. The summary request
+					// was only a change check, so it must not replace the usable cache.
+					setReportPeriodIndex(requestedIndex);
+					saveGradebookCatalogToLocalStorage(catalog);
+					return;
+				}
 
-		gradebookState.gradebookCatalog.recordCache[receivedIndex] = gradebookRecord;
+				// A changed mark, or the periodic assignment refresh, needs the complete
+				// response. The client keeps these focus-changing requests serialized.
+				gradebookRecord = await getGradebookRecord(
+					() => {
+						if (requestID !== requestSequence || gradebookState.gradebookCatalog !== catalog)
+							return;
+						catalog.receivingData = true;
+						gradebookState.version += 1;
+					},
+					overrideIndex,
+					false
+				);
+				if (requestID !== requestSequence) return;
+			}
 
-		if (overrideIndex === undefined) {
-			gradebookState.gradebookCatalog.defaultIndex = receivedIndex;
-			gradebookState.gradebookCatalog.canonicalReportPeriodEntries =
-				gradebook.ReportingPeriods.ReportPeriod;
-		}
+			const { gradebook, receivedIndex } = cacheGradebookRecord(catalog, gradebookRecord);
 
-		if (receivedIndex !== requestedIndex) {
 			if (overrideIndex === undefined) {
-				toast.info(`${gradebook.ReportingPeriod._GradePeriod} is now the default`, {
-					description: `${getReportPeriodName(requestedIndex)} may still be viewable`,
-					duration: 6000
-				});
+				catalog.defaultIndex = receivedIndex;
+				catalog.canonicalReportPeriodEntries = gradebook.ReportingPeriods.ReportPeriod;
+			}
+
+			if (receivedIndex !== requestedIndex) {
+				if (overrideIndex === undefined) {
+					toast.info(`${gradebook.ReportingPeriod._GradePeriod} is now the default`, {
+						description: `${getReportPeriodName(requestedIndex)} may still be viewable`,
+						duration: 6000
+					});
+				} else {
+					toast.error(`${getReportPeriodName(requestedIndex)} is not available`, {
+						duration: 6000
+					});
+				}
 			} else {
-				toast.error(`${getReportPeriodName(requestedIndex)} is not available`, {
-					duration: 6000
-				});
+				catalog.overrideIndex = overrideIndex !== catalog.defaultIndex ? overrideIndex : undefined;
+				if (forceRefresh && !silent)
+					toast.success(`${gradebook.ReportingPeriod._GradePeriod} grades updated`);
 			}
 		} else {
-			gradebookState.gradebookCatalog.overrideIndex =
-				overrideIndex !== gradebookState.gradebookCatalog.defaultIndex ? overrideIndex : undefined;
+			setReportPeriodIndex(requestedIndex);
 		}
-	} else {
-		setReportPeriodIndex(overrideIndex ?? gradebookState.gradebookCatalog.defaultIndex);
-	}
 
-	gradebookState.gradebookCatalog.loadingIndex = undefined;
-	saveGradebookCatalogToLocalStorage(gradebookState.gradebookCatalog);
+		saveGradebookCatalogToLocalStorage(catalog);
+	} catch (error) {
+		if (requestID === requestSequence) {
+			gradebookState.loadingError = error;
+			if (!silent && !(error instanceof StudentVueSessionExpiredError))
+				toast.error(`Couldn't update ${getReportPeriodName(requestedIndex)} grades`, {
+					description: error instanceof Error ? error.message : String(error),
+					duration: 6000
+				});
+		}
+		throw error;
+	} finally {
+		if (requestID === requestSequence) {
+			catalog.loadingIndex = undefined;
+			catalog.receivingData = undefined;
+			gradebookState.version += 1;
+		}
+	}
 }
 
 function setReportPeriodIndex(index: number) {
@@ -101,21 +179,47 @@ async function getGradebookCatalog() {
 			description: error instanceof Error ? error.message : String(error),
 			duration: 6000
 		});
-		localStorage.removeItem(LocalStorageKey.gradebook);
+		try {
+			localStorage.removeItem(LocalStorageKey.gradebook);
+		} catch {
+			// Continue with a live refresh if managed browser policy disables storage.
+		}
 	}
 
 	return lsCache ?? (await getInitialGradebookCatalog());
 }
 
-let initialized = false;
+let initializationPromise: Promise<void> | undefined;
 
-export async function initializeGradebookCatalog() {
-	if (initialized) return;
+export function resetGradebookCatalog() {
+	requestSequence += 1;
+	catalogGeneration += 1;
+	initializationPromise = undefined;
+	gradebookState.gradebookCatalog = undefined;
+	gradebookState.loadingError = undefined;
+	gradebookState.version += 1;
+}
 
+export function initializeGradebookCatalog(): Promise<void> {
+	initializationPromise ??= initializeGradebookCatalogOnce();
+	return initializationPromise;
+}
+
+async function initializeGradebookCatalogOnce() {
+	const generation = catalogGeneration;
 	try {
 		loadStudentAccount();
+		// Protected routes may render for one frame while the layout redirects a signed-out
+		// visitor. That is an expected navigation state, not a gradebook failure.
+		if (!acc.studentAccount) return;
 
-		gradebookState.gradebookCatalog = await getGradebookCatalog();
+		const loadedCatalog = await getGradebookCatalog();
+		if (generation !== catalogGeneration) return;
+		gradebookState.gradebookCatalog = loadedCatalog;
+		gradebookState.version += 1;
+		const catalog = gradebookState.gradebookCatalog;
+		const activeIndex = catalog.overrideIndex ?? catalog.defaultIndex;
+		const canRenderImmediately = catalog.recordCache[activeIndex] !== undefined;
 
 		// If there aren't any seen assignment ids saved, mark all assignments as seen
 		if (seenAssignmentIDs.size === 0) {
@@ -130,30 +234,75 @@ export async function initializeGradebookCatalog() {
 			saveSeenAssignmentsToLocalStorage(seenAssignmentIDs);
 		}
 
-		const { overrideIndex } = gradebookState.gradebookCatalog;
-
-		if (overrideIndex !== undefined) {
-			try {
-				await switchReportPeriod({ overrideIndex });
-			} catch (error) {
-				console.error(
-					`Error loading override report period ${overrideIndex}; reverting to default`,
-					error
-				);
-				toast.error(
-					`Failed to load grades from ${getReportPeriodName(overrideIndex)}; loading default period instead`,
-					{ description: error instanceof Error ? error.message : String(error), duration: 6000 }
-				);
-
-				await switchReportPeriod();
+		const refreshSelectedPeriod = async () => {
+			const { overrideIndex } = catalog;
+			const selectedIndex = overrideIndex ?? catalog.defaultIndex;
+			const canDeltaRefresh = catalog.recordCache[selectedIndex]?.detailed !== false;
+			if (overrideIndex !== undefined) {
+				try {
+					// Assignment data is required for trend charts and "new" markers. A
+					// summary response deliberately omits it, so it must never replace the
+					// selected period during normal refresh/reload.
+					await switchReportPeriod({ overrideIndex, delta: canDeltaRefresh });
+				} catch (error) {
+					console.error(
+						`Error loading override report period ${overrideIndex}; reverting to default`,
+						error
+					);
+					toast.error(
+						`Failed to load grades from ${getReportPeriodName(overrideIndex)}; loading default period instead`,
+						{ description: error instanceof Error ? error.message : String(error), duration: 6000 }
+					);
+					await switchReportPeriod({ delta: canDeltaRefresh });
+				}
+			} else {
+				await switchReportPeriod({ delta: canDeltaRefresh });
 			}
+			gradebookState.version += 1;
+		};
+
+		const hydrateSelectedPeriod = () => {
+			const selectedIndex = catalog.overrideIndex ?? catalog.defaultIndex;
+			// The first portal response can be a verified header-only snapshot. It is
+			// enough to show official course grades quickly, but never enough for
+			// grade history, assignment markers, or what-if calculations. Hydrate the
+			// same period after first paint instead of making the login wait for every
+			// mutable class-focus request.
+			if (catalog.recordCache[selectedIndex]?.detailed !== false) return;
+			void switchReportPeriod({
+				overrideIndex: catalog.overrideIndex,
+				forceRefresh: true,
+				silent: true
+			}).catch((error) => {
+				if (generation !== catalogGeneration) return;
+				// Keep the official summary usable if the slower detail pass is
+				// temporarily unavailable. The shared outage UI will offer retry.
+				console.error('Error hydrating gradebook assignment details:', error);
+				gradebookState.loadingError = error;
+				gradebookState.version += 1;
+			});
+		};
+
+		if (canRenderImmediately) {
+			// Stale-while-revalidate: make saved grades usable in the current frame and
+			// let a slow district portal refresh them without blocking the whole screen.
+			void refreshSelectedPeriod()
+				.then(hydrateSelectedPeriod)
+				.catch((error) => {
+					if (generation !== catalogGeneration) return;
+					console.error('Error refreshing grades:', error);
+					gradebookState.loadingError = error;
+					gradebookState.version += 1;
+				});
 		} else {
-			await switchReportPeriod();
+			await refreshSelectedPeriod();
+			hydrateSelectedPeriod();
 		}
 	} catch (error) {
+		if (generation !== catalogGeneration) return;
 		console.error('Error loading grades:', error);
 		gradebookState.loadingError = error;
-	} finally {
-		initialized = true;
+		initializationPromise = undefined;
+		gradebookState.version += 1;
 	}
 }

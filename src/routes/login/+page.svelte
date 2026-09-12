@@ -1,87 +1,168 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { LocalStorageKey } from '$lib';
-	import { acc, loadStudentAccount } from '$lib/account.svelte';
+	import { acc, loadStudentAccount, persistStudentAccount } from '$lib/account.svelte';
+	import {
+		clearStoredCredentials,
+		loadStoredCredentials,
+		saveStoredCredentials
+	} from '$lib/auth/credential-vault';
 	import { brand } from '$lib/brand';
-	import BackButton from '$lib/components/BackButton.svelte';
-	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
+	import AuthPanelHeader from '$lib/components/auth/AuthPanelHeader.svelte';
+	import AuthShell from '$lib/components/auth/AuthShell.svelte';
+	import DistrictCombobox from '$lib/components/auth/DistrictCombobox.svelte';
+	import PostLoginLoadingScreen from '$lib/components/auth/PostLoginLoadingScreen.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
-	import { Checkbox } from '$lib/components/ui/checkbox';
-	import * as Dialog from '$lib/components/ui/dialog';
-	import * as Field from '$lib/components/ui/field';
 	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
-	import { openDemo } from '$lib/demo/demo.svelte';
+	import { initializeGradebookCatalog, resetGradebookCatalog } from '$lib/grades/catalog.svelte';
+	import { seenAssignmentIDs } from '$lib/grades/seenAssignments.svelte';
 	import { StudentAccount } from '$lib/synergy';
 	import AlertCircleIcon from '@lucide/svelte/icons/alert-circle';
 	import InfoIcon from '@lucide/svelte/icons/info';
-	import LogInIcon from '@lucide/svelte/icons/log-in';
-	import PowerIcon from '@lucide/svelte/icons/power';
+	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
+	import { resetNonGradeRecords } from '../(authed)/resetNonGradeRecords.svelte';
+
+	const pleasantonDomain = 'https://ca-pleas-psv.edupoint.com';
 
 	if (browser && localStorage.getItem(LocalStorageKey.token) !== null) {
 		if (!acc.studentAccount) loadStudentAccount();
-
 		void goto('/grades');
 	}
 
-	let username: string = $state('');
-	let password: string = $state('');
-	let domain: string = $state('');
-
-	let loginError: string | undefined = $state();
-
+	let username = $state('');
+	let password = $state('');
+	let domain = $state(pleasantonDomain);
+	let loginError = $state<string | undefined>();
 	let loggingIn = $state(false);
+	let loginStage = $state('Connecting to StudentVUE…');
+	let interactive = $state(false);
+	let rememberMe = $state(true);
+
+	onMount(() => {
+		interactive = true;
+		void restoreSavedSession();
+	});
+
+	const sessionExpired = $derived(
+		browser && page.url.searchParams.get('sessionExpired') === 'true'
+	);
+
+	async function gradebookOwnerFingerprint(user: string, district: string) {
+		const identity = `${district.trim().toLowerCase()}\n${user.trim().toLowerCase()}`;
+		const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(identity));
+		return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join(
+			''
+		);
+	}
+
+	async function finishLogin(loginAccount: StudentAccount, passwordToStore?: string) {
+		resetGradebookCatalog();
+		resetNonGradeRecords();
+		const ownerFingerprint = await gradebookOwnerFingerprint(
+			loginAccount.userID,
+			loginAccount.domain
+		);
+		let sameStudent = localStorage.getItem(LocalStorageKey.gradebookOwner) === ownerFingerprint;
+		const previousToken = localStorage.getItem(LocalStorageKey.token);
+		if (!sameStudent && previousToken !== null) {
+			try {
+				const previous = JSON.parse(previousToken) as { username?: unknown; domain?: unknown };
+				sameStudent =
+					typeof previous.username === 'string' &&
+					typeof previous.domain === 'string' &&
+					previous.username.toLowerCase() === loginAccount.userID.toLowerCase() &&
+					previous.domain.toLowerCase() === loginAccount.domain.toLowerCase();
+			} catch {
+				/* Invalid identity metadata never authorizes cache reuse. */
+			}
+		}
+
+		if (!sameStudent) {
+			seenAssignmentIDs.clear();
+			for (const key of [
+				LocalStorageKey.gradebook,
+				LocalStorageKey.seenAssignmentIDs,
+				LocalStorageKey.attendance,
+				LocalStorageKey.documents,
+				LocalStorageKey.mailData,
+				LocalStorageKey.studentInfo
+			])
+				localStorage.removeItem(key);
+		}
+		localStorage.setItem(LocalStorageKey.gradebookOwner, ownerFingerprint);
+		persistStudentAccount(loginAccount);
+		if (rememberMe && passwordToStore) {
+			await saveStoredCredentials({
+				domain: loginAccount.domain,
+				username: loginAccount.userID,
+				password: passwordToStore
+			});
+		} else if (!rememberMe) {
+			await clearStoredCredentials();
+		}
+		acc.studentAccount = loginAccount;
+	}
+
+	async function restoreSavedSession() {
+		if (loggingIn || acc.studentAccount) return;
+		const stored = await loadStoredCredentials();
+		if (!stored || localStorage.getItem(LocalStorageKey.token) !== null) return;
+
+		loggingIn = true;
+		loginStage = 'Restoring your session…';
+		loginError = undefined;
+		const savedAccount = new StudentAccount(stored.domain, stored.username, stored.password);
+		try {
+			await savedAccount.checkLogin();
+			await finishLogin(savedAccount, stored.password);
+			loginStage = 'Loading your grades…';
+			await initializeGradebookCatalog();
+			await goto('/grades');
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			if (/invalid|password|credential|unauthor/i.test(message)) await clearStoredCredentials();
+			loggingIn = false;
+			loginError = 'Your saved StudentVUE sign-in needs attention. Enter your password again.';
+		}
+	}
 
 	async function login(event: SubmitEvent) {
 		event.preventDefault();
-
 		if (loggingIn) return;
 		loggingIn = true;
-
-		const loginAccount = new StudentAccount(domain, username, password);
+		loginStage = 'Connecting to StudentVUE…';
+		loginError = undefined;
+		const submittedPassword = password;
+		const loginAccount = new StudentAccount(domain, username, submittedPassword);
 
 		try {
 			await loginAccount.checkLogin();
 		} catch (error) {
 			loggingIn = false;
-
 			loginError = error instanceof Error ? error.message : String(error);
 			return;
 		}
 
-		acc.studentAccount = loginAccount;
-
-		localStorage.setItem(LocalStorageKey.token, JSON.stringify({ username, password, domain }));
-
-		loggingIn = false;
-
-		void goto('/grades');
-	}
-
-	let pastedUrl = $state('');
-	const convertedDomain = $derived.by(() => {
 		try {
-			const url = new URL(pastedUrl);
-			return url.host;
+			await finishLogin(loginAccount, submittedPassword);
 		} catch {
-			return undefined;
+			await fetch('/api/session', { method: 'DELETE' }).catch(() => undefined);
+			resetGradebookCatalog();
+			resetNonGradeRecords();
+			acc.studentAccount = undefined;
+			loggingIn = false;
+			loginError = `${brand} could not securely save this browser session. Enable site storage and try again.`;
+			return;
 		}
-	});
 
-	function findDomain() {
-		if (convertedDomain === undefined) return;
-		domain = convertedDomain;
-		domainDialogOpen = false;
+		loginStage = 'Loading your grades…';
+		await initializeGradebookCatalog();
+		await goto('/grades');
 	}
-	let domainDialogOpen = $state(false);
-	function openDomainDialog() {
-		domainDialogOpen = true;
-	}
-
-	const disabled = true;
 </script>
 
 <svelte:head>
@@ -89,136 +170,120 @@
 </svelte:head>
 
 {#if loggingIn}
-	<LoadingBanner>Logging you in...</LoadingBanner>
-{/if}
+	<PostLoginLoadingScreen message={loginStage} />
+{:else}
+	{#if loginError}
+		<div
+			in:fly={{ y: -50, duration: 200 }}
+			class="fixed top-0 left-0 z-50 flex w-full justify-center p-4"
+		>
+			<Alert.Root variant="destructive" class="w-fit max-w-[calc(100vw-2rem)]">
+				<AlertCircleIcon />
+				<Alert.Title>StudentVUE said no.</Alert.Title>
+				<Alert.Description>{loginError}</Alert.Description>
+			</Alert.Root>
+		</div>
+	{:else if sessionExpired}
+		<div class="fixed top-0 left-0 z-50 flex w-full justify-center p-4">
+			<Alert.Root class="w-fit max-w-[calc(100vw-2rem)]">
+				<InfoIcon />
+				<Alert.Title>The old StudentVUE session expired</Alert.Title>
+				<Alert.Description>One more sign-in and we can move on.</Alert.Description>
+			</Alert.Root>
+		</div>
+	{/if}
 
-{#if loginError}
-	<div in:fly={{ y: -50, duration: 200 }} class="fixed top-0 left-0 flex w-full justify-center p-4">
-		<Alert.Root variant="destructive" class="w-fit">
-			<AlertCircleIcon />
-			<Alert.Title>Couldn't log in</Alert.Title>
-			<Alert.Description>{loginError}</Alert.Description>
-		</Alert.Root>
-	</div>
-{/if}
+	<AuthShell promo>
+		<form
+			onsubmit={login}
+			class="min-h-[41.375rem] w-full max-w-[25rem] rounded-2xl border border-[rgba(228,238,248,0.08)] bg-[#0d2033] px-5 pt-[1.5625rem] pb-[0.9375rem] shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)] sm:min-h-[42.57rem] sm:p-9"
+		>
+			<AuthPanelHeader />
 
-<div class="flex min-h-screen flex-col">
-	<main class="flex grow items-center justify-center">
-		<form onsubmit={login} class="m-4 flex w-full max-w-md flex-col gap-4">
-			<BackButton />
+			<h1
+				class="text-[1.4375rem] leading-[2.15625rem] font-bold tracking-[-0.01em] text-[#e4eef8]"
+				style="font-family: 'Space Grotesk', sans-serif"
+			>
+				Sign in to {brand}
+			</h1>
 
-			<div class="mb-4 flex flex-col items-center gap-2">
-				<img src="/favicon.svg" class="h-8 w-8" alt={brand} />
+			<div class="mt-[1.359375rem] space-y-[1.125rem]">
+				<DistrictCombobox
+					value={domain}
+					onselect={(district) => (domain = `https://${district.domain}`)}
+					onvalueinput={(value) => (domain = value)}
+					disabled={!interactive}
+				/>
 
-				<h1 class="text-xl font-bold">Log in to {brand}</h1>
+				<div>
+					<label
+						for="username"
+						class="mb-1.5 block text-[0.78125rem] leading-[1.172rem] font-semibold text-[#8fa9c2]"
+					>
+						StudentVUE email
+					</label>
+					<Input
+						id="username"
+						type="text"
+						bind:value={username}
+						autocomplete="username"
+						class="h-[2.625rem] rounded-[0.5rem] border-[rgba(228,238,248,0.16)] bg-[#081522] px-3 py-[0.6875rem] text-sm text-[#e4eef8] shadow-none focus-visible:border-[#4db6f5] focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4db6f5]"
+						disabled={!interactive}
+						required
+					/>
+				</div>
+
+				<div>
+					<label
+						for="password"
+						class="mb-1.5 block text-[0.78125rem] leading-[1.172rem] font-semibold text-[#8fa9c2]"
+					>
+						StudentVUE password
+					</label>
+					<Input
+						id="password"
+						type="password"
+						bind:value={password}
+						autocomplete="current-password"
+						class="h-[2.625rem] rounded-[0.5rem] border-[rgba(228,238,248,0.16)] bg-[#081522] px-3 py-[0.6875rem] text-sm text-[#e4eef8] shadow-none focus-visible:border-[#4db6f5] focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4db6f5]"
+						disabled={!interactive}
+						required
+					/>
+				</div>
+
+				<label class="flex items-start gap-2 text-[0.78125rem] leading-[1.172rem] text-[#8fa9c2]">
+					<input type="checkbox" bind:checked={rememberMe} class="mt-0.5 size-4 accent-[#4db6f5]" />
+					<span>
+						Keep me signed in on this device
+						<span class="block text-xs text-[#7d98b1]"
+							>Your password is encrypted locally and sent only over HTTPS when reconnecting.</span
+						>
+					</span>
+				</label>
+
+				<Button
+					type="submit"
+					class="mt-1.5 h-[2.6875rem] w-full rounded-[0.5rem] border border-[#4db6f5] bg-[#4db6f5] text-[0.90625rem] font-semibold text-[#06131f] shadow-none transition-none hover:brightness-[1.08]"
+					disabled={!interactive || loggingIn}
+				>
+					{loggingIn ? 'Logging in…' : 'Log in'}
+				</Button>
 			</div>
 
-			<Alert.Root variant="destructive" class="mb-4">
-				<PowerIcon />
-				<Alert.Title>GradeCompass is now obsolete.</Alert.Title>
-				<Alert.Description>
-					You will see a deprecation notice if you try to log in.
-					<p>
-						<a href="/obsolete" class="underline">Learn more</a> •
-						<button class="cursor-pointer underline" onclick={openDemo}>Open demo</button>
-					</p>
-				</Alert.Description>
-			</Alert.Root>
-
-			<div class="relative">
-				<Field.Group>
-					<Field.Field>
-						<Field.Label for="username">Username</Field.Label>
-						<Input
-							id="username"
-							type="text"
-							bind:value={username}
-							placeholder="student@school.net"
-							autocomplete="username"
-							required
-						/>
-					</Field.Field>
-
-					<Field.Field>
-						<Field.Label for="password">Password</Field.Label>
-						<Input
-							type="password"
-							id="password"
-							bind:value={password}
-							autocomplete="current-password"
-							required
-						/>
-						<Field.Description>
-							Your device connected directly to the portal. We couldn't see your password or your
-							grades.
-						</Field.Description>
-					</Field.Field>
-
-					<Field.Field>
-						<Field.Label for="domain">Your District's Portal Domain</Field.Label>
-
-						<Alert.Root>
-							<InfoIcon />
-							<Alert.Title class="line-clamp-none">
-								{brand} could
-								<button onclick={openDomainDialog} class="underline">
-									find your domain for you
-								</button>.
-							</Alert.Title>
-						</Alert.Root>
-
-						<Input
-							type="text"
-							id="domain"
-							placeholder="[your-district]-psv.edupoint.com"
-							autocomplete="on"
-							autocorrect="off"
-							bind:value={domain}
-							required
-						/>
-					</Field.Field>
-
-					<Dialog.Root bind:open={domainDialogOpen}>
-						<Dialog.Content>
-							<form onsubmit={findDomain} class="space-y-4">
-								<Label for="pastedUrl">Paste any link to your district's web portal</Label>
-
-								<div class="flex gap-2">
-									<Input
-										id="pastedUrl"
-										type="url"
-										placeholder="https://[your-district]-psv.edupoint.com/Home_PXP2.aspx"
-										bind:value={pastedUrl}
-										required
-									/>
-									<Button type="submit" disabled={convertedDomain === undefined}>Submit</Button>
-								</div>
-							</form>
-						</Dialog.Content>
-					</Dialog.Root>
-
-					<Field.Field orientation="horizontal" class="items-center">
-						<Checkbox name="disclaimer" id="disclaimer" required />
-
-						<Field.Label for="disclaimer" class="text-tertiary-foreground text-xs">
-							I understand that {brand} was an independent, unofficial tool and is not affiliated with
-							or endorsed by Edupoint Educational Systems LLC. Use of your district's portal is subject
-							to Edupoint Educational Systems LLC's terms of service, and I am responsible for ensuring
-							my use complies with those terms.
-						</Field.Label>
-					</Field.Field>
-
-					<Field.Field>
-						<Button type="submit" class="w-full" variant="card">
-							<LogInIcon class="h-4 w-4" /> Log in
-						</Button>
-					</Field.Field>
-				</Field.Group>
-
-				{#if disabled}
-					<div class="absolute -inset-2 backdrop-blur-xs" aria-hidden="true"></div>
-				{/if}
+			<div class="mt-[1.125rem] text-center text-[0.8125rem] leading-[1.259375rem] text-[#8fa9c2]">
+				<p>
+					Your password is encrypted on this device and passed directly to your district when {brand}
+					reconnects. We never store it on our servers.
+				</p>
+				<p class="mt-2.5">
+					{brand} is independent and is not affiliated with Edupoint. If you have never used a StudentVUE
+					password, you may need to
+					<a href="/signup" class="font-medium text-[#4db6f5] hover:text-[#79cbf8]">create one</a>.
+				</p>
+				<p class="mt-[0.875rem] text-xs leading-[1.125rem] text-[#7d98b1]">
+					<a href="/privacy" class="text-[#4db6f5] hover:text-[#79cbf8]">Privacy</a>
+				</p>
 			</div>
 		</form>
-	</main>
-</div>
+	</AuthShell>
+{/if}

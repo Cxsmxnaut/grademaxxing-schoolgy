@@ -4,6 +4,8 @@ export interface AttendanceResult {
 
 export interface Attendance {
 	Absences: Absences;
+	CourseTotals?: AttendanceCourseTotal[];
+	DailyRecords?: AttendanceDailyRecord[];
 	TotalExcused: AttendanceEventTotal;
 	TotalTardies: AttendanceEventTotal;
 	TotalUnexcused: AttendanceEventTotal;
@@ -17,6 +19,21 @@ export interface Attendance {
 	_EndPeriod: string;
 	_PeriodCount: string;
 	_SchoolName: string;
+}
+
+export interface AttendanceDailyRecord {
+	Date: string;
+	Status: string;
+	Reason: string;
+}
+
+export interface AttendanceCourseTotal {
+	Course: string;
+	Present: number;
+	Tardy: number;
+	Absent: number;
+	Excused: number;
+	Unexcused: number;
 }
 
 export interface Absences {

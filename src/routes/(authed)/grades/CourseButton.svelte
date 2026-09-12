@@ -1,15 +1,10 @@
 <script lang="ts">
-	import { bgColorVariants } from '$lib';
-	import { Badge } from '$lib/components/ui/badge';
-	import { Button } from '$lib/components/ui/button';
-	import { Progress } from '$lib/components/ui/progress';
-	import MapPinHouseIcon from '@lucide/svelte/icons/map-pin-house';
-	import UserIcon from '@lucide/svelte/icons/user';
-	import NumberFlow from '@number-flow/svelte';
-	import BellElectricIcon from '@lucide/svelte/icons/bell-electric';
+	import Clock3Icon from '@lucide/svelte/icons/clock-3';
+	import MapPinIcon from '@lucide/svelte/icons/map-pin';
+	import UserRoundIcon from '@lucide/svelte/icons/user-round';
 
 	interface Props {
-		index: number;
+		courseId: string;
 		name: string;
 		period: string;
 		room: string;
@@ -18,77 +13,105 @@
 		unseenAssignmentsCount: number;
 		grade?: { letter: string; percentage: number };
 	}
-	const { index, name, period, room, teacher, unseenAssignmentsCount, grade }: Props = $props();
+	const { courseId, name, period, room, teacher, unseenAssignmentsCount, grade }: Props = $props();
 
-	function getColorForGrade(grade: string | number) {
-		if (typeof grade === 'number') {
-			if (grade > 100) return 'blue';
-			if (grade >= 90) return 'green';
-			else if (grade >= 80) return 'yellow';
-			else return 'red';
-		}
-
-		if (grade.match(/^A\+?-?$/)) return 'green';
-		else if (grade.match(/^B\+?-?$/)) return 'yellow';
-		else if (grade.match(/^[CDEF]\+?-?$/)) return 'red';
-		return undefined;
+	function gradeTone(percentage: number) {
+		if (percentage > 100) return 'text-grade-extra';
+		if (percentage >= 90) return 'text-grade-strong';
+		if (percentage >= 80) return 'text-grade-watch';
+		return 'text-grade-risk';
 	}
 
-	const indicatorClass = $derived.by(() => {
-		if (!grade) return undefined;
-
-		const color = getColorForGrade(grade.letter);
-		if (color === undefined) return undefined;
-
-		return bgColorVariants[color];
-	});
+	function indicatorTone(percentage: number) {
+		if (percentage > 100) return 'bg-grade-extra';
+		if (percentage >= 90) return 'bg-grade-strong';
+		if (percentage >= 80) return 'bg-grade-watch';
+		return 'bg-grade-risk';
+	}
 </script>
 
-<Button
-	href="/grades/{index.toString()}"
-	variant="card"
-	size="lg"
-	class="flex h-auto flex-col items-stretch gap-3 rounded-xl p-4 text-xl whitespace-normal sm:flex-row sm:justify-between"
+<a
+	href="/grades/{encodeURIComponent(courseId)}"
+	class="group border-border bg-card hover:border-primary focus-visible:ring-ring grid grid-cols-[44px_minmax(0,1fr)_45px] items-center gap-3 rounded-[0.75rem] border px-[0.875rem] py-[0.8125rem] shadow-[0_1px_2px_rgb(15_28_46_/_6%),0_8px_24px_rgb(11_125_194_/_8%)] transition-[border-color,background-color] focus-visible:ring-2 focus-visible:outline-none sm:min-h-[82px] sm:grid-cols-[56px_minmax(0,1fr)_minmax(180px,209px)] sm:gap-4 sm:px-5 sm:py-4 dark:shadow-[0_1px_2px_rgb(0_0_0_/_40%),0_8px_24px_rgb(0_0_0_/_30%)]"
 >
-	<div class="flex flex-1 flex-col gap-2 self-start">
-		<span class="line-clamp-1">{name}</span>
+	<div
+		style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
+		class="text-center text-[1.375rem] leading-[normal] font-bold tracking-[-0.03em] sm:text-[1.6875rem] {grade
+			? gradeTone(grade.percentage)
+			: 'text-muted-foreground'}"
+	>
+		{grade?.letter ?? '—'}
+	</div>
 
-		<div class="flex flex-wrap gap-1">
-			<Badge variant="secondary">
-				<BellElectricIcon />
-				Period {period}
-			</Badge>
-
-			<Badge variant="secondary" title="Room">
-				<MapPinHouseIcon />
-				{room}
-			</Badge>
-
-			<Badge variant="secondary" title="Teacher">
-				<UserIcon />
-				{teacher}
-			</Badge>
-
+	<div class="min-w-0">
+		<div class="flex min-w-0 items-center gap-2">
+			<h2
+				class="truncate text-[0.9375rem] leading-[1.3] font-semibold tracking-normal sm:text-[1.03125rem]"
+			>
+				{name}
+			</h2>
 			{#if unseenAssignmentsCount > 0}
-				<Badge color="green">{unseenAssignmentsCount} new</Badge>
+				<span class="bg-primary/12 text-primary rounded-full px-2 py-0.5 text-[0.65rem] font-bold">
+					{unseenAssignmentsCount} new
+				</span>
+			{/if}
+		</div>
+		<div
+			class="text-muted-foreground mt-[0.4375rem] flex flex-wrap items-center gap-1.5 text-[0.71875rem] leading-[normal] font-medium tracking-[0.04em]"
+		>
+			<span
+				class="bg-secondary inline-flex h-[1.3125rem] items-center gap-[0.3125rem] rounded-full px-[0.5625rem]"
+			>
+				<Clock3Icon class="size-3" /> Period {period}
+			</span>
+			{#if room}
+				<span
+					class="bg-secondary inline-flex h-[1.3125rem] items-center gap-[0.3125rem] rounded-full px-[0.5625rem]"
+				>
+					<MapPinIcon class="size-3" />
+					{room}
+				</span>
+			{/if}
+			{#if teacher}
+				<div class="basis-full sm:basis-auto">
+					<span
+						class="bg-secondary inline-flex h-[1.3125rem] min-w-0 items-center gap-[0.3125rem] rounded-full px-[0.5625rem]"
+					>
+						<UserRoundIcon class="size-3 shrink-0" />
+						<span class="max-w-28 truncate sm:max-w-36">{teacher}</span>
+					</span>
+				</div>
 			{/if}
 		</div>
 	</div>
 
-	{#if grade}
-		<div class="flex flex-col items-center gap-2 self-end sm:flex-row sm:self-auto">
-			<NumberFlow
-				prefix={grade.letter + ' '}
-				value={grade.percentage / 100}
-				format={{ style: 'percent', maximumFractionDigits: 3 }}
-				class="self-end sm:self-auto"
-			/>
+	<div class="hidden items-center gap-3.5 sm:flex">
+		{#if grade}
+			<span
+				class="{gradeTone(
+					grade.percentage
+				)} h-[1.1875rem] text-right font-mono text-[0.9375rem] leading-[normal] font-semibold"
+				>{grade.percentage.toLocaleString(undefined, { maximumFractionDigits: 1 })}%</span
+			>
+			<div class="bg-secondary h-1.5 min-w-0 flex-1 overflow-hidden rounded-full">
+				<div
+					class="h-full rounded-full {indicatorTone(grade.percentage)}"
+					style:width={`${Math.min(Math.max(grade.percentage, 0), 100)}%`}
+				></div>
+			</div>
+		{:else}
+			<span class="text-muted-foreground ml-auto text-sm">Not graded</span>
+		{/if}
+	</div>
 
-			<Progress
-				value={Math.min(isNaN(grade.percentage) ? 0 : grade.percentage, 100)}
-				class="w-48 transition-all lg:w-64"
-				{indicatorClass}
-			/>
-		</div>
+	{#if grade}
+		<span
+			class="{gradeTone(
+				grade.percentage
+			)} h-[1.1875rem] text-right font-mono text-[0.9375rem] leading-[normal] font-semibold sm:hidden"
+			>{grade.percentage.toLocaleString(undefined, { maximumFractionDigits: 1 })}%</span
+		>
+	{:else}
+		<span class="text-muted-foreground text-xs sm:hidden">Not graded</span>
 	{/if}
-</Button>
+</a>

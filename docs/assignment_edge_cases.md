@@ -1,15 +1,15 @@
 # Assignment Edge Cases
 
 > [!NOTE]
-> The Score field appears to be a recent addition. For some rare edge cases, we do not have data on what the expected value is.
+> The Score field appears to be a recent addition to StudentVUE. For some rare edge cases, we do not have data on what the expected value is.
 
 ## Normal
 
-GradeCompass points earned: 3<br>
-GradeCompass points possible: 4<br>
-Included in GradeCompass grade calculations: yes
+Grademaxxing points earned: 3<br>
+Grademaxxing points possible: 4<br>
+Included in Grademaxxing grade calculations: yes
 
-- Score: "3"
+- Score: "25"
 - DisplayScore: "3 out of 4"
 - ScoreCalValue: "3"
 - ScoreMaxValue: "4"
@@ -19,9 +19,9 @@ Included in GradeCompass grade calculations: yes
 
 ## Scaled
 
-GradeCompass points earned: 6<br>
-GradeCompass points possible: 8<br>
-Included in GradeCompass grade calculations: yes
+Grademaxxing points earned: 6<br>
+Grademaxxing points possible: 8<br>
+Included in Grademaxxing grade calculations: yes
 
 - Score: "3"
 - DisplayScore: "3 out of 4"
@@ -36,9 +36,9 @@ Included in GradeCompass grade calculations: yes
 > [!NOTE]
 > Recent example needed for when ScoreMaxValue is defined
 
-GradeCompass points earned: undefined<br>
-GradeCompass points possible: 4<br>
-Included in GradeCompass grade calculations: no
+Grademaxxing points earned: undefined<br>
+Grademaxxing points possible: 4<br>
+Included in Grademaxxing grade calculations: no
 
 - Score: undefined
 - DisplayScore: "Not Graded"
@@ -53,9 +53,9 @@ Included in GradeCompass grade calculations: no
 > [!NOTE]
 > Recent example needed
 
-GradeCompass points earned: undefined<br>
-GradeCompass points possible: undefined<br>
-Included in GradeCompass grade calculations: no
+Grademaxxing points earned: undefined<br>
+Grademaxxing points possible: undefined<br>
+Included in Grademaxxing grade calculations: no
 
 - Score: ?
 - DisplayScore: "Not Graded"
@@ -70,9 +70,9 @@ Included in GradeCompass grade calculations: no
 > [!NOTE]
 > Recent example needed
 
-GradeCompass points earned: 0<br>
-GradeCompass points possible: 4<br>
-Included in GradeCompass grade calculations: yes
+Grademaxxing points earned: 0<br>
+Grademaxxing points possible: 4<br>
+Included in Grademaxxing grade calculations: yes
 
 - Score: ?
 - DisplayScore: "0 out of 4"
@@ -84,9 +84,9 @@ Included in GradeCompass grade calculations: yes
 
 ## Extra Credit
 
-GradeCompass points earned: 3<br>
-GradeCompass points possible: shown as 4, calculated as 0<br>
-Included in GradeCompass grade calculations: yes
+Grademaxxing points earned: 3<br>
+Grademaxxing points possible: shown as 4, calculated as 0<br>
+Included in Grademaxxing grade calculations: yes
 
 - Score: "3"
 - DisplayScore: "3 out of 4"
@@ -98,15 +98,18 @@ Included in GradeCompass grade calculations: yes
 
 ## Not For Grading
 
-GradeCompass points earned: 3<br>
-GradeCompass points possible: 4<br>
-Included in GradeCompass grade calculations: no
+> [!NOTE]
+> Recent example needed
 
-- Score: "3"
+Grademaxxing points earned: 3<br>
+Grademaxxing points possible: 4<br>
+Included in Grademaxxing grade calculations: no
+
+- Score: ?
 - DisplayScore: "3 out of 4"
 - ScoreCalValue: "3"
 - ScoreMaxValue: "4"
 - Points: "3 / 4"
 - Point: "3"
 - PointPossible: "4"
-- Notes: "(Not For Grading) " with any note appended
+- Notes: "(Not For Grading) "

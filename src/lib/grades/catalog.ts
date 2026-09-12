@@ -2,16 +2,22 @@ import { LocalStorageKey } from '$lib';
 import { acc } from '$lib/account.svelte';
 import { Operation, parseGradebookXML, unwrapEnvelope } from '$lib/synergy';
 import type { ReportPeriod } from '$lib/types/Gradebook';
+import { getGradebookCacheOwnerFor, getReportPeriodIndex } from './refresh';
 
-interface GradebookRecord {
+export { cacheGradebookRecord, getReportPeriodIndex, gradebookSummaryMatches } from './refresh';
+
+export interface GradebookRecord {
 	xml: string;
 	lastRefresh: number;
+	/** Summary records have official course marks but deliberately omit assignment detail. */
+	detailed?: boolean;
 }
 
 interface GradebookCatalogLocalStorageCache {
 	recordCache: (null | GradebookRecord)[];
 	defaultIndex: number;
 	overrideIndex: number | null;
+	owner?: string;
 }
 
 export interface GradebookCatalog {
@@ -27,9 +33,38 @@ export function getGradebookCatalogFromLocalStorage() {
 	const cacheStr = localStorage.getItem(LocalStorageKey.gradebook);
 	if (cacheStr === null) return undefined;
 
-	const cache: GradebookCatalogLocalStorageCache = JSON.parse(cacheStr);
+	const cache = JSON.parse(cacheStr) as Partial<GradebookCatalogLocalStorageCache>;
+	const owner = getGradebookCacheOwner();
+	// Old caches were not account-scoped. Never render one into a newly signed-in account.
+	if (!owner || cache.owner !== owner) return undefined;
+	if (
+		!Array.isArray(cache.recordCache) ||
+		cache.recordCache.length === 0 ||
+		cache.recordCache.length > 100 ||
+		!Number.isInteger(cache.defaultIndex) ||
+		cache.defaultIndex! < 0 ||
+		cache.defaultIndex! >= cache.recordCache.length ||
+		(cache.overrideIndex !== null &&
+			cache.overrideIndex !== undefined &&
+			(!Number.isInteger(cache.overrideIndex) ||
+				cache.overrideIndex < 0 ||
+				cache.overrideIndex >= cache.recordCache.length)) ||
+		cache.recordCache.some(
+			(record) =>
+				record !== null &&
+				(typeof record !== 'object' ||
+					typeof record.xml !== 'string' ||
+					record.xml.length === 0 ||
+					record.xml.length > 5 * 1024 * 1024 ||
+					!Number.isFinite(record.lastRefresh) ||
+					record.lastRefresh < 0 ||
+					(record.detailed !== undefined && typeof record.detailed !== 'boolean'))
+		)
+	)
+		throw new Error('Saved grade data is invalid.');
 
-	const defaultRecord = cache.recordCache[cache.defaultIndex];
+	const defaultRecord = cache.recordCache[cache.defaultIndex!];
+	if (!defaultRecord) throw new Error('Saved grade data has no default reporting period.');
 
 	const canonicalReportPeriodEntries = defaultRecord
 		? parseGradebookXML(defaultRecord.xml).ReportingPeriods.ReportPeriod
@@ -37,7 +72,7 @@ export function getGradebookCatalogFromLocalStorage() {
 
 	const gradebookCatalog: GradebookCatalog = {
 		recordCache: cache.recordCache.map((record) => record ?? undefined),
-		defaultIndex: cache.defaultIndex,
+		defaultIndex: cache.defaultIndex!,
 		overrideIndex: cache.overrideIndex ?? undefined,
 		canonicalReportPeriodEntries
 	};
@@ -45,20 +80,35 @@ export function getGradebookCatalogFromLocalStorage() {
 }
 
 export function saveGradebookCatalogToLocalStorage(gradebookCatalog: GradebookCatalog) {
+	const owner = getGradebookCacheOwner();
+	if (!owner) return;
 	const cache: GradebookCatalogLocalStorageCache = {
 		recordCache: gradebookCatalog.recordCache.map((record) => record ?? null),
 		defaultIndex: gradebookCatalog.defaultIndex,
-		overrideIndex: gradebookCatalog.overrideIndex ?? null
+		overrideIndex: gradebookCatalog.overrideIndex ?? null,
+		owner
 	};
 
-	localStorage.setItem(LocalStorageKey.gradebook, JSON.stringify(cache));
+	try {
+		localStorage.setItem(LocalStorageKey.gradebook, JSON.stringify(cache));
+	} catch {
+		// Live grade data remains usable when storage is disabled or full.
+	}
 }
 
-export async function getGradebookRecord(onReceivingData?: () => void, reportPeriod?: number) {
-	const { studentAccount } = acc;
-	if (!studentAccount) throw new Error('Cannot get gradebook: student account not loaded');
+export function getGradebookCacheOwner() {
+	return getGradebookCacheOwnerFor(acc.studentAccount);
+}
 
-	const res = await studentAccount.gradebookRequest(reportPeriod);
+export async function getGradebookRecord(
+	onReceivingData?: () => void,
+	reportPeriod?: number,
+	summary = false
+) {
+	const { studentAccount } = acc;
+	if (!studentAccount) throw new Error('Cannot get synergy gradebook: student account not loaded');
+
+	const res = await studentAccount.gradebookRequest(reportPeriod, summary);
 
 	onReceivingData?.();
 
@@ -66,23 +116,31 @@ export async function getGradebookRecord(onReceivingData?: () => void, reportPer
 
 	const record: GradebookRecord = {
 		xml: unwrapEnvelope(envelopeStr, Operation.Request),
-		lastRefresh: Date.now()
+		lastRefresh: Date.now(),
+		detailed: res.headers.get('X-Grademaxxing-Gradebook-Detail') !== 'false'
 	};
 	return record;
 }
 
 export async function getInitialGradebookCatalog() {
-	const defaultGradebookRecord = await getGradebookRecord();
+	// A cold login has no usable local record to render. Use the same complete
+	// gradebook request as the Refresh action instead of installing a summary-only
+	// record that can leave the first screen without assignment-backed data.
+	const defaultGradebookRecord = await getGradebookRecord(undefined, undefined, false);
 
 	const defaultGradebook = parseGradebookXML(defaultGradebookRecord.xml);
 
 	const canonicalReportPeriodEntries = defaultGradebook.ReportingPeriods.ReportPeriod;
 
-	const reportingPeriods: (undefined | GradebookRecord)[] = Array(
-		canonicalReportPeriodEntries.length
-	).fill(undefined);
-
 	const defaultIndex = parseInt(defaultGradebook.ReportingPeriod._Index);
+	const highestReportPeriodIndex = canonicalReportPeriodEntries.reduce(
+		(highest, reportPeriod, fallbackIndex) =>
+			Math.max(highest, getReportPeriodIndex(reportPeriod, fallbackIndex)),
+		defaultIndex
+	);
+	const reportingPeriods: (undefined | GradebookRecord)[] = Array(
+		highestReportPeriodIndex + 1
+	).fill(undefined);
 
 	reportingPeriods[defaultIndex] = defaultGradebookRecord;
 

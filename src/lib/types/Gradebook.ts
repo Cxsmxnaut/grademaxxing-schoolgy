@@ -116,7 +116,7 @@ export interface AssignmentEntity {
 	_Score?: string;
 	/**
 	 * If scaled, displays unscaled points
-	 * 
+	 *
 	 * a and b are numbers
 	 * ```ts
 	 * `${a} out of ${b}` |
@@ -146,7 +146,7 @@ export interface AssignmentEntity {
 	_ScoreType: 'Raw Score';
 	/**
 	 * If scaled, displays scaled points
-	 * 
+	 *
 	 * a and b are numbers
 	 * ```ts
 	 * `${a} / ${b}` |
@@ -156,7 +156,7 @@ export interface AssignmentEntity {
 	_Points: string;
 	/**
 	 * Scaled points earned (if scaled, otherwise usually matches ScoreCalValue)
-	 * ```ts 
+	 * ```ts
 	 * `${number}` |
 	 * '' | // zero with empty point?
 	 * undefined // not graded
@@ -172,9 +172,9 @@ export interface AssignmentEntity {
 	_PointPossible?: string;
 
 	/** Teacher comments | ''
-	 * 
+	 *
 	 * Starts with '(Not For Grading) ' if assignment is not for grade
-	 * 
+	 *
 	 * fast-xml-parser may be removing leading/trailing whitespace */
 	_Notes: string;
 	/** number */
@@ -218,7 +218,6 @@ export interface Resource {
 	_TeacherID: string;
 	_url: string;
 	_ServerFileName: string;
-	
 }
 
 export interface GradeCalculationSummary {

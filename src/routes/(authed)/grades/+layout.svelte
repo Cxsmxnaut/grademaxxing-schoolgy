@@ -1,6 +1,6 @@
 <script lang="ts">
 	import BoundaryFailure from '$lib/components/BoundaryFailure.svelte';
-	import RefreshIndicator from '$lib/components/RefreshIndicator.svelte';
+	import { acc } from '$lib/account.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
 	import * as Item from '$lib/components/ui/item';
@@ -14,23 +14,25 @@
 	import HistoryIcon from '@lucide/svelte/icons/history';
 	import { onMount } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
+	import { portalConnection } from '$lib/session.svelte';
 	import GradebookLoadingBanner from './GradebookLoadingBanner.svelte';
 
 	let { children } = $props();
+	const loadingError = $derived.by(() => {
+		gradebookState.version;
+		return gradebookState.loadingError;
+	});
 
-	const loadingError = $derived(gradebookState.loadingError);
-
-	const gradebookCatalog = $derived(gradebookState.gradebookCatalog);
+	const gradebookCatalog = $derived.by(() => {
+		gradebookState.version;
+		return gradebookState.gradebookCatalog;
+	});
 
 	const loadingIndex = $derived(gradebookCatalog?.loadingIndex);
-
-	const gradebookRecord = $derived(
-		gradebookCatalog
-			? gradebookCatalog.recordCache[
-					gradebookCatalog.overrideIndex ?? gradebookCatalog.defaultIndex
-				]
-			: undefined
-	);
+	const hasCachedLoadingRecord = $derived.by(() => {
+		gradebookState.version;
+		return loadingIndex !== undefined && gradebookCatalog?.recordCache[loadingIndex] !== undefined;
+	});
 
 	const defaultReportPeriodName = $derived(
 		gradebookCatalog ? getReportPeriodName(gradebookCatalog.defaultIndex) : undefined
@@ -40,23 +42,45 @@
 		loadingIndex !== undefined ? getReportPeriodName(loadingIndex) : undefined
 	);
 
-	function resetReportPeriodOverride() {
-		switchReportPeriod();
+	async function resetReportPeriodOverride() {
+		try {
+			await switchReportPeriod({ delta: true });
+		} catch {
+			// The shared gradebook state and toast already expose the failure.
+		}
 	}
 
-	function refreshGradebook() {
-		switchReportPeriod({
-			overrideIndex: gradebookCatalog?.overrideIndex,
-			forceRefresh: true
-		});
+	async function refreshGradebook() {
+		try {
+			await switchReportPeriod({
+				overrideIndex: gradebookCatalog?.overrideIndex,
+				forceRefresh: true,
+				delta: true
+			});
+		} catch {
+			// The shared gradebook state and toast already expose the failure.
+		}
+	}
+
+	async function retryGradebook() {
+		if (!gradebookCatalog) {
+			await initializeGradebookCatalog();
+			return;
+		}
+		await refreshGradebook();
 	}
 
 	onMount(() => {
-		initializeGradebookCatalog();
+		if (!acc.studentAccount) return;
+		void initializeGradebookCatalog();
 	});
 </script>
 
-{#if (!gradebookCatalog || loadingIndex !== undefined) && loadingError === undefined}
+{#if gradebookCatalog === undefined && loadingError === undefined}
+	<div class="flex justify-center" in:fade out:fly={{ y: '-50%' }}>
+		<GradebookLoadingBanner status="Pending" />
+	</div>
+{:else if loadingIndex !== undefined && !hasCachedLoadingRecord}
 	<div class="flex justify-center" in:fade out:fly={{ y: '-50%' }}>
 		{#key gradebookCatalog?.receivingData}
 			<GradebookLoadingBanner
@@ -67,21 +91,29 @@
 	</div>
 {/if}
 
-{#if gradebookRecord?.lastRefresh !== undefined}
-	<RefreshIndicator
-		canRefresh={loadingIndex === undefined}
-		lastRefresh={gradebookRecord.lastRefresh}
-		refresh={refreshGradebook}
-	/>
-{/if}
-
 {#if loadingError !== undefined}
-	<Alert.Root variant="destructive" class="mx-auto w-fit min-w-sm">
+	<Alert.Root
+		variant={gradebookCatalog ? 'default' : 'destructive'}
+		class="mx-auto w-fit min-w-sm {gradebookCatalog ? 'border-amber-400/30 bg-amber-400/10' : ''}"
+		data-testid="gradebook-stale-indicator"
+	>
 		<AlertCircleIcon />
-		<Alert.Title>An error occurred while loading grades.</Alert.Title>
+		<Alert.Title
+			>{gradebookCatalog
+				? 'Showing saved grades. StudentVUE is being difficult.'
+				: 'An error occurred while loading grades.'}</Alert.Title
+		>
 		<Alert.Description>
-			{loadingError instanceof Error ? loadingError.message : String(loadingError)}
+			{#if gradebookCatalog}
+				StudentVUE is unavailable right now. Your saved grades are still here; we'll retry
+				automatically.
+			{:else}
+				{loadingError instanceof Error ? loadingError.message : String(loadingError)}
+			{/if}
 		</Alert.Description>
+		<Button variant="outline" onclick={() => void retryGradebook()}>
+			{portalConnection.state === 'offline' ? 'Retry now' : 'Try again'}
+		</Button>
 	</Alert.Root>
 {/if}
 

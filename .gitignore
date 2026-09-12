@@ -7,6 +7,8 @@ node_modules
 .wrangler
 /.svelte-kit
 /build
+/test-results
+/playwright-report
 
 # OS
 .DS_Store
@@ -15,6 +17,8 @@ Thumbs.db
 # Env
 .env
 .env.*
+.dev.vars
+.dev.vars.*
 !.env.example
 !.env.test
 
@@ -22,4 +26,9 @@ Thumbs.db
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-data_archive
+# Mocked data
+src/lib/mocks/data
+.env*.local
+
+# Local-only StudentVUE diagnostic timings. Never commit benchmark runs.
+/.local/
