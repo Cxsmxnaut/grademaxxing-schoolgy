@@ -20,10 +20,7 @@
 		"enabled": false
 	},
 	"secrets": {
-		"required": [
-			"GRADEMAXXING_SESSION_SECRET",
-			"GRADEMAXXING_ANALYTICS_HMAC_SECRET"
-		]
+		"required": ["GRADEMAXXING_SESSION_SECRET", "GRADEMAXXING_ANALYTICS_HMAC_SECRET"]
 	},
 	"analytics_engine_datasets": [
 		{

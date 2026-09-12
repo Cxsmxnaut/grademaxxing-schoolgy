@@ -1,6 +1,6 @@
+import type { AssignmentEntity } from '$lib/contracts/studentvue/gradebook';
 import { parseSynergyAssignment, type RealAssignment } from '$lib/grades/assignments';
 import { estimateHypotheticalLetter } from '$lib/grades/grade-scale';
-import type { AssignmentEntity } from '$lib/types/Gradebook';
 import { expect, test } from 'vitest';
 
 test('Normal Assignment', () => {

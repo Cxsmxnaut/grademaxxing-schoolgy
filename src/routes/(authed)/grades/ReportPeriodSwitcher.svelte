@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ReportPeriod } from '$lib/types/Gradebook';
+	import type { ReportPeriod } from '$lib/contracts/studentvue/gradebook';
 	import { getReportPeriodIndex } from '$lib/grades/catalog';
 
 	interface Props {

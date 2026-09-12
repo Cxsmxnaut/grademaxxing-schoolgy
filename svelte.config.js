@@ -7,8 +7,8 @@ const adapter =
 	process.env.DEPLOY_TARGET === 'cloudflare'
 		? adapterCloudflare()
 		: process.env.VERCEL === '1'
-		? adapterVercel({ maxDuration: 300, runtime: 'nodejs24.x' })
-		: adapterNode();
+			? adapterVercel({ maxDuration: 300, runtime: 'nodejs24.x' })
+			: adapterNode();
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {

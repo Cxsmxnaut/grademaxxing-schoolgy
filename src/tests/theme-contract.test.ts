@@ -77,14 +77,17 @@ test('named badge colors are not collapsed into the brand palette', () => {
 		new URL('../lib/components/ui/badge/badge.svelte', import.meta.url),
 		'utf8'
 	);
-	const utilitiesSource = readFileSync(new URL('../lib/index.ts', import.meta.url), 'utf8');
+	const colorSource = readFileSync(
+		new URL('../lib/components/ui/badge/colors.ts', import.meta.url),
+		'utf8'
+	);
 
 	expect(badgeSource).toContain('bg-green-200');
 	expect(badgeSource).toContain('bg-emerald-200');
 	expect(badgeSource).toContain('bg-teal-200');
-	expect(utilitiesSource).toContain("green: 'bg-green-500'");
-	expect(utilitiesSource).toContain("emerald: 'bg-emerald-500'");
-	expect(utilitiesSource).toContain("teal: 'bg-teal-500'");
+	expect(colorSource).toContain("green: 'bg-green-500'");
+	expect(colorSource).toContain("emerald: 'bg-emerald-500'");
+	expect(colorSource).toContain("teal: 'bg-teal-500'");
 });
 
 test('grade UI uses semantic outcomes instead of hard-coded utility colors', () => {

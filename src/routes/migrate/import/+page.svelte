@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { env } from '$env/dynamic/public';
-	import { LocalStorageKey } from '$lib';
+	import { LocalStorageKey } from '$lib/storage/keys';
 	import { brand } from '$lib/brand';
 	import AuthPanelHeader from '$lib/components/auth/AuthPanelHeader.svelte';
 	import AuthShell from '$lib/components/auth/AuthShell.svelte';

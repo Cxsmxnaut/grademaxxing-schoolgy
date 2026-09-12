@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { removeCourseType, tailwindColors } from '$lib';
+	import { tailwindColors } from '$lib/components/ui/badge/colors';
+	import { removeCourseType } from '$lib/grades/course-name';
 	import { brand } from '$lib/brand';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
@@ -33,8 +34,7 @@
 		getCourseGradeScaleObservations
 	} from '$lib/grades/grade-scale';
 	import { getActiveGradebook } from '$lib/grades/gradebook';
-	import { gradebookState } from '$lib/grades/catalog.svelte';
-	import { switchReportPeriod } from '$lib/grades/catalog.svelte';
+	import { gradebookState, switchReportPeriod } from '$lib/grades/catalog.svelte';
 	import { saveSeenAssignmentsToLocalStorage } from '$lib/grades/seenAssignments';
 	import { seenAssignmentIDs } from '$lib/grades/seenAssignments.svelte';
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
@@ -306,13 +306,15 @@
 					{#if hypotheticalMode}<span
 							data-testid="hypothetical-letter"
 							class="font-heading {gradeTone} text-[2.125rem] leading-none font-bold"
-							title={hypotheticalLetter?.basis === 'observed' || hypotheticalLetter?.basis === 'observed-range'
+							title={hypotheticalLetter?.basis === 'observed' ||
+							hypotheticalLetter?.basis === 'observed-range'
 								? 'Estimated from this class’s previous StudentVUE marks'
-							: 'Estimated from this class’s observed letter style'}>{hypotheticalLetter?.letter ?? '—'}</span
-					>{:else if markLabel}<span
-						class="font-heading {gradeTone} text-[2.125rem] leading-none font-bold"
-						>{markLabel}</span
-					>{/if}
+								: 'Estimated from this class’s observed letter style'}
+							>{hypotheticalLetter?.letter ?? '—'}</span
+						>{:else if markLabel}<span
+							class="font-heading {gradeTone} text-[2.125rem] leading-none font-bold"
+							>{markLabel}</span
+						>{/if}
 					{#if grade !== undefined}<span class="font-mono text-[1.375rem] font-semibold"
 							>{(grade * 100).toLocaleString(undefined, {
 								minimumFractionDigits: 1,
@@ -322,7 +324,10 @@
 				</div>
 				<p class="text-muted-foreground mt-1 font-mono text-[0.78125rem] leading-[1.5]">
 					{#if hypotheticalMode && hypotheticalDelta !== undefined}
-						estimated {hypotheticalLetter?.basis === 'observed' || hypotheticalLetter?.basis === 'observed-range' ? 'from class history' : 'from class style'} · {hypotheticalDelta === 0
+						estimated {hypotheticalLetter?.basis === 'observed' ||
+						hypotheticalLetter?.basis === 'observed-range'
+							? 'from class history'
+							: 'from class style'} · {hypotheticalDelta === 0
 							? '±'
 							: hypotheticalDelta > 0
 								? '+'

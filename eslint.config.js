@@ -28,6 +28,18 @@ export default tseslint.config(
 		},
 		rules: {
 			'no-duplicate-imports': 'error',
+			'no-restricted-imports': [
+				'error',
+				{
+					paths: [
+						{
+							name: '$lib',
+							message:
+								'Import from the module that owns the responsibility; $lib has no catch-all barrel.'
+						}
+					]
+				}
+			],
 			eqeqeq: 'error',
 			'@typescript-eslint/no-unused-vars': [
 				'error',
@@ -59,6 +71,8 @@ export default tseslint.config(
 		extends: [tseslint.configs.disableTypeChecked],
 		rules: {
 			'@typescript-eslint/no-unused-expressions': 'off',
+			// Svelte's bindable values are consumed by template bindings that this core rule cannot see.
+			'no-useless-assignment': 'off',
 			'svelte/prefer-svelte-reactivity': 'off'
 		}
 	},

@@ -204,7 +204,7 @@ export function getStudentSession(token: string | undefined) {
 		} satisfies StudentSession;
 	} catch (cause) {
 		if (cause instanceof StudentSessionConfigurationError) throw cause;
-		throw new Error('Your StudentVUE session has expired. Please sign in again.');
+		throw new Error('Your StudentVUE session has expired. Please sign in again.', { cause });
 	}
 }
 

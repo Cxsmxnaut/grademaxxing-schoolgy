@@ -1,4 +1,4 @@
-import type { Course } from '$lib/types/Gradebook';
+import type { Course } from '$lib/contracts/studentvue/gradebook';
 import type { Category } from './assignments';
 import { seenAssignmentIDs } from './seenAssignments.svelte';
 
@@ -28,8 +28,7 @@ export const getSynergyCourseAssignmentCategories = (course: Course): Category[]
 
 export const getCourseUnseenAssignmentsCount = (course: Course) =>
 	getMark(course)?.Assignments?.Assignment.filter(
-		({ _GradebookID: id, _Notes: notes }) =>
-			!isNotForGrade(notes) && !seenAssignmentIDs.has(id)
+		({ _GradebookID: id, _Notes: notes }) => !isNotForGrade(notes) && !seenAssignmentIDs.has(id)
 	).length ?? 0;
 
 export function clearCourseUnseenAssignments(course: Course) {

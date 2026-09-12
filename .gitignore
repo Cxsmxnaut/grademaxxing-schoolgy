@@ -20,11 +20,11 @@ Thumbs.db
 .dev.vars
 .dev.vars.*
 !.env.example
-!.env.test
 
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+*.tsbuildinfo
 
 # Mocked data
 src/lib/mocks/data

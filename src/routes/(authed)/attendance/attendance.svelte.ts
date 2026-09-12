@@ -1,6 +1,7 @@
-import { invalidateRecordState, loadRecord, LocalStorageKey, type RecordState } from '$lib';
 import { acc } from '$lib/account.svelte';
-import type { Attendance } from '$lib/types/Attendance';
+import type { Attendance } from '$lib/contracts/studentvue/attendance';
+import { LocalStorageKey } from '$lib/storage/keys';
+import { invalidateRecordState, loadRecord, type RecordState } from '$lib/storage/record-state';
 
 export const attendanceState: RecordState<Attendance> = $state({ loaded: false });
 

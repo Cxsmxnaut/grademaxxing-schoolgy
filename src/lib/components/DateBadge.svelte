@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { fullDateFormatter, getRelativeTime, shortDateFormatter } from '$lib';
+	import { fullDateFormatter, getRelativeTime, shortDateFormatter } from '$lib/format/date-time';
 	import { Badge } from '$lib/components/ui/badge';
 
 	interface Props {

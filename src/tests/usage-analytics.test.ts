@@ -1,4 +1,7 @@
-import { protectedStudentUsageKey, recordStudentVueUpstreamFailure } from '$lib/server/usage-analytics';
+import {
+	protectedStudentUsageKey,
+	recordStudentVueUpstreamFailure
+} from '$lib/server/analytics/usage';
 import { expect, test } from 'vitest';
 
 test('usage key counts the same StudentVUE identity once across devices', () => {
@@ -8,14 +11,12 @@ test('usage key counts the same StudentVUE identity once across devices', () => 
 		'test-secret'
 	);
 	expect(
-		protectedStudentUsageKey(
-			'ca-pleas-psv.edupoint.com',
-			'student@example.edu',
-			'test-secret'
-		)
+		protectedStudentUsageKey('ca-pleas-psv.edupoint.com', 'student@example.edu', 'test-secret')
 	).toBe(key);
 	expect(key).not.toContain('student');
-	expect(protectedStudentUsageKey('ca-pleas-psv.edupoint.com', 'student@example.edu', 'other-secret')).not.toBe(key);
+	expect(
+		protectedStudentUsageKey('ca-pleas-psv.edupoint.com', 'student@example.edu', 'other-secret')
+	).not.toBe(key);
 });
 
 test('upstream outage telemetry contains only an aggregate resource category', () => {

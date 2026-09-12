@@ -1,4 +1,4 @@
-import { LocalStorageKey } from '$lib';
+import { LocalStorageKey } from '$lib/storage/keys';
 import { StudentAccount } from '$lib/synergy';
 
 export const acc: { studentAccount?: StudentAccount } = $state({});

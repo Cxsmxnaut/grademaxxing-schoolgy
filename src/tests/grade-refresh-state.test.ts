@@ -1,3 +1,4 @@
+import type { ReportPeriod } from '$lib/contracts/studentvue/gradebook';
 import type { GradebookCatalog } from '$lib/grades/catalog';
 import {
 	cacheGradebookRecord,
@@ -6,7 +7,6 @@ import {
 	gradebookSummaryMatches
 } from '$lib/grades/refresh';
 import { gradebookXml } from '$lib/server/gradebook-adapter';
-import type { ReportPeriod } from '$lib/types/Gradebook';
 import { expect, test } from 'vitest';
 
 const reportPeriod = (index: string): ReportPeriod => ({

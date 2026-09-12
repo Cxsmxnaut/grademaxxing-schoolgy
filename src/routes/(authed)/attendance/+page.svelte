@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { removeCourseType } from '$lib';
+	import { removeCourseType } from '$lib/grades/course-name';
 	import { brand } from '$lib/brand';
 	import AppPageShell from '$lib/components/AppPageShell.svelte';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
 	import RecordLoadFailure from '$lib/components/RecordLoadFailure.svelte';
 	import { gradebookState } from '$lib/grades/catalog.svelte';
 	import { getActiveGradebook } from '$lib/grades/gradebook';
-	import type { Period } from '$lib/types/Attendance';
+	import type { Period } from '$lib/contracts/studentvue/attendance';
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';

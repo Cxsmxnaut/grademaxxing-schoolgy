@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import { LocalStorageKey } from '$lib';
+import { LocalStorageKey } from '$lib/storage/keys';
 import { SvelteSet } from 'svelte/reactivity';
 import { getSeenAssignmentsFromLocalStorage } from './seenAssignments';
 

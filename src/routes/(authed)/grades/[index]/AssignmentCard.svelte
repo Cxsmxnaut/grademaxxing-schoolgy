@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { BadgeColor } from '$lib';
+	import type { BadgeColor } from '$lib/components/ui/badge/colors';
 	import DateBadge from '$lib/components/DateBadge.svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import { buttonVariants } from '$lib/components/ui/button';

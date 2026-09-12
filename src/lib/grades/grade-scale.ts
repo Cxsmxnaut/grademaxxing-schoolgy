@@ -1,4 +1,4 @@
-import { LocalStorageKey } from '$lib';
+import { LocalStorageKey } from '$lib/storage/keys';
 
 export type GradeScaleObservation = {
 	percentage: number;
@@ -69,7 +69,8 @@ function getStoredObservations(): StoredGradeScaleObservations | undefined {
 		const raw = localStorage.getItem(LocalStorageKey.gradeScaleObservations);
 		if (!owner || !raw || raw.length > 256 * 1024) return undefined;
 		const stored = JSON.parse(raw) as Partial<StoredGradeScaleObservations>;
-		if (stored.owner !== owner || !stored.courses || typeof stored.courses !== 'object') return undefined;
+		if (stored.owner !== owner || !stored.courses || typeof stored.courses !== 'object')
+			return undefined;
 		const courses = Object.fromEntries(
 			Object.entries(stored.courses)
 				.filter(([courseID, observations]) => courseID.length <= 512 && Array.isArray(observations))
@@ -101,7 +102,11 @@ export function recordCourseGradeScaleObservation(
 	letter: string | undefined
 ) {
 	if (!courseID || courseID.length > 512 || percentage === undefined || !letter) return;
-	const observation: GradeScaleObservation = { percentage, letter: normalizedLetter(letter), observedAt: Date.now() };
+	const observation: GradeScaleObservation = {
+		percentage,
+		letter: normalizedLetter(letter),
+		observedAt: Date.now()
+	};
 	if (!isUsableObservation(observation)) return;
 	try {
 		const owner = localStorage.getItem(LocalStorageKey.gradebookOwner);
@@ -110,11 +115,16 @@ export function recordCourseGradeScaleObservation(
 		if (stored.owner !== owner) return;
 		const existing = stored.courses[courseID] ?? [];
 		const withoutDuplicate = existing.filter(
-			(item) => Math.abs(item.percentage - observation.percentage) >= 0.005 || item.letter !== observation.letter
+			(item) =>
+				Math.abs(item.percentage - observation.percentage) >= 0.005 ||
+				item.letter !== observation.letter
 		);
 		stored.courses[courseID] = [...withoutDuplicate, observation].slice(-maxObservationsPerCourse);
 		const courses = Object.fromEntries(Object.entries(stored.courses).slice(-maxCourses));
-		localStorage.setItem(LocalStorageKey.gradeScaleObservations, JSON.stringify({ owner, courses }));
+		localStorage.setItem(
+			LocalStorageKey.gradeScaleObservations,
+			JSON.stringify({ owner, courses })
+		);
 	} catch {
 		// Learning is optional; disabled/full local storage must not affect grades.
 	}
@@ -141,8 +151,8 @@ export function estimateHypotheticalLetter(
 		({ percentage: observedPercentage, letter }) =>
 			Number.isFinite(observedPercentage) && /^[A-DF][+-]?$/.test(normalizedLetter(letter))
 	);
-	const exact = usable.find(({ percentage: observedPercentage }) =>
-		Math.abs(observedPercentage - percentage) < 0.005
+	const exact = usable.find(
+		({ percentage: observedPercentage }) => Math.abs(observedPercentage - percentage) < 0.005
 	);
 	if (exact) return { letter: normalizedLetter(exact.letter), basis: 'observed' };
 

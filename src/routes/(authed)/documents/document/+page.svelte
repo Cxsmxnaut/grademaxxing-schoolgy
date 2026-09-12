@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { getBlobURLFromBase64String } from '$lib';
+	import { getBlobURLFromBase64String } from '$lib/files/blob-url';
 	import { acc } from '$lib/account.svelte';
 	import { brand } from '$lib/brand';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
 	import { Alert } from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
-	import type { ReportCard } from '$lib/types/ReportCard';
+	import type { ReportCard } from '$lib/contracts/studentvue/report-card';
 	import { onMount } from 'svelte';
 
 	let reportCardURLPromise: Promise<string> | undefined = $state();
@@ -24,7 +24,9 @@
 			reportCard = result;
 		} catch (error) {
 			if (error instanceof Error && /session has expired|sign in/i.test(error.message)) throw error;
-			throw new Error(error instanceof Error ? error.message : 'Document not found');
+			throw new Error(error instanceof Error ? error.message : 'Document not found', {
+				cause: error
+			});
 		}
 
 		return getBlobURLFromBase64String(reportCard.Base64Code);

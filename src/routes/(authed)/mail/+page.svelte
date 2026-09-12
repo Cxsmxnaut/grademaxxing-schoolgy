@@ -6,7 +6,7 @@
 	import AppPageShell from '$lib/components/AppPageShell.svelte';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
 	import RecordLoadFailure from '$lib/components/RecordLoadFailure.svelte';
-	import type { InboxItemListingsMessageXML } from '$lib/types/MailData';
+	import type { InboxItemListingsMessageXML } from '$lib/contracts/studentvue/mail';
 	import InboxIcon from '@lucide/svelte/icons/inbox';
 	import MailCheckIcon from '@lucide/svelte/icons/mail-check';
 	import { SvelteSet } from 'svelte/reactivity';

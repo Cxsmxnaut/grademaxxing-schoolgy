@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { getRelativeTime, removeCourseType } from '$lib';
+	import { getRelativeTime } from '$lib/format/date-time';
+	import { removeCourseType } from '$lib/grades/course-name';
 	import { acc } from '$lib/account.svelte';
 	import { brand, brandName, releaseChannel } from '$lib/brand';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
@@ -102,7 +103,10 @@
 						mailDataState.error,
 						studentInfoState.error
 					].some(Boolean);
-					if (!recordFailed) markPortalConnected(Date.now());
+					// A successful secondary-record refresh must not hide a definitive
+					// gradebook session-expiry prompt from the same refresh cycle.
+					if (!recordFailed && portalConnection.state !== 'reconnect')
+						markPortalConnected(Date.now());
 				})
 				.finally(() => {
 					backgroundRefreshPromise = undefined;

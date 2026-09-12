@@ -2,7 +2,7 @@
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { LocalStorageKey } from '$lib';
+	import { LocalStorageKey } from '$lib/storage/keys';
 	import { acc, loadStudentAccount, persistStudentAccount } from '$lib/account.svelte';
 	import {
 		clearStoredCredentials,

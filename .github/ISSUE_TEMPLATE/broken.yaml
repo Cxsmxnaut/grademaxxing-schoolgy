@@ -26,7 +26,7 @@ body:
     id: what-happened
     attributes:
       label: What happened?
-      description: If this only occurs to a specific page or feature, where does this occur? Does it show an error message? Does the whole page go blank? Is there a spinner on part of the page that never goes away? Please be as specific as possible. Include a screenshot if you can.
+      description: If this only occurs on a specific page or feature, say where and describe any error, blank state, or stuck loading state. Never upload a screenshot containing a name, student ID, grade, attendance record, message, document, or other school record.
       placeholder: What went wrong and how and where did it occur?
     validations:
       required: true
@@ -34,6 +34,6 @@ body:
     id: error-messages
     attributes:
       label: Error messages
-      description: If Grademaxxing (Beta) shows an error screen, please click 'Show error details' and paste the error here. Never include a password, student ID, full name, or unredacted school record. If you know how to access the browser console, include only redacted output.
+      description: If Grademaxxing (Beta) shows an error screen, paste only non-sensitive error text. Never include a password, cookie, token, student ID, full name, portal URL containing identifiers, or school record. Include browser-console output only after removing all student and session data.
     validations:
       required: false

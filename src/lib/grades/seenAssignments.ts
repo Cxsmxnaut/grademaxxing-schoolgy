@@ -1,4 +1,4 @@
-import { LocalStorageKey } from '$lib';
+import { LocalStorageKey } from '$lib/storage/keys';
 
 export function getSeenAssignmentsFromLocalStorage() {
 	const seenIDsStr = localStorage.getItem(LocalStorageKey.seenAssignmentIDs);

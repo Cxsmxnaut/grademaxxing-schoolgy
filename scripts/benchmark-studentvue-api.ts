@@ -64,7 +64,7 @@ try {
 		(metric) => requestMetrics.push(metric)
 	);
 } catch (cause) {
-	throw new Error(`StudentVUE benchmark login failed: ${errorKind(cause)}.`);
+	throw new Error(`StudentVUE benchmark login failed: ${errorKind(cause)}.`, { cause });
 }
 const loginMs = Math.round(performance.now() - startedAt);
 const resources: ResourceResult[] = [];

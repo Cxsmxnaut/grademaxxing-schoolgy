@@ -1,3 +1,4 @@
+import type { Course } from '$lib/contracts/studentvue/gradebook';
 import {
 	calculateCourseGpas,
 	calculateCreditWeightedGpa,
@@ -7,9 +8,8 @@ import {
 	isWeightedCourseName,
 	letterGradePoints
 } from '$lib/grades/gpa';
-import type { Course } from '$lib/types/Gradebook';
-import { describe, expect, test } from 'vitest';
 import { parseStudentVueTranscript } from '$lib/grades/transcript';
+import { describe, expect, test } from 'vitest';
 
 function course(name: string, letter: string, percentage = 90): Course {
 	return {

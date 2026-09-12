@@ -1,4 +1,5 @@
 import { dev } from '$app/environment';
+import { recordUniqueStudentUsage } from '$lib/server/analytics/usage';
 import { Pxp2AuthenticationError, Pxp2InputError, Pxp2TimeoutError } from '$lib/server/pxp2';
 import {
 	createStudentSession,
@@ -8,7 +9,6 @@ import {
 	StudentSessionCapacityError,
 	StudentSessionConfigurationError
 } from '$lib/server/student-session';
-import { recordUniqueStudentUsage } from '$lib/server/usage-analytics';
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 

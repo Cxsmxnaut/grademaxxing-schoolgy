@@ -1,6 +1,6 @@
 <script lang="ts">
 	import DateBadge from '$lib/components/DateBadge.svelte';
-	import type { InboxItemListingsMessageXML } from '$lib/types/MailData';
+	import type { InboxItemListingsMessageXML } from '$lib/contracts/studentvue/mail';
 	import LinkIcon from '@lucide/svelte/icons/link';
 	import PaperclipIcon from '@lucide/svelte/icons/paperclip';
 	import { Badge } from '$lib/components/ui/badge';

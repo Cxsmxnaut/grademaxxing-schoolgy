@@ -1,4 +1,5 @@
 import { dev } from '$app/environment';
+import { recordStudentVueUpstreamFailure } from '$lib/server/analytics/usage';
 import { Pxp2SessionExpiredError, Pxp2TimeoutError } from '$lib/server/pxp2';
 import {
 	clientSessionHeader,
@@ -13,7 +14,6 @@ import {
 	StudentSessionBusyError
 } from '$lib/server/student-session';
 import { error, json } from '@sveltejs/kit';
-import { recordStudentVueUpstreamFailure } from '$lib/server/usage-analytics';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ cookies, request, platform }) => {

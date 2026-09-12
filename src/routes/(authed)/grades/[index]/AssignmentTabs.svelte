@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { bgColorVariants, type BadgeColor } from '$lib';
+	import { bgColorVariants, type BadgeColor } from '$lib/components/ui/badge/colors';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import type {
 		Category,
@@ -327,7 +327,7 @@
 				: undefined}
 			{date}
 			{comments}
-		unseen={seenAssignmentIDs && !seenAssignmentIDs.has(id) && !hidden && !notForGrade}
+			unseen={seenAssignmentIDs && !seenAssignmentIDs.has(id) && !hidden && !notForGrade}
 		/>
 	</li>
 {/snippet}

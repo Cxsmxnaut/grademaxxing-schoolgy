@@ -1,5 +1,5 @@
+import type { Gradebook } from '$lib/contracts/studentvue/gradebook';
 import { parseGradebookXML } from '$lib/synergy';
-import type { Gradebook } from '$lib/types/Gradebook';
 import { gradebookState } from './catalog.svelte';
 
 let parsedGradebook: { index: number; xml: string; gradebook: Gradebook } | undefined = undefined;

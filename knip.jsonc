@@ -1,0 +1,10 @@
+{
+	"$schema": "https://unpkg.com/knip@6/schema.json",
+	"entry": [
+		"src/hooks.{client,server}.ts",
+		"src/routes/**/*.{ts,svelte}",
+		"scripts/**/*.{ts,mjs}",
+		"tests/**/*.ts"
+	],
+	"project": ["src/**/*.{ts,svelte,css}", "scripts/**/*.{ts,mjs}", "tests/**/*.ts", "*.{ts,js}"]
+}

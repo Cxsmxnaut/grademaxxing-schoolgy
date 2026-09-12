@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { getBlobURLFromBase64String } from '$lib';
+	import { getBlobURLFromBase64String } from '$lib/files/blob-url';
 	import { acc } from '$lib/account.svelte';
 	import { brand } from '$lib/brand';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
 	import { Alert } from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
-	import type { Attachment } from '$lib/types/Attachment';
+	import type { Attachment } from '$lib/contracts/studentvue/attachment';
 	import { onMount } from 'svelte';
 
 	let attachmentURLPromise: Promise<string> | undefined = $state();
@@ -22,7 +22,9 @@
 			attachment = await acc.studentAccount.attachment(attachmentGU);
 		} catch (error) {
 			if (error instanceof Error && /session has expired|sign in/i.test(error.message)) throw error;
-			throw new Error(error instanceof Error ? error.message : 'Attachment not found');
+			throw new Error(error instanceof Error ? error.message : 'Attachment not found', {
+				cause: error
+			});
 		}
 
 		return getBlobURLFromBase64String(attachment.Base64Code);

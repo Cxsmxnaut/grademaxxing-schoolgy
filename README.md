@@ -1,86 +1,96 @@
 # Grademaxxing (Beta)
 
-An advanced grade calculator designed to interface with StudentVUE®.
+Grademaxxing is a privacy-conscious, read-only StudentVUE companion for understanding grades, planning what-if scores, and viewing attendance, documents, mail, and profile information.
 
-<sub>StudentVUE is a registered trademark of Edupoint Educational Systems LLC. Grademaxxing (Beta) is not affiliated with or endorsed by Edupoint Educational Systems LLC.</sub>
+> StudentVUE is a registered trademark of Edupoint Educational Systems LLC. Grademaxxing is not affiliated with or endorsed by Edupoint, a school district, or a school.
 
-## Developing
+## Product boundaries
 
-Install Node.js, then run `npm install` and `npm run dev`. Live PXP2 StudentVUE access is the default.
+- StudentVUE is the source of truth; local calculations and simulations are labeled as estimates.
+- The application reads portal data but does not send messages, submit work, edit records, or report absences.
+- StudentVUE credentials are used only to establish or reconnect a session. They are never stored server-side.
+- Raw student records, credentials, cookies, and request bodies must never enter logs, analytics, fixtures, screenshots, or source control.
 
-### Mocking
+Read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) before making changes.
 
-Mocking is opt-in. Set `PUBLIC_MOCK_STUDENTVUE_ORIGIN` only when you want the generated mock service worker and cached portal data.
+## Quick start
 
-```bash
-bun run generate-mocks
-```
+The supported development baseline is Node 22.
 
-The script will prompt you for your login information. If you do not want to have to enter it every time, you can set the [environment variables used](./generate_mock_data.ts#L101) in a `.env` file.
-
-You must also set the environment variable `PUBLIC_MOCK_STUDENTVUE_ORIGIN` to your StudentVUE domain origin (e.g. `https://[your-district]-psv.edupoint.com`) when mocking is enabled. This can be done in a `.env` file.
-
-### Dev Server
-
-```bash
+```sh
+nvm use
+npm ci
 npm run dev
 ```
 
-### Building
+The development server listens on `127.0.0.1`. Live StudentVUE access is the default; mock behavior is opt-in through the safe values documented in [.env.example](.env.example).
 
-```bash
-npm run build
+## Quality gates
+
+```sh
+# Types, Svelte diagnostics, formatting, lint, dead code, dependencies, cycles, and unit tests
+npm run verify
+
+# Platform-specific production artifact
+npm run build:cloudflare
+
+# Browser, accessibility, security, and session flows
+npm run test:e2e
 ```
 
-You can preview the production build with `npm run preview`.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for repository boundaries and the expected change workflow. The complete release process is in [docs/release-checklist.md](docs/release-checklist.md).
 
-### Live end-to-end tests
+## Architecture
 
-Set `DISTRICT_URL`, `STUDENTVUE_USERNAME`, and `STUDENTVUE_PASSWORD` in the environment, start the app, and run `npm run test:e2e`. The Playwright suite exercises login, grades and course details, attendance, documents and PDF downloads, mail and attachments, student info, session reload, errors, and logout. Credentials are never embedded in test files or traces by the application.
+```text
+Svelte pages and reactive stores
+            │ same-origin JSON
+            ▼
+      SvelteKit API routes
+            │ encrypted session + serialized operation gate
+            ▼
+  Pxp2Client and portal adapters
+            │ HTTPS
+            ▼
+   District StudentVUE portal
+```
 
-### StudentVUE JSON API
+The detailed module and route map is in [docs/codebase-architecture.md](docs/codebase-architecture.md). The modern read-only API contract is documented in [docs/studentvue-modern-api.md](docs/studentvue-modern-api.md).
 
-After sign-in, the read-only same-origin API is available under `/api/studentvue`. Its discoverable contract inventory is `/api/studentvue/capabilities`. See [the SOAP-to-PXP2 contract map](./docs/studentvue-modern-api.md) for every route and its first-party modern source.
+## Mock data
 
-### StudentVUE API performance CLI
+Generate local mocks only from an explicitly approved account and never commit generated records:
 
-For approved test-account diagnostics, configure credentials once in macOS Keychain and run the real upstream benchmark:
+```sh
+npm run generate-mocks
+```
 
-```bash
+Set `PUBLIC_MOCK_STUDENTVUE_ORIGIN` only when the mock service worker should be active. Keep all credential-bearing environment values in ignored local files.
+
+## Live diagnostics
+
+Live tests and diagnostic scripts require a designated test account supplied outside source control. They are intentionally skipped or inert without that configuration.
+
+For the local performance CLI:
+
+```sh
 npm run benchmark:studentvue -- configure
 npm run benchmark:studentvue
 ```
 
-See [`docs/studentvue-api-benchmark.md`](./docs/studentvue-api-benchmark.md) for complete-mode, JSON, timing-history, and non-macOS instructions. The CLI never prints or records StudentVUE payloads or credentials.
+See [docs/studentvue-api-benchmark.md](docs/studentvue-api-benchmark.md) for its credential and data-safety behavior.
 
-## Hosting
+## Deployment
 
-Use HTTPS in production and configure `GRADEMAXXING_SESSION_SECRET` with at least 32 random characters. StudentVUE credentials are discarded immediately after login. The resulting StudentVUE cookie state is encrypted into an HttpOnly application session, which allows the official Vercel adapter and multi-instance Node deployments without a shared session database. Failed logins are rate-limited per user and client address, and session-bound requests are serialized in the browser to protect StudentVUE's mutable gradebook focus.
+Production runs on the Cloudflare Worker and route defined in [wrangler.jsonc](wrangler.jsonc). The required secrets live in Cloudflare, never in repository variables or files.
 
-Follow the [production hardening and reverse-proxy checklist](./docs/production-hardening.md) and [release gate](./docs/release-checklist.md) before exposing the app to students.
+```sh
+npm run build:cloudflare
+npm run deploy:cloudflare
+```
+
+Follow [docs/operations-runbook.md](docs/operations-runbook.md) for health checks, custom-domain validation, and rollback. The Vercel configuration remains an intentional rollback path.
 
 ## License
 
-Grademaxxing (Beta) is a modified version of the AGPLv3-licensed GradeCompass project. The product-facing name and identity are Grademaxxing (Beta); the repository history and license remain intact as required for an AGPL-derived work. If you
-
-- modify the source code, and
-- host this modified version on the internet,
-
-you are required to publish the source code of your modified version under the same GNU AGPL license and document the changes you have made.
-
-## Example .env file
-
-Only `PUBLIC_MOCK_STUDENTVUE_ORIGIN` is required.
-
-```dotenv
-# dev server
-PUBLIC_DISABLE_MSW=false
-PUBLIC_MOCK_STUDENTVUE_ORIGIN=
-
-# generating mocks
-STUDENTVUE_DOMAIN=
-STUDENTVUE_USERNAME=
-STUDENTVUE_PASSWORD=
-STUDENTVUE_MOCK_DOCUMENT_GU=
-STUDENTVUE_MOCK_ATTACHMENT_GU=
-```
+Grademaxxing is an AGPLv3-derived modification of GradeCompass. The repository history, attribution, and [GNU Affero General Public License](LICENSE.txt) obligations remain intact. If you modify this source and host the modified application over a network, publish the corresponding source under the same license and document your changes.

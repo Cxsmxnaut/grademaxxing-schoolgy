@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Reorganizes StudentVUE browser, server, API, grade-assignment, contract, storage, formatting, and file-handling code into responsibility-owned modules while preserving stable compatibility facades.
+- Removes 72 unreachable source files and the catch-all `$lib` barrel; adds an enforced dead-code, dependency, unresolved-import, and cycle gate.
+- Refreshes the supported dependency baseline, removes unused packages, declares direct tooling dependencies, and resolves all known npm advisories.
+- Adds repository governance, contribution, security, ownership, editor, and pull-request guidance plus a clearer architecture and operations map.
+- Strengthens CI and Cloudflare deployment checks around the unified verification gate and both production build targets.
+- Fixes a refresh race that could hide the StudentVUE reconnect prompt after a definitive upstream-session expiry.
+- Adds bounded browser file decoding and StudentVUE API resource/parameter/legacy-adapter contract tests.
+
 ## 0.2.0-beta.1
 
 - Rebrands every product-facing surface as Grademaxxing (Beta).

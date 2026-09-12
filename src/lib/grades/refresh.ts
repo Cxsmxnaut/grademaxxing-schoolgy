@@ -1,5 +1,5 @@
+import type { ReportPeriod } from '$lib/contracts/studentvue/gradebook';
 import { parseGradebookXML } from '$lib/synergy';
-import type { ReportPeriod } from '$lib/types/Gradebook';
 import type { GradebookCatalog, GradebookRecord } from './catalog';
 
 export function getReportPeriodIndex(reportPeriod: ReportPeriod, fallbackIndex: number) {

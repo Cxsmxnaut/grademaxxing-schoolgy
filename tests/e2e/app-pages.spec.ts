@@ -104,12 +104,11 @@ test('gradebook calculator, course planner, and attendance views are interactive
 	await page.getByRole('link', { name: 'GPA calculator' }).click();
 	await expect(page).toHaveURL(/\/gpa-calculator$/);
 	await expect(page.getByText('4.00').first()).toBeVisible();
-	await page.getByLabel('weighted +1.0').click();
-	await expect(page.getByText('5.00')).toBeVisible();
+	await expect(page.getByText('not weighted by policy')).toBeVisible();
 	await page.getByRole('combobox', { name: 'Projected grade' }).selectOption('B');
-	await expect(page.getByText('3.00')).toBeVisible();
+	await expect(page.getByText('3.00').first()).toBeVisible();
 	await page.getByRole('button', { name: 'Reset all' }).click();
-	await expect(page.getByText('5.00')).toHaveCount(0);
+	await expect(page.getByText('4.00').first()).toBeVisible();
 	await page.getByRole('link', { name: 'Back to Gradebook' }).click();
 	await expect(page).toHaveURL(/\/grades$/);
 
@@ -310,7 +309,7 @@ test('Gradebook report period menu switches data and preserves native menu seman
 	await reportPeriod.selectOption('1');
 	await expect(reportPeriod).toHaveValue('1');
 	await expect(
-		page.getByRole('region', { name: 'Grade summary' }).getByText('3.30').first()
+		page.getByRole('region', { name: 'Grade summary' }).getByText('3.00').first()
 	).toBeVisible();
 	await expect(
 		page.locator('main ol').getByRole('link', { name: /B\+ Theme Preview/ })

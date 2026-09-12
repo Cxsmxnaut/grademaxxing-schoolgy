@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { removeCourseType } from '$lib';
+	import { removeCourseType } from '$lib/grades/course-name';
 	import { acc } from '$lib/account.svelte';
 	import { brand, brandName } from '$lib/brand';
 	import AppPageShell from '$lib/components/AppPageShell.svelte';
@@ -24,7 +24,7 @@
 	import { recordCourseGradeScaleObservation } from '$lib/grades/grade-scale';
 	import { getGpaRank } from '$lib/grades/rank';
 	import { parseGradebookXML } from '$lib/synergy';
-	import type { AssignmentEntity } from '$lib/types/Gradebook';
+	import type { AssignmentEntity } from '$lib/contracts/studentvue/gradebook';
 	import CalculatorIcon from '@lucide/svelte/icons/calculator';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import CircleXIcon from '@lucide/svelte/icons/circle-x';

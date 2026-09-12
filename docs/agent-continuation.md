@@ -26,12 +26,12 @@ Use this when a new Codex chat opens for Grademaxxing.
 
 ## Useful source starting points
 
-| Concern | Start here |
-| --- | --- |
-| Login/session | `src/routes/api/session/+server.ts`, `src/lib/server/student-session.ts` |
-| Portal client | `src/lib/server/pxp2.ts` |
-| Gradebook data | `src/lib/server/gradebook-adapter.ts`, `src/lib/grades/` |
-| StudentVUE resource API | `src/routes/api/studentvue/[resource]/+server.ts` |
-| Main app shell/sidebar | `src/routes/(authed)/+layout.svelte`, `src/routes/(authed)/AppSidebar.svelte` |
-| Theme | `src/app.css` |
-| Cloudflare | `svelte.config.js`, `wrangler.jsonc` |
+| Concern                 | Start here                                                                    |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| Login/session           | `src/routes/api/session/+server.ts`, `src/lib/server/student-session.ts`      |
+| Portal client           | `src/lib/server/pxp2.ts`                                                      |
+| Gradebook data          | `src/lib/server/gradebook-adapter.ts`, `src/lib/grades/`                      |
+| StudentVUE resource API | `src/routes/api/studentvue/[resource]/+server.ts`                             |
+| Main app shell/sidebar  | `src/routes/(authed)/+layout.svelte`, `src/routes/(authed)/AppSidebar.svelte` |
+| Theme                   | `src/app.css`                                                                 |
+| Cloudflare              | `svelte.config.js`, `wrangler.jsonc`                                          |

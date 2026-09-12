@@ -24,7 +24,9 @@ export function markPortalReconnect(message?: string) {
 	portalConnection.message = message ?? 'Reconnect to StudentVUE to update your school data.';
 }
 
-export function markPortalOffline(message = 'StudentVUE is temporarily unavailable. Showing your last saved data.') {
+export function markPortalOffline(
+	message = 'StudentVUE is temporarily unavailable. Showing your last saved data.'
+) {
 	if (portalConnection.state !== 'reconnect') {
 		portalConnection.state = 'offline';
 		portalConnection.message = message;

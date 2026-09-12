@@ -1,4 +1,4 @@
-import type { Course } from '$lib/types/Gradebook';
+import type { Course } from '$lib/contracts/studentvue/gradebook';
 import { getCourseGrade } from './course';
 import { GPA_POLICY, type GpaPolicy } from './gpa-policy';
 

@@ -1,5 +1,5 @@
-import { LocalStorageKey } from '$lib';
 import { acc, loadStudentAccount } from '$lib/account.svelte';
+import { LocalStorageKey } from '$lib/storage/keys';
 import { parseGradebookXML, StudentVueSessionExpiredError } from '$lib/synergy';
 import { toast } from 'svelte-sonner';
 import {

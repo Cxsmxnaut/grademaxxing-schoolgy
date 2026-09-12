@@ -9,8 +9,8 @@ interface RecordState<T> {
 	lastRefresh?: number;
 }
 
-let loadRecord: typeof import('$lib').loadRecord;
-let invalidateRecordState: typeof import('$lib').invalidateRecordState;
+let loadRecord: typeof import('$lib/storage/record-state').loadRecord;
+let invalidateRecordState: typeof import('$lib/storage/record-state').invalidateRecordState;
 let acc: typeof import('$lib/account.svelte').acc;
 
 class MemoryStorage {
@@ -34,7 +34,7 @@ beforeAll(async () => {
 		configurable: true,
 		value: <T>(value: T) => value
 	});
-	({ loadRecord, invalidateRecordState } = await import('$lib'));
+	({ loadRecord, invalidateRecordState } = await import('$lib/storage/record-state'));
 	({ acc } = await import('$lib/account.svelte'));
 });
 

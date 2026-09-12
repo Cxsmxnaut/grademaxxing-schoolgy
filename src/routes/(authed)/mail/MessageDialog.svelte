@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
-	import type { InboxItemListingsMessageXML } from '$lib/types/MailData';
+	import type { InboxItemListingsMessageXML } from '$lib/contracts/studentvue/mail';
 	import LinkIcon from '@lucide/svelte/icons/link';
 	import PaperclipIcon from '@lucide/svelte/icons/paperclip';
 	import UserIcon from '@lucide/svelte/icons/user';

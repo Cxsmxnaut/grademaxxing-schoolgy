@@ -139,9 +139,8 @@ export async function saveStoredCredentials(credentials: StoredStudentVueCredent
 
 export async function loadStoredCredentials(): Promise<StoredStudentVueCredentials | undefined> {
 	if (!isVaultAvailable()) return undefined;
-	let raw: string | null = null;
 	try {
-		raw = localStorage.getItem(STORAGE_KEY);
+		const raw = localStorage.getItem(STORAGE_KEY);
 		if (!raw) return undefined;
 		const envelope = JSON.parse(raw) as Partial<CredentialEnvelope>;
 		if (

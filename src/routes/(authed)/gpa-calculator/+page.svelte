@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { removeCourseType } from '$lib';
+	import { removeCourseType } from '$lib/grades/course-name';
 	import { acc } from '$lib/account.svelte';
 	import { brand } from '$lib/brand';
 	import AppPageShell from '$lib/components/AppPageShell.svelte';

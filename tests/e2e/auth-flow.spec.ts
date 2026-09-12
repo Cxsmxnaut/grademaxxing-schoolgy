@@ -23,7 +23,9 @@ test('the sign-in and district-password setup flow matches the current product',
 
 	await page.getByRole('link', { name: 'create one', exact: true }).click();
 	await expect(page.getByText('Sign up for Grademaxxing (Beta)', { exact: true })).toBeVisible();
-	await expect(page.getByText('How do you sign in to StudentVUE?', { exact: true })).toBeVisible();
+	await expect(
+		page.getByText('How do you want to get into StudentVUE?', { exact: true })
+	).toBeVisible();
 	await expect(page.getByRole('link', { name: 'With Google', exact: true })).toBeVisible();
 	await expect(page.getByRole('link', { name: 'With a password', exact: true })).toHaveAttribute(
 		'href',

@@ -206,7 +206,11 @@ test('every sidebar action works and preserves a single active destination', asy
 	await expect(page.getByTestId('sidebar-refresh')).toBeEnabled();
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Updated');
 	for (const resource of ['gradebook', 'attendance', 'documents', 'messages', 'student-info'])
-		expect(requestCounts[resource] ?? 0).toBeGreaterThan(beforeRefresh[resource] ?? 0);
+		await expect
+			.poll(() => requestCounts[resource] ?? 0, {
+				message: `${resource} should refresh after the sidebar action`
+			})
+			.toBeGreaterThan(beforeRefresh[resource] ?? 0);
 
 	await page.getByTestId('sidebar-profile').click();
 	await expect(page).toHaveURL(/\/studentinfo$/);

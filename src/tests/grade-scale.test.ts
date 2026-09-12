@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { estimateHypotheticalLetter, type GradeScaleObservation } from '$lib/grades/grade-scale';
+import { describe, expect, it } from 'vitest';
 
 const observed = (percentage: number, letter: string): GradeScaleObservation => ({
 	percentage,

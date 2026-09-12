@@ -1,7 +1,7 @@
-import { LocalStorageKey } from '$lib';
 import { acc } from '$lib/account.svelte';
+import type { ReportPeriod } from '$lib/contracts/studentvue/gradebook';
+import { LocalStorageKey } from '$lib/storage/keys';
 import { Operation, parseGradebookXML, unwrapEnvelope } from '$lib/synergy';
-import type { ReportPeriod } from '$lib/types/Gradebook';
 import { getGradebookCacheOwnerFor, getReportPeriodIndex } from './refresh';
 
 export { cacheGradebookRecord, getReportPeriodIndex, gradebookSummaryMatches } from './refresh';

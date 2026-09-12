@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { bgColorVariants } from '$lib';
+	import { bgColorVariants } from '$lib/components/ui/badge/colors';
 	import { brand } from '$lib/brand';
 	import AppPageHeader from '$lib/components/AppPageHeader.svelte';
 	import AppPageShell from '$lib/components/AppPageShell.svelte';
@@ -9,7 +9,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import * as Tabs from '$lib/components/ui/tabs';
-	import type { StudentDocumentData } from '$lib/types/Documents';
+	import type { StudentDocumentData } from '$lib/contracts/studentvue/documents';
 	import ArrowUpRightIcon from '@lucide/svelte/icons/arrow-up-right';
 	import FileTextIcon from '@lucide/svelte/icons/file-text';
 	import FolderOpenIcon from '@lucide/svelte/icons/folder-open';

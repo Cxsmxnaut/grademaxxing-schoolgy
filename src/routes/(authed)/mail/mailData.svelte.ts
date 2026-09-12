@@ -1,6 +1,7 @@
-import { invalidateRecordState, loadRecord, LocalStorageKey, type RecordState } from '$lib';
 import { acc } from '$lib/account.svelte';
-import type { MailData } from '$lib/types/MailData';
+import type { MailData } from '$lib/contracts/studentvue/mail';
+import { LocalStorageKey } from '$lib/storage/keys';
+import { invalidateRecordState, loadRecord, type RecordState } from '$lib/storage/record-state';
 
 export const mailDataState: RecordState<MailData> = $state({ loaded: false });
 

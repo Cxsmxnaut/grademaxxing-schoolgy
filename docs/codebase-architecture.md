@@ -44,12 +44,22 @@ Key authenticated routes:
 
 `src/lib/grades/` contains calculation and presentation-independent grade logic:
 
-- `gradebook.ts`, `assignments.ts`, and `course.ts` normalize grade data.
+- `gradebook.ts` and `course.ts` normalize grade data.
+- `assignments.ts` is the stable assignment-domain facade; `assignments/` owns contracts, calculations, portal parsing, and target-grade solving.
 - `gpa.ts` and `rank.ts` own GPA/rank calculations.
 - `refresh.ts` and `seenAssignments.ts` manage refresh snapshots and newly seen records.
-- `catalog.ts` is the client-facing gradebook catalog/store.
+- `catalog.ts` is the persisted gradebook catalog; `catalog.svelte.ts` is its reactive client facade.
+- `course-name.ts` owns StudentVUE course-title normalization used by presentation layers.
 
-Keep official portal grades distinct from calculated/simulated values. `GradeTruthLabel.svelte` and related copy communicate that distinction. Never silently replace official values with local calculations.
+Keep official portal grades distinct from calculated/simulated values. Product copy and state styling communicate that distinction. Never silently replace official values with local calculations.
+
+Cross-cutting browser utilities are grouped by responsibility instead of a catch-all barrel:
+
+- `src/lib/contracts/studentvue/`: external StudentVUE wire contracts, kept distinct from internal grade-domain models.
+- `src/lib/storage/`: browser storage keys and reusable cached-record loading state.
+- `src/lib/format/`: locale-aware display formatting.
+- `src/lib/files/`: bounded, MIME-checked browser file handling.
+- `src/lib/studentvue/`: browser-side account/session behavior, API retries and serialization, and legacy XML compatibility. `src/lib/synergy.ts` is a compatibility facade only.
 
 ### API surface
 
@@ -61,7 +71,10 @@ Keep official portal grades distinct from calculated/simulated values. `GradeTru
 
 ### Server integration
 
-- `src/lib/server/pxp2.ts`: stateful PXP2 portal client, login/resume mechanics, HTML/structured-response parsing, and raw resource requests.
+- `src/lib/server/pxp2.ts`: stateful PXP2 portal client and login/resume/resource orchestration.
+- `src/lib/server/pxp2/`: portal contracts, errors, destination validation, bounded response readers, concurrency helpers, and HTML/structured-response parsers.
+- `src/lib/server/studentvue-api/`: public resource inventory, query validation, and legacy response-shape adapters used by the dynamic API route.
+- `src/lib/server/admin/` and `src/lib/server/analytics/`: private administrator authentication and privacy-preserving usage metrics.
 - `src/lib/server/gradebook-adapter.ts`: complete gradebook retrieval and period/class focus behavior.
 - `src/lib/server/studentvue-adapters.ts`: adapts modern portal records to the application contracts; attendance normalization and profile-photo handling live here.
 - `src/lib/server/student-session.ts`: session encryption, rolling TTL, per-session serialization, and global portal-operation backpressure.
@@ -70,9 +83,9 @@ The StudentVUE portal maintains gradebook period/class focus in its own upstream
 
 ## Styling and components
 
-`src/app.css` is the canonical semantic-token file for light/dark colors, typography, status colors, surfaces, sidebar tokens, focus rings, and charts. Fonts are Instrument Sans (body), Space Grotesk (headings), and IBM Plex Mono (technical labels). Prefer semantic Tailwind tokens such as `bg-background`, `text-foreground`, and `bg-sidebar` over hard-coded colors.
+`src/app.css` is the canonical semantic-token file for light/dark colors, typography, status colors, surfaces, sidebar tokens, focus rings, and charts. Fonts are Instrument Sans (body), Space Grotesk (headings), and IBM Plex Mono (technical labels). Prefer semantic Tailwind tokens such as `bg-background`, `text-foreground`, and `bg-sidebar` over hard-coded colors. The public landing page's isolated visual system lives in `src/lib/components/landing/landing.css`.
 
-Reusable primitives live in `src/lib/components/ui`. Product-level shared pieces live in `src/lib/components`, notably `AppPageShell`, `AppPageHeader`, `RefreshIndicator`, `LoadingBanner`, `RecordLoadFailure`, and `RankEmblem`.
+Reusable primitives live in `src/lib/components/ui`. Keep only primitives that have active application consumers. Product-level shared pieces live in `src/lib/components`, notably `AppPageShell`, `AppPageHeader`, `LoadingBanner`, `RecordLoadFailure`, and `RankEmblem`.
 
 ## Configuration and deployment files
 
@@ -88,5 +101,7 @@ Reusable primitives live in `src/lib/components/ui`. Product-level shared pieces
 - Human/headful test: `tests/human/headful-human.spec.ts`.
 - Visual parity helpers: `scripts/compare-visual-parity.ts`, `capture-gradewave-reference.ts`, and related scripts.
 - StudentVUE diagnostics: `scripts/verify-studentvue-parity.ts`, `trace-portal-capabilities.mjs`, and `trace-course-api.mjs`.
+
+`npm run verify` is the standard local quality gate: Svelte/type diagnostics, formatting and lint, dead-code/dependency analysis, and unit tests. CI additionally builds the Node and Cloudflare targets and runs Playwright.
 
 The live StudentVUE Playwright tests are intentionally skipped unless designated credentials are supplied through environment variables. That is a safety mechanism, not a missing test.
