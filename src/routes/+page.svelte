@@ -24,28 +24,32 @@
 		{
 			icon: ChartLineIcon,
 			title: 'Grade trends',
-			description: 'See the assignments and changes behind every percentage.'
+			description:
+				'See the assignments and changes behind every percentage. One total is rarely the whole story.'
 		},
 		{
 			icon: CalculatorIcon,
 			title: 'What-if calculator',
-			description: 'Test a final, missing assignment, or target grade before it happens.'
+			description:
+				'Test a final, missing assignment, or target grade before it happens. This is a simulation, not a prophecy.'
 		},
 		{
 			icon: CalendarDaysIcon,
 			title: 'Attendance detail',
-			description: 'Review absences, tardies, activities, dates, and class periods.'
+			description:
+				'Review absences, tardies, activities, dates, and class periods. The useful details are all here.'
 		},
 		{
 			icon: FileTextIcon,
 			title: 'Records in one place',
-			description: 'Keep StudentVUE documents, report cards, and mail within reach.'
+			description:
+				'Keep StudentVUE documents, report cards, and mail within reach. One less portal maze.'
 		}
 	];
 </script>
 
 <svelte:head>
-	<title>{brand} — know where your grades are headed</title>
+	<title>{brand} — gradebook without the maze</title>
 	<meta
 		name="description"
 		content="Understand StudentVUE grades with trends, category math, what-if scores, attendance, documents, and mail."
@@ -66,34 +70,35 @@
 
 	<main>
 		<section class="hero" aria-labelledby="landing-title">
-			<h1 id="landing-title">Know where your grades <br />are headed.</h1>
+			<h1 id="landing-title">Your grades are complicated enough.</h1>
 			<p class="hero-subtitle">
-				Grade trends, category math, what-if scores, attendance, documents, and mail—without the
-				StudentVUE maze.
+				Grade trends, category math, what-if scores, attendance, documents, and mail. StudentVUE,
+				with less maze.
 			</p>
 			<div class="hero-actions">
 				<a class="button button-primary button-large" href="/login">
 					Sign in with StudentVUE <ArrowRightIcon aria-hidden="true" />
 				</a>
-				<a class="button button-ghost button-large" href="#features">See what it does</a>
+				<a class="button button-ghost button-large" href="#features">See what it actually does</a>
 			</div>
 			<div class="studentvue-pill">
-				<RefreshCwIcon aria-hidden="true" /> Syncs directly with your district
+				<RefreshCwIcon aria-hidden="true" /> Syncs directly with your district. Because apparently one
+				portal wasn't enough.
 			</div>
-			<p class="human-line">Built around the school data students actually use.</p>
+			<p class="human-line">No pep talk. Just the school data you actually need.</p>
 
 			<div class="product-frame" aria-label={`Preview of the ${brand} gradebook`}>
 				<div class="frame-bar" aria-hidden="true">
 					<span class="dot dot-red"></span><span class="dot dot-yellow"></span><span
 						class="dot dot-green"
-					></span><span class="frame-url">grademaxxing.local</span>
+					></span><span class="frame-url">grademaxxing.app/grades</span>
 				</div>
 				<div class="frame-image-wrap">
 					<img
 						src="/demo_dark.png"
-						width="1484"
-						height="1060"
-						alt={`${brand} showing a class grade trend and hypothetical assignments`}
+						width="1440"
+						height="900"
+						alt={`${brand} gradebook home with GPA summary, courses, rank, and recent assignments`}
 					/>
 				</div>
 			</div>
@@ -112,8 +117,8 @@
 		</section>
 
 		<section class="showcase" aria-labelledby="context-heading">
-			<p class="eyebrow">THE FULL PICTURE</p>
-			<h2 id="context-heading">Every number has context.</h2>
+			<p class="eyebrow">THE USEFUL PART</p>
+			<h2 id="context-heading">A percentage is not a plan.</h2>
 			<p class="showcase-subtitle">
 				{brand} turns a final percentage into the information you need to act on it.
 			</p>
@@ -144,8 +149,10 @@
 					</div>
 					<div class="detail-copy">
 						<div class="detail-heading"><ChartLineIcon aria-hidden="true" /> Grade history</div>
-						<h3>See what moved your grade.</h3>
-						<p>Follow daily snapshots and assignment impact instead of guessing from one total.</p>
+						<h3>See what actually moved it.</h3>
+						<p>
+							Follow daily snapshots and assignment impact. Guessing from one total is optional.
+						</p>
 					</div>
 				</article>
 
@@ -161,7 +168,10 @@
 					<div class="detail-copy">
 						<div class="detail-heading"><CalculatorIcon aria-hidden="true" /> What-if mode</div>
 						<h3>Try the score before the test.</h3>
-						<p>Add hypothetical work, change category scores, and calculate what you need next.</p>
+						<p>
+							Add hypothetical work, change category scores, and calculate what you need next. Time
+							travel, basically.
+						</p>
 					</div>
 				</article>
 
@@ -173,8 +183,8 @@
 					</div>
 					<div class="detail-copy">
 						<div class="detail-heading"><HistoryIcon aria-hidden="true" /> School record</div>
-						<h3>Keep the rest of school visible.</h3>
-						<p>Review attendance details, report cards, documents, and StudentVUE messages.</p>
+						<h3>The rest of school is here too.</h3>
+						<p>Attendance, report cards, documents, and messages. One less maze to open.</p>
 					</div>
 				</article>
 			</div>
@@ -198,8 +208,8 @@
 
 		<section class="final-cta" aria-labelledby="cta-heading">
 			<img src="/favicon.svg" width="56" height="56" alt="" />
-			<h2 id="cta-heading">Your grades should make sense.</h2>
-			<p>Connect StudentVUE and see the full picture behind every class.</p>
+			<h2 id="cta-heading">Your grades are already enough of a puzzle.</h2>
+			<p>Connect StudentVUE. We'll do the sorting.</p>
 			<a class="button button-primary button-large" href="/login"
 				>Open {brand} <ArrowRightIcon aria-hidden="true" /></a
 			>
@@ -485,9 +495,9 @@
 		font-size: 11px;
 	}
 	.frame-image-wrap {
-		aspect-ratio: 16/9;
+		aspect-ratio: 16 / 9;
 		overflow: hidden;
-		background: #0b1718;
+		background: #081522;
 	}
 	.frame-image-wrap img {
 		display: block;
@@ -936,15 +946,6 @@
 		.frame-url {
 			padding: 3px 16px;
 			font-size: 10px;
-		}
-		.frame-image-wrap {
-			aspect-ratio: 4/3;
-		}
-		.frame-image-wrap img {
-			width: auto;
-			max-width: none;
-			object-fit: cover;
-			object-position: 28% top;
 		}
 		.feature-grid {
 			grid-template-columns: 1fr;

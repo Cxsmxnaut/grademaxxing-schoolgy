@@ -138,7 +138,7 @@ test('1 — a student signs in and sees the Gradebook home', async () => {
 	await expect(page.getByText('GPA · Unweighted', { exact: true })).toBeVisible();
 	await expect(page.getByText('Rank', { exact: true })).toBeVisible();
 	await expect(page.getByRole('link', { name: 'Gradebook', exact: true })).toBeVisible();
-	await expect(page.getByText('Loading grades...')).toBeHidden();
+	await expect(page.getByText('Loading grades. StudentVUE is on the clock.')).toBeHidden();
 	await expect(page.getByText('Something went wrong')).toHaveCount(0);
 	await mkdir(diagnosticsDirectory, { recursive: true });
 	await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
@@ -207,7 +207,9 @@ test('1b — a student refreshes grades and opens every course without broken me
 	]);
 	expect(gradebookResponse.status()).toBe(200);
 	record('gradebook-refresh', { durationMs: Date.now() - refreshStartedAt });
-	await expect(page.getByText('Loading grades...', { exact: true })).toBeHidden();
+	await expect(
+		page.getByText('Loading grades. StudentVUE is on the clock.', { exact: true })
+	).toBeHidden();
 	await expect(page.getByText('NaN', { exact: true })).toBeHidden();
 
 	let courseCards = page.locator('main a[href^="/grades/"]');
@@ -481,7 +483,9 @@ test('3 — a student reviews attendance and refreshes it', async () => {
 	expect(await attendanceLink.count()).toBe(1);
 	await attendanceLink.click();
 	await expect(page).toHaveURL(/\/attendance$/);
-	await expect(page.getByText('Loading attendance...', { exact: true })).toBeHidden();
+	await expect(
+		page.getByText('Loading attendance. Checking the ledger.', { exact: true })
+	).toBeHidden();
 	await expect(page.getByText('Something went wrong')).toHaveCount(0);
 
 	const refreshButton = page.getByRole('button', { name: 'Refresh', exact: true });
@@ -529,7 +533,9 @@ test('4 — a student reviews documents and opens an available document', async 
 	expect(await documentsLink.count()).toBe(1);
 	await documentsLink.click();
 	await expect(page).toHaveURL(/\/documents$/);
-	await expect(page.getByText('Loading documents...', { exact: true })).toBeHidden();
+	await expect(
+		page.getByText('Loading documents. Filing cabinet mode.', { exact: true })
+	).toBeHidden();
 	await expect(page.getByText('Something went wrong')).toHaveCount(0);
 	await expect(page.getByRole('tab', { name: 'All', exact: true })).toBeVisible();
 
@@ -583,7 +589,9 @@ test('5 — a student reads mail and opens an available attachment', async () =>
 	expect(await mailLink.count()).toBe(1);
 	await mailLink.click();
 	await expect(page).toHaveURL(/\/mail$/);
-	await expect(page.getByText('Loading mail...', { exact: true })).toBeHidden();
+	await expect(
+		page.getByText('Loading mail. Checking the digital hallway.', { exact: true })
+	).toBeHidden();
 	await expect(page.getByText('Something went wrong')).toHaveCount(0);
 
 	const inbox = page.getByRole('list', { name: 'Inbox messages', exact: true });
@@ -630,7 +638,8 @@ test('5 — a student reads mail and opens an available attachment', async () =>
 		await expect(page.getByText('Something went wrong')).toHaveCount(0);
 		await page.unroute('**/api/studentvue/messages');
 		await page.getByRole('button', { name: 'Refresh', exact: true }).click();
-	} else await expect(page.getByRole('status')).toHaveText('Your inbox is empty.');
+	} else
+		await expect(page.getByRole('status')).toContainText('Your inbox is empty. Enjoy the silence.');
 	expect(pageErrors).toEqual([]);
 });
 
@@ -639,7 +648,7 @@ test('6 — a student reviews identity details and remains signed in after reloa
 	expect(await studentInfoLink.count()).toBe(1);
 	await studentInfoLink.click();
 	await expect(page).toHaveURL(/\/studentinfo$/);
-	await expect(page.getByText('Loading student info...', { exact: true })).toBeHidden();
+	await expect(page.getByText('Loading student info.', { exact: true })).toBeHidden();
 	await expect(page.getByText('Something went wrong')).toHaveCount(0);
 	await expect(page.getByText('Student Information', { exact: true })).toBeVisible();
 	await expect(
@@ -668,7 +677,7 @@ test('6 — a student reviews identity details and remains signed in after reloa
 
 	await page.reload();
 	await expect(page).toHaveURL(/\/studentinfo$/);
-	await expect(page.getByText('Loading student info...', { exact: true })).toBeHidden();
+	await expect(page.getByText('Loading student info.', { exact: true })).toBeHidden();
 	await expect(page.getByText('Student Information', { exact: true })).toBeVisible();
 	await expect(page.getByText('Something went wrong')).toHaveCount(0);
 	expect(pageErrors).toEqual([]);
@@ -727,7 +736,7 @@ test('7 — a student logs out and receives a safe visible sign-in error', async
 	await page.getByRole('checkbox', { name: /independent, unofficial tool/i }).check();
 	expectingInvalidLoginFailure = true;
 	await page.getByRole('button', { name: 'Log in', exact: true }).click();
-	await expect(page.getByText("Couldn't log in", { exact: true })).toBeVisible();
+	await expect(page.getByText('StudentVUE said no.', { exact: true })).toBeVisible();
 	await expect(
 		page.getByText('Use a supported HTTPS StudentVUE district portal URL.', { exact: true })
 	).toBeVisible();
@@ -847,7 +856,9 @@ test('8 — a student can navigate the full app at phone width', async () => {
 			path: `${diagnosticsDirectory}/mobile-attendance.png`,
 			fullPage: true
 		});
-		await expect(mobilePage.getByText('Loading attendance...', { exact: true })).toBeHidden();
+		await expect(
+			mobilePage.getByText('Loading attendance. Checking the ledger.', { exact: true })
+		).toBeHidden();
 		record('mobile-step', { step: 'attendance-loaded' });
 
 		const gradesLink = mobilePage
@@ -869,7 +880,7 @@ test('8 — a student can navigate the full app at phone width', async () => {
 		await expect(mobilePage.getByText('Something went wrong')).toHaveCount(0);
 
 		await mobilePage.goto('/studentinfo');
-		await expect(mobilePage.getByText('Loading student info...', { exact: true })).toBeHidden();
+		await expect(mobilePage.getByText('Loading student info.', { exact: true })).toBeHidden();
 		await mobilePage.getByRole('button', { name: 'Developer Tools', exact: true }).click();
 		const overflow = await mobilePage.evaluate(() => ({
 			viewport: window.innerWidth,

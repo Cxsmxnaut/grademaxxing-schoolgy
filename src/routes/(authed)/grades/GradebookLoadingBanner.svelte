@@ -27,8 +27,8 @@
 	<Item.Content>
 		<Item.Title>
 			{loadingReportPeriodName
-				? `Loading ${loadingReportPeriodName} grades...`
-				: 'Loading grades...'}
+				? `Loading ${loadingReportPeriodName} grades. StudentVUE is on the clock.`
+				: 'Loading grades. StudentVUE is on the clock.'}
 		</Item.Title>
 
 		<Item.Description>

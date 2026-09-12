@@ -123,7 +123,10 @@ export async function getGradebookRecord(
 }
 
 export async function getInitialGradebookCatalog() {
-	const defaultGradebookRecord = await getGradebookRecord(undefined, undefined, true);
+	// A cold login has no usable local record to render. Use the same complete
+	// gradebook request as the Refresh action instead of installing a summary-only
+	// record that can leave the first screen without assignment-backed data.
+	const defaultGradebookRecord = await getGradebookRecord(undefined, undefined, false);
 
 	const defaultGradebook = parseGradebookXML(defaultGradebookRecord.xml);
 

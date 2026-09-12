@@ -49,7 +49,7 @@
 
 		<Dialog.Content>
 			<Dialog.Header>
-				<Dialog.Title>Password Reset Help</Dialog.Title>
+				<Dialog.Title>StudentVUE password reset help</Dialog.Title>
 				<Dialog.Description>
 					The exact link to reset your password depends on your district. If you don't know how to
 					find it, try these steps:
@@ -100,7 +100,7 @@
 
 	<p>
 		You should receive an email that will contain a link to set your password.
-		<span class="font-bold">This may take a few minutes.</span>
+		<span class="font-bold">This may take a few minutes. StudentVUE enjoys a little suspense.</span>
 		Once you've created your password, you can
 		<a href="/login" class="font-medium text-[#4db6f5] hover:underline">log in</a>.
 	</p>

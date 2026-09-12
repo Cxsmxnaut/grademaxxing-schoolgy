@@ -322,7 +322,8 @@
 
 				{#if hasNoGrades}
 					<Alert.Root
-						><CircleXIcon />No grades have been posted in {activeReportPeriod._GradePeriod}.{#if activeReportPeriodIndex > 0}<Button
+						><CircleXIcon />No grades in {activeReportPeriod._GradePeriod} yet. Either the portal is early
+						or the semester is.{#if activeReportPeriodIndex > 0}<Button
 								onclick={() => void changeReportPeriod(activeReportPeriodIndex - 1)}
 								variant="outline">View {getReportPeriodName(activeReportPeriodIndex - 1)}</Button
 							>{/if}</Alert.Root
@@ -398,12 +399,10 @@
 								/>
 								<div>
 									<p class="text-lg font-bold" style:color={rank.current.color}>Diamond</p>
-									<p class="text-muted-foreground mt-1 text-xs">Highest rank reached</p>
+									<p class="text-muted-foreground mt-1 text-xs">You've reached the top.</p>
 								</div>
 							</div>
-						{:else}<p class="text-muted-foreground text-sm">
-								Grades are needed to calculate rank.
-							</p>{/if}
+						{:else}<p class="text-muted-foreground text-sm">No grades, no rank math.</p>{/if}
 						<p class="sr-only">
 							Rank is a {brand} GPA tier, not your official class rank.
 						</p>
@@ -442,7 +441,7 @@
 									</p>
 								</li>{/each}
 						</ol>{:else}<p class="text-muted-foreground px-5 py-8 text-center text-sm">
-							No graded assignments yet.
+							No graded assignments yet. The portal may be pacing itself.
 						</p>{/if}
 				</section>
 			</aside>

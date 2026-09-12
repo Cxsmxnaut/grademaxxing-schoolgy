@@ -100,13 +100,13 @@
 		<AlertCircleIcon />
 		<Alert.Title
 			>{gradebookCatalog
-				? 'Showing saved grades.'
+				? 'Showing saved grades. StudentVUE is being difficult.'
 				: 'An error occurred while loading grades.'}</Alert.Title
 		>
 		<Alert.Description>
 			{#if gradebookCatalog}
-				StudentVUE is temporarily unavailable. Your saved grades remain on screen and the app will
-				retry automatically.
+				StudentVUE is unavailable right now. Your saved grades are still here; we'll retry
+				automatically.
 			{:else}
 				{loadingError instanceof Error ? loadingError.message : String(loadingError)}
 			{/if}

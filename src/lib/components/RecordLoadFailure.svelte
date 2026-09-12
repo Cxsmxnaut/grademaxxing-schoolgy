@@ -18,7 +18,7 @@
 	<TriangleAlertIcon />
 	<Alert.Title>Couldn't load {label}.</Alert.Title>
 	<Alert.Description class="space-y-3">
-		<p>{error}</p>
+		<p>{error} Nothing was changed.</p>
 		{#if sessionExpired}
 			<Button href="/login" variant="outline" data-sveltekit-reload>Sign in again</Button>
 		{:else}

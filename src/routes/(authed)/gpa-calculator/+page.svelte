@@ -180,16 +180,31 @@
 				</p>
 			</div>
 			{#if transcriptLoading}
-				<p class="text-muted-foreground px-5 py-5 text-sm">Loading transcript history…</p>
+				<p class="text-muted-foreground px-5 py-5 text-sm">
+					Loading transcript history. It's a longer story.
+				</p>
 			{:else if transcriptError}
 				<p class="text-muted-foreground px-5 py-5 text-sm">
-					Transcript history could not be loaded. Your hypothetical calculation is still available.
+					Transcript history did not load. The hypothetical calculator still works.
 				</p>
 			{:else if transcriptGpa && transcript}
 				<div class="grid gap-4 px-5 py-5 sm:grid-cols-3">
-					<div><p class="metric-label">Unweighted</p><p class="font-heading mt-1 text-2xl font-bold">{formatGpa(transcriptGpa.unweighted)}</p></div>
-					<div><p class="metric-label">Weighted</p><p class="font-heading mt-1 text-2xl font-bold">{formatGpa(transcriptGpa.weighted)}</p></div>
-					<div><p class="metric-label">Academic weighted</p><p class="font-heading mt-1 text-2xl font-bold">{formatGpa(transcriptGpa.academicWeighted)}</p></div>
+					<div>
+						<p class="metric-label">Unweighted</p>
+						<p class="font-heading mt-1 text-2xl font-bold">
+							{formatGpa(transcriptGpa.unweighted)}
+						</p>
+					</div>
+					<div>
+						<p class="metric-label">Weighted</p>
+						<p class="font-heading mt-1 text-2xl font-bold">{formatGpa(transcriptGpa.weighted)}</p>
+					</div>
+					<div>
+						<p class="metric-label">Academic weighted</p>
+						<p class="font-heading mt-1 text-2xl font-bold">
+							{formatGpa(transcriptGpa.academicWeighted)}
+						</p>
+					</div>
 				</div>
 				<p class="text-muted-foreground border-border/70 border-t px-5 py-3 text-xs leading-5">
 					{transcript.message} This remains a policy-based calculation, not a district-issued GPA.
@@ -246,7 +261,7 @@
 				</ol>
 			{:else}
 				<p class="text-muted-foreground px-5 py-10 text-center text-sm">
-					No graded courses are available for this report period.
+					No graded courses are available for this report period. The calculator can't invent them.
 				</p>
 			{/if}
 		</section>

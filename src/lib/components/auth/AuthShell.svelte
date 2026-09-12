@@ -29,7 +29,7 @@
 					class="max-w-2xl text-[2.7rem] leading-[1.15] font-bold tracking-[-0.02em] text-balance"
 					style="font-family: 'Space Grotesk', sans-serif"
 				>
-					Know where your grades are headed.
+					Your grades are complicated enough.
 				</h1>
 				<ul class="mt-5 space-y-3.5 text-[0.9375rem] font-medium text-[#8fa9c2]">
 					<li class="flex items-center gap-3">
@@ -48,7 +48,7 @@
 					class="mt-12 text-xs leading-[1.125rem] text-[#5c7891]"
 					style="font-family: 'IBM Plex Mono', monospace"
 				>
-					Built for students who want the full picture.<br />{brand}
+					Built for students who want the useful picture.<br />{brand}
 				</p>
 			</div>
 		</aside>

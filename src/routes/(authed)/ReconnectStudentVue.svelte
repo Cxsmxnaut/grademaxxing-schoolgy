@@ -1,9 +1,6 @@
 <script lang="ts">
 	import { acc, persistStudentAccount } from '$lib/account.svelte';
-	import {
-		clearStoredCredentials,
-		saveStoredCredentials
-	} from '$lib/auth/credential-vault';
+	import { clearStoredCredentials, saveStoredCredentials } from '$lib/auth/credential-vault';
 	import { brand } from '$lib/brand';
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
@@ -61,8 +58,10 @@
 	>
 		<LinkIcon class="text-primary size-4 shrink-0" aria-hidden="true" />
 		<div class="min-w-0 flex-1">
-			<p class="text-sm font-semibold">Grades are saved on this device</p>
-			<p class="text-muted-foreground text-xs">Reconnect to StudentVUE to check for updates.</p>
+			<p class="text-sm font-semibold">Your saved grades are still here.</p>
+			<p class="text-muted-foreground text-xs">
+				StudentVUE needs one more handshake to check for updates.
+			</p>
 		</div>
 		<Button size="sm" onclick={() => (open = true)}>Reconnect</Button>
 	</div>
@@ -91,7 +90,7 @@
 						autofocus
 					/>
 				</div>
-				<label class="flex items-start gap-2 text-muted-foreground text-xs">
+				<label class="text-muted-foreground flex items-start gap-2 text-xs">
 					<input type="checkbox" bind:checked={rememberMe} class="mt-0.5 size-4 accent-[#4db6f5]" />
 					<span>
 						Keep me signed in on this device

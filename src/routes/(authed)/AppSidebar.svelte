@@ -112,7 +112,7 @@
 			markPortalConnected(lastSuccessfulRefresh);
 		} catch (error) {
 			if (!(error instanceof StudentVueSessionExpiredError))
-				toast.error("Couldn't refresh StudentVUE", {
+				toast.error("StudentVUE didn't cooperate", {
 					description: error instanceof Error ? error.message : String(error),
 					duration: 6000
 				});
@@ -227,7 +227,7 @@
 					</ol>
 				{:else}
 					<div class="text-muted-foreground flex items-center gap-2 px-3 py-4 text-sm">
-						<Spinner class="size-4" /> Loading classes
+						<Spinner class="size-4" /> Loading classes.
 					</div>
 				{/if}
 			</svelte:boundary>
@@ -240,8 +240,7 @@
 					role="status"
 					data-testid="portal-offline-indicator"
 				>
-					StudentVUE is temporarily unavailable. Saved records stay available and we'll retry
-					automatically.
+					StudentVUE is unavailable. Saved records stay available; we'll retry automatically.
 				</div>
 			{/if}
 			<a
@@ -256,7 +255,7 @@
 			<div
 				class="text-tertiary-foreground flex items-center px-1.5 text-[0.6875rem] leading-[0.9625rem]"
 			>
-				<span>Built for students</span>
+				<span>Built for students. Somehow.</span>
 				<span class="px-1.5" aria-hidden="true">·</span>
 				<a href="/feedback" class="hover:text-foreground underline underline-offset-4">Feedback</a>
 			</div>

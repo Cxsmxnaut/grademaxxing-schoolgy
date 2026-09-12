@@ -15,7 +15,7 @@
 				{#if children}
 					{@render children()}
 				{:else}
-					Loading...
+					Loading. The usual suspense.
 				{/if}
 			</Item.Title>
 		</Item.Content>

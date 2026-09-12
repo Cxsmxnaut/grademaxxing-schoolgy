@@ -179,7 +179,7 @@
 		>
 			<Alert.Root variant="destructive" class="w-fit max-w-[calc(100vw-2rem)]">
 				<AlertCircleIcon />
-				<Alert.Title>Couldn't log in</Alert.Title>
+				<Alert.Title>StudentVUE said no.</Alert.Title>
 				<Alert.Description>{loginError}</Alert.Description>
 			</Alert.Root>
 		</div>
@@ -187,10 +187,8 @@
 		<div class="fixed top-0 left-0 z-50 flex w-full justify-center p-4">
 			<Alert.Root class="w-fit max-w-[calc(100vw-2rem)]">
 				<InfoIcon />
-				<Alert.Title>Your StudentVUE session expired</Alert.Title>
-				<Alert.Description
-					>Sign in again to reconnect and refresh your school data.</Alert.Description
-				>
+				<Alert.Title>The old StudentVUE session expired</Alert.Title>
+				<Alert.Description>One more sign-in and we can move on.</Alert.Description>
 			</Alert.Root>
 		</div>
 	{/if}

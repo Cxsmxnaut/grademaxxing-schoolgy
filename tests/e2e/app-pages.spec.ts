@@ -82,7 +82,7 @@ const pages = [
 	['/documents', 'Documents'],
 	['/mail', 'Mail'],
 	['/studentinfo', 'Student information'],
-	['/feedback', 'Chat with the team']
+	['/feedback', 'Tell us what broke.']
 ] as const;
 
 for (const [path, heading] of pages) {
@@ -233,9 +233,13 @@ test('empty records, feedback state, mobile navigation, and theme controls are c
 	page
 }) => {
 	await page.goto('/documents');
-	await expect(page.getByRole('heading', { name: 'No documents yet' })).toBeVisible();
+	await expect(
+		page.getByRole('heading', { name: 'No documents yet. A rare moment of inbox peace.' })
+	).toBeVisible();
 	await page.goto('/mail');
-	await expect(page.getByRole('heading', { name: 'Your inbox is empty' })).toBeVisible();
+	await expect(
+		page.getByRole('heading', { name: 'Your inbox is empty. Enjoy the silence.' })
+	).toBeVisible();
 	await page.goto('/feedback');
 	const report = page.getByRole('link', { name: 'Open report' });
 	await expect(report).toHaveAttribute('aria-disabled', 'true');
@@ -285,7 +289,7 @@ test('Gradebook exposes the GPA rank summary on desktop and mobile', async ({ pa
 	await expect(summary.getByText('Diamond', { exact: true })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Share your rank' })).toBeVisible();
 	await expect(page.getByRole('heading', { name: 'Next rank' })).toBeVisible();
-	await expect(page.getByText('Highest rank reached')).toBeVisible();
+	await expect(page.getByText("You've reached the top.")).toBeVisible();
 
 	await page.setViewportSize({ width: 390, height: 844 });
 	await expect(page.getByText('GPA and rank', { exact: true })).toBeVisible();

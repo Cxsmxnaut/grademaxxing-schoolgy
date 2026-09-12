@@ -30,7 +30,7 @@
 	<h1
 		class="font-heading mt-2 text-2xl leading-[1.5] font-bold tracking-[-0.035em] sm:text-[1.875rem] sm:leading-[1.2]"
 	>
-		Chat with the team
+		Tell us what broke.
 	</h1>
 	<p class="text-muted-foreground mt-2 max-w-5xl text-sm leading-5">
 		Found a bug, a wrong class name, or a grade that looks off? Describe it below and open a beta

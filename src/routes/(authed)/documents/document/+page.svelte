@@ -44,13 +44,13 @@
 
 {#if reportCardURLPromise}
 	{#await reportCardURLPromise}
-		<LoadingBanner>Loading document...</LoadingBanner>
+		<LoadingBanner>Loading document. Paperwork, but digital.</LoadingBanner>
 	{:then}
-		<LoadingBanner>Redirecting...</LoadingBanner>
+		<LoadingBanner>Redirecting. The document is making an entrance.</LoadingBanner>
 	{:catch error}
 		<div class="flex min-h-screen items-center justify-center">
 			<Alert class="block w-fit space-y-2">
-				<h1 class="text-lg">Couldn't open this document</h1>
+				<h1 class="text-lg">Couldn't open this document. Naturally.</h1>
 				<p>{error instanceof Error ? error.message : String(error)}</p>
 				<div class="flex flex-wrap gap-2">
 					{#if error instanceof Error && /session has expired|sign in/i.test(error.message)}

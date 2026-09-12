@@ -35,9 +35,9 @@
 	/>
 
 	{#if !studentInfoState.loaded && !studentInfoState.data}
-		<LoadingBanner>Loading student info...</LoadingBanner>
+		<LoadingBanner>Loading student info.</LoadingBanner>
 	{:else if studentInfoState.refreshing}
-		<LoadingBanner>Refreshing student info...</LoadingBanner>
+		<LoadingBanner>Refreshing student info.</LoadingBanner>
 	{/if}
 
 	{#if studentInfoState.error}

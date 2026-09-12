@@ -64,7 +64,7 @@
 	/>
 
 	{#if !documentsState.loaded}
-		<LoadingBanner>Loading documents...</LoadingBanner>
+		<LoadingBanner>Loading documents. Filing cabinet mode.</LoadingBanner>
 	{/if}
 
 	{#if documentsState.loaded && documentsState.error}
@@ -107,7 +107,7 @@
 	{:else if documentsState.loaded && !documentsState.error}
 		<div class="py-16 text-center" role="status">
 			<FolderOpenIcon class="text-primary mx-auto size-9" />
-			<h2 class="mt-3 font-semibold">No documents yet</h2>
+			<h2 class="mt-3 font-semibold">No documents yet. A rare moment of inbox peace.</h2>
 			<p class="text-muted-foreground mt-1 text-sm">
 				Report cards and other files will appear here when your school publishes them.
 			</p>

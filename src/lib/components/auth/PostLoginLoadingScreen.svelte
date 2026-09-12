@@ -1,23 +1,8 @@
 <script lang="ts">
 	import { brand } from '$lib/brand';
-	import { onMount } from 'svelte';
-	import { fade } from 'svelte/transition';
 
 	let { message = 'Loading your grades…' }: { message?: string } = $props();
-
-	const phrases = [
-		'Checking if that quiz got graded yet…',
-		'Putting the full picture together…',
-		'Whatever it says, you’re more than a number.'
-	];
-	let phraseIndex = $state(0);
-
-	onMount(() => {
-		const interval = window.setInterval(() => {
-			phraseIndex = (phraseIndex + 1) % phrases.length;
-		}, 2_400);
-		return () => window.clearInterval(interval);
-	});
+	const currentStep = $derived(/connect|restor/i.test(message) ? 1 : 2);
 </script>
 
 <div class="post-login-loading" data-testid="post-login-loading">
@@ -28,9 +13,21 @@
 		<div class="loading-dots" aria-hidden="true">
 			<span></span><span></span><span></span>
 		</div>
-		{#key phraseIndex}
-			<p in:fade={{ duration: 260 }} out:fade={{ duration: 180 }}>{phrases[phraseIndex]}</p>
-		{/key}
+		<p class="loading-message">{message}</p>
+		<p class="loading-detail">
+			StudentVUE is retrieving your latest gradebook. This is the part where the portal does the
+			work.
+		</p>
+		<ol class="loading-steps" aria-label="Sign-in progress">
+			<li class:complete={currentStep > 1} class:active={currentStep === 1}>
+				<span aria-hidden="true">{currentStep > 1 ? '✓' : '1'}</span>
+				Connect to StudentVUE
+			</li>
+			<li class:active={currentStep === 2}>
+				<span aria-hidden="true">2</span>
+				Load your grades
+			</li>
+		</ol>
 		<span class="sr-only">{message} {brand} is preparing your gradebook.</span>
 	</div>
 </div>
@@ -118,11 +115,57 @@
 		opacity: 0.45;
 	}
 	.loading-content p {
-		margin: 17px 0 0;
+		margin: 0;
 		color: #9bb3ca;
-		font-size: 15px;
-		font-weight: 650;
 		letter-spacing: -0.01em;
+	}
+	.loading-message {
+		margin-top: 17px !important;
+		color: #e4eef8 !important;
+		font-size: 18px;
+		font-weight: 700;
+	}
+	.loading-detail {
+		margin-top: 7px !important;
+		font-size: 13px;
+	}
+	.loading-steps {
+		display: flex;
+		gap: 18px;
+		margin: 28px 0 0;
+		padding: 0;
+		color: #66819b;
+		font-size: 12px;
+		font-weight: 650;
+		list-style: none;
+	}
+	.loading-steps li {
+		display: flex;
+		align-items: center;
+		gap: 7px;
+	}
+	.loading-steps li.active {
+		color: #b9d8ef;
+	}
+	.loading-steps li.complete {
+		color: #65d397;
+	}
+	.loading-steps li span {
+		display: grid;
+		width: 20px;
+		height: 20px;
+		place-items: center;
+		border: 1px solid rgba(102, 129, 155, 0.55);
+		border-radius: 999px;
+		font-family: 'IBM Plex Mono', monospace;
+		font-size: 10px;
+	}
+	.loading-steps li.active span {
+		border-color: #4db6f5;
+		color: #4db6f5;
+	}
+	.loading-steps li.complete span {
+		border-color: #65d397;
 	}
 	.sr-only {
 		position: absolute;
@@ -178,6 +221,13 @@
 		}
 		.loading-dots span {
 			opacity: 0.8;
+		}
+	}
+	@media (max-width: 480px) {
+		.loading-steps {
+			align-items: flex-start;
+			flex-direction: column;
+			gap: 10px;
 		}
 	}
 </style>

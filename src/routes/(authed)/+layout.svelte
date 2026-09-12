@@ -139,7 +139,7 @@
 				markPortalOffline(
 					!navigator.onLine
 						? 'You appear to be offline. Showing your last saved data.'
-						: 'StudentVUE is temporarily unavailable. Showing your last saved data.'
+						: 'StudentVUE is unavailable. Showing your last saved data while it figures things out.'
 				);
 				schedulePortalRetry();
 			} finally {

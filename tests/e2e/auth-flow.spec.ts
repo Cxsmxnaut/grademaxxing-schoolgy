@@ -96,12 +96,6 @@ test('sign-in keeps the app hidden until the gradebook is ready', async ({ page 
 	const gradebookGate = new Promise<void>((resolve) => (releaseGradebook = resolve));
 	let markGradebookRequested!: () => void;
 	const gradebookRequested = new Promise<void>((resolve) => (markGradebookRequested = resolve));
-	let releaseGradebookDetails!: () => void;
-	const gradebookDetailsGate = new Promise<void>((resolve) => (releaseGradebookDetails = resolve));
-	let markGradebookDetailsRequested!: () => void;
-	const gradebookDetailsRequested = new Promise<void>(
-		(resolve) => (markGradebookDetailsRequested = resolve)
-	);
 
 	await page.route('**/api/session', async (route) => {
 		if (route.request().method() !== 'POST') return route.fallback();
@@ -139,12 +133,10 @@ test('sign-in keeps the app hidden until the gradebook is ready', async ({ page 
 		if (new URL(route.request().url()).pathname.endsWith('/gradebook')) {
 			gradebookRequestCount += 1;
 			if (gradebookRequestCount === 1) {
-				expect(new URL(route.request().url()).searchParams.get('summary')).toBe('true');
+				// A cold login must use the same complete gradebook load as Refresh.
+				expect(new URL(route.request().url()).searchParams.get('summary')).not.toBe('true');
 				markGradebookRequested();
 				await gradebookGate;
-			} else {
-				markGradebookDetailsRequested();
-				await gradebookDetailsGate;
 			}
 			const xml =
 				'<Gradebook><ReportingPeriod Index="0" GradePeriod="Semester 1"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Semester 1"/></ReportingPeriods><Courses><Course CourseID="preview" CourseName="Theme Preview" Period="1" Staff="Teacher" Room="101"><Marks><Mark MarkName="Semester 1" CalculatedScoreRaw="95" CalculatedScoreString="A"><Assignments></Assignments></Mark></Marks></Course></Courses></Gradebook>';
@@ -174,9 +166,8 @@ test('sign-in keeps the app hidden until the gradebook is ready', async ({ page 
 	await expect(page.locator('form')).toHaveCount(0);
 	await expect(page).toHaveURL(/\/login$/);
 	await page.screenshot({ path: 'test-results/auth-flow/loading.png', fullPage: true });
-	await expect(loadingScreen).toContainText('Putting the full picture together…', {
-		timeout: 4_000
-	});
+	await expect(loadingScreen).toContainText('Connect to StudentVUE');
+	await expect(loadingScreen).toContainText('Load your grades');
 
 	releaseSession();
 	await gradebookRequested;
@@ -188,9 +179,4 @@ test('sign-in keeps the app hidden until the gradebook is ready', async ({ page 
 	await expect(page).toHaveURL(/\/grades$/);
 	await expect(page.getByRole('heading', { level: 1, name: 'Gradebook' })).toBeVisible();
 	await expect(loadingScreen).toHaveCount(0);
-	// Assignment hydration is deliberately slower, but it must not keep a student
-	// on the post-login loading screen after their official course grades arrive.
-	await gradebookDetailsRequested;
-	await expect(page.getByRole('heading', { level: 1, name: 'Gradebook' })).toBeVisible();
-	releaseGradebookDetails();
 });

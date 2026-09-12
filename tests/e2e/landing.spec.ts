@@ -4,7 +4,7 @@ test('the landing page presents the product and every destination works', async 
 	await page.goto('/');
 
 	await expect(
-		page.getByRole('heading', { level: 1, name: 'Know where your grades are headed.' })
+		page.getByRole('heading', { level: 1, name: 'Your grades are complicated enough.' })
 	).toBeVisible();
 	await expect(page.getByLabel('Preview of the Grademaxxing (Beta) gradebook')).toBeVisible();
 
@@ -23,7 +23,7 @@ test('the landing page presents the product and every destination works', async 
 	await expect(page).toHaveURL(/\/login$/);
 
 	await page.goto('/');
-	await page.getByRole('link', { name: 'See what it does' }).click();
+	await page.getByRole('link', { name: 'See what it actually does' }).click();
 	await expect(page).toHaveURL(/\/#features$/);
 	await expect(page.getByRole('heading', { name: 'Grade trends' })).toBeVisible();
 

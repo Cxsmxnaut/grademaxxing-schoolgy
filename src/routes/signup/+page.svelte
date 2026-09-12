@@ -13,7 +13,9 @@
 	Sign up for {brand}
 </h1>
 
-<p class="mb-3 text-[0.90625rem] font-semibold text-[#e4eef8]">How do you sign in to StudentVUE?</p>
+<p class="mb-3 text-[0.90625rem] font-semibold text-[#e4eef8]">
+	How do you want to get into StudentVUE?
+</p>
 
 <div class="space-y-3">
 	<Button
@@ -34,6 +36,6 @@
 </div>
 
 <p class="mt-5 text-[0.875rem] leading-[1.55] text-[#8fa9c2]">
-	If you have used {brand} before, you are already set up. Just use the same StudentVUE password to
+	Used {brand} before? You're already set up. Use the same StudentVUE password and get on with it to
 	<a href="/login" class="font-medium text-[#4db6f5] hover:underline">log in</a>.
 </p>

@@ -22,7 +22,7 @@
 			class="text-[1.4375rem] leading-[2.15625rem] font-bold tracking-[-0.01em]"
 			style="font-family: 'Space Grotesk', sans-serif"
 		>
-			This page could not be opened
+			This page failed to show up.
 		</h1>
 		<p class="mt-3 leading-6 text-[#8fa9c2]">
 			{page.error?.message ?? 'An unexpected problem interrupted this page.'}

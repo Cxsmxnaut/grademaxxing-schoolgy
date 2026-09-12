@@ -89,11 +89,11 @@
 	/>
 
 	{#if !mailDataState.loaded && !mailDataState.data}
-		<LoadingBanner>Loading mail...</LoadingBanner>
+		<LoadingBanner>Loading mail. Checking the digital hallway.</LoadingBanner>
 	{/if}
 
 	{#if openingMessageId !== undefined}
-		<LoadingBanner>Opening message…</LoadingBanner>
+		<LoadingBanner>Opening message. It better be important.</LoadingBanner>
 	{/if}
 
 	{#if mailDataState.error}
@@ -145,8 +145,10 @@
 		{:else}
 			<div class="py-16 text-center" role="status">
 				<MailCheckIcon class="text-success mx-auto size-9" />
-				<h2 class="mt-3 font-semibold">Your inbox is empty</h2>
-				<p class="text-muted-foreground mt-1 text-sm">New school messages will appear here.</p>
+				<h2 class="mt-3 font-semibold">Your inbox is empty. Enjoy the silence.</h2>
+				<p class="text-muted-foreground mt-1 text-sm">
+					New school messages will show up here when they do.
+				</p>
 			</div>
 		{/if}
 

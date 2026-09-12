@@ -42,13 +42,13 @@
 
 {#if attachmentURLPromise}
 	{#await attachmentURLPromise}
-		<LoadingBanner>Loading attachment...</LoadingBanner>
+		<LoadingBanner>Loading attachment. One more file, apparently.</LoadingBanner>
 	{:then}
-		<LoadingBanner>Redirecting...</LoadingBanner>
+		<LoadingBanner>Redirecting. The attachment is on its way.</LoadingBanner>
 	{:catch error}
 		<div class="flex min-h-screen items-center justify-center">
 			<Alert class="block w-fit space-y-2">
-				<h1 class="text-lg">Couldn't open this attachment</h1>
+				<h1 class="text-lg">Couldn't open this attachment. Naturally.</h1>
 				<p>{error instanceof Error ? error.message : String(error)}</p>
 				<div class="flex flex-wrap gap-2">
 					{#if error instanceof Error && /session has expired|sign in/i.test(error.message)}

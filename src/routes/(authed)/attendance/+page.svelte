@@ -254,7 +254,8 @@
 		</div>
 	</div>
 
-	{#if !attendanceState.loaded}<LoadingBanner>Loading attendance...</LoadingBanner
+	{#if !attendanceState.loaded}<LoadingBanner
+			>Loading attendance. Checking the ledger.</LoadingBanner
 		>{:else if attendanceState.refreshing}<LoadingBanner>Refreshing attendance...</LoadingBanner
 		>{/if}
 	{#if attendanceState.loaded && attendanceState.error}<RecordLoadFailure

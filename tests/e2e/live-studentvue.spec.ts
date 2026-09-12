@@ -23,7 +23,7 @@ test.describe('live StudentVUE journeys', () => {
 		await page.locator('#domain').fill('example.com');
 		await page.locator('#disclaimer').check();
 		await page.getByRole('button', { name: 'Log in' }).click();
-		await expect(page.getByText("Couldn't log in")).toBeVisible();
+		await expect(page.getByText('StudentVUE said no.')).toBeVisible();
 		expect(await page.evaluate(() => localStorage.getItem('token'))).toBeNull();
 	});
 
