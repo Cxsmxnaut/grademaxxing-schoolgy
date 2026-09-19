@@ -25,13 +25,28 @@ type WorkerPlatform = {
 export type UpstreamFailureKind = 'portal_error' | 'portal_timeout';
 
 export type UsageSummary = {
+	generatedAt: string;
+	rangeDays: UsageRangeDays;
 	uniqueStudents: number;
-	activeStudentsLast30Days: number;
-	newStudentsLast30Days: number;
-	dailyNewStudents: Array<{ date: string; count: number }>;
+	activeStudents: number;
+	previousActiveStudents: number;
+	newStudents: number;
+	previousNewStudents: number;
+	returningStudents: number;
+	activeToday: number;
+	trackingStartedAt: string | null;
+	lastActivityAt: string | null;
+	dailyUsage: Array<{
+		date: string;
+		newStudents: number;
+		activeStudents: number;
+		totalStudents: number;
+	}>;
 };
 
-const analyticsWindowDays = 30;
+export const usageRangeOptions = [7, 30, 90] as const;
+export type UsageRangeDays = (typeof usageRangeOptions)[number];
+const defaultUsageRangeDays: UsageRangeDays = 30;
 const millisecondsPerDay = 24 * 60 * 60 * 1000;
 
 function workerEnvironment(platform: unknown) {
@@ -69,6 +84,7 @@ export async function recordUniqueStudentUsage(
 	if (!database || !secret) return false;
 	const now = Date.now();
 	const studentKey = protectedStudentUsageKey(domain, username, secret);
+	const activityDate = new Date(now).toISOString().slice(0, 10);
 	const inserted = (await database
 		.prepare(
 			`INSERT INTO unique_student_usage (student_key, first_seen_at, last_seen_at)
@@ -83,6 +99,14 @@ export async function recordUniqueStudentUsage(
 			.prepare(`UPDATE unique_student_usage SET last_seen_at = ? WHERE student_key = ?`)
 			.bind(now, studentKey)
 			.run();
+	await database
+		.prepare(
+			`INSERT INTO daily_student_activity (student_key, activity_date)
+			 VALUES (?, ?)
+			 ON CONFLICT(student_key, activity_date) DO NOTHING`
+		)
+		.bind(studentKey, activityDate)
+		.run();
 	if (isNewStudent)
 		environment?.GRADEMAXXING_USAGE_ANALYTICS?.writeDataPoint({
 			// The event contains no identity. It is only a time-series increment for
@@ -94,20 +118,69 @@ export async function recordUniqueStudentUsage(
 	return isNewStudent;
 }
 
-export async function getUsageSummary(platform: unknown): Promise<UsageSummary | undefined> {
+export async function getUsageSummary(
+	platform: unknown,
+	rangeDays: UsageRangeDays = defaultUsageRangeDays
+): Promise<UsageSummary | undefined> {
 	const database = workerEnvironment(platform)?.GRADEMAXXING_USAGE_DB;
 	if (!database) return undefined;
 	const now = Date.now();
-	const since = now - analyticsWindowDays * millisecondsPerDay;
-	const [result, dailyResult] = await Promise.all([
+	const dayStart = new Date(now);
+	dayStart.setUTCHours(0, 0, 0, 0);
+	const rangeStart = dayStart.getTime() - (rangeDays - 1) * millisecondsPerDay;
+	const previousRangeStart = rangeStart - rangeDays * millisecondsPerDay;
+	const rangeStartDate = new Date(rangeStart).toISOString().slice(0, 10);
+	const previousRangeStartDate = new Date(previousRangeStart).toISOString().slice(0, 10);
+	const todayDate = dayStart.toISOString().slice(0, 10);
+	const [totals, activity, dailyNewResult, dailyActiveResult] = await Promise.all([
 		database
 			.prepare(
 				`SELECT COUNT(*) AS uniqueStudents,
-			 COUNT(CASE WHEN last_seen_at >= ? THEN 1 END) AS activeStudentsLast30Days
+			 SUM(CASE WHEN first_seen_at >= ? THEN 1 ELSE 0 END) AS newStudents,
+			 SUM(CASE WHEN first_seen_at >= ? AND first_seen_at < ? THEN 1 ELSE 0 END)
+				 AS previousNewStudents,
+			 MIN(first_seen_at) AS trackingStartedAt,
+			 MAX(last_seen_at) AS lastActivityAt
 			 FROM unique_student_usage`
 			)
-			.bind(since)
-			.first<{ uniqueStudents: number; activeStudentsLast30Days: number }>(),
+			.bind(rangeStart, previousRangeStart, rangeStart)
+			.first<{
+				uniqueStudents: number;
+				newStudents: number;
+				previousNewStudents: number;
+				trackingStartedAt: number | null;
+				lastActivityAt: number | null;
+			}>(),
+		database
+			.prepare(
+				`SELECT
+			 COUNT(DISTINCT CASE WHEN activity.activity_date >= ? THEN activity.student_key END)
+				 AS activeStudents,
+			 COUNT(DISTINCT CASE
+				 WHEN activity.activity_date >= ? AND activity.activity_date < ?
+				 THEN activity.student_key END) AS previousActiveStudents,
+			 COUNT(DISTINCT CASE WHEN activity.activity_date = ? THEN activity.student_key END)
+				 AS activeToday,
+			 COUNT(DISTINCT CASE
+				 WHEN activity.activity_date >= ? AND students.first_seen_at < ?
+				 THEN activity.student_key END) AS returningStudents
+			 FROM daily_student_activity activity
+			 JOIN unique_student_usage students ON students.student_key = activity.student_key`
+			)
+			.bind(
+				rangeStartDate,
+				previousRangeStartDate,
+				rangeStartDate,
+				todayDate,
+				rangeStartDate,
+				rangeStart
+			)
+			.first<{
+				activeStudents: number;
+				previousActiveStudents: number;
+				activeToday: number;
+				returningStudents: number;
+			}>(),
 		database
 			.prepare(
 				`SELECT strftime('%Y-%m-%d', first_seen_at / 1000, 'unixepoch') AS date,
@@ -117,28 +190,57 @@ export async function getUsageSummary(platform: unknown): Promise<UsageSummary |
 			 GROUP BY date
 			 ORDER BY date ASC`
 			)
-			.bind(since)
+			.bind(rangeStart)
+			.all<{ date: string; count: number }>(),
+		database
+			.prepare(
+				`SELECT activity_date AS date, COUNT(*) AS count
+			 FROM daily_student_activity
+			 WHERE activity_date >= ?
+			 GROUP BY activity_date
+			 ORDER BY activity_date ASC`
+			)
+			.bind(rangeStartDate)
 			.all<{ date: string; count: number }>()
 	]);
-	const countsByDate = new Map(
-		(dailyResult.results ?? []).map(({ date, count }) => [date, Number(count)])
+	const newStudentsByDate = new Map(
+		(dailyNewResult.results ?? []).map(({ date, count }) => [date, Number(count)])
 	);
-	const dayStart = new Date(now);
-	dayStart.setUTCHours(0, 0, 0, 0);
-	const dailyNewStudents = Array.from({ length: analyticsWindowDays }, (_, index) => {
-		const date = new Date(
-			dayStart.getTime() - (analyticsWindowDays - 1 - index) * millisecondsPerDay
-		)
-			.toISOString()
-			.slice(0, 10);
-		return { date, count: countsByDate.get(date) ?? 0 };
+	const activeStudentsByDate = new Map(
+		(dailyActiveResult.results ?? []).map(({ date, count }) => [date, Number(count)])
+	);
+	let totalStudents =
+		Number(totals?.uniqueStudents ?? 0) -
+		Array.from(newStudentsByDate.values()).reduce((sum, count) => sum + count, 0);
+	const dailyUsage = Array.from({ length: rangeDays }, (_, index) => {
+		const date = new Date(rangeStart + index * millisecondsPerDay).toISOString().slice(0, 10);
+		const newStudents = newStudentsByDate.get(date) ?? 0;
+		totalStudents += newStudents;
+		return {
+			date,
+			newStudents,
+			activeStudents: activeStudentsByDate.get(date) ?? 0,
+			totalStudents
+		};
 	});
 	return {
-		uniqueStudents: Number(result?.uniqueStudents ?? 0),
-		activeStudentsLast30Days: Number(result?.activeStudentsLast30Days ?? 0),
-		newStudentsLast30Days: dailyNewStudents.reduce((total, { count }) => total + count, 0),
-		dailyNewStudents
+		generatedAt: new Date(now).toISOString(),
+		rangeDays,
+		uniqueStudents: Number(totals?.uniqueStudents ?? 0),
+		activeStudents: Number(activity?.activeStudents ?? 0),
+		previousActiveStudents: Number(activity?.previousActiveStudents ?? 0),
+		newStudents: Number(totals?.newStudents ?? 0),
+		previousNewStudents: Number(totals?.previousNewStudents ?? 0),
+		returningStudents: Number(activity?.returningStudents ?? 0),
+		activeToday: Number(activity?.activeToday ?? 0),
+		trackingStartedAt: timestampToIso(totals?.trackingStartedAt),
+		lastActivityAt: timestampToIso(totals?.lastActivityAt),
+		dailyUsage
 	};
+}
+
+function timestampToIso(value: number | null | undefined) {
+	return typeof value === 'number' && Number.isFinite(value) ? new Date(value).toISOString() : null;
 }
 
 /**

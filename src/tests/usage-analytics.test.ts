@@ -1,7 +1,8 @@
 import {
 	getUsageSummary,
 	protectedStudentUsageKey,
-	recordStudentVueUpstreamFailure
+	recordStudentVueUpstreamFailure,
+	recordUniqueStudentUsage
 } from '$lib/server/analytics/usage';
 import { expect, test } from 'vitest';
 
@@ -20,26 +21,87 @@ test('usage key counts the same StudentVUE identity once across devices', () => 
 	).not.toBe(key);
 });
 
+test('usage recording stores one protected daily activity row', async () => {
+	const previousSecret = process.env.GRADEMAXXING_ANALYTICS_HMAC_SECRET;
+	process.env.GRADEMAXXING_ANALYTICS_HMAC_SECRET = 'test-only-analytics-secret';
+	const queries: string[] = [];
+	try {
+		await recordUniqueStudentUsage(
+			{
+				env: {
+					GRADEMAXXING_USAGE_DB: {
+						prepare: (query: string) => {
+							queries.push(query);
+							const statement = {
+								bind: (..._values: unknown[]) => statement,
+								run: async () => ({
+									meta: { changes: query.includes('INSERT INTO unique_student_usage') ? 1 : 0 }
+								}),
+								first: async <T>() => null as T | null,
+								all: async <T>() => ({ results: [] as T[] })
+							};
+							return statement;
+						}
+					}
+				}
+			},
+			'ca-pleas-psv.edupoint.com',
+			'student@example.edu'
+		);
+	} finally {
+		if (previousSecret === undefined) delete process.env.GRADEMAXXING_ANALYTICS_HMAC_SECRET;
+		else process.env.GRADEMAXXING_ANALYTICS_HMAC_SECRET = previousSecret;
+	}
+	expect(queries.some((query) => query.includes('INSERT INTO daily_student_activity'))).toBe(true);
+	expect(JSON.stringify(queries)).not.toContain('student@example.edu');
+});
+
 test('usage summary returns a complete zero-filled growth window', async () => {
+	const database = {
+		prepare: (query: string) => {
+			const statement = {
+				bind: (..._values: unknown[]) => statement,
+				run: async () => ({}),
+				first: async <T>() => {
+					if (query.includes('MIN(first_seen_at)'))
+						return {
+							uniqueStudents: 12,
+							newStudents: 2,
+							previousNewStudents: 1,
+							trackingStartedAt: Date.UTC(2026, 7, 23),
+							lastActivityAt: Date.UTC(2026, 8, 18)
+						} as T;
+					if (query.includes('JOIN unique_student_usage'))
+						return {
+							activeStudents: 4,
+							previousActiveStudents: 3,
+							activeToday: 2,
+							returningStudents: 3
+						} as T;
+					return null;
+				},
+				all: async <T>() => ({ results: [] as T[] })
+			};
+			return statement;
+		}
+	};
 	const summary = await getUsageSummary({
 		env: {
-			GRADEMAXXING_USAGE_DB: {
-				prepare: () => ({
-					bind: () => ({
-						first: async () => ({ uniqueStudents: 12, activeStudentsLast30Days: 4 }),
-						all: async () => ({ results: [] })
-					})
-				})
-			}
+			GRADEMAXXING_USAGE_DB: database
 		}
 	});
 	expect(summary).toMatchObject({
 		uniqueStudents: 12,
-		activeStudentsLast30Days: 4,
-		newStudentsLast30Days: 0
+		activeStudents: 4,
+		previousActiveStudents: 3,
+		newStudents: 2,
+		previousNewStudents: 1,
+		returningStudents: 3,
+		activeToday: 2,
+		rangeDays: 30
 	});
-	expect(summary?.dailyNewStudents).toHaveLength(30);
-	expect(summary?.dailyNewStudents.every(({ count }) => count === 0)).toBe(true);
+	expect(summary?.dailyUsage).toHaveLength(30);
+	expect(summary?.dailyUsage.every(({ activeStudents }) => activeStudents === 0)).toBe(true);
 });
 
 test('upstream outage telemetry contains only an aggregate resource category', () => {
