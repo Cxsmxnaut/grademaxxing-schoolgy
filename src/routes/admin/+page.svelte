@@ -4,6 +4,7 @@
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
 	import CheckIcon from '@lucide/svelte/icons/check';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
+	import CopyIcon from '@lucide/svelte/icons/copy';
 	import Clock3Icon from '@lucide/svelte/icons/clock-3';
 	import LockKeyholeIcon from '@lucide/svelte/icons/lock-keyhole';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
@@ -24,6 +25,13 @@
 		activeStudents: number;
 		totalStudents: number;
 	};
+	type ProtectedUser = {
+		studentKey: string;
+		firstSeenAt: string;
+		lastSeenAt: string;
+		activeDays: number;
+		activeInRange: boolean;
+	};
 	type Summary = {
 		generatedAt: string;
 		rangeDays: RangeDays;
@@ -33,10 +41,13 @@
 		newStudents: number;
 		previousNewStudents: number;
 		returningStudents: number;
+		returningStudentsInRange: number;
 		activeToday: number;
 		trackingStartedAt: string | null;
+		dailyTrackingStartedAt: string | null;
 		lastActivityAt: string | null;
 		dailyUsage: DailyUsage[];
+		users: ProtectedUser[];
 	};
 
 	const ranges: RangeDays[] = [7, 30, 90];
@@ -47,18 +58,17 @@
 	let signingIn = $state(false);
 	let message = $state<string>();
 	let selectedDayIndex = $state<number>();
+	let userSearch = $state('');
+	let copiedKey = $state<string>();
 
 	let activeReach = $derived(summary ? percent(summary.activeStudents, summary.uniqueStudents) : 0);
 	let returningShare = $derived(
-		summary ? percent(summary.returningStudents, summary.activeStudents) : 0
+		summary ? percent(summary.returningStudents, summary.uniqueStudents) : 0
 	);
-	let averageDaily = $derived(
-		summary?.dailyUsage.length
-			? Math.round(
-					summary.dailyUsage.reduce((total, day) => total + day.activeStudents, 0) /
-						summary.dailyUsage.length
-				)
-			: 0
+	let filteredUsers = $derived(
+		summary?.users.filter((user) =>
+			user.studentKey.toLowerCase().includes(userSearch.trim().toLowerCase())
+		) ?? []
 	);
 	let peakDaily = $derived(
 		summary ? Math.max(...summary.dailyUsage.map((day) => day.activeStudents), 0) : 0
@@ -141,6 +151,24 @@
 			hour: 'numeric',
 			minute: '2-digit'
 		}).format(new Date(value));
+	}
+
+	function calendarDate(value: string | null) {
+		if (!value) return '—';
+		return new Intl.DateTimeFormat(undefined, {
+			month: 'short',
+			day: 'numeric',
+			year: 'numeric',
+			timeZone: 'UTC'
+		}).format(new Date(value.length === 10 ? `${value}T00:00:00Z` : value));
+	}
+
+	async function copyProtectedKey(key: string) {
+		await navigator.clipboard.writeText(key);
+		copiedKey = key;
+		window.setTimeout(() => {
+			if (copiedKey === key) copiedKey = undefined;
+		}, 1500);
 	}
 
 	function chartCoordinates(data: DailyUsage[]) {
@@ -245,9 +273,10 @@
 							</article>
 
 							<article class="small-card worktime-card">
-								<p class="card-label">Average daily activity</p>
+								<p class="card-label">Active today</p>
 								<div class="card-stat-row">
-									<strong>{averageDaily} students</strong><span><ActivityIcon size={12} />Live</span
+									<strong>{summary.activeToday} students</strong><span
+										><ActivityIcon size={12} />Live</span
 									>
 								</div>
 								<svg
@@ -269,7 +298,7 @@
 									/>
 								</svg>
 								<div class="small-card-foot">
-									<Clock3Icon size={13} />Peak day: {peakDaily} students
+									<Clock3Icon size={13} />Last seen: {dateTime(summary.lastActivityAt)}
 								</div>
 							</article>
 						</section>
@@ -283,7 +312,7 @@
 											class="success-chip">+{summary.newStudents}</span
 										>
 									</div>
-									<p>unique students / all time</p>
+									<p>successful StudentVUE signups / all time</p>
 									<div class="dot-wave" aria-label="Daily activity intensity">
 										{#each summary.dailyUsage.slice(-30) as day (day.date)}
 											<div
@@ -311,7 +340,7 @@
 											<RefreshCwIcon size={15} /><span>{summary.returningStudents} users</span>
 										</div>
 										<strong>{returningShare}%</strong>
-										<p>Returning share</p>
+										<p>Returned on another day</p>
 									</div>
 								</div>
 							</article>
@@ -335,7 +364,7 @@
 											>
 										</div>
 										<div>
-											<span><i class="teal-dot"></i>Returning</span><strong
+											<span><i class="teal-dot"></i>Returned</span><strong
 												>{summary.returningStudents}</strong
 											>
 										</div>
@@ -386,6 +415,83 @@
 							</div>
 						</section>
 					</div>
+
+					<section class="user-directory" aria-labelledby="protected-users-heading">
+						<div class="directory-heading">
+							<div>
+								<p class="card-label">Privacy-safe user registry</p>
+								<h2 id="protected-users-heading">Protected users</h2>
+								<p>Every successful signup, represented only by its one-way protected key.</p>
+							</div>
+							<label class="directory-search">
+								<SearchIcon size={16} />
+								<span class="sr-only">Search protected user keys</span>
+								<input bind:value={userSearch} placeholder="Search protected key" />
+							</label>
+						</div>
+						<div class="directory-facts">
+							<div><strong>{summary.uniqueStudents}</strong><span>signed up</span></div>
+							<div><strong>{summary.returningStudents}</strong><span>returned</span></div>
+							<div>
+								<strong>{summary.activeStudents}</strong><span>active in {rangeDays}d</span>
+							</div>
+							<div>
+								<strong>{summary.returningStudentsInRange}</strong><span>older users back</span>
+							</div>
+						</div>
+						<div class="directory-table-wrap">
+							<table>
+								<thead>
+									<tr>
+										<th>Protected key</th>
+										<th>First seen</th>
+										<th>Last seen</th>
+										<th>Observed days</th>
+										<th>Status</th>
+									</tr>
+								</thead>
+								<tbody>
+									{#each filteredUsers as user (user.studentKey)}
+										<tr>
+											<td>
+												<div class="protected-key">
+													<code>{user.studentKey}</code>
+													<button
+														type="button"
+														onclick={() => copyProtectedKey(user.studentKey)}
+														aria-label="Copy protected user key"
+													>
+														{#if copiedKey === user.studentKey}<CheckIcon
+																size={14}
+															/>{:else}<CopyIcon size={14} />{/if}
+													</button>
+												</div>
+											</td>
+											<td>{calendarDate(user.firstSeenAt)}</td>
+											<td>{dateTime(user.lastSeenAt)}</td>
+											<td>{user.activeDays}</td>
+											<td>
+												<span class:returned={user.activeDays >= 2} class="user-status">
+													{user.activeDays >= 2 ? 'Returned' : 'New'}
+												</span>
+											</td>
+										</tr>
+									{:else}
+										<tr
+											><td colspan="5" class="directory-empty"
+												>No protected key matches that search.</td
+											></tr
+										>
+									{/each}
+								</tbody>
+							</table>
+						</div>
+						<p class="directory-note">
+							Daily return tracking is complete from {calendarDate(summary.dailyTrackingStartedAt)}.
+							Earlier returns are shown only when the stored first and last observations prove
+							activity on different days.
+						</p>
+					</section>
 				</main>
 
 				<aside class="activity-rail" id="coverage">
@@ -423,7 +529,7 @@
 							<span>Active today</span><strong>{summary.activeToday}</strong>
 						</div>
 						<div class="summary-total">
-							<span>Returning share</span><strong>{returningShare}%</strong>
+							<span>All-time return rate</span><strong>{returningShare}%</strong>
 						</div>
 						<div class="summary-footer">
 							<div><CheckIcon size={16} /></div>

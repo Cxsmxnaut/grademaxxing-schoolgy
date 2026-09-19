@@ -1,5 +1,8 @@
 import { dev } from '$app/environment';
-import { recordStudentVueUpstreamFailure } from '$lib/server/analytics/usage';
+import {
+	recordStudentVueUpstreamFailure,
+	recordUniqueStudentUsage
+} from '$lib/server/analytics/usage';
 import { Pxp2SessionExpiredError, Pxp2TimeoutError } from '$lib/server/pxp2';
 import {
 	clientSessionHeader,
@@ -33,6 +36,9 @@ export const GET: RequestHandler = async ({ cookies, request, platform }) => {
 
 	try {
 		await runStudentOperation(session, () => session.client.keepAlive(), request.signal);
+		await recordUniqueStudentUsage(platform, session.domain, session.username).catch(
+			() => undefined
+		);
 		const updatedAt = Date.now();
 		cookies.set(sessionCookie, serializeStudentSession(session), {
 			path: '/',

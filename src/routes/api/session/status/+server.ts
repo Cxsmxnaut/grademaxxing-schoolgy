@@ -1,4 +1,5 @@
 import { dev } from '$app/environment';
+import { recordUniqueStudentUsage } from '$lib/server/analytics/usage';
 import {
 	clientSessionHeader,
 	getStudentSession,
@@ -10,10 +11,15 @@ import {
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = ({ cookies, request }) => {
+export const GET: RequestHandler = async ({ cookies, request, platform }) => {
 	try {
 		const session = getStudentSession(cookies.get(sessionCookie));
 		requireStudentSessionContext(session, request.headers.get(clientSessionHeader));
+		// A valid returning app session is real usage even when the student does not
+		// need to type their password again. The daily primary key makes this idempotent.
+		await recordUniqueStudentUsage(platform, session.domain, session.username).catch(
+			() => undefined
+		);
 		cookies.set(sessionCookie, serializeStudentSession(session), {
 			path: '/',
 			httpOnly: true,
