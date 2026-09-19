@@ -29,6 +29,7 @@
 	import MoonIcon from '@lucide/svelte/icons/moon';
 	import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
 	import SunIcon from '@lucide/svelte/icons/sun';
+	import TrophyIcon from '@lucide/svelte/icons/trophy';
 	import { mode, setMode } from 'mode-watcher';
 	import { toast } from 'svelte-sonner';
 	import { onMount, type Component } from 'svelte';
@@ -135,6 +136,7 @@
 
 	const navigation: { title: string; url: string; icon: Component }[] = [
 		{ title: 'Gradebook', url: '/grades', icon: BookOpenIcon },
+		{ title: 'Rankings', url: '/rankings', icon: TrophyIcon },
 		{ title: 'Attendance', url: '/attendance', icon: CalendarDaysIcon },
 		{ title: 'Documents', url: '/documents', icon: FileTextIcon },
 		{ title: 'Mail', url: '/mail', icon: MailIcon }

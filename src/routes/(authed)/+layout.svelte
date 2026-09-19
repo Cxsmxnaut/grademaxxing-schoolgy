@@ -31,6 +31,7 @@
 	import MailIcon from '@lucide/svelte/icons/mail';
 	import MoonIcon from '@lucide/svelte/icons/moon';
 	import SunIcon from '@lucide/svelte/icons/sun';
+	import TrophyIcon from '@lucide/svelte/icons/trophy';
 	import { mode, setMode } from 'mode-watcher';
 	import AppSidebar from './AppSidebar.svelte';
 	import ReconnectStudentVue from './ReconnectStudentVue.svelte';
@@ -49,6 +50,7 @@
 
 	const mobileNavigation = [
 		{ title: 'Grades', url: '/grades', icon: BookOpenIcon },
+		{ title: 'Rankings', url: '/rankings', icon: TrophyIcon },
 		{ title: 'Attendance', url: '/attendance', icon: CalendarDaysIcon },
 		{ title: 'Documents', url: '/documents', icon: FileTextIcon },
 		{ title: 'Mail', url: '/mail', icon: MailIcon }
@@ -308,7 +310,7 @@
 			</div>
 
 			<nav
-				class="bg-card border-border fixed inset-x-0 bottom-0 z-40 grid h-[3.375rem] grid-cols-4 border-t md:hidden"
+				class="bg-card border-border fixed inset-x-0 bottom-0 z-40 grid h-[3.375rem] grid-cols-5 border-t md:hidden"
 				aria-label="Mobile navigation"
 			>
 				{#each mobileNavigation as item (item.url)}

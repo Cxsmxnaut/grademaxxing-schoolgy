@@ -76,6 +76,7 @@ test.beforeEach(async ({ page }) => {
 
 const pages = [
 	['/grades', 'Gradebook'],
+	['/rankings', 'Rankings & achievements'],
 	['/gpa-calculator', 'GPA calculator'],
 	['/grades/preview', 'Theme Preview'],
 	['/attendance', 'Attendance'],
@@ -113,6 +114,9 @@ test('gradebook calculator, course planner, and attendance views are interactive
 	await expect(page).toHaveURL(/\/grades$/);
 
 	await page.goto('/grades/preview');
+	await expect(
+		page.getByRole('progressbar', { name: 'Unit assessment score progress' })
+	).toHaveAttribute('aria-valuenow', '95');
 	const finalsPlanner = page.getByRole('button', { name: /Finals Planner/ });
 	await finalsPlanner.click();
 	const plannerRegion = page.getByRole('region', { name: 'Finals Planner' });
@@ -253,11 +257,12 @@ test('empty records, feedback state, mobile navigation, and theme controls are c
 
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.goto('/grades');
-	for (const label of ['Grades', 'Attendance', 'Documents', 'Mail'])
+	for (const label of ['Grades', 'Rankings', 'Attendance', 'Documents', 'Mail'])
 		await expect(
 			page.getByRole('navigation', { name: 'Mobile navigation' }).getByText(label, { exact: true })
 		).toBeVisible();
 	for (const [label, path] of [
+		['Rankings', '/rankings'],
 		['Attendance', '/attendance'],
 		['Documents', '/documents'],
 		['Mail', '/mail'],
@@ -274,6 +279,36 @@ test('empty records, feedback state, mobile navigation, and theme controls are c
 	}
 });
 
+test('Rankings shows the tougher tier ladder and gradebook achievements', async ({ page }) => {
+	await page.goto('/rankings');
+	await expect(
+		page.getByRole('heading', { level: 1, name: 'Rankings & achievements' })
+	).toBeVisible();
+	await expect(page.getByRole('heading', { level: 2, name: 'Diamond', exact: true })).toBeVisible();
+	await expect(page.getByText('Provisional', { exact: true }).first()).toBeVisible();
+	await expect(page.getByText('Add 3 more to confirm this tier.')).toBeVisible();
+	await expect(page.getByText('4.00+ GPA')).toBeVisible();
+	await expect(page.getByRole('progressbar', { name: 'Achievements unlocked' })).toHaveAttribute(
+		'aria-valuenow',
+		'1'
+	);
+	await expect(page.getByRole('progressbar', { name: 'Achievements unlocked' })).toHaveAttribute(
+		'aria-valuemax',
+		'10'
+	);
+	await expect(page.getByRole('progressbar', { name: 'First ace progress' })).toHaveAttribute(
+		'aria-valuenow',
+		'100'
+	);
+	await expect(page.getByText('Your next move')).toHaveCount(0);
+	const firstAchievement = page
+		.getByRole('listitem')
+		.filter({ has: page.getByRole('heading', { name: 'First ace' }) });
+	await expect(firstAchievement).toBeVisible();
+	await expect(firstAchievement.getByText('Unlocked', { exact: true })).toBeVisible();
+	await expect(page.getByText('not your school’s official class rank or awards')).toBeVisible();
+});
+
 test('legacy dashboard bookmarks resolve to the Gradebook home', async ({ page }) => {
 	await page.goto('/dashboard');
 	await expect(page).toHaveURL(/\/grades$/);
@@ -286,9 +321,13 @@ test('Gradebook exposes the GPA rank summary on desktop and mobile', async ({ pa
 	const summary = page.getByRole('region', { name: 'Grade summary' });
 	await expect(summary.getByText('Rank', { exact: true })).toBeVisible();
 	await expect(summary.getByText('Diamond', { exact: true })).toBeVisible();
+	await expect(page.getByRole('progressbar', { name: 'Theme Preview grade' })).toHaveAttribute(
+		'aria-valuenow',
+		'95'
+	);
 	await expect(page.getByRole('button', { name: 'Share your rank' })).toBeVisible();
 	await expect(page.getByRole('heading', { name: 'Next rank' })).toBeVisible();
-	await expect(page.getByText("You've reached the top.")).toBeVisible();
+	await expect(page.getByText('Provisional until 3 more graded classes.')).toBeVisible();
 
 	await page.setViewportSize({ width: 390, height: 844 });
 	await expect(page.getByText('GPA and rank', { exact: true })).toBeVisible();

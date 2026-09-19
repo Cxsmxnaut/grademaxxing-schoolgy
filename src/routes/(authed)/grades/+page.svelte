@@ -88,7 +88,7 @@
 		courses.reduce((total, course) => total + getCourseUnseenAssignmentsCount(course), 0)
 	);
 	const gpas = $derived(calculateCourseGpas(courses, currentGradeLevel));
-	const rank = $derived(getGpaRank(gpas.unweighted));
+	const rank = $derived(getGpaRank(gpas.unweighted, gpas.graded.length));
 	const recentAssignments = $derived(
 		courses
 			.flatMap((course) =>
@@ -137,7 +137,7 @@
 
 	async function shareRank() {
 		if (!rank || gpas.unweighted === undefined) return;
-		const text = `My ${brand} GPA rank is ${rank.current.name} with a ${formatGpa(gpas.unweighted)} estimated unweighted GPA.`;
+		const text = `My ${brand} ${rank.provisional ? 'provisional ' : ''}GPA rank is ${rank.current.name} with a ${formatGpa(gpas.unweighted)} estimated unweighted GPA.`;
 		try {
 			if (navigator.share) await navigator.share({ title: `${brand} GPA rank`, text });
 			else {
@@ -156,7 +156,8 @@
 		const color = rank.current.color.replaceAll('&', '&amp;').replaceAll('"', '&quot;');
 		const rankName = rank.current.name.replaceAll('&', '&amp;').replaceAll('<', '&lt;');
 		const appName = brand.replaceAll('&', '&amp;').replaceAll('<', '&lt;');
-		const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080"><rect width="1080" height="1080" rx="72" fill="#0d2033"/><path d="M0 760 Q270 680 540 760 T1080 760 V1080 H0Z" fill="#12395d"/><text x="80" y="120" fill="#e4eef8" font-family="Arial,sans-serif" font-size="48" font-weight="700">${appName}</text><path d="M540 250 675 340 630 560 540 650 450 560 405 340Z" fill="${color}" stroke="#e4eef8" stroke-width="12"/><text x="540" y="780" text-anchor="middle" fill="#8fa9c2" font-family="Arial,sans-serif" font-size="40">Your GPA rank is</text><text x="540" y="880" text-anchor="middle" fill="${color}" font-family="Arial,sans-serif" font-size="96" font-weight="700">${rankName}</text><text x="540" y="975" text-anchor="middle" fill="#4db6f5" font-family="monospace" font-size="34">What’s your rank?</text></svg>`;
+		const rankLabel = rank.provisional ? 'Your provisional GPA rank is' : 'Your GPA rank is';
+		const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080"><rect width="1080" height="1080" rx="72" fill="#0d2033"/><path d="M0 760 Q270 680 540 760 T1080 760 V1080 H0Z" fill="#12395d"/><text x="80" y="120" fill="#e4eef8" font-family="Arial,sans-serif" font-size="48" font-weight="700">${appName}</text><path d="M540 250 675 340 630 560 540 650 450 560 405 340Z" fill="${color}" stroke="#e4eef8" stroke-width="12"/><text x="540" y="780" text-anchor="middle" fill="#8fa9c2" font-family="Arial,sans-serif" font-size="40">${rankLabel}</text><text x="540" y="880" text-anchor="middle" fill="${color}" font-family="Arial,sans-serif" font-size="96" font-weight="700">${rankName}</text><text x="540" y="975" text-anchor="middle" fill="#4db6f5" font-family="monospace" font-size="34">What’s your rank?</text></svg>`;
 		const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
 		const anchor = document.createElement('a');
 		anchor.href = url;
@@ -256,6 +257,10 @@
 										style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif; color: {rank
 											?.current.color};">{rank?.current.name ?? '—'}</strong
 									>
+									{#if rank?.provisional}<span
+											class="bg-secondary text-muted-foreground rounded-full px-2 py-1 text-[0.5625rem] font-bold uppercase"
+											>Provisional</span
+										>{/if}
 									{#if rank}<button
 											type="button"
 											onclick={() => (rankShareOpen = true)}
@@ -309,6 +314,10 @@
 								style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif; color: {rank
 									?.current.color};">{rank?.current.name ?? '—'}</strong
 							>
+							{#if rank?.provisional}<span
+									class="bg-secondary text-muted-foreground rounded-full px-2 py-1 text-[0.5625rem] font-bold uppercase"
+									>Provisional</span
+								>{/if}
 							{#if rank}<button
 									type="button"
 									onclick={() => (rankShareOpen = true)}
@@ -383,7 +392,15 @@
 									</p>
 								</div>
 							</div>
-							<div class="bg-secondary mt-3 h-1.5 overflow-hidden rounded-full">
+							<div
+								class="bg-secondary mt-3 h-1.5 overflow-hidden rounded-full"
+								role="progressbar"
+								aria-label={`Progress to ${rank.next.name}`}
+								aria-valuemin="0"
+								aria-valuemax="100"
+								aria-valuenow={Number((rank.progress * 100).toFixed(1))}
+								aria-valuetext={`${rank.pointsAway.toFixed(2)} GPA points to ${rank.next.name}`}
+							>
 								<div
 									class="h-full rounded-full transition-[width] duration-500"
 									style:background={rank.next.color}
@@ -399,7 +416,11 @@
 								/>
 								<div>
 									<p class="text-lg font-bold" style:color={rank.current.color}>Diamond</p>
-									<p class="text-muted-foreground mt-1 text-xs">You've reached the top.</p>
+									<p class="text-muted-foreground mt-1 text-xs">
+										{rank.provisional
+											? `Provisional until ${rank.coursesNeeded} more graded ${rank.coursesNeeded === 1 ? 'class' : 'classes'}.`
+											: "You've reached the top."}
+									</p>
 								</div>
 							</div>
 						{:else}<p class="text-muted-foreground text-sm">No grades, no rank math.</p>{/if}
@@ -475,7 +496,9 @@
 							size={112}
 							label={`${rank.current.name} GPA rank`}
 						/>
-						<p class="text-muted-foreground mt-3 text-sm">Your GPA rank is</p>
+						<p class="text-muted-foreground mt-3 text-sm">
+							Your {rank.provisional ? 'provisional ' : ''}GPA rank is
+						</p>
 						<p class="font-heading text-4xl font-bold" style:color={rank.current.color}>
 							{rank.current.name}
 						</p>

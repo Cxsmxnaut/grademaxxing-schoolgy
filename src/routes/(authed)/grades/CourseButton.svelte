@@ -93,7 +93,15 @@
 				)} h-[1.1875rem] text-right font-mono text-[0.9375rem] leading-[normal] font-semibold"
 				>{grade.percentage.toLocaleString(undefined, { maximumFractionDigits: 1 })}%</span
 			>
-			<div class="bg-secondary h-1.5 min-w-0 flex-1 overflow-hidden rounded-full">
+			<div
+				class="bg-secondary h-1.5 min-w-0 flex-1 overflow-hidden rounded-full"
+				role="progressbar"
+				aria-label={`${name} grade`}
+				aria-valuemin="0"
+				aria-valuemax="100"
+				aria-valuenow={Number(Math.min(Math.max(grade.percentage, 0), 100).toFixed(1))}
+				aria-valuetext={`${grade.percentage.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`}
+			>
 				<div
 					class="h-full rounded-full {indicatorTone(grade.percentage)}"
 					style:width={`${Math.min(Math.max(grade.percentage, 0), 100)}%`}

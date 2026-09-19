@@ -73,15 +73,12 @@
 			: 0
 	);
 
-	const progressValue = $derived.by(() => {
-		// For assignments with a zero, show the progress bar as full to allow you to see the red color
-		if (pointsEarned === 0 && pointsPossible !== undefined && pointsPossible > 0) return 100;
-
-		if (percentage > 100 && pointsPossible && pointsEarned && !extraCredit)
-			return calculateGradePercentage(pointsPossible, pointsEarned);
-
-		return Math.min(percentage, 100);
-	});
+	const progressValue = $derived(
+		Number.isFinite(percentage) ? Math.min(Math.max(percentage, 0), 100) : 0
+	);
+	const progressValueText = $derived(
+		Number.isFinite(percentage) ? `${Number(percentage.toFixed(1))}%` : 'Percentage unavailable'
+	);
 
 	const progressIndicatorClass = $derived.by(() => {
 		if (extraCredit) return 'bg-grade-extra';
@@ -327,6 +324,7 @@
 			<Progress
 				value={progressValue}
 				aria-label={`${name} score progress`}
+				aria-valuetext={progressValueText}
 				class={[
 					percentage > 100 ? 'bg-grade-extra-soft' : '',
 					'h-1.5 w-full transition-all sm:w-48 lg:w-[14.375rem]'
