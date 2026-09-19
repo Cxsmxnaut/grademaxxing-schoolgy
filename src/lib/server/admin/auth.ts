@@ -4,9 +4,14 @@ export const adminSessionCookie =
 	process.env.NODE_ENV === 'production' ? '__Host-grademaxxing_admin' : 'grademaxxing_admin';
 const adminSessionDurationMs = 8 * 60 * 60 * 1000;
 
-function configuredSecret() {
+function configuredSessionSecret() {
 	const secret = process.env.GRADEMAXXING_ADMIN_SECRET;
 	return secret && secret.length >= 32 ? secret : undefined;
+}
+
+function configuredPasswordHash() {
+	const hash = process.env.GRADEMAXXING_ADMIN_PASSWORD_HASH;
+	return hash && /^[a-f0-9]{64}$/i.test(hash) ? hash.toLowerCase() : undefined;
 }
 
 function fixedLengthHash(value: string) {
@@ -18,12 +23,15 @@ function signaturesMatch(expected: string, supplied: string) {
 }
 
 export function verifyAdminPassword(password: string) {
-	const secret = configuredSecret();
-	return Boolean(secret && signaturesMatch(secret, password));
+	const passwordHash = configuredPasswordHash();
+	return Boolean(
+		passwordHash &&
+		signaturesMatch(passwordHash, createHash('sha256').update(password).digest('hex'))
+	);
 }
 
 export function createAdminSession() {
-	const secret = configuredSecret();
+	const secret = configuredSessionSecret();
 	if (!secret) return undefined;
 	const payload = `v1.${Date.now() + adminSessionDurationMs}.${randomUUID()}`;
 	const signature = createHmac('sha256', secret).update(payload).digest('base64url');
@@ -31,7 +39,7 @@ export function createAdminSession() {
 }
 
 export function validAdminSession(token: string | undefined) {
-	const secret = configuredSecret();
+	const secret = configuredSessionSecret();
 	if (!secret || !token) return false;
 	const [version, expiresAt, nonce, signature, extra] = token.split('.');
 	if (
