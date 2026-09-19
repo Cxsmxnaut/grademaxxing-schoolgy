@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('the private dashboard presents aggregate usage cards and a growth chart', async ({
+test('the private dashboard presents a responsive aggregate analytics workspace', async ({
 	page
 }) => {
 	let signedIn = false;
@@ -30,34 +30,45 @@ test('the private dashboard presents aggregate usage cards and a growth chart', 
 				activeToday: 2,
 				trackingStartedAt: '2026-08-23T18:47:04.000Z',
 				lastActivityAt: '2026-09-19T07:58:00.000Z',
-				dailyUsage: Array.from({ length: range }, (_, index) => ({
-					date: `2026-09-${String(index + 1).padStart(2, '0')}`,
-					newStudents: index % 8 === 0 ? 1 : 0,
-					activeStudents: index % 4,
-					totalStudents: 14 + Math.ceil(index / 8)
-				}))
+				dailyUsage: Array.from({ length: range }, (_, index) => {
+					const date = new Date(Date.UTC(2026, 8, 19 - (range - 1 - index)));
+					return {
+						date: date.toISOString().slice(0, 10),
+						newStudents: index % 8 === 0 ? 1 : 0,
+						activeStudents: (index * 3) % 8,
+						totalStudents: 14 + Math.ceil(index / 8)
+					};
+				})
 			})
 		});
 	});
 	await page.goto('/admin');
-	await expect(page.getByRole('heading', { name: 'Enter command center' })).toBeVisible();
-	await page.getByLabel('Administrator password').fill('test-only-admin-password');
+	await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
+	await page.getByLabel('Password').fill('test-only-admin-password');
 	await page.getByRole('button', { name: 'Open dashboard' }).click();
-	await expect(page.getByRole('heading', { name: 'Command center', exact: true })).toBeVisible();
 	await expect(
-		page.locator('#overview .metric-card').filter({ hasText: 'Total students' }).getByText('18')
+		page.getByRole('heading', { name: /Good (morning|afternoon|evening), admin/ })
 	).toBeVisible();
-	await expect(
-		page.locator('#overview .metric-card').filter({ hasText: 'Active students' }).getByText('7')
-	).toBeVisible();
-	await expect(
-		page.locator('#overview .metric-card').filter({ hasText: 'New students' }).getByText('4')
-	).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'Daily product pulse' })).toBeVisible();
-	await expect(page.getByRole('img', { name: 'Daily student usage trend' })).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'Engagement pulse' })).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'New student velocity' })).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'Activity intensity' })).toBeVisible();
-	await page.getByRole('button', { name: '7D' }).click();
-	await expect(page.getByText('Past 7 days')).toBeVisible();
+	await expect(page.locator('.hero-number-row > strong')).toHaveText('18');
+	await expect(page.getByRole('heading', { name: 'Track your growth' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Daily activity' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Recent activity' })).toBeVisible();
+	await expect(page.getByText('Aggregate data only')).toBeVisible();
+
+	if (process.env.ADMIN_VISUAL_CAPTURE)
+		await page.screenshot({
+			path: '/tmp/grademaxxing-admin-reference-desktop.png',
+			fullPage: true
+		});
+	await page.getByRole('button', { name: '7d' }).click();
+	await expect(page.getByRole('button', { name: '7d' })).toHaveClass(/active/);
+
+	await page.setViewportSize({ width: 390, height: 844 });
+	await expect(page.locator('.hero-card')).toBeVisible();
+	const overflow = await page.evaluate(
+		() => document.documentElement.scrollWidth - window.innerWidth
+	);
+	expect(overflow).toBeLessThanOrEqual(1);
+	if (process.env.ADMIN_VISUAL_CAPTURE)
+		await page.screenshot({ path: '/tmp/grademaxxing-admin-reference-mobile.png', fullPage: true });
 });
