@@ -111,8 +111,8 @@ test('desktop sidebar matches the 240px reference geometry and visual tokens', a
 	expect(brand.height).toBeCloseTo(48.5, 0);
 
 	const logo = page.getByTestId('sidebar-brand').locator('img');
-	await expect(logo).toHaveCSS('width', '28px');
-	await expect(logo).toHaveCSS('height', '28px');
+	await expect(logo).toHaveCSS('width', '32px');
+	await expect(logo).toHaveCSS('height', '32px');
 	const wordmark = page.getByTestId('sidebar-brand').locator(':scope > span');
 	await expect(wordmark).toHaveCSS('font-family', /^"Space Grotesk"/);
 	await expect(wordmark).toHaveCSS('font-size', '19px');

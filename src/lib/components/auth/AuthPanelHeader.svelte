@@ -14,7 +14,7 @@
 		class="flex min-w-0 items-center gap-[0.5625rem] text-[1.1875rem] leading-[1.5] font-bold tracking-[-0.01em]"
 		style="font-family: 'Space Grotesk', sans-serif"
 	>
-		<img src="/favicon.svg" class="size-[1.875rem] shrink-0" alt="" />
+		<img src="/grademaxxing-logo.png" class="size-[2.125rem] shrink-0" alt="" />
 		<span class="flex min-w-0 items-baseline gap-1.5 whitespace-nowrap text-[#e4eef8]">
 			<span class="text-[1rem] sm:text-[1.1875rem]">{brandName}</span>
 			<small class="text-[0.6875rem] font-semibold tracking-[0.03em] text-[#8fa9c2] sm:text-xs"

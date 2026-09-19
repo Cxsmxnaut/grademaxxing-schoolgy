@@ -466,7 +466,7 @@
 					class="rank-card-preview relative overflow-hidden rounded-xl bg-[#081522] px-6 pt-5 pb-6 text-center"
 				>
 					<div class="flex items-center gap-2 text-left">
-						<img src="/favicon.svg" class="size-7" alt="" />
+						<img src="/grademaxxing-logo.png" class="size-8" alt="" />
 						<span class="font-heading text-base font-bold">{brand}</span>
 					</div>
 					<div class="relative z-10 mt-8 flex flex-col items-center">

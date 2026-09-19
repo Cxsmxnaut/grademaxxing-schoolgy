@@ -265,7 +265,7 @@
 					href="/grades"
 					class="mr-auto flex items-center gap-2 text-lg font-extrabold tracking-[-0.035em] whitespace-nowrap"
 				>
-					<img src="/favicon.svg" class="size-6" alt="" />
+					<img src="/grademaxxing-logo.png" class="size-7" alt="" />
 					<span>{brandName}</span><small
 						class="rounded bg-sky-400/10 px-1.5 py-0.5 text-[0.5625rem] font-bold tracking-[0.04em] text-sky-400"
 						>({releaseChannel})</small

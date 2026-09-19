@@ -154,7 +154,7 @@
 			aria-label={`${brand} gradebook`}
 			data-testid="sidebar-brand"
 		>
-			<img src="/favicon.svg" class="size-7" alt="" />
+			<img src="/grademaxxing-logo.png" class="size-8" alt="" />
 			<span
 				class="flex min-w-0 flex-col text-[1.1875rem] leading-5 font-bold tracking-[-0.01em]"
 				style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
