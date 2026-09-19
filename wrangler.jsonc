@@ -15,8 +15,8 @@
 			"zone_id": "5da817dc2387bdda9145f245ed2974a4"
 		},
 		{
-			"pattern": "admin.grademaxxing.app/*",
-			"zone_id": "5da817dc2387bdda9145f245ed2974a4"
+			"pattern": "admin.grademaxxing.app",
+			"custom_domain": true
 		}
 	],
 	"preview_urls": false,
