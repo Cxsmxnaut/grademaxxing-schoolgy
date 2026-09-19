@@ -7,6 +7,9 @@ const unsafeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.requestId = randomUUID();
 	const startedAt = performance.now();
+	if (event.url.hostname === 'admin.grademaxxing.app' && event.url.pathname === '/') {
+		return Response.redirect(new URL('/admin', event.url), 302);
+	}
 
 	if (event.url.pathname.startsWith('/api/')) {
 		guardApiRequest(event.request, event.url);

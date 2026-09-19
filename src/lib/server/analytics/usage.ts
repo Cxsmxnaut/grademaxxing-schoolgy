@@ -4,6 +4,7 @@ type D1Statement = {
 	bind: (...values: unknown[]) => D1Statement;
 	run: () => Promise<unknown>;
 	first: <T>() => Promise<T | null>;
+	all: <T>() => Promise<{ results?: T[] }>;
 };
 
 type UsageDatabase = {
@@ -26,7 +27,12 @@ export type UpstreamFailureKind = 'portal_error' | 'portal_timeout';
 export type UsageSummary = {
 	uniqueStudents: number;
 	activeStudentsLast30Days: number;
+	newStudentsLast30Days: number;
+	dailyNewStudents: Array<{ date: string; count: number }>;
 };
+
+const analyticsWindowDays = 30;
+const millisecondsPerDay = 24 * 60 * 60 * 1000;
 
 function workerEnvironment(platform: unknown) {
 	return (platform as WorkerPlatform | undefined)?.env;
@@ -91,18 +97,47 @@ export async function recordUniqueStudentUsage(
 export async function getUsageSummary(platform: unknown): Promise<UsageSummary | undefined> {
 	const database = workerEnvironment(platform)?.GRADEMAXXING_USAGE_DB;
 	if (!database) return undefined;
-	const since = Date.now() - 30 * 24 * 60 * 60 * 1000;
-	const result = await database
-		.prepare(
-			`SELECT COUNT(*) AS uniqueStudents,
+	const now = Date.now();
+	const since = now - analyticsWindowDays * millisecondsPerDay;
+	const [result, dailyResult] = await Promise.all([
+		database
+			.prepare(
+				`SELECT COUNT(*) AS uniqueStudents,
 			 COUNT(CASE WHEN last_seen_at >= ? THEN 1 END) AS activeStudentsLast30Days
 			 FROM unique_student_usage`
+			)
+			.bind(since)
+			.first<{ uniqueStudents: number; activeStudentsLast30Days: number }>(),
+		database
+			.prepare(
+				`SELECT strftime('%Y-%m-%d', first_seen_at / 1000, 'unixepoch') AS date,
+			 COUNT(*) AS count
+			 FROM unique_student_usage
+			 WHERE first_seen_at >= ?
+			 GROUP BY date
+			 ORDER BY date ASC`
+			)
+			.bind(since)
+			.all<{ date: string; count: number }>()
+	]);
+	const countsByDate = new Map(
+		(dailyResult.results ?? []).map(({ date, count }) => [date, Number(count)])
+	);
+	const dayStart = new Date(now);
+	dayStart.setUTCHours(0, 0, 0, 0);
+	const dailyNewStudents = Array.from({ length: analyticsWindowDays }, (_, index) => {
+		const date = new Date(
+			dayStart.getTime() - (analyticsWindowDays - 1 - index) * millisecondsPerDay
 		)
-		.bind(since)
-		.first<{ uniqueStudents: number; activeStudentsLast30Days: number }>();
+			.toISOString()
+			.slice(0, 10);
+		return { date, count: countsByDate.get(date) ?? 0 };
+	});
 	return {
 		uniqueStudents: Number(result?.uniqueStudents ?? 0),
-		activeStudentsLast30Days: Number(result?.activeStudentsLast30Days ?? 0)
+		activeStudentsLast30Days: Number(result?.activeStudentsLast30Days ?? 0),
+		newStudentsLast30Days: dailyNewStudents.reduce((total, { count }) => total + count, 0),
+		dailyNewStudents
 	};
 }
 

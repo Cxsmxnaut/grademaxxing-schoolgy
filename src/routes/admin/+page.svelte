@@ -3,7 +3,12 @@
 	import { Input } from '$lib/components/ui/input';
 	import { onMount } from 'svelte';
 
-	type Summary = { uniqueStudents: number; activeStudentsLast30Days: number };
+	type Summary = {
+		uniqueStudents: number;
+		activeStudentsLast30Days: number;
+		newStudentsLast30Days: number;
+		dailyNewStudents: Array<{ date: string; count: number }>;
+	};
 	let password = $state('');
 	let summary = $state<Summary | undefined>();
 	let loading = $state(true);
@@ -48,6 +53,26 @@
 		message = undefined;
 	}
 
+	function chartPoints(data: Summary['dailyNewStudents']) {
+		const maximum = Math.max(...data.map(({ count }) => count), 1);
+		return data
+			.map(({ count }, index) => {
+				const x = data.length === 1 ? 50 : (index / (data.length - 1)) * 100;
+				const y = 92 - (count / maximum) * 76;
+				return `${x},${y}`;
+			})
+			.join(' ');
+	}
+
+	function chartLabel(date: string) {
+		if (!date) return '—';
+		return new Intl.DateTimeFormat(undefined, {
+			month: 'short',
+			day: 'numeric',
+			timeZone: 'UTC'
+		}).format(new Date(`${date}T00:00:00Z`));
+	}
+
 	onMount(loadSummary);
 </script>
 
@@ -63,7 +88,7 @@
 		</p>
 
 		{#if summary}
-			<div class="mt-7 grid gap-3 sm:grid-cols-2">
+			<div class="mt-7 grid gap-3 sm:grid-cols-3">
 				<div class="bg-muted/50 rounded-xl p-5">
 					<p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
 						Unique students
@@ -78,7 +103,54 @@
 					<p class="mt-2 text-4xl font-bold tabular-nums">{summary.activeStudentsLast30Days}</p>
 					<p class="text-muted-foreground mt-1 text-xs">Past 30 days</p>
 				</div>
+				<div class="bg-muted/50 rounded-xl p-5">
+					<p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+						New students
+					</p>
+					<p class="mt-2 text-4xl font-bold tabular-nums">{summary.newStudentsLast30Days}</p>
+					<p class="text-muted-foreground mt-1 text-xs">Past 30 days</p>
+				</div>
 			</div>
+			<section class="bg-muted/30 mt-6 rounded-xl p-5" aria-labelledby="growth-heading">
+				<div class="flex items-start justify-between gap-4">
+					<div>
+						<p class="text-primary text-xs font-bold tracking-[0.16em] uppercase">Growth</p>
+						<h2 id="growth-heading" class="mt-1 text-lg font-bold">New students by day</h2>
+					</div>
+					<span class="text-muted-foreground text-xs">Last 30 days · UTC</span>
+				</div>
+				<div
+					class="mt-5"
+					role="img"
+					aria-label="New unique students per day for the last thirty days"
+				>
+					<svg
+						class="h-44 w-full overflow-visible"
+						viewBox="0 0 100 100"
+						preserveAspectRatio="none"
+					>
+						<line
+							x1="0"
+							x2="100"
+							y1="92"
+							y2="92"
+							class="stroke-border"
+							vector-effect="non-scaling-stroke"
+						/>
+						<polyline
+							points={chartPoints(summary.dailyNewStudents)}
+							fill="none"
+							class="stroke-primary"
+							stroke-width="2"
+							vector-effect="non-scaling-stroke"
+						/>
+					</svg>
+					<div class="text-muted-foreground mt-1 flex justify-between text-xs">
+						<span>{chartLabel(summary.dailyNewStudents[0]?.date ?? '')}</span>
+						<span>{chartLabel(summary.dailyNewStudents.at(-1)?.date ?? '')}</span>
+					</div>
+				</div>
+			</section>
 			<div class="mt-6"><Button variant="outline" onclick={signOut}>Sign out</Button></div>
 		{:else if !loading}
 			<form class="mt-7 space-y-4" onsubmit={signIn}>
