@@ -160,7 +160,7 @@
 
 		try {
 			await loginAccount.checkLogin();
-		} catch (error) {
+		} catch {
 			loggingIn = false;
 			loginError = 'password-rejected';
 			return;
@@ -320,8 +320,8 @@
 				<Dialog.Header>
 					<Dialog.Title>Before you go, check All Mail</Dialog.Title>
 					<Dialog.Description class="text-[#8fa9c2]">
-						Make sure to click <strong>All Mail</strong> in your school email. The reset message may
-							not appear in the main inbox.
+						Make sure to click <strong>All Mail</strong> in your school email. The reset message may not
+						appear in the main inbox.
 					</Dialog.Description>
 				</Dialog.Header>
 				<Dialog.Footer>
