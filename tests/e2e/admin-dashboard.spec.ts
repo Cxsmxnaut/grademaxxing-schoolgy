@@ -68,9 +68,14 @@ test('the private dashboard presents a responsive aggregate analytics workspace'
 		});
 	});
 	let savedFeedback: { status?: string; adminReply?: string; adminNote?: string } = {};
+	let failNextFeedbackSave = false;
 	await page.route('**/api/admin/feedback', async (route) => {
 		if (!signedIn) return route.fulfill({ status: 401 });
 		if (route.request().method() === 'PATCH') {
+			if (failNextFeedbackSave) {
+				failNextFeedbackSave = false;
+				return route.abort('failed');
+			}
 			savedFeedback = (await route.request().postDataJSON()) as typeof savedFeedback;
 			return route.fulfill({ status: 204 });
 		}
@@ -115,16 +120,19 @@ test('the private dashboard presents a responsive aggregate analytics workspace'
 	await expect(
 		page.locator('.message-bubble').getByText('Add a weekly grade summary')
 	).toBeVisible();
+	await page.getByLabel('Reply to Feature idea').fill('Great idea — this is now on the roadmap.');
+	await expect(page.getByText('Great idea — this is now on the roadmap.')).toHaveCount(0);
 	await page.getByLabel('Status for Feature idea').selectOption('planned');
 	await expect.poll(() => savedFeedback.status).toBe('planned');
-	await page.getByLabel('Reply to Feature idea').fill('Great idea — this is now on the roadmap.');
+	expect(savedFeedback.adminReply).toBe('');
+	await page.getByLabel('Private admin note').fill('Include in the next product pass.');
+	await page.getByRole('button', { name: 'Save private note' }).click();
+	await expect.poll(() => savedFeedback.adminNote).toBe('Include in the next product pass.');
+	expect(savedFeedback.adminReply).toBe('');
 	await page.getByRole('button', { name: 'Send reply' }).click();
 	await expect
 		.poll(() => savedFeedback.adminReply)
 		.toBe('Great idea — this is now on the roadmap.');
-	await page.getByLabel('Private admin note').fill('Include in the next product pass.');
-	await page.getByRole('button', { name: 'Save private note' }).click();
-	await expect.poll(() => savedFeedback.adminNote).toBe('Include in the next product pass.');
 
 	if (process.env.ADMIN_VISUAL_CAPTURE)
 		await page.screenshot({
@@ -139,6 +147,17 @@ test('the private dashboard presents a responsive aggregate analytics workspace'
 		});
 		await page.setViewportSize({ width: 1280, height: 720 });
 	}
+	await page.getByLabel('Reply to Feature idea').fill('This should remain an unsent draft.');
+	failNextFeedbackSave = true;
+	await page.getByRole('button', { name: 'Update reply' }).click();
+	await expect(page.getByRole('alert')).toContainText('offline');
+	await expect(page.getByRole('button', { name: 'Update reply' })).toBeEnabled();
+	await expect(
+		page.locator('.message-bubble').getByText('This should remain an unsent draft.')
+	).toHaveCount(0);
+	await expect(
+		page.locator('.message-bubble').getByText('Great idea — this is now on the roadmap.')
+	).toBeVisible();
 	await page.getByRole('button', { name: 'Overview' }).click();
 	await page.getByRole('button', { name: '7 days' }).click();
 	await expect(page.getByRole('button', { name: '7 days' })).toHaveClass(/active/);

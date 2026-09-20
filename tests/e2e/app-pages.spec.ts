@@ -286,6 +286,7 @@ test('empty records, feedback state, mobile navigation, and theme controls are c
 	});
 	await expect(page.getByRole('heading', { name: 'Your feedback' })).toBeVisible();
 	await expect(page.getByText('Thanks — we found the issue and are working on it.')).toBeVisible();
+	await expect(page.getByText('The latest assignment is missing')).toHaveCount(1);
 	if (process.env.FEEDBACK_VISUAL_CAPTURE)
 		await page.screenshot({ path: '/tmp/grademaxxing-feedback-chat-desktop.png', fullPage: true });
 	await page.setViewportSize({ width: 390, height: 844 });

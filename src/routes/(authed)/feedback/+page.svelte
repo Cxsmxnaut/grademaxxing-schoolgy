@@ -60,11 +60,10 @@
 
 	const canReport = $derived(message.trim().length >= 3);
 	const assistantReply = $derived.by(() => {
+		if (sent) return 'Thanks — your feedback is now in the private admin inbox.';
 		if (!message.trim()) return 'Pick a topic, then tell us what happened in your own words.';
 		if (!canReport) return 'A couple more words will help us understand the issue.';
-		return sent
-			? 'Thanks — your feedback is now in the private admin inbox.'
-			: 'That is ready to send privately to the Grademaxxing team.';
+		return 'That is ready to send privately to the Grademaxxing team.';
 	});
 
 	async function submitFeedback() {
@@ -92,6 +91,7 @@
 		if (receipt.id && receipt.replyToken) saveReceipt(receipt as FeedbackReceipt);
 		sent = true;
 		sending = false;
+		message = '';
 		await loadFeedbackHistory();
 	}
 
@@ -225,14 +225,6 @@
 			</div>
 			{#if sent}
 				<h2 class="sr-only">Feedback sent</h2>
-				<div class="ml-auto max-w-[88%] sm:max-w-[72%]" role="status">
-					<div
-						class="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-4 py-2.5 text-sm leading-5 shadow-sm"
-					>
-						<p class="whitespace-pre-wrap">{message}</p>
-					</div>
-					<p class="text-muted-foreground mt-1 px-1 text-right text-[0.68rem]">Sent privately</p>
-				</div>
 			{/if}
 		</div>
 

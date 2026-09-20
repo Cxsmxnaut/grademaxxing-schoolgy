@@ -82,7 +82,7 @@
 	let selectedFeedbackId = $state<string>();
 	let userSearch = $state('');
 	let savingId = $state<string>();
-	let savedReplies = new Map<string, string>();
+	let replyDrafts = $state<Record<string, string>>({});
 
 	let openFeedback = $derived(
 		feedback.filter((item) => !['resolved', 'dismissed'].includes(item.status)).length
@@ -131,7 +131,7 @@
 		} else message = await responseMessage(usageResponse, 'Unable to load usage analytics.');
 		if (feedbackResponse.ok) {
 			feedback = ((await feedbackResponse.json()) as { items: FeedbackItem[] }).items;
-			savedReplies = new Map(feedback.map((item) => [item.id, item.adminReply]));
+			replyDrafts = Object.fromEntries(feedback.map((item) => [item.id, item.adminReply]));
 			if (!selectedFeedbackId && feedback[0]) selectedFeedbackId = feedback[0].id;
 		} else message = await responseMessage(feedbackResponse, 'Unable to load feedback.');
 		loading = false;
@@ -168,11 +168,11 @@
 		feedback = [];
 	}
 
-	async function saveFeedback(item: FeedbackItem, nextStatus = item.status) {
+	async function saveFeedback(item: FeedbackItem, nextStatus = item.status, publishReply = false) {
 		savingId = item.id;
 		message = undefined;
-		const normalizedReply = item.adminReply.trim();
-		const replyChanged = (savedReplies.get(item.id) ?? '') !== normalizedReply;
+		const normalizedReply = publishReply ? (replyDrafts[item.id] ?? '').trim() : item.adminReply;
+		const replyChanged = item.adminReply !== normalizedReply;
 		const response = await fetch('/api/admin/feedback', {
 			method: 'PATCH',
 			headers: { 'Content-Type': 'application/json' },
@@ -182,15 +182,20 @@
 				adminNote: item.adminNote,
 				adminReply: normalizedReply
 			})
-		});
-		if (response.ok) {
+		}).catch(() => undefined);
+		if (response?.ok) {
 			item.status = nextStatus;
 			item.adminReply = normalizedReply;
 			if (replyChanged) item.repliedAt = normalizedReply ? new Date().toISOString() : null;
-			savedReplies.set(item.id, normalizedReply);
+			if (publishReply) replyDrafts[item.id] = normalizedReply;
 			item.updatedAt = new Date().toISOString();
 			feedback = [...feedback];
-		} else message = await responseMessage(response, 'Unable to save feedback.');
+		} else {
+			message = response
+				? await responseMessage(response, 'Unable to save feedback.')
+				: 'You appear to be offline. Reconnect and try again.';
+			feedback = [...feedback];
+		}
 		savingId = undefined;
 	}
 
@@ -499,15 +504,16 @@
 								<textarea
 									id={`reply-${item.id}`}
 									aria-label={`Reply to ${item.kind}`}
-									bind:value={item.adminReply}
+									value={replyDrafts[item.id] ?? ''}
+									oninput={(event) => (replyDrafts[item.id] = event.currentTarget.value)}
 									maxlength="2000"
 									placeholder="Type a reply…"
 								></textarea>
 								<button
 									class="primary-button send-button"
 									aria-label={item.repliedAt ? 'Update reply' : 'Send reply'}
-									onclick={() => saveFeedback(item)}
-									disabled={savingId === item.id || !item.adminReply.trim()}
+									onclick={() => saveFeedback(item, item.status, true)}
+									disabled={savingId === item.id || !(replyDrafts[item.id] ?? '').trim()}
 								>
 									<ReplyIcon size={16} />{savingId === item.id
 										? 'Sending…'

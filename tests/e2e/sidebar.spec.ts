@@ -123,7 +123,7 @@ test('desktop sidebar matches the 240px reference geometry and visual tokens', a
 	expect(nav.y).toBeCloseTo(96.5, 0);
 	expect(nav.width).toBe(211);
 	const navItems = page.getByTestId('sidebar-primary-nav').locator('a');
-	await expect(navItems).toHaveCount(4);
+	await expect(navItems).toHaveCount(5);
 	for (const item of await navItems.all()) {
 		const box = await item.boundingBox();
 		expect(box?.width).toBe(211);
@@ -141,7 +141,7 @@ test('desktop sidebar matches the 240px reference geometry and visual tokens', a
 
 	const classes = await boundingBox(page, 'sidebar-classes');
 	expect(classes.x).toBe(14);
-	expect(classes.y).toBeCloseTo(275.5, 0);
+	expect(classes.y).toBeCloseTo(315.25, 0);
 	expect(classes.width).toBe(211);
 	const classHeading = page.getByRole('heading', { name: 'Classes' });
 	await expect(classHeading).toHaveCSS('font-size', '11px');
