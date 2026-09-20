@@ -245,9 +245,30 @@ test('empty records, feedback state, mobile navigation, and theme controls are c
 	).toBeVisible();
 	await page.goto('/feedback');
 	let submittedFeedback: { kind?: string; message?: string } = {};
-	await page.route('**/api/feedback', async (route) => {
+	const feedbackId = '0f143f0d-a034-48d6-8bb8-1d00c4a7e255';
+	const replyToken = 'a'.repeat(43);
+	await page.route(/\/api\/feedback$/, async (route) => {
 		submittedFeedback = (await route.request().postDataJSON()) as typeof submittedFeedback;
-		await route.fulfill({ status: 201, contentType: 'application/json', body: '{}' });
+		await route.fulfill({
+			status: 201,
+			contentType: 'application/json',
+			body: JSON.stringify({ id: feedbackId, replyToken })
+		});
+	});
+	await page.route(/\/api\/feedback\/[0-9a-f-]+\?token=/, async (route) => {
+		await route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				id: feedbackId,
+				kind: 'Feature idea',
+				message: 'The latest assignment is missing',
+				status: 'reviewing',
+				adminReply: 'Thanks — we found the issue and are working on it.',
+				repliedAt: '2026-09-20T16:30:00.000Z',
+				createdAt: '2026-09-20T16:00:00.000Z'
+			})
+		});
 	});
 	const report = page.getByRole('button', { name: 'Send feedback' });
 	await expect(report).toBeDisabled();
@@ -263,6 +284,8 @@ test('empty records, feedback state, mobile navigation, and theme controls are c
 		kind: 'Feature idea',
 		message: 'The latest assignment is missing'
 	});
+	await expect(page.getByRole('heading', { name: 'Your feedback' })).toBeVisible();
+	await expect(page.getByText('Thanks — we found the issue and are working on it.')).toBeVisible();
 
 	await page.getByRole('button', { name: 'Light' }).click();
 	await expect(page.locator('html')).not.toHaveClass(/dark/);

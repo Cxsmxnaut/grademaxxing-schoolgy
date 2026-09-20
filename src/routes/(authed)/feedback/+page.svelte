@@ -1,14 +1,27 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import { page } from '$app/state';
 	import { brand } from '$lib/brand';
 	import AppPageShell from '$lib/components/AppPageShell.svelte';
 	import { Button } from '$lib/components/ui/button';
+	import { LocalStorageKey } from '$lib/storage/keys';
 	import BugIcon from '@lucide/svelte/icons/bug';
 	import LightbulbIcon from '@lucide/svelte/icons/lightbulb';
 	import MessageCircleIcon from '@lucide/svelte/icons/message-circle';
 	import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
+	import { onMount } from 'svelte';
 
 	type FeedbackKind = 'Bug report' | 'Grade question' | 'Feature idea';
+	type FeedbackReceipt = { id: string; replyToken: string };
+	type FeedbackHistoryItem = {
+		id: string;
+		kind: FeedbackKind;
+		message: string;
+		status: 'new' | 'reviewing' | 'planned' | 'resolved' | 'dismissed';
+		adminReply: string;
+		repliedAt: string | null;
+		createdAt: string;
+	};
 
 	const feedbackKinds: {
 		value: FeedbackKind;
@@ -41,6 +54,8 @@
 	let sending = $state(false);
 	let sent = $state(false);
 	let sendError = $state<string>();
+	let feedbackHistory = $state<FeedbackHistoryItem[]>([]);
+	let loadingHistory = $state(false);
 
 	const canReport = $derived(message.trim().length >= 3);
 	const assistantReply = $derived.by(() => {
@@ -72,8 +87,11 @@
 			sending = false;
 			return;
 		}
+		const receipt = (await response.json()) as Partial<FeedbackReceipt>;
+		if (receipt.id && receipt.replyToken) saveReceipt(receipt as FeedbackReceipt);
 		sent = true;
 		sending = false;
+		await loadFeedbackHistory();
 	}
 
 	function startAnother() {
@@ -81,6 +99,74 @@
 		sent = false;
 		sendError = undefined;
 	}
+
+	function savedReceipts() {
+		if (!browser) return [];
+		try {
+			const parsed = JSON.parse(localStorage.getItem(LocalStorageKey.feedbackReceipts) ?? '[]');
+			return Array.isArray(parsed)
+				? parsed.filter(
+						(item): item is FeedbackReceipt =>
+							typeof item?.id === 'string' && typeof item?.replyToken === 'string'
+					)
+				: [];
+		} catch {
+			return [];
+		}
+	}
+
+	function saveReceipt(receipt: FeedbackReceipt) {
+		try {
+			const receipts = [receipt, ...savedReceipts().filter((item) => item.id !== receipt.id)].slice(
+				0,
+				20
+			);
+			localStorage.setItem(LocalStorageKey.feedbackReceipts, JSON.stringify(receipts));
+		} catch {
+			// The feedback was still delivered when browser storage is unavailable.
+		}
+	}
+
+	async function loadFeedbackHistory() {
+		const receipts = savedReceipts();
+		if (!receipts.length) return;
+		loadingHistory = true;
+		const results = await Promise.all(
+			receipts.map(async (receipt) => {
+				const response = await fetch(
+					`/api/feedback/${encodeURIComponent(receipt.id)}?token=${encodeURIComponent(receipt.replyToken)}`,
+					{ cache: 'no-store' }
+				).catch(() => undefined);
+				return response?.ok
+					? await response.json().catch(() => undefined as FeedbackHistoryItem | undefined)
+					: undefined;
+			})
+		);
+		feedbackHistory = results.filter((item): item is FeedbackHistoryItem => Boolean(item));
+		loadingHistory = false;
+	}
+
+	function statusLabel(status: FeedbackHistoryItem['status']) {
+		return {
+			new: 'Received',
+			reviewing: 'Reviewing',
+			planned: 'Planned',
+			resolved: 'Resolved',
+			dismissed: 'Closed'
+		}[status];
+	}
+
+	function dateTime(value: string) {
+		return new Intl.DateTimeFormat(undefined, {
+			month: 'short',
+			day: 'numeric',
+			year: 'numeric',
+			hour: 'numeric',
+			minute: '2-digit'
+		}).format(new Date(value));
+	}
+
+	onMount(loadFeedbackHistory);
 </script>
 
 <svelte:head><title>Feedback - {brand}</title></svelte:head>
@@ -189,4 +275,57 @@
 			{/if}
 		</div>
 	</section>
+
+	{#if loadingHistory || feedbackHistory.length}
+		<section class="mt-6" aria-labelledby="feedback-history-heading">
+			<div class="flex items-end justify-between gap-4">
+				<div>
+					<p class="text-primary text-[0.68rem] font-bold tracking-[0.2em] uppercase">
+						Private thread
+					</p>
+					<h2 id="feedback-history-heading" class="font-heading mt-1 text-xl font-bold">
+						Your feedback
+					</h2>
+				</div>
+				<Button variant="outline" size="sm" onclick={loadFeedbackHistory} disabled={loadingHistory}
+					>{loadingHistory ? 'Checking…' : 'Check for replies'}</Button
+				>
+			</div>
+			<div class="mt-3 space-y-3">
+				{#each feedbackHistory as item (item.id)}
+					<article class="border-border/80 bg-card rounded-xl border p-4 shadow-sm sm:p-5">
+						<div class="flex flex-wrap items-center justify-between gap-2">
+							<div>
+								<p class="text-sm font-semibold">{item.kind}</p>
+								<p class="text-muted-foreground mt-0.5 text-xs">Sent {dateTime(item.createdAt)}</p>
+							</div>
+							<span
+								class="bg-secondary text-secondary-foreground rounded-full px-2.5 py-1 text-xs font-semibold"
+							>
+								{statusLabel(item.status)}
+							</span>
+						</div>
+						<p class="text-foreground mt-3 text-sm leading-5 whitespace-pre-wrap">{item.message}</p>
+						{#if item.adminReply}
+							<div class="border-primary/25 bg-primary/7 mt-4 rounded-lg border p-3">
+								<p class="text-primary text-xs font-bold tracking-wide uppercase">
+									Reply from Grademaxxing
+								</p>
+								<p class="mt-2 text-sm leading-5 whitespace-pre-wrap">{item.adminReply}</p>
+								{#if item.repliedAt}<p class="text-muted-foreground mt-2 text-xs">
+										{dateTime(item.repliedAt)}
+									</p>{/if}
+							</div>
+						{:else}
+							<p class="text-muted-foreground mt-4 text-xs">No reply yet. Check back here later.</p>
+						{/if}
+					</article>
+				{/each}
+			</div>
+			<p class="text-muted-foreground mt-3 text-xs leading-4">
+				Reply receipts stay only in this browser and are removed when you sign out or clear site
+				data.
+			</p>
+		</section>
+	{/if}
 </AppPageShell>

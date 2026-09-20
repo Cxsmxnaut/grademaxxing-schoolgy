@@ -7,6 +7,7 @@
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import MessageSquareIcon from '@lucide/svelte/icons/message-square';
 	import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
+	import ReplyIcon from '@lucide/svelte/icons/reply';
 	import SearchIcon from '@lucide/svelte/icons/search';
 	import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
 	import SparklesIcon from '@lucide/svelte/icons/sparkles';
@@ -53,6 +54,8 @@
 		appVersion: string;
 		status: FeedbackStatus;
 		adminNote: string;
+		adminReply: string;
+		repliedAt: string | null;
 		createdAt: string;
 		updatedAt: string;
 	};
@@ -78,6 +81,7 @@
 	let feedbackSearch = $state('');
 	let userSearch = $state('');
 	let savingId = $state<string>();
+	let savedReplies = new Map<string, string>();
 
 	let openFeedback = $derived(
 		feedback.filter((item) => !['resolved', 'dismissed'].includes(item.status)).length
@@ -121,9 +125,10 @@
 			summary = (await usageResponse.json()) as Summary;
 			rangeDays = nextRange;
 		} else message = await responseMessage(usageResponse, 'Unable to load usage analytics.');
-		if (feedbackResponse.ok)
+		if (feedbackResponse.ok) {
 			feedback = ((await feedbackResponse.json()) as { items: FeedbackItem[] }).items;
-		else message = await responseMessage(feedbackResponse, 'Unable to load feedback.');
+			savedReplies = new Map(feedback.map((item) => [item.id, item.adminReply]));
+		} else message = await responseMessage(feedbackResponse, 'Unable to load feedback.');
 		loading = false;
 	}
 
@@ -161,13 +166,23 @@
 	async function saveFeedback(item: FeedbackItem, nextStatus = item.status) {
 		savingId = item.id;
 		message = undefined;
+		const normalizedReply = item.adminReply.trim();
+		const replyChanged = (savedReplies.get(item.id) ?? '') !== normalizedReply;
 		const response = await fetch('/api/admin/feedback', {
 			method: 'PATCH',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ id: item.id, status: nextStatus, adminNote: item.adminNote })
+			body: JSON.stringify({
+				id: item.id,
+				status: nextStatus,
+				adminNote: item.adminNote,
+				adminReply: normalizedReply
+			})
 		});
 		if (response.ok) {
 			item.status = nextStatus;
+			item.adminReply = normalizedReply;
+			if (replyChanged) item.repliedAt = normalizedReply ? new Date().toISOString() : null;
+			savedReplies.set(item.id, normalizedReply);
 			item.updatedAt = new Date().toISOString();
 			feedback = [...feedback];
 		} else message = await responseMessage(response, 'Unable to save feedback.');
@@ -427,6 +442,35 @@
 								>
 							</div>
 							<p class="feedback-message">{item.message}</p>
+							<div class="reply-row">
+								<div class="reply-heading">
+									<ReplyIcon size={16} />
+									<div>
+										<strong>Reply to sender</strong>
+										<span
+											>{item.repliedAt
+												? `Visible to the sender · last sent ${dateTime(item.repliedAt)}`
+												: 'This appears privately in the sender’s feedback screen.'}</span
+										>
+									</div>
+								</div>
+								<textarea
+									aria-label={`Reply to ${item.kind}`}
+									bind:value={item.adminReply}
+									maxlength="2000"
+									placeholder="Write a helpful response for the student"
+								></textarea>
+								<button
+									class="primary-button"
+									onclick={() => saveFeedback(item)}
+									disabled={savingId === item.id || !item.adminReply.trim()}
+									>{savingId === item.id
+										? 'Sending…'
+										: item.repliedAt
+											? 'Update reply'
+											: 'Send reply'}</button
+								>
+							</div>
 							<div class="note-row">
 								<label
 									><span>Private admin note</span><textarea
@@ -438,7 +482,7 @@
 									class="secondary-button"
 									onclick={() => saveFeedback(item)}
 									disabled={savingId === item.id}
-									>{savingId === item.id ? 'Saving…' : 'Save note'}</button
+									>{savingId === item.id ? 'Saving…' : 'Save private note'}</button
 								>
 							</div>
 						</article>

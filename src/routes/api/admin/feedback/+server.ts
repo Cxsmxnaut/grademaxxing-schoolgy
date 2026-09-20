@@ -23,7 +23,7 @@ export const GET: RequestHandler = async ({ cookies, platform }) => {
 export const PATCH: RequestHandler = async ({ cookies, platform, request }) => {
 	if (!authorized(cookies))
 		return json({ message: 'Administrator sign-in required.' }, { status: 401 });
-	let input: { id?: unknown; status?: unknown; adminNote?: unknown };
+	let input: { id?: unknown; status?: unknown; adminNote?: unknown; adminReply?: unknown };
 	try {
 		input = (await request.json()) as typeof input;
 	} catch {
@@ -32,11 +32,20 @@ export const PATCH: RequestHandler = async ({ cookies, platform, request }) => {
 	const id = typeof input.id === 'string' ? input.id : '';
 	const status = input.status;
 	const adminNote = typeof input.adminNote === 'string' ? input.adminNote.trim() : '';
+	const adminReply = typeof input.adminReply === 'string' ? input.adminReply.trim() : '';
 	if (!/^[0-9a-f-]{36}$/i.test(id) || !feedbackStatuses.includes(status as FeedbackStatus))
 		return json({ message: 'Invalid feedback update.' }, { status: 400 });
 	if (adminNote.length > 1_000)
 		return json({ message: 'Admin notes must be 1,000 characters or fewer.' }, { status: 400 });
-	const updated = await updateFeedback(platform, id, status as FeedbackStatus, adminNote);
+	if (adminReply.length > 2_000)
+		return json({ message: 'Replies must be 2,000 characters or fewer.' }, { status: 400 });
+	const updated = await updateFeedback(
+		platform,
+		id,
+		status as FeedbackStatus,
+		adminNote,
+		adminReply
+	);
 	if (updated === undefined)
 		return json({ message: 'Feedback storage is not configured.' }, { status: 503 });
 	if (!updated) return json({ message: 'Feedback item not found.' }, { status: 404 });

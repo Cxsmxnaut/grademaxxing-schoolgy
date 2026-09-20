@@ -527,6 +527,47 @@ button:disabled {
 	line-height: 1.55;
 	white-space: pre-wrap;
 }
+.reply-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 10px 12px;
+	padding: 16px;
+	border: 1px solid #dedaff;
+	border-radius: 11px;
+	background: #f8f7ff;
+}
+.reply-heading {
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: flex-start;
+	gap: 9px;
+	color: #5b4ddd;
+}
+.reply-heading strong,
+.reply-heading span {
+	display: block;
+}
+.reply-heading span {
+	margin-top: 3px;
+	color: #777c88;
+	font-size: 11px;
+}
+.reply-row textarea {
+	min-height: 76px;
+	resize: vertical;
+	padding: 10px 11px;
+	border: 1px solid #d7d3f7;
+	border-radius: 8px;
+	outline: 0;
+	background: white;
+}
+.reply-row textarea:focus {
+	border-color: #8276ee;
+	box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.12);
+}
+.reply-row .primary-button {
+	align-self: end;
+}
 .note-row {
 	display: flex;
 	align-items: flex-end;
@@ -756,9 +797,13 @@ button:disabled {
 		margin-inline: -22px;
 	}
 	.feedback-topline,
-	.note-row {
+	.note-row,
+	.reply-row {
 		align-items: stretch;
 		flex-direction: column;
+	}
+	.reply-row {
+		display: flex;
 	}
 	.feedback-topline select {
 		width: 100%;

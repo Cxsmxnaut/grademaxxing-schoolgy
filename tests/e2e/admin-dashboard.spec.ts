@@ -67,11 +67,11 @@ test('the private dashboard presents a responsive aggregate analytics workspace'
 			})
 		});
 	});
-	let savedStatus = '';
+	let savedFeedback: { status?: string; adminReply?: string; adminNote?: string } = {};
 	await page.route('**/api/admin/feedback', async (route) => {
 		if (!signedIn) return route.fulfill({ status: 401 });
 		if (route.request().method() === 'PATCH') {
-			savedStatus = ((await route.request().postDataJSON()) as { status: string }).status;
+			savedFeedback = (await route.request().postDataJSON()) as typeof savedFeedback;
 			return route.fulfill({ status: 204 });
 		}
 		return route.fulfill({
@@ -87,6 +87,8 @@ test('the private dashboard presents a responsive aggregate analytics workspace'
 						appVersion: '0.2.0-beta.1',
 						status: 'new',
 						adminNote: '',
+						adminReply: '',
+						repliedAt: null,
 						createdAt: '2026-09-19T08:00:00.000Z',
 						updatedAt: '2026-09-19T08:00:00.000Z'
 					}
@@ -112,9 +114,15 @@ test('the private dashboard presents a responsive aggregate analytics workspace'
 	await expect(page.getByRole('heading', { name: 'Feedback inbox' })).toBeVisible();
 	await expect(page.getByText('Add a weekly grade summary')).toBeVisible();
 	await page.getByLabel('Status for Feature idea').selectOption('planned');
-	await expect.poll(() => savedStatus).toBe('planned');
+	await expect.poll(() => savedFeedback.status).toBe('planned');
+	await page.getByLabel('Reply to Feature idea').fill('Great idea — this is now on the roadmap.');
+	await page.getByRole('button', { name: 'Send reply' }).click();
+	await expect
+		.poll(() => savedFeedback.adminReply)
+		.toBe('Great idea — this is now on the roadmap.');
 	await page.getByLabel('Private admin note').fill('Include in the next product pass.');
-	await page.getByRole('button', { name: 'Save note' }).click();
+	await page.getByRole('button', { name: 'Save private note' }).click();
+	await expect.poll(() => savedFeedback.adminNote).toBe('Include in the next product pass.');
 
 	if (process.env.ADMIN_VISUAL_CAPTURE)
 		await page.screenshot({
