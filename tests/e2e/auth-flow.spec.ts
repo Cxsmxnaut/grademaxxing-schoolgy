@@ -19,14 +19,23 @@ test('the sign-in and district-password setup flow matches the current product',
 			{ exact: true }
 		)
 	).toBeVisible();
-	await expect(page.getByRole('link', { name: 'Forgot password?', exact: true })).toHaveAttribute(
-		'href',
-		'https://ca-pleas-psv.edupoint.com/PXP2_Password_Help.aspx?S=Y'
-	);
-	await expect(page.getByRole('link', { name: 'Forgot password?', exact: true })).toHaveAttribute(
-		'target',
-		'_blank'
-	);
+	await page.getByRole('button', { name: 'Forgot password?', exact: true }).click();
+	const resetDialog = page.getByRole('dialog');
+	await expect(resetDialog).toBeVisible();
+	await expect(
+		resetDialog.getByRole('heading', { name: 'Before you go, check All Mail' })
+	).toBeVisible();
+	await expect(resetDialog.getByText('All Mail', { exact: true })).toBeVisible();
+	await page.waitForTimeout(250);
+	await page.screenshot({
+		path: 'test-results/auth-flow/password-help-reminder.png',
+		fullPage: true
+	});
+	await expect(
+		resetDialog.getByRole('link', { name: 'Open StudentVUE password help' })
+	).toHaveAttribute('href', 'https://ca-pleas-psv.edupoint.com/PXP2_Password_Help.aspx?S=Y');
+	await resetDialog.getByRole('button', { name: 'Not now' }).click();
+	await expect(resetDialog).toBeHidden();
 	await expect(page.getByText('use the quick setup', { exact: true })).toHaveCount(0);
 	await page.screenshot({ path: 'test-results/auth-flow/login.png', fullPage: true });
 });
@@ -42,6 +51,24 @@ test('the sign-in flow fits a phone without horizontal overflow', async ({ page 
 	}));
 	expect(widths.document).toBeLessThanOrEqual(widths.viewport);
 	expect(widths.body).toBeLessThanOrEqual(widths.viewport);
+});
+
+test('a rejected sign-in points students to password recovery', async ({ page }) => {
+	await page.route('**/api/session', async (route) => {
+		if (route.request().method() !== 'POST') return route.fallback();
+		await route.fulfill({
+			status: 401,
+			contentType: 'application/json',
+			body: JSON.stringify({ message: 'StudentVUE authentication failed.' })
+		});
+	});
+	await page.goto('/login');
+	await page.getByLabel('StudentVUE email').fill('student@example.invalid');
+	await page.getByLabel('StudentVUE Password').fill('incorrect-password');
+	await page.getByRole('button', { name: 'Log in' }).click();
+
+	await expect(page.getByText('That password was wrong.', { exact: true })).toBeVisible();
+	await expect(page.getByText('Reset it below, then try again.', { exact: true })).toBeVisible();
 });
 
 test('the desktop sign-in form stays centered and readable', async ({ page }) => {
@@ -71,10 +98,10 @@ test('students can enter district-owned StudentVUE portal origins and paths dire
 
 	await domain.fill('https://sdhome.sdcoe.net/bonsall');
 	await expect(domain).toHaveValue('https://sdhome.sdcoe.net/bonsall');
-	await expect(page.getByRole('link', { name: 'Forgot password?', exact: true })).toHaveAttribute(
-		'href',
-		'https://sdhome.sdcoe.net/bonsall/PXP2_Password_Help.aspx?S=Y'
-	);
+	await page.getByRole('button', { name: 'Forgot password?', exact: true }).click();
+	await expect(
+		page.getByRole('dialog').getByRole('link', { name: 'Open StudentVUE password help' })
+	).toHaveAttribute('href', 'https://sdhome.sdcoe.net/bonsall/PXP2_Password_Help.aspx?S=Y');
 	await expect(domain).toHaveAttribute('autocapitalize', 'off');
 	await expect(domain).toHaveAttribute('autocorrect', 'off');
 });

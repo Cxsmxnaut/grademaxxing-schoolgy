@@ -312,7 +312,7 @@
 											class="success-chip">+{summary.newStudents}</span
 										>
 									</div>
-									<p>successful StudentVUE signups / all time</p>
+									<p>successful StudentVUE logins / all time</p>
 									<div class="dot-wave" aria-label="Daily activity intensity">
 										{#each summary.dailyUsage.slice(-30) as day (day.date)}
 											<div
@@ -421,7 +421,7 @@
 							<div>
 								<p class="card-label">Privacy-safe user registry</p>
 								<h2 id="protected-users-heading">Protected users</h2>
-								<p>Every successful signup, represented only by its one-way protected key.</p>
+								<p>Every successful login, represented only by its one-way protected key.</p>
 							</div>
 							<label class="directory-search">
 								<SearchIcon size={16} />

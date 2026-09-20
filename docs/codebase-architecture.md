@@ -25,7 +25,7 @@ District StudentVUE portal
 
 ### Client and routes
 
-`src/routes/+page.svelte` is the public landing page. `login`, `signup`, `signup/google`, and `privacy` are public routes. Routes beneath `src/routes/(authed)` share the application shell and sidebar.
+`src/routes/+page.svelte` is the public landing page. `login` and `privacy` are public routes. Legacy onboarding URLs redirect to `login`. Routes beneath `src/routes/(authed)` share the application shell and sidebar.
 
 Key authenticated routes:
 

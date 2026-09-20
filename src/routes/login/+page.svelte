@@ -16,6 +16,7 @@
 	import PostLoginLoadingScreen from '$lib/components/auth/PostLoginLoadingScreen.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
+	import * as Dialog from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
 	import { initializeGradebookCatalog, resetGradebookCatalog } from '$lib/grades/catalog.svelte';
 	import { seenAssignmentIDs } from '$lib/grades/seenAssignments.svelte';
@@ -41,6 +42,7 @@
 	let loginStage = $state('Connecting to StudentVUE…');
 	let interactive = $state(false);
 	let rememberMe = $state(true);
+	let passwordResetOpen = $state(false);
 	const studentVueForgotPasswordUrl = $derived.by(() => {
 		try {
 			const url = new URL(domain.includes('://') ? domain : `https://${domain}`);
@@ -160,7 +162,7 @@
 			await loginAccount.checkLogin();
 		} catch (error) {
 			loggingIn = false;
-			loginError = error instanceof Error ? error.message : String(error);
+			loginError = 'password-rejected';
 			return;
 		}
 
@@ -196,8 +198,8 @@
 		>
 			<Alert.Root variant="destructive" class="w-fit max-w-[calc(100vw-2rem)]">
 				<AlertCircleIcon />
-				<Alert.Title>StudentVUE said no.</Alert.Title>
-				<Alert.Description>{loginError}</Alert.Description>
+				<Alert.Title>That password was wrong.</Alert.Title>
+				<Alert.Description>Reset it below, then try again.</Alert.Description>
 			</Alert.Root>
 		</div>
 	{:else if sessionExpired}
@@ -267,14 +269,14 @@
 						required
 					/>
 					{#if studentVueForgotPasswordUrl}
-						<a
-							href={studentVueForgotPasswordUrl}
-							target="_blank"
-							rel="noopener noreferrer"
+						<button
+							type="button"
+							onclick={() => (passwordResetOpen = true)}
+							disabled={!interactive}
 							class="mt-2 inline-block text-[0.78125rem] font-medium text-[#4db6f5] hover:text-[#79cbf8] hover:underline"
 						>
 							Forgot password?
-						</a>
+						</button>
 					{/if}
 				</div>
 
@@ -309,4 +311,36 @@
 			</div>
 		</form>
 	</AuthShell>
+
+	{#if studentVueForgotPasswordUrl}
+		<Dialog.Root bind:open={passwordResetOpen}>
+			<Dialog.Content
+				class="border-[#294258] bg-[#0d2033] text-[#e4eef8] shadow-2xl shadow-black/50 sm:max-w-md"
+			>
+				<Dialog.Header>
+					<Dialog.Title>Before you go, check All Mail</Dialog.Title>
+					<Dialog.Description class="text-[#8fa9c2]">
+						Make sure to click <strong>All Mail</strong> in your school email. The reset message may
+							not appear in the main inbox.
+					</Dialog.Description>
+				</Dialog.Header>
+				<Dialog.Footer>
+					<Button
+						variant="outline"
+						class="border-[rgba(228,238,248,0.16)] bg-transparent text-[#e4eef8] hover:border-[#4db6f5] hover:bg-transparent hover:text-[#e4eef8]"
+						onclick={() => (passwordResetOpen = false)}>Not now</Button
+					>
+					<Button
+						href={studentVueForgotPasswordUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="bg-[#4db6f5] text-[#06131f] hover:bg-[#6fc4f7]"
+						onclick={() => (passwordResetOpen = false)}
+					>
+						Open StudentVUE password help
+					</Button>
+				</Dialog.Footer>
+			</Dialog.Content>
+		</Dialog.Root>
+	{/if}
 {/if}

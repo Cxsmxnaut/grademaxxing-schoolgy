@@ -17,6 +17,63 @@ This was necessary because the legacy SOAP experience is no longer reliable for 
 
 The default app-session TTL is 12 hours and can be adjusted with `GRADEMAXXING_SESSION_TTL_HOURS`. The session secret must be at least 32 random characters and must be configured separately in each deployment environment.
 
+## District Google SSO boundary
+
+Some district StudentVUE login pages expose an official “Login with Google” link backed by the
+district's SAML configuration. That login creates an authenticated browser session for the district
+portal; it does not create a Grademaxxing session. The Google assertion and the portal's HttpOnly
+cookies must not be copied into Grademaxxing, and the browser cannot expose them to our server across
+origins.
+
+The supported no-reset-email path is therefore:
+
+1. Open the district's official StudentVUE login page.
+2. Complete the district Google sign-in there.
+3. Return to the setup page's direct Change Password link (or use Account Information in StudentVUE)
+   to create a StudentVUE password. If the portal requires a current password, use the district's
+   official reset flow or support; Grademaxxing cannot bypass that requirement.
+4. Return to Grademaxxing and sign in with that password, optionally enabling the encrypted device vault.
+
+A true one-click Google sign-in for Grademaxxing requires two separate, district/vendor-approved
+capabilities:
+
+- **Identity plane:** a SAML/OIDC integration with a registered Grademaxxing redirect URI and a
+  stable, authorized identity-to-student mapping.
+- **Data plane:** an Edupoint-supported read-only API or token exchange that lets Grademaxxing retrieve
+  only that student's records after the identity assertion. A Google assertion by itself does not grant
+  access to StudentVUE records.
+
+The public StudentVUE Google link is fixed to Edupoint's SAML service provider and does not provide a
+Grademaxxing callback or relay state. It is therefore not sufficient to implement that handoff safely
+or reliably. Edupoint's [student and parent FAQ](https://www.edupoint.com/Services/Support/For-Parents-Students)
+documents the supported Google login and Account Information password-change path used by the app.
+
+The portal's public service endpoints may advertise permissive CORS for unauthenticated or bearer
+requests, but the login page and session-bearing browser responses do not grant Grademaxxing access to
+the user's authenticated portal session. A browser-side fetch cannot turn the Google login cookie into
+an application session, and adding a proxy or extension to extract it would create an unnecessary
+credential/session-transfer risk.
+
+### Automated integration request
+
+For an automated launch, the district/Edupoint integration request should require all of the following
+before implementation:
+
+1. A registered Grademaxxing SAML/OIDC client or an Edupoint-supported OAuth/token exchange.
+2. A stable district-approved student subject identifier in the assertion/token, with documented
+   account-linking and wrong-student protections.
+3. A read-only API scope for the StudentVUE resources the product displays (grades, attendance,
+   documents, mail, profile, and calendar), or an equivalent server-to-server integration.
+4. Redirect URI, token lifetime, revocation, audit, incident, retention, and deletion requirements in
+   the district/vendor agreement.
+
+Until those capabilities exist, any “automated” browser extension, remote browser, or cookie proxy would
+be an unofficial session-transfer mechanism rather than an approved integration and remains out of scope.
+
+The official StudentVUE mobile app is not an alternate token source: Edupoint states that it uses the
+same user login as the web-based portal. It does not provide a public Grademaxxing callback or a
+developer token that can replace the district/vendor integration above.
+
 ## Error semantics
 
 - `APP_SESSION_INVALID`: app cookie missing, invalid, expired, or cannot be decrypted; a full sign-in is required.

@@ -10,13 +10,7 @@ test('the landing page presents the product and every destination works', async 
 
 	const navigation = page.getByRole('navigation', { name: 'Primary navigation' });
 	await expect(navigation.getByRole('link', { name: 'Log in' })).toHaveAttribute('href', '/login');
-	await expect(navigation.getByRole('link', { name: 'Sign up' })).toHaveAttribute(
-		'href',
-		'/signup'
-	);
-
-	await navigation.getByRole('link', { name: 'Sign up' }).click();
-	await expect(page).toHaveURL(/\/signup$/);
+	await expect(navigation.getByRole('link', { name: 'Create account' })).toHaveCount(0);
 
 	await page.goto('/');
 	await page.getByRole('link', { name: 'Sign in with StudentVUE' }).click();
@@ -33,6 +27,14 @@ test('the landing page presents the product and every destination works', async 
 
 	await page.goto('/');
 	await page.getByRole('link', { name: 'Open Grademaxxing (Beta)' }).click();
+	await expect(page).toHaveURL(/\/login$/);
+});
+
+test('obsolete onboarding routes redirect to login', async ({ page }) => {
+	await page.goto('/signup');
+	await expect(page).toHaveURL(/\/login$/);
+
+	await page.goto('/signup/google');
 	await expect(page).toHaveURL(/\/login$/);
 });
 

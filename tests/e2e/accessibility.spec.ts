@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
-const publicPages = ['/', '/login', '/signup', '/signup/google', '/privacy'] as const;
+const publicPages = ['/', '/login', '/privacy'] as const;
 
 async function expectWcagAA(page: Page) {
 	const results = await new AxeBuilder({ page })

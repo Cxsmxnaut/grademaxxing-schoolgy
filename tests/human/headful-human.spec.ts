@@ -736,7 +736,7 @@ test('7 — a student logs out and receives a safe visible sign-in error', async
 	await page.getByRole('checkbox', { name: /independent, unofficial tool/i }).check();
 	expectingInvalidLoginFailure = true;
 	await page.getByRole('button', { name: 'Log in', exact: true }).click();
-	await expect(page.getByText('StudentVUE said no.', { exact: true })).toBeVisible();
+	await expect(page.getByText('That password was wrong.', { exact: true })).toBeVisible();
 	await expect(
 		page.getByText('Use a supported HTTPS StudentVUE district portal URL.', { exact: true })
 	).toBeVisible();

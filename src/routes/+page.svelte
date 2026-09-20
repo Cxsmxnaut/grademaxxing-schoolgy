@@ -65,7 +65,6 @@
 		</a>
 		<div class="nav-actions">
 			<a class="button button-ghost button-small" href="/login">Log in</a>
-			<a class="button button-small" href="/signup">Sign up</a>
 		</div>
 	</nav>
 
@@ -222,7 +221,7 @@
 			<img src="/grademaxxing-logo.png" width="24" height="24" alt="" /><span>{brand}</span>
 		</div>
 		<div class="footer-links">
-			<a href="/login">Log in</a><a href="/signup">Sign up</a><a href="/privacy">Privacy</a>
+			<a href="/login">Log in</a><a href="/privacy">Privacy</a>
 		</div>
 		<p>
 			StudentVUE is a registered trademark of Edupoint Educational Systems LLC. {brand} is not affiliated
