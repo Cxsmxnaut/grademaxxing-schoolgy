@@ -1,6 +1,7 @@
 import { dev } from '$app/environment';
 import { recordUniqueStudentUsage } from '$lib/server/analytics/usage';
 import { Pxp2AuthenticationError, Pxp2InputError, Pxp2TimeoutError } from '$lib/server/pxp2';
+import { recordNewStudentReferral, referralCodeCookie } from '$lib/server/referrals';
 import {
 	createStudentSession,
 	deleteStudentSession,
@@ -118,7 +119,19 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress,
 	});
 	// Analytics is deliberately best-effort: a private counter outage can never
 	// block StudentVUE sign-in, and no raw identity is stored in the database.
-	await recordUniqueStudentUsage(platform, session.domain, session.username).catch(() => undefined);
+	const isNewStudent = await recordUniqueStudentUsage(
+		platform,
+		session.domain,
+		session.username
+	).catch(() => false);
+	if (isNewStudent)
+		await recordNewStudentReferral(
+			platform,
+			cookies.get(referralCodeCookie),
+			session.domain,
+			session.username
+		).catch(() => undefined);
+	cookies.delete(referralCodeCookie, { path: '/' });
 	return json({
 		username: session.username,
 		domain: session.domain,

@@ -101,6 +101,28 @@ test('the private dashboard presents a responsive aggregate analytics workspace'
 			})
 		});
 	});
+	await page.route('**/api/admin/referrals', async (route) => {
+		if (!signedIn) return route.fulfill({ status: 401 });
+		return route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				partners: [
+					{
+						id: 'partner-1',
+						code: 'maya-a1b2c3d4',
+						firstName: 'Maya',
+						lastName: 'Chen',
+						email: 'maya@example.com',
+						createdAt: '2026-09-19T08:00:00.000Z',
+						active: true,
+						referrals: 5,
+						lastReferralAt: '2026-09-20T08:00:00.000Z'
+					}
+				]
+			})
+		});
+	});
 	await page.goto('/admin');
 	await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
 	await page.getByLabel('Password').fill('test-only-admin-password');
@@ -158,6 +180,11 @@ test('the private dashboard presents a responsive aggregate analytics workspace'
 	await expect(
 		page.locator('.message-bubble').getByText('Great idea — this is now on the roadmap.')
 	).toBeVisible();
+	await page.getByRole('button', { name: 'Overview' }).click();
+	await page.getByRole('button', { name: 'Referrals' }).click();
+	await expect(page.getByRole('heading', { name: 'Referral leaderboard' })).toBeVisible();
+	await expect(page.getByText('Maya Chen')).toBeVisible();
+	await expect(page.getByRole('cell', { name: '5' })).toBeVisible();
 	await page.getByRole('button', { name: 'Overview' }).click();
 	await page.getByRole('button', { name: '7 days' }).click();
 	await expect(page.getByRole('button', { name: '7 days' })).toHaveClass(/active/);

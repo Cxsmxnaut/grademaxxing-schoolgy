@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ActivityIcon from '@lucide/svelte/icons/activity';
 	import CheckCircleIcon from '@lucide/svelte/icons/check-circle-2';
+	import CopyIcon from '@lucide/svelte/icons/copy';
 	import DownloadIcon from '@lucide/svelte/icons/download';
 	import InboxIcon from '@lucide/svelte/icons/inbox';
 	import LockKeyholeIcon from '@lucide/svelte/icons/lock-keyhole';
@@ -13,6 +14,7 @@
 	import SparklesIcon from '@lucide/svelte/icons/sparkles';
 	import TrendingUpIcon from '@lucide/svelte/icons/trending-up';
 	import UsersIcon from '@lucide/svelte/icons/users';
+	import UserPlusIcon from '@lucide/svelte/icons/user-plus';
 	import { onMount } from 'svelte';
 	import './admin.css';
 
@@ -59,6 +61,17 @@
 		createdAt: string;
 		updatedAt: string;
 	};
+	type ReferralPartner = {
+		id: string;
+		code: string;
+		firstName: string;
+		lastName: string;
+		email: string;
+		createdAt: string;
+		active: boolean;
+		referrals: number;
+		lastReferralAt: string | null;
+	};
 
 	const ranges: RangeDays[] = [7, 30, 90];
 	const statuses: Array<{ value: FeedbackStatus; label: string }> = [
@@ -76,7 +89,14 @@
 	let loading = $state(true);
 	let signingIn = $state(false);
 	let message = $state<string>();
-	let view = $state<'overview' | 'feedback'>('overview');
+	let view = $state<'overview' | 'feedback' | 'referrals'>('overview');
+	let referralPartners = $state<ReferralPartner[]>([]);
+	let referralFirstName = $state('');
+	let referralLastName = $state('');
+	let referralEmail = $state('');
+	let creatingReferrer = $state(false);
+	let referralMessage = $state<string>();
+	let copiedReferralCode = $state<string>();
 	let feedbackFilter = $state<'all' | FeedbackStatus>('all');
 	let feedbackSearch = $state('');
 	let selectedFeedbackId = $state<string>();
@@ -166,6 +186,56 @@
 		authenticated = false;
 		summary = undefined;
 		feedback = [];
+	}
+
+	async function openReferrals() {
+		view = 'referrals';
+		referralMessage = undefined;
+		const response = await fetch('/api/admin/referrals', { cache: 'no-store' });
+		if (response.ok)
+			referralPartners = ((await response.json()) as { partners: ReferralPartner[] }).partners;
+		else referralMessage = await responseMessage(response, 'Unable to load referrals.');
+	}
+
+	async function createReferrer(event: SubmitEvent) {
+		event.preventDefault();
+		if (creatingReferrer) return;
+		creatingReferrer = true;
+		const response = await fetch('/api/admin/referrals', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				firstName: referralFirstName,
+				lastName: referralLastName,
+				email: referralEmail
+			})
+		});
+		const result = await response.json().catch(() => ({ message: 'Unable to create referrer.' }));
+		creatingReferrer = false;
+		if (!response.ok) {
+			referralMessage = result.message;
+			return;
+		}
+		referralFirstName = '';
+		referralLastName = '';
+		referralEmail = '';
+		await openReferrals();
+		referralMessage = `${result.partner.firstName}'s referral link is ready.`;
+	}
+
+	function referralUrl(code: string) {
+		const origin =
+			window.location.hostname === 'admin.grademaxxing.app'
+				? 'https://grademaxxing.app'
+				: window.location.origin;
+		return `${origin}/refer/${code}`;
+	}
+	async function copyReferralLink(code: string) {
+		await navigator.clipboard.writeText(referralUrl(code));
+		copiedReferralCode = code;
+		window.setTimeout(() => {
+			if (copiedReferralCode === code) copiedReferralCode = undefined;
+		}, 1500);
 	}
 
 	async function saveFeedback(item: FeedbackItem, nextStatus = item.status, publishReply = false) {
@@ -261,6 +331,7 @@
 				<button class:active={view === 'feedback'} onclick={() => (view = 'feedback')}
 					>Feedback {#if openFeedback}<span>{openFeedback}</span>{/if}</button
 				>
+				<button class:active={view === 'referrals'} onclick={openReferrals}>Referrals</button>
 			</nav>
 			<div class="header-actions">
 				<button
@@ -398,6 +469,85 @@
 						</table>
 					</div>
 				</section>
+			{:else if view === 'referrals'}
+				<section class="page-heading">
+					<div>
+						<p>Growth</p>
+						<h1>Referral leaderboard</h1>
+						<span>Only brand-new protected student keys count.</span>
+					</div>
+				</section>
+				<section class="referral-metrics" aria-label="Referral metrics">
+					<article><span>Referrers</span><strong>{referralPartners.length}</strong></article>
+					<article>
+						<span>New students referred</span><strong
+							>{referralPartners.reduce((sum, partner) => sum + partner.referrals, 0)}</strong
+						>
+					</article>
+					<article>
+						<span>Active links</span><strong
+							>{referralPartners.filter((partner) => partner.active).length}</strong
+						>
+					</article>
+				</section>
+				<div class="referral-grid">
+					<section class="panel referral-create">
+						<div class="referral-icon"><UserPlusIcon size={20} /></div>
+						<h2>Generate a referrer</h2>
+						<p>Create a unique link for someone you trust.</p>
+						<form onsubmit={createReferrer}>
+							<label
+								>First name<input bind:value={referralFirstName} required maxlength="80" /></label
+							>
+							<label>Last name<input bind:value={referralLastName} required maxlength="80" /></label
+							>
+							<label class="full"
+								>Email<input
+									bind:value={referralEmail}
+									type="email"
+									required
+									maxlength="254"
+								/></label
+							>
+							<button class="primary-button full" disabled={creatingReferrer}
+								>{creatingReferrer ? 'Creating…' : 'Generate referral link'}</button
+							>
+						</form>
+						{#if referralMessage}<p class="referral-message" role="status">
+								{referralMessage}
+							</p>{/if}
+					</section>
+					<section class="panel referral-leaderboard">
+						<div class="panel-heading">
+							<div>
+								<p>Ranked by new students</p>
+								<h2>Leaderboard</h2>
+							</div>
+						</div>
+						<div class="table-wrap">
+							<table>
+								<thead><tr><th>Rank</th><th>Referrer</th><th>New users</th><th>Link</th></tr></thead
+								><tbody>
+									{#each referralPartners as partner, index (partner.id)}<tr
+											><td>{index + 1}</td><td
+												><strong>{partner.firstName} {partner.lastName}</strong><small
+													>{partner.email}</small
+												></td
+											><td><strong>{partner.referrals}</strong></td><td
+												><button
+													class="copy-referral"
+													onclick={() => copyReferralLink(partner.code)}
+													>{copiedReferralCode === partner.code ? 'Copied' : 'Copy link'}
+													<CopyIcon size={13} /></button
+												></td
+											></tr
+										>
+									{:else}<tr><td colspan="4" class="empty-cell">No referrers yet.</td></tr>{/each}
+								</tbody>
+							</table>
+						</div>
+					</section>
+				</div>
 			{:else}
 				<section class="page-heading">
 					<div>

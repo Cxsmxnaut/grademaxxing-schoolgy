@@ -52,6 +52,17 @@
 					credentials, and local caches.
 				</p>
 			</section>
+
+			<section>
+				<h2 class="mb-2 text-lg font-semibold text-[#e4eef8]">Invite-only referrals</h2>
+				<p>
+					Invited referrers are created privately by the administrator using their name and email.
+					Visitors opening a referral link go directly to the standard StudentVUE sign-in and are
+					counted only if Grademaxxing's one-way protected student key shows they are a new user. We
+					do not store the referred student's name or email for referrals. Referral attribution
+					stays separate from StudentVUE credentials, grades, and school records.
+				</p>
+			</section>
 		</div>
 	</article>
 </AuthShell>
