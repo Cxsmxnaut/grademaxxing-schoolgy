@@ -8,6 +8,7 @@
 	import BugIcon from '@lucide/svelte/icons/bug';
 	import LightbulbIcon from '@lucide/svelte/icons/lightbulb';
 	import MessageCircleIcon from '@lucide/svelte/icons/message-circle';
+	import SendIcon from '@lucide/svelte/icons/send';
 	import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
 	import { onMount } from 'svelte';
 
@@ -183,94 +184,122 @@
 		please leave school records and personal information out of your message.
 	</p>
 
-	<section class="border-border/80 bg-card mt-5 overflow-hidden rounded-xl border shadow-sm">
-		<div class="border-border/70 flex items-start gap-3 border-b px-4 py-4 sm:px-5">
+	<section class="border-border/80 bg-card mt-5 overflow-hidden rounded-2xl border shadow-sm">
+		<div class="border-border/70 flex items-center gap-3 border-b px-4 py-3 sm:px-5">
 			<div
-				class="bg-primary text-primary-foreground grid size-9 shrink-0 place-items-center rounded-full"
+				class="bg-primary text-primary-foreground relative grid size-10 shrink-0 place-items-center rounded-full"
 			>
 				<MessageCircleIcon class="size-4" aria-hidden="true" />
+				<span
+					class="border-card absolute right-0 bottom-0 size-3 rounded-full border-2 bg-emerald-500"
+					aria-hidden="true"
+				></span>
 			</div>
-			<div>
-				<p class="font-semibold">Grademaxxing support</p>
-				<p class="text-muted-foreground mt-1 text-sm leading-5">{assistantReply}</p>
+			<div class="min-w-0 flex-1">
+				<p class="leading-5 font-semibold">Grademaxxing support</p>
+				<p class="text-muted-foreground text-xs">
+					Private conversation · replies usually arrive here
+				</p>
 			</div>
+			<span
+				class="bg-secondary text-muted-foreground hidden rounded-full px-2.5 py-1 text-xs sm:inline"
+				>Anonymous</span
+			>
 		</div>
 
-		<div class="space-y-5 p-4 sm:p-5">
-			{#if sent}
-				<div class="border-primary/30 bg-primary/8 rounded-xl border p-5" role="status">
-					<h2 class="font-heading text-lg font-bold">Feedback sent</h2>
-					<p class="text-muted-foreground mt-1 text-sm">
-						It landed in the private admin inbox. Thanks for helping improve the beta.
+		<div class="bg-secondary/20 min-h-44 space-y-4 p-4 sm:p-6">
+			<div class="flex max-w-[88%] items-end gap-2 sm:max-w-[72%]">
+				<div
+					class="bg-primary text-primary-foreground grid size-7 shrink-0 place-items-center rounded-full"
+				>
+					<MessageCircleIcon class="size-3.5" aria-hidden="true" />
+				</div>
+				<div>
+					<p
+						class="border-border/70 bg-card rounded-2xl rounded-bl-sm border px-4 py-2.5 text-sm leading-5 shadow-sm"
+					>
+						{assistantReply}
 					</p>
-					<Button class="mt-4" variant="outline" onclick={startAnother}>Send another</Button>
+					<p class="text-muted-foreground mt-1 px-1 text-[0.68rem]">Grademaxxing support</p>
+				</div>
+			</div>
+			{#if sent}
+				<h2 class="sr-only">Feedback sent</h2>
+				<div class="ml-auto max-w-[88%] sm:max-w-[72%]" role="status">
+					<div
+						class="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-4 py-2.5 text-sm leading-5 shadow-sm"
+					>
+						<p class="whitespace-pre-wrap">{message}</p>
+					</div>
+					<p class="text-muted-foreground mt-1 px-1 text-right text-[0.68rem]">Sent privately</p>
+				</div>
+			{/if}
+		</div>
+
+		<div class="border-border/70 border-t p-3 sm:p-4">
+			{#if sent}
+				<div class="flex items-center justify-between gap-3">
+					<p class="text-muted-foreground text-xs">Delivered to the private admin inbox.</p>
+					<Button variant="outline" size="sm" onclick={startAnother}>New message</Button>
 				</div>
 			{:else}
 				<fieldset>
-					<legend class="text-sm font-semibold">What kind of feedback is this?</legend>
-					<div class="mt-3 grid gap-2 sm:grid-cols-3" role="group" aria-label="Feedback type">
+					<legend class="sr-only">What kind of feedback is this?</legend>
+					<div class="flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Feedback type">
 						{#each feedbackKinds as kind (kind.value)}
 							{@const Icon = kind.icon}
 							<button
 								type="button"
 								aria-pressed={feedbackKind === kind.value}
 								onclick={() => (feedbackKind = kind.value)}
-								class="border-border hover:bg-accent/60 focus-visible:ring-ring flex min-h-24 items-start gap-3 rounded-lg border p-3 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none {feedbackKind ===
+								class="border-border hover:bg-accent/60 focus-visible:ring-ring flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none {feedbackKind ===
 								kind.value
 									? 'border-primary bg-primary/8'
 									: 'bg-background'}"
 							>
-								<Icon class="text-primary mt-0.5 size-4 shrink-0" aria-hidden="true" />
-								<span>
-									<span class="block text-sm font-semibold">{kind.label}</span>
-									<span class="text-muted-foreground mt-1 block text-xs leading-4"
-										>{kind.description}</span
-									>
-								</span>
+								<Icon class="text-primary size-3.5 shrink-0" aria-hidden="true" />
+								<span class="text-xs font-semibold">{kind.label}</span>
 							</button>
 						{/each}
 					</div>
 				</fieldset>
 
-				<div class="border-border/70 bg-secondary/35 rounded-xl border p-3 sm:p-4">
-					<label for="feedback-message" class="text-sm font-semibold">Your message</label>
+				<div
+					class="border-input bg-background focus-within:ring-ring mt-3 flex items-end gap-2 rounded-2xl border p-2 focus-within:ring-2"
+				>
+					<label for="feedback-message" class="sr-only">Your message</label>
 					<textarea
 						id="feedback-message"
 						bind:value={message}
 						autocomplete="off"
 						aria-describedby="feedback-safety feedback-destination"
-						placeholder="What happened, what did you expect, and which page were you on?"
+						placeholder="Message Grademaxxing support…"
 						maxlength="2000"
-						class="border-input bg-background mt-2 min-h-28 w-full resize-y rounded-lg border px-3 py-2 font-mono text-sm"
+						class="max-h-40 min-h-14 flex-1 resize-y border-0 bg-transparent px-2 py-2 text-sm outline-none"
 					></textarea>
-					<p class="text-muted-foreground mt-1 text-right text-xs">{message.length}/2,000</p>
-				</div>
-
-				<div
-					id="feedback-safety"
-					class="border-border/70 bg-secondary/35 text-muted-foreground flex gap-3 rounded-lg border p-3 text-sm leading-5"
-				>
-					<ShieldCheckIcon class="text-primary mt-0.5 size-4 shrink-0" aria-hidden="true" />
-					<p>
-						Do not include a password, student ID, full name, grade, screenshot, or other school
-						record. Use a class nickname and report period instead.
-					</p>
-				</div>
-
-				<div
-					class="flex flex-col items-start justify-between gap-3 border-t pt-4 sm:flex-row sm:items-center"
-				>
-					<p id="feedback-destination" class="text-muted-foreground max-w-xl text-xs leading-4">
-						Your message is stored without your name, username, student ID, IP address, or grades
-						and is visible only in the private admin dashboard.
-					</p>
 					<Button
+						class="size-10 shrink-0 rounded-full p-0"
 						onclick={submitFeedback}
 						disabled={!canReport || sending}
 						title={canReport ? 'Send feedback privately' : 'Describe the issue first'}
-						>{sending ? 'Sending…' : 'Send feedback'}</Button
+						aria-label={sending ? 'Sending feedback' : 'Send feedback'}
+						><SendIcon class="size-4" aria-hidden="true" /></Button
 					>
 				</div>
+				<div
+					class="text-muted-foreground mt-2 flex items-start justify-between gap-3 px-1 text-[0.68rem] leading-4"
+				>
+					<p id="feedback-safety" class="flex gap-1.5">
+						<ShieldCheckIcon class="text-primary mt-0.5 size-3 shrink-0" aria-hidden="true" />
+						<span
+							>Do not include passwords, names, student IDs, grades, screenshots, or school records.</span
+						>
+					</p>
+					<span class="shrink-0">{message.length}/2,000</span>
+				</div>
+				<p id="feedback-destination" class="sr-only">
+					Your message is stored anonymously and is visible only in the private admin dashboard.
+				</p>
 				{#if sendError}<p class="text-destructive text-sm" role="alert">{sendError}</p>{/if}
 			{/if}
 		</div>
@@ -291,34 +320,59 @@
 					>{loadingHistory ? 'Checking…' : 'Check for replies'}</Button
 				>
 			</div>
-			<div class="mt-3 space-y-3">
+			<div class="mt-3 space-y-4">
 				{#each feedbackHistory as item (item.id)}
-					<article class="border-border/80 bg-card rounded-xl border p-4 shadow-sm sm:p-5">
-						<div class="flex flex-wrap items-center justify-between gap-2">
+					<article class="border-border/80 bg-card overflow-hidden rounded-2xl border shadow-sm">
+						<header
+							class="border-border/70 flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3"
+						>
 							<div>
 								<p class="text-sm font-semibold">{item.kind}</p>
-								<p class="text-muted-foreground mt-0.5 text-xs">Sent {dateTime(item.createdAt)}</p>
+								<p class="text-muted-foreground text-xs">
+									Conversation started {dateTime(item.createdAt)}
+								</p>
 							</div>
 							<span
 								class="bg-secondary text-secondary-foreground rounded-full px-2.5 py-1 text-xs font-semibold"
 							>
 								{statusLabel(item.status)}
 							</span>
-						</div>
-						<p class="text-foreground mt-3 text-sm leading-5 whitespace-pre-wrap">{item.message}</p>
-						{#if item.adminReply}
-							<div class="border-primary/25 bg-primary/7 mt-4 rounded-lg border p-3">
-								<p class="text-primary text-xs font-bold tracking-wide uppercase">
-									Reply from Grademaxxing
+						</header>
+						<div class="bg-secondary/20 space-y-5 p-4 sm:p-5">
+							<div class="ml-auto max-w-[88%] sm:max-w-[72%]">
+								<p
+									class="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-4 py-2.5 text-sm leading-5 whitespace-pre-wrap shadow-sm"
+								>
+									{item.message}
 								</p>
-								<p class="mt-2 text-sm leading-5 whitespace-pre-wrap">{item.adminReply}</p>
-								{#if item.repliedAt}<p class="text-muted-foreground mt-2 text-xs">
-										{dateTime(item.repliedAt)}
-									</p>{/if}
+								<p class="text-muted-foreground mt-1 px-1 text-right text-[0.68rem]">
+									You · {dateTime(item.createdAt)}
+								</p>
 							</div>
-						{:else}
-							<p class="text-muted-foreground mt-4 text-xs">No reply yet. Check back here later.</p>
-						{/if}
+							{#if item.adminReply}
+								<div class="flex max-w-[88%] items-end gap-2 sm:max-w-[72%]">
+									<div
+										class="bg-primary text-primary-foreground grid size-7 shrink-0 place-items-center rounded-full"
+									>
+										<MessageCircleIcon class="size-3.5" aria-hidden="true" />
+									</div>
+									<div>
+										<p
+											class="border-border/70 bg-card rounded-2xl rounded-bl-sm border px-4 py-2.5 text-sm leading-5 whitespace-pre-wrap shadow-sm"
+										>
+											{item.adminReply}
+										</p>
+										<p class="text-muted-foreground mt-1 px-1 text-[0.68rem]">
+											Grademaxxing support{item.repliedAt ? ` · ${dateTime(item.repliedAt)}` : ''}
+										</p>
+									</div>
+								</div>
+							{:else}
+								<div class="text-muted-foreground flex items-center gap-2 px-1 text-xs">
+									<span class="size-1.5 rounded-full bg-amber-500"></span>Waiting for a reply
+								</div>
+							{/if}
+						</div>
 					</article>
 				{/each}
 			</div>

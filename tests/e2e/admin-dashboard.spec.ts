@@ -112,7 +112,9 @@ test('the private dashboard presents a responsive aggregate analytics workspace'
 	await page.getByPlaceholder('Search protected key').fill('');
 	await page.getByRole('button', { name: /Feedback/ }).click();
 	await expect(page.getByRole('heading', { name: 'Feedback inbox' })).toBeVisible();
-	await expect(page.getByText('Add a weekly grade summary')).toBeVisible();
+	await expect(
+		page.locator('.message-bubble').getByText('Add a weekly grade summary')
+	).toBeVisible();
 	await page.getByLabel('Status for Feature idea').selectOption('planned');
 	await expect.poll(() => savedFeedback.status).toBe('planned');
 	await page.getByLabel('Reply to Feature idea').fill('Great idea — this is now on the roadmap.');
@@ -129,6 +131,14 @@ test('the private dashboard presents a responsive aggregate analytics workspace'
 			path: '/tmp/grademaxxing-admin-reference-desktop.png',
 			fullPage: true
 		});
+	if (process.env.ADMIN_VISUAL_CAPTURE) {
+		await page.setViewportSize({ width: 390, height: 844 });
+		await page.screenshot({
+			path: '/tmp/grademaxxing-admin-feedback-mobile.png',
+			fullPage: true
+		});
+		await page.setViewportSize({ width: 1280, height: 720 });
+	}
 	await page.getByRole('button', { name: 'Overview' }).click();
 	await page.getByRole('button', { name: '7 days' }).click();
 	await expect(page.getByRole('button', { name: '7 days' })).toHaveClass(/active/);

@@ -79,6 +79,7 @@
 	let view = $state<'overview' | 'feedback'>('overview');
 	let feedbackFilter = $state<'all' | FeedbackStatus>('all');
 	let feedbackSearch = $state('');
+	let selectedFeedbackId = $state<string>();
 	let userSearch = $state('');
 	let savingId = $state<string>();
 	let savedReplies = new Map<string, string>();
@@ -97,6 +98,9 @@
 					item.pagePath.toLowerCase().includes(query))
 			);
 		})
+	);
+	let selectedFeedback = $derived(
+		filteredFeedback.find((item) => item.id === selectedFeedbackId) ?? filteredFeedback[0]
 	);
 	let filteredUsers = $derived(
 		summary?.users.filter((user) =>
@@ -128,6 +132,7 @@
 		if (feedbackResponse.ok) {
 			feedback = ((await feedbackResponse.json()) as { items: FeedbackItem[] }).items;
 			savedReplies = new Map(feedback.map((item) => [item.id, item.adminReply]));
+			if (!selectedFeedbackId && feedback[0]) selectedFeedbackId = feedback[0].id;
 		} else message = await responseMessage(feedbackResponse, 'Unable to load feedback.');
 		loading = false;
 	}
@@ -418,15 +423,44 @@
 						/></label
 					>
 				</section>
-				<section class="feedback-list" aria-label="Feedback messages">
-					{#each filteredFeedback as item (item.id)}
-						<article class="feedback-card panel">
-							<div class="feedback-topline">
-								<div class="feedback-kind">
-									<MessageSquareIcon size={16} />
+				<section class="feedback-inbox panel" aria-label="Feedback messages">
+					<aside class="conversation-list" aria-label="Conversations">
+						<div class="conversation-list-heading">
+							<strong>Conversations</strong><span>{filteredFeedback.length}</span>
+						</div>
+						{#each filteredFeedback as item (item.id)}
+							<button
+								class="conversation-preview"
+								class:active={selectedFeedback?.id === item.id}
+								onclick={() => (selectedFeedbackId = item.id)}
+								aria-pressed={selectedFeedback?.id === item.id}
+							>
+								<span class="conversation-avatar"><MessageSquareIcon size={16} /></span>
+								<span class="conversation-copy">
+									<span><strong>{item.kind}</strong><time>{dateTime(item.createdAt)}</time></span>
+									<small>{item.adminReply || item.message}</small>
+									<i class={`status-dot ${item.status}`}></i><em
+										>{statuses.find((status) => status.value === item.status)?.label}</em
+									>
+								</span>
+							</button>
+						{:else}
+							<div class="feedback-empty compact">
+								<CheckCircleIcon size={24} /><strong>Nothing here</strong>
+								<p>No feedback matches this filter.</p>
+							</div>
+						{/each}
+					</aside>
+
+					{#if selectedFeedback}
+						{@const item = selectedFeedback}
+						<article class="conversation-panel">
+							<header class="conversation-header">
+								<div class="conversation-identity">
+									<span class="conversation-avatar large"><MessageSquareIcon size={18} /></span>
 									<div>
 										<strong>{item.kind}</strong><span
-											>{dateTime(item.createdAt)} · {item.pagePath} · {item.appVersion}</span
+											>Anonymous sender · {item.pagePath} · {item.appVersion}</span
 										>
 									</div>
 								</div>
@@ -440,45 +474,64 @@
 											>{status.label}</option
 										>{/each}</select
 								>
-							</div>
-							<p class="feedback-message">{item.message}</p>
-							<div class="reply-row">
-								<div class="reply-heading">
-									<ReplyIcon size={16} />
+							</header>
+
+							<div class="conversation-messages">
+								<div class="message-group incoming">
+									<span class="conversation-avatar"><MessageSquareIcon size={15} /></span>
 									<div>
-										<strong>Reply to sender</strong>
-										<span
-											>{item.repliedAt
-												? `Visible to the sender · last sent ${dateTime(item.repliedAt)}`
-												: 'This appears privately in the sender’s feedback screen.'}</span
-										>
+										<p class="message-bubble">{item.message}</p>
+										<small>Sender · {dateTime(item.createdAt)}</small>
 									</div>
 								</div>
+								{#if item.adminReply}
+									<div class="message-group outgoing">
+										<div>
+											<p class="message-bubble">{item.adminReply}</p>
+											<small>You · {dateTime(item.repliedAt)}</small>
+										</div>
+									</div>
+								{/if}
+							</div>
+
+							<div class="conversation-composer">
+								<label class="sr-only" for={`reply-${item.id}`}>Reply to {item.kind}</label>
 								<textarea
+									id={`reply-${item.id}`}
 									aria-label={`Reply to ${item.kind}`}
 									bind:value={item.adminReply}
 									maxlength="2000"
-									placeholder="Write a helpful response for the student"
+									placeholder="Type a reply…"
 								></textarea>
 								<button
-									class="primary-button"
+									class="primary-button send-button"
+									aria-label={item.repliedAt ? 'Update reply' : 'Send reply'}
 									onclick={() => saveFeedback(item)}
 									disabled={savingId === item.id || !item.adminReply.trim()}
-									>{savingId === item.id
+								>
+									<ReplyIcon size={16} />{savingId === item.id
 										? 'Sending…'
 										: item.repliedAt
-											? 'Update reply'
-											: 'Send reply'}</button
+											? 'Update'
+											: 'Send'}
+								</button>
+								<span
+									>{item.repliedAt
+										? `Visible to sender · last sent ${dateTime(item.repliedAt)}`
+										: 'This reply appears privately in the sender’s feedback screen.'}</span
 								>
 							</div>
+
 							<div class="note-row">
 								<label
 									><span>Private admin note</span><textarea
+										aria-label="Private admin note"
 										bind:value={item.adminNote}
 										maxlength="1000"
-										placeholder="Add context, a plan, or a follow-up note"
+										placeholder="Add context only admins can see"
 									></textarea></label
-								><button
+								>
+								<button
 									class="secondary-button"
 									onclick={() => saveFeedback(item)}
 									disabled={savingId === item.id}
@@ -486,11 +539,13 @@
 								>
 							</div>
 						</article>
-					{:else}<div class="feedback-empty panel">
-							<CheckCircleIcon size={28} />
-							<h2>Nothing here</h2>
-							<p>No feedback matches this filter.</p>
-						</div>{/each}
+					{:else}
+						<div class="conversation-blank">
+							<MessageSquareIcon size={28} />
+							<h2>Select a conversation</h2>
+							<p>Choose feedback from the inbox to read and reply.</p>
+						</div>
+					{/if}
 				</section>
 			{/if}
 		</main>
