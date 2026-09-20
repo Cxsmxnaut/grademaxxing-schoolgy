@@ -19,32 +19,16 @@ test('the sign-in and district-password setup flow matches the current product',
 			{ exact: true }
 		)
 	).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Forgot password?', exact: true })).toHaveAttribute(
+		'href',
+		'https://ca-pleas-psv.edupoint.com/PXP2_Password_Help.aspx?S=Y'
+	);
+	await expect(page.getByRole('link', { name: 'Forgot password?', exact: true })).toHaveAttribute(
+		'target',
+		'_blank'
+	);
+	await expect(page.getByText('use the quick setup', { exact: true })).toHaveCount(0);
 	await page.screenshot({ path: 'test-results/auth-flow/login.png', fullPage: true });
-
-	await page.getByRole('link', { name: 'create one', exact: true }).click();
-	await expect(page.getByText('Sign up for Grademaxxing (Beta)', { exact: true })).toBeVisible();
-	await expect(
-		page.getByText('How do you want to get into StudentVUE?', { exact: true })
-	).toBeVisible();
-	await expect(page.getByRole('link', { name: 'With Google', exact: true })).toBeVisible();
-	await expect(page.getByRole('link', { name: 'With a password', exact: true })).toHaveAttribute(
-		'href',
-		'/login'
-	);
-	await page.screenshot({ path: 'test-results/auth-flow/signup.png', fullPage: true });
-
-	await page.getByRole('link', { name: 'With Google', exact: true }).click();
-	await expect(page.getByText('Sign up for Grademaxxing (Beta)', { exact: true })).toBeVisible();
-	await page.getByRole('button', { name: 'Set your StudentVUE password' }).click();
-	await expect(page.getByRole('dialog')).toBeVisible();
-	await page
-		.getByPlaceholder('https://[your-district]-psv.edupoint.com/Home_PXP2.aspx')
-		.fill('https://ca-pleas-psv.edupoint.com/PXP2_Login_Student.aspx');
-	await expect(page.getByRole('link', { name: 'Open', exact: true })).toHaveAttribute(
-		'href',
-		'https://ca-pleas-psv.edupoint.com/PXP2_Password_Help.aspx'
-	);
-	await page.screenshot({ path: 'test-results/auth-flow/password-help.png', fullPage: true });
 });
 
 test('the sign-in flow fits a phone without horizontal overflow', async ({ page }) => {
@@ -87,6 +71,10 @@ test('students can enter district-owned StudentVUE portal origins and paths dire
 
 	await domain.fill('https://sdhome.sdcoe.net/bonsall');
 	await expect(domain).toHaveValue('https://sdhome.sdcoe.net/bonsall');
+	await expect(page.getByRole('link', { name: 'Forgot password?', exact: true })).toHaveAttribute(
+		'href',
+		'https://sdhome.sdcoe.net/bonsall/PXP2_Password_Help.aspx?S=Y'
+	);
 	await expect(domain).toHaveAttribute('autocapitalize', 'off');
 	await expect(domain).toHaveAttribute('autocorrect', 'off');
 });

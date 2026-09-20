@@ -41,6 +41,23 @@
 	let loginStage = $state('Connecting to StudentVUE…');
 	let interactive = $state(false);
 	let rememberMe = $state(true);
+	const studentVueForgotPasswordUrl = $derived.by(() => {
+		try {
+			const url = new URL(domain.includes('://') ? domain : `https://${domain}`);
+			if (url.protocol !== 'https:') return undefined;
+			const directory = url.pathname.endsWith('/')
+				? url.pathname
+				: /\.[a-z\d]+$/i.test(url.pathname)
+					? url.pathname.slice(0, url.pathname.lastIndexOf('/') + 1)
+					: `${url.pathname}/`;
+			url.pathname = `${directory}PXP2_Password_Help.aspx`;
+			url.search = 'S=Y';
+			url.hash = '';
+			return url.toString();
+		} catch {
+			return undefined;
+		}
+	});
 
 	onMount(() => {
 		interactive = true;
@@ -249,6 +266,16 @@
 						disabled={!interactive}
 						required
 					/>
+					{#if studentVueForgotPasswordUrl}
+						<a
+							href={studentVueForgotPasswordUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="mt-2 inline-block text-[0.78125rem] font-medium text-[#4db6f5] hover:text-[#79cbf8] hover:underline"
+						>
+							Forgot password?
+						</a>
+					{/if}
 				</div>
 
 				<label class="flex items-start gap-2 text-[0.78125rem] leading-[1.172rem] text-[#8fa9c2]">
@@ -275,11 +302,7 @@
 					Your password is encrypted on this device and passed directly to your district when {brand}
 					reconnects. We never store it on our servers.
 				</p>
-				<p class="mt-2.5">
-					{brand} is independent and is not affiliated with Edupoint. If you have never used a StudentVUE
-					password, you may need to
-					<a href="/signup" class="font-medium text-[#4db6f5] hover:text-[#79cbf8]">create one</a>.
-				</p>
+				<p class="mt-2.5">{brand} is independent and is not affiliated with Edupoint.</p>
 				<p class="mt-[0.875rem] text-xs leading-[1.125rem] text-[#7d98b1]">
 					<a href="/privacy" class="text-[#4db6f5] hover:text-[#79cbf8]">Privacy</a>
 				</p>
