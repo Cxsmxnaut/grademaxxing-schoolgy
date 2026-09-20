@@ -90,7 +90,7 @@ function guardApiRequest(request: Request, url: URL) {
 		throw error(403, 'Cross-site API requests are not allowed.');
 	}
 
-	if (url.pathname === '/api/session' && request.method === 'POST') {
+	if (unsafeMethods.has(request.method) && request.method !== 'DELETE') {
 		const contentType = request.headers.get('content-type')?.split(';', 1)[0]?.trim();
 		if (contentType !== 'application/json') throw error(415, 'Expected an application/json body.');
 	}

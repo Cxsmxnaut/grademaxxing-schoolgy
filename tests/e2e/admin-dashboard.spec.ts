@@ -67,36 +67,66 @@ test('the private dashboard presents a responsive aggregate analytics workspace'
 			})
 		});
 	});
+	let savedStatus = '';
+	await page.route('**/api/admin/feedback', async (route) => {
+		if (!signedIn) return route.fulfill({ status: 401 });
+		if (route.request().method() === 'PATCH') {
+			savedStatus = ((await route.request().postDataJSON()) as { status: string }).status;
+			return route.fulfill({ status: 204 });
+		}
+		return route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				items: [
+					{
+						id: '0f143f0d-a034-48d6-8bb8-1d00c4a7e255',
+						kind: 'Feature idea',
+						message: 'Add a weekly grade summary',
+						pagePath: '/feedback',
+						appVersion: '0.2.0-beta.1',
+						status: 'new',
+						adminNote: '',
+						createdAt: '2026-09-19T08:00:00.000Z',
+						updatedAt: '2026-09-19T08:00:00.000Z'
+					}
+				]
+			})
+		});
+	});
 	await page.goto('/admin');
 	await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
 	await page.getByLabel('Password').fill('test-only-admin-password');
 	await page.getByRole('button', { name: 'Open dashboard' }).click();
-	await expect(
-		page.getByRole('heading', { name: /Good (morning|afternoon|evening), admin/ })
-	).toBeVisible();
-	await expect(page.locator('.hero-number-row > strong')).toHaveText('18');
-	await expect(page.getByRole('heading', { name: 'Track your growth' })).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'Daily activity' })).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'Recent activity' })).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'Protected users' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Product overview' })).toBeVisible();
+	await expect(page.getByText('Total students')).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Daily active students' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Protected user registry' })).toBeVisible();
 	await expect(page.getByText('protected-student-key-001')).toBeVisible();
 	await expect(page.getByText('protected-student-key-003')).toBeVisible();
-	await expect(page.getByText('Aggregate data only')).toBeVisible();
 	await page.getByPlaceholder('Search protected key').fill('002');
 	await expect(page.getByText('protected-student-key-002')).toBeVisible();
 	await expect(page.getByText('protected-student-key-001')).toHaveCount(0);
 	await page.getByPlaceholder('Search protected key').fill('');
+	await page.getByRole('button', { name: /Feedback/ }).click();
+	await expect(page.getByRole('heading', { name: 'Feedback inbox' })).toBeVisible();
+	await expect(page.getByText('Add a weekly grade summary')).toBeVisible();
+	await page.getByLabel('Status for Feature idea').selectOption('planned');
+	await expect.poll(() => savedStatus).toBe('planned');
+	await page.getByLabel('Private admin note').fill('Include in the next product pass.');
+	await page.getByRole('button', { name: 'Save note' }).click();
 
 	if (process.env.ADMIN_VISUAL_CAPTURE)
 		await page.screenshot({
 			path: '/tmp/grademaxxing-admin-reference-desktop.png',
 			fullPage: true
 		});
-	await page.getByRole('button', { name: '7d' }).click();
-	await expect(page.getByRole('button', { name: '7d' })).toHaveClass(/active/);
+	await page.getByRole('button', { name: 'Overview' }).click();
+	await page.getByRole('button', { name: '7 days' }).click();
+	await expect(page.getByRole('button', { name: '7 days' })).toHaveClass(/active/);
 
 	await page.setViewportSize({ width: 390, height: 844 });
-	await expect(page.locator('.hero-card')).toBeVisible();
+	await expect(page.locator('.metrics-grid')).toBeVisible();
 	const overflow = await page.evaluate(
 		() => document.documentElement.scrollWidth - window.innerWidth
 	);

@@ -244,17 +244,25 @@ test('empty records, feedback state, mobile navigation, and theme controls are c
 		page.getByRole('heading', { name: 'Your inbox is empty. Enjoy the silence.' })
 	).toBeVisible();
 	await page.goto('/feedback');
-	const report = page.getByRole('link', { name: 'Open report' });
-	await expect(report).toHaveAttribute('aria-disabled', 'true');
+	let submittedFeedback: { kind?: string; message?: string } = {};
+	await page.route('**/api/feedback', async (route) => {
+		submittedFeedback = (await route.request().postDataJSON()) as typeof submittedFeedback;
+		await route.fulfill({ status: 201, contentType: 'application/json', body: '{}' });
+	});
+	const report = page.getByRole('button', { name: 'Send feedback' });
+	await expect(report).toBeDisabled();
 	await page.getByRole('button', { name: /Feature idea/ }).click();
 	await expect(page.getByRole('button', { name: /Feature idea/ })).toHaveAttribute(
 		'aria-pressed',
 		'true'
 	);
 	await page.getByLabel('Your message').fill('The latest assignment is missing');
-	await expect(report).toHaveAttribute('href', /github\.com\/Cxsmxnaut\/grademaxxing\/issues\/new/);
-	await expect(report).toHaveAttribute('href', /Feature(?:%20|\+)idea/);
-	await expect(report).toHaveAttribute('href', /0\.2\.0-beta\.1/);
+	await report.click();
+	await expect(page.getByRole('heading', { name: 'Feedback sent' })).toBeVisible();
+	expect(submittedFeedback).toMatchObject({
+		kind: 'Feature idea',
+		message: 'The latest assignment is missing'
+	});
 
 	await page.getByRole('button', { name: 'Light' }).click();
 	await expect(page.locator('html')).not.toHaveClass(/dark/);
