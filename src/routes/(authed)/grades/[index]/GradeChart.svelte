@@ -1,5 +1,6 @@
 <script lang="ts">
 	import * as Chart from '$lib/components/ui/chart';
+	import { getGradeChartDomain } from '$lib/grades/grade-chart';
 	import {
 		calculateCourseGradePercentageFromCategories,
 		calculateCourseGradePercentageFromTotals,
@@ -114,15 +115,7 @@
 		return points;
 	});
 
-	const yDomain = $derived.by((): [number, number] => {
-		const values = chartData.map(({ grade }) => grade).filter(Number.isFinite);
-		if (!values.length) return [0, 100];
-		const minimum = Math.min(...values);
-		const maximum = Math.max(...values);
-		if (minimum === maximum) return [Math.min(0, minimum - 5), maximum + 5];
-		const padding = Math.max(2, (maximum - minimum) * 0.1);
-		return [Math.min(0, minimum - padding), maximum + padding];
-	});
+	const yDomain = $derived(getGradeChartDomain(chartData.map(({ grade }) => grade)));
 
 	const dayFormatter = new Intl.DateTimeFormat('en-US', {
 		weekday: 'long',
