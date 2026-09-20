@@ -83,7 +83,7 @@ const pages = [
 	['/documents', 'Documents'],
 	['/mail', 'Mail'],
 	['/studentinfo', 'Student information'],
-	['/feedback', 'Tell us what broke.']
+	['/feedback', 'What can we make better?']
 ] as const;
 
 for (const [path, heading] of pages) {
@@ -246,8 +246,14 @@ test('empty records, feedback state, mobile navigation, and theme controls are c
 	await page.goto('/feedback');
 	const report = page.getByRole('link', { name: 'Open report' });
 	await expect(report).toHaveAttribute('aria-disabled', 'true');
-	await page.getByLabel('Feedback message').fill('The latest assignment is missing');
+	await page.getByRole('button', { name: /Feature idea/ }).click();
+	await expect(page.getByRole('button', { name: /Feature idea/ })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
+	await page.getByLabel('Your message').fill('The latest assignment is missing');
 	await expect(report).toHaveAttribute('href', /github\.com\/Cxsmxnaut\/grademaxxing\/issues\/new/);
+	await expect(report).toHaveAttribute('href', /Feature(?:%20|\+)idea/);
 	await expect(report).toHaveAttribute('href', /0\.2\.0-beta\.1/);
 
 	await page.getByRole('button', { name: 'Light' }).click();
