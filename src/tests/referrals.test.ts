@@ -1,4 +1,4 @@
-import { protectedStudentUsageKey } from '$lib/server/analytics/usage';
+import { recordUniqueStudentUsage } from '$lib/server/analytics/usage';
 import {
 	createReferralPartner,
 	getReferralLeaderboard,
@@ -37,6 +37,17 @@ function referralPlatform() {
 					return this;
 				},
 				async run() {
+					if (query.includes('INSERT INTO unique_student_usage')) {
+						const studentKey = String(values[0]);
+						if (studentKeys.has(studentKey)) return { meta: { changes: 0 } };
+						studentKeys.add(studentKey);
+						return { meta: { changes: 1 } };
+					}
+					if (
+						query.includes('UPDATE unique_student_usage') ||
+						query.includes('INSERT INTO daily_student_activity')
+					)
+						return { meta: { changes: 1 } };
 					if (query.includes('INSERT INTO referral_partners')) {
 						partners.push({
 							id: String(values[0]),
@@ -92,9 +103,9 @@ describe('referrals', () => {
 		expect(validReferralIdentity('Ada', 'Lovelace', 'not-an-email')).toBe(false);
 	});
 
-	test('credits a protected D1 student only once after the student exists', async () => {
+	test('credits a fake StudentVUE signup only when D1 reports a new protected user', async () => {
 		process.env.GRADEMAXXING_ANALYTICS_HMAC_SECRET = 'test-only-analytics-secret';
-		const { platform, studentKeys, attributions } = referralPlatform();
+		const { platform, attributions } = referralPlatform();
 		const partner = await createReferralPartner(platform, {
 			firstName: 'Ada',
 			lastName: 'Lovelace',
@@ -105,11 +116,37 @@ describe('referrals', () => {
 		const domain = 'district.example.edu';
 		const username = 'new-student';
 		expect(await recordNewStudentReferral(platform, partner!.code, domain, username)).toBe(false);
-		studentKeys.add(protectedStudentUsageKey(domain, username, 'test-only-analytics-secret'));
+
+		const isNewStudent = await recordUniqueStudentUsage(platform, domain, username);
+		expect(isNewStudent).toBe(true);
 		expect(await recordNewStudentReferral(platform, partner!.code, domain, username)).toBe(true);
+
+		// A later login is not new, and the unique attribution constraint is a second guard.
+		expect(await recordUniqueStudentUsage(platform, domain, username)).toBe(false);
 		expect(await recordNewStudentReferral(platform, partner!.code, domain, username)).toBe(false);
 		expect(attributions).toHaveLength(1);
 		const leaderboard = await getReferralLeaderboard(platform);
 		expect(leaderboard?.[0]).toMatchObject({ firstName: 'Ada', referrals: 1 });
+	});
+
+	test('does not credit a referrer when an existing protected user later opens the link', async () => {
+		process.env.GRADEMAXXING_ANALYTICS_HMAC_SECRET = 'test-only-analytics-secret';
+		const { platform, attributions } = referralPlatform();
+		const partner = await createReferralPartner(platform, {
+			firstName: 'Maya',
+			lastName: 'Chen',
+			email: 'maya@example.com'
+		});
+		const domain = 'district.example.edu';
+		const username = 'existing-student';
+
+		expect(await recordUniqueStudentUsage(platform, domain, username)).toBe(true);
+		const isNewAfterOpeningReferral = await recordUniqueStudentUsage(platform, domain, username);
+		expect(isNewAfterOpeningReferral).toBe(false);
+		// This mirrors the session route: referral recording is skipped unless the insert was new.
+		if (isNewAfterOpeningReferral)
+			await recordNewStudentReferral(platform, partner!.code, domain, username);
+
+		expect(attributions).toHaveLength(0);
 	});
 });

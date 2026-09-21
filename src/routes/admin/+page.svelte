@@ -5,6 +5,7 @@
 	import DownloadIcon from '@lucide/svelte/icons/download';
 	import InboxIcon from '@lucide/svelte/icons/inbox';
 	import LockKeyholeIcon from '@lucide/svelte/icons/lock-keyhole';
+	import LinkIcon from '@lucide/svelte/icons/link';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import MessageSquareIcon from '@lucide/svelte/icons/message-square';
 	import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
@@ -13,6 +14,7 @@
 	import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
 	import SparklesIcon from '@lucide/svelte/icons/sparkles';
 	import TrendingUpIcon from '@lucide/svelte/icons/trending-up';
+	import TrophyIcon from '@lucide/svelte/icons/trophy';
 	import UsersIcon from '@lucide/svelte/icons/users';
 	import UserPlusIcon from '@lucide/svelte/icons/user-plus';
 	import { onMount } from 'svelte';
@@ -95,6 +97,7 @@
 	let referralLastName = $state('');
 	let referralEmail = $state('');
 	let creatingReferrer = $state(false);
+	let loadingReferrals = $state(false);
 	let referralMessage = $state<string>();
 	let copiedReferralCode = $state<string>();
 	let feedbackFilter = $state<'all' | FeedbackStatus>('all');
@@ -129,6 +132,9 @@
 	);
 	let peakDaily = $derived(
 		Math.max(...(summary?.dailyUsage.map((day) => day.activeStudents) ?? []), 1)
+	);
+	let totalReferrals = $derived(
+		referralPartners.reduce((sum, partner) => sum + partner.referrals, 0)
 	);
 
 	async function loadWorkspace(nextRange = rangeDays) {
@@ -191,36 +197,49 @@
 	async function openReferrals() {
 		view = 'referrals';
 		referralMessage = undefined;
-		const response = await fetch('/api/admin/referrals', { cache: 'no-store' });
-		if (response.ok)
-			referralPartners = ((await response.json()) as { partners: ReferralPartner[] }).partners;
-		else referralMessage = await responseMessage(response, 'Unable to load referrals.');
+		loadingReferrals = true;
+		try {
+			const response = await fetch('/api/admin/referrals', { cache: 'no-store' });
+			if (response.ok)
+				referralPartners = ((await response.json()) as { partners: ReferralPartner[] }).partners;
+			else referralMessage = await responseMessage(response, 'Unable to load referrals.');
+		} catch {
+			referralMessage = 'Unable to load referrals while offline.';
+		} finally {
+			loadingReferrals = false;
+		}
 	}
 
 	async function createReferrer(event: SubmitEvent) {
 		event.preventDefault();
 		if (creatingReferrer) return;
 		creatingReferrer = true;
-		const response = await fetch('/api/admin/referrals', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				firstName: referralFirstName,
-				lastName: referralLastName,
-				email: referralEmail
-			})
-		});
-		const result = await response.json().catch(() => ({ message: 'Unable to create referrer.' }));
-		creatingReferrer = false;
-		if (!response.ok) {
-			referralMessage = result.message;
-			return;
+		referralMessage = undefined;
+		try {
+			const response = await fetch('/api/admin/referrals', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					firstName: referralFirstName,
+					lastName: referralLastName,
+					email: referralEmail
+				})
+			});
+			const result = await response.json().catch(() => ({ message: 'Unable to create referrer.' }));
+			if (!response.ok) {
+				referralMessage = result.message;
+				return;
+			}
+			referralFirstName = '';
+			referralLastName = '';
+			referralEmail = '';
+			await openReferrals();
+			referralMessage = `${result.partner.firstName}'s referral link is ready.`;
+		} catch {
+			referralMessage = 'Unable to create a referral link while offline.';
+		} finally {
+			creatingReferrer = false;
 		}
-		referralFirstName = '';
-		referralLastName = '';
-		referralEmail = '';
-		await openReferrals();
-		referralMessage = `${result.partner.firstName}'s referral link is ready.`;
 	}
 
 	function referralUrl(code: string) {
@@ -231,11 +250,15 @@
 		return `${origin}/refer/${code}`;
 	}
 	async function copyReferralLink(code: string) {
-		await navigator.clipboard.writeText(referralUrl(code));
-		copiedReferralCode = code;
-		window.setTimeout(() => {
-			if (copiedReferralCode === code) copiedReferralCode = undefined;
-		}, 1500);
+		try {
+			await navigator.clipboard.writeText(referralUrl(code));
+			copiedReferralCode = code;
+			window.setTimeout(() => {
+				if (copiedReferralCode === code) copiedReferralCode = undefined;
+			}, 1500);
+		} catch {
+			referralMessage = 'Copy failed. Open the link in a new tab and copy it from the address bar.';
+		}
 	}
 
 	async function saveFeedback(item: FeedbackItem, nextStatus = item.status, publishReply = false) {
@@ -470,47 +493,72 @@
 					</div>
 				</section>
 			{:else if view === 'referrals'}
-				<section class="page-heading">
+				<section class="page-heading referral-heading">
 					<div>
 						<p>Growth</p>
 						<h1>Referral leaderboard</h1>
-						<span>Only brand-new protected student keys count.</span>
+						<span>Create private links and track verified, first-time students.</span>
 					</div>
+					<div class="verified-rule"><ShieldCheckIcon size={16} /> New users only</div>
 				</section>
 				<section class="referral-metrics" aria-label="Referral metrics">
-					<article><span>Referrers</span><strong>{referralPartners.length}</strong></article>
 					<article>
-						<span>New students referred</span><strong
-							>{referralPartners.reduce((sum, partner) => sum + partner.referrals, 0)}</strong
-						>
+						<span class="metric-icon violet"><UsersIcon /></span>
+						<div><span>Referrers</span><strong>{referralPartners.length}</strong></div>
 					</article>
 					<article>
-						<span>Active links</span><strong
-							>{referralPartners.filter((partner) => partner.active).length}</strong
-						>
+						<span class="metric-icon green"><UserPlusIcon /></span>
+						<div><span>Verified referrals</span><strong>{totalReferrals}</strong></div>
+					</article>
+					<article>
+						<span class="metric-icon blue"><LinkIcon /></span>
+						<div>
+							<span>Active links</span><strong
+								>{referralPartners.filter((partner) => partner.active).length}</strong
+							>
+						</div>
 					</article>
 				</section>
 				<div class="referral-grid">
 					<section class="panel referral-create">
-						<div class="referral-icon"><UserPlusIcon size={20} /></div>
-						<h2>Generate a referrer</h2>
-						<p>Create a unique link for someone you trust.</p>
+						<div class="referral-card-heading">
+							<div class="referral-icon"><UserPlusIcon size={20} /></div>
+							<div>
+								<p>New partner</p>
+								<h2>Generate a referral link</h2>
+							</div>
+						</div>
+						<p class="referral-explainer">
+							Add someone you trust. Their name and email stay private in this dashboard.
+						</p>
 						<form onsubmit={createReferrer}>
 							<label
-								>First name<input bind:value={referralFirstName} required maxlength="80" /></label
+								>First name<input
+									bind:value={referralFirstName}
+									required
+									maxlength="80"
+									placeholder="Maya"
+								/></label
 							>
-							<label>Last name<input bind:value={referralLastName} required maxlength="80" /></label
+							<label
+								>Last name<input
+									bind:value={referralLastName}
+									required
+									maxlength="80"
+									placeholder="Chen"
+								/></label
 							>
 							<label class="full"
-								>Email<input
+								>Email address<input
 									bind:value={referralEmail}
 									type="email"
 									required
 									maxlength="254"
+									placeholder="maya@example.com"
 								/></label
 							>
 							<button class="primary-button full" disabled={creatingReferrer}
-								>{creatingReferrer ? 'Creating…' : 'Generate referral link'}</button
+								><LinkIcon size={16} />{creatingReferrer ? 'Creating…' : 'Generate link'}</button
 							>
 						</form>
 						{#if referralMessage}<p class="referral-message" role="status">
@@ -520,29 +568,46 @@
 					<section class="panel referral-leaderboard">
 						<div class="panel-heading">
 							<div>
-								<p>Ranked by new students</p>
+								<p><TrophyIcon size={14} /> Ranked by verified new students</p>
 								<h2>Leaderboard</h2>
 							</div>
 						</div>
-						<div class="table-wrap">
+						<div class="referral-rule">
+							<ShieldCheckIcon size={17} />
+							<span
+								>A referral counts after a successful StudentVUE login only when its protected
+								student key is not already in D1.</span
+							>
+						</div>
+						<div class="table-wrap" aria-busy={loadingReferrals}>
 							<table>
 								<thead><tr><th>Rank</th><th>Referrer</th><th>New users</th><th>Link</th></tr></thead
 								><tbody>
-									{#each referralPartners as partner, index (partner.id)}<tr
-											><td>{index + 1}</td><td
-												><strong>{partner.firstName} {partner.lastName}</strong><small
-													>{partner.email}</small
-												></td
-											><td><strong>{partner.referrals}</strong></td><td
-												><button
-													class="copy-referral"
-													onclick={() => copyReferralLink(partner.code)}
-													>{copiedReferralCode === partner.code ? 'Copied' : 'Copy link'}
-													<CopyIcon size={13} /></button
-												></td
-											></tr
+									{#if loadingReferrals}<tr
+											><td colspan="4" class="empty-cell">Loading referrals…</td></tr
 										>
-									{:else}<tr><td colspan="4" class="empty-cell">No referrers yet.</td></tr>{/each}
+									{:else}{#each referralPartners as partner, index (partner.id)}<tr
+												><td
+													><span class:top-rank={index < 3} class="rank-badge">{index + 1}</span
+													></td
+												><td
+													><strong>{partner.firstName} {partner.lastName}</strong><small
+														>{partner.email}</small
+													><code>{partner.code}</code></td
+												><td><strong>{partner.referrals}</strong></td><td
+													><button
+														class="copy-referral"
+														onclick={() => copyReferralLink(partner.code)}
+														>{copiedReferralCode === partner.code ? 'Copied' : 'Copy link'}
+														<CopyIcon size={13} /></button
+													></td
+												></tr
+											>
+										{:else}<tr
+												><td colspan="4" class="empty-cell"
+													>No referrers yet. Generate the first link to get started.</td
+												></tr
+											>{/each}{/if}
 								</tbody>
 							</table>
 						</div>

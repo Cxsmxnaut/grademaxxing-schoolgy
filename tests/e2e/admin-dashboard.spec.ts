@@ -101,26 +101,57 @@ test('the private dashboard presents a responsive aggregate analytics workspace'
 			})
 		});
 	});
+	const referralPartners: Array<{
+		id: string;
+		code: string;
+		firstName: string;
+		lastName: string;
+		email: string;
+		createdAt: string;
+		active: boolean;
+		referrals: number;
+		lastReferralAt: string | null;
+	}> = [
+		{
+			id: 'partner-1',
+			code: 'maya-a1b2c3d4',
+			firstName: 'Maya',
+			lastName: 'Chen',
+			email: 'maya@example.com',
+			createdAt: '2026-09-19T08:00:00.000Z',
+			active: true,
+			referrals: 5,
+			lastReferralAt: '2026-09-20T08:00:00.000Z'
+		}
+	];
 	await page.route('**/api/admin/referrals', async (route) => {
 		if (!signedIn) return route.fulfill({ status: 401 });
+		if (route.request().method() === 'POST') {
+			const input = (await route.request().postDataJSON()) as {
+				firstName: string;
+				lastName: string;
+				email: string;
+			};
+			const partner = {
+				id: 'partner-2',
+				code: 'jordan-e5f6a7b8',
+				...input,
+				createdAt: '2026-09-20T09:00:00.000Z',
+				active: true,
+				referrals: 0,
+				lastReferralAt: null
+			};
+			referralPartners.push(partner);
+			return route.fulfill({
+				status: 201,
+				contentType: 'application/json',
+				body: JSON.stringify({ partner })
+			});
+		}
 		return route.fulfill({
 			status: 200,
 			contentType: 'application/json',
-			body: JSON.stringify({
-				partners: [
-					{
-						id: 'partner-1',
-						code: 'maya-a1b2c3d4',
-						firstName: 'Maya',
-						lastName: 'Chen',
-						email: 'maya@example.com',
-						createdAt: '2026-09-19T08:00:00.000Z',
-						active: true,
-						referrals: 5,
-						lastReferralAt: '2026-09-20T08:00:00.000Z'
-					}
-				]
-			})
+			body: JSON.stringify({ partners: referralPartners })
 		});
 	});
 	await page.goto('/admin');
@@ -185,6 +216,29 @@ test('the private dashboard presents a responsive aggregate analytics workspace'
 	await expect(page.getByRole('heading', { name: 'Referral leaderboard' })).toBeVisible();
 	await expect(page.getByText('Maya Chen')).toBeVisible();
 	await expect(page.getByRole('cell', { name: '5' })).toBeVisible();
+	await page.getByLabel('First name').fill('Jordan');
+	await page.getByLabel('Last name').fill('Rivera');
+	await page.getByLabel('Email address').fill('jordan@example.com');
+	await page.getByRole('button', { name: 'Generate link' }).click();
+	await expect(page.getByText('Jordan Rivera')).toBeVisible();
+	await expect(page.getByRole('status')).toContainText("Jordan's referral link is ready");
+	await expect(page.getByText('2', { exact: true }).first()).toBeVisible();
+	if (process.env.ADMIN_VISUAL_CAPTURE)
+		await page.screenshot({
+			path: '/tmp/grademaxxing-admin-referrals-desktop.png',
+			fullPage: true
+		});
+	await page.setViewportSize({ width: 390, height: 844 });
+	const referralOverflow = await page.evaluate(
+		() => document.documentElement.scrollWidth - window.innerWidth
+	);
+	expect(referralOverflow).toBeLessThanOrEqual(1);
+	if (process.env.ADMIN_VISUAL_CAPTURE)
+		await page.screenshot({
+			path: '/tmp/grademaxxing-admin-referrals-mobile.png',
+			fullPage: true
+		});
+	await page.setViewportSize({ width: 1280, height: 720 });
 	await page.getByRole('button', { name: 'Overview' }).click();
 	await page.getByRole('button', { name: '7 days' }).click();
 	await expect(page.getByRole('button', { name: '7 days' })).toHaveClass(/active/);
