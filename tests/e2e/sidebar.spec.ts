@@ -176,6 +176,8 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	expect(refresh.height).toBe(48);
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Refresh data');
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Updated');
+	await expect(page.getByTestId('thinking-orb')).toBeVisible();
+	await expect(page.getByTestId('thinking-orb')).toHaveAttribute('data-state', 'breathing');
 	expect(utilities.y).toBeGreaterThanOrEqual(classes.y + classes.height);
 	expect(utilities.y + utilities.height).toBeLessThanOrEqual(footer.y);
 	expect(footer.x).toBe(0);
@@ -222,9 +224,11 @@ test('every sidebar action works and preserves a single active destination', asy
 	});
 	await page.getByTestId('sidebar-refresh').click();
 	await expect(page.getByTestId('thinking-orb')).toBeVisible();
+	await expect(page.getByTestId('thinking-orb')).toHaveAttribute('data-state', 'searching');
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Checking grades and records…');
 	await expect(page.getByTestId('sidebar-refresh')).toBeEnabled();
-	await expect(page.getByTestId('thinking-orb')).toHaveCount(0);
+	await expect(page.getByTestId('thinking-orb')).toBeVisible();
+	await expect(page.getByTestId('thinking-orb')).toHaveAttribute('data-state', 'breathing');
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Refresh data');
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Updated');
 	for (const resource of ['gradebook', 'attendance', 'documents', 'messages', 'student-info'])

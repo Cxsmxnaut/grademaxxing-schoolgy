@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { MODE_FRAMES, paintFrame, resolvePreset } from 'thinking-orbs/engine';
+	import { MODE_FRAMES, paintFrame, resolvePreset, type OrbState } from 'thinking-orbs/engine';
 	import { onMount } from 'svelte';
 
+	let { state = 'breathing' }: { state?: OrbState } = $props();
 	let canvas: HTMLCanvasElement;
 
 	onMount(() => {
@@ -11,7 +12,7 @@
 
 		canvas.width = Math.round(size * dpr);
 		canvas.height = Math.round(size * dpr);
-		const { mode, speed, opts } = resolvePreset('searching', size);
+		const { mode, speed, opts } = resolvePreset(state, size);
 		const frame = MODE_FRAMES[mode];
 		const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 		let animationFrame = 0;
@@ -68,5 +69,6 @@
 	bind:this={canvas}
 	class="size-5 shrink-0"
 	aria-hidden="true"
+	data-state={state}
 	data-testid="thinking-orb"
 ></canvas>

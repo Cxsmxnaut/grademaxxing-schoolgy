@@ -29,7 +29,6 @@
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import MedalIcon from '@lucide/svelte/icons/medal';
 	import PencilLineIcon from '@lucide/svelte/icons/pencil-line';
-	import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
 	import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
 	import UserCheckIcon from '@lucide/svelte/icons/user-check';
 	import { toast } from 'svelte-sonner';
@@ -299,11 +298,9 @@
 				data-testid="sidebar-refresh"
 			>
 				<span class="flex size-8 shrink-0 items-center justify-center">
-					{#if refreshingAll}
-						<ThinkingOrb />
-					{:else}
-						<RefreshCwIcon class="size-4" strokeWidth={1.75} />
-					{/if}
+					{#key refreshingAll}
+						<ThinkingOrb state={refreshingAll ? 'searching' : 'breathing'} />
+					{/key}
 				</span>
 				<span class="min-w-0 flex-1">
 					<span class="block text-[0.8125rem] leading-4 font-semibold"
