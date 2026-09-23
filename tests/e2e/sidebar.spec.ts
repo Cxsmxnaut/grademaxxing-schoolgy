@@ -154,7 +154,7 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 		const box = await row.boundingBox();
 		expect(box?.width).toBe(223);
 		expect(box?.height).toBe(32);
-		await expect(row).toHaveCSS('border-radius', '10px');
+		await expect(row).toHaveCSS('border-radius', '8px');
 	}
 
 	const privacy = await boundingBox(page, 'sidebar-privacy');
@@ -246,21 +246,18 @@ test('hover, keyboard focus, active-course, and light-mode states remain legible
 		'background-color',
 		'rgba(110, 168, 220, 0.12)'
 	);
-	await expect(activeCourse).toHaveCSS('background-color', 'rgb(17, 34, 50)');
+	await expect(activeCourse).toHaveCSS('background-color', 'rgba(110, 168, 220, 0.12)');
 	await expect(activeCourse).toHaveCSS('color', 'rgb(110, 168, 220)');
 
 	await page.getByRole('button', { name: 'Light', exact: true }).click();
 	await expect(page.locator('html')).not.toHaveClass(/dark/);
-	await expect(activeCourse).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+	await expect(activeCourse).toHaveCSS('background-color', 'rgba(10, 115, 178, 0.1)');
 	await expect(activeCourse).toHaveCSS('color', 'rgb(10, 115, 178)');
 	await expect(page.locator('[data-slot="sidebar-inner"]')).toHaveCSS(
 		'background-color',
 		'rgb(245, 249, 253)'
 	);
-	await expect(page.getByTestId('sidebar-privacy')).toHaveCSS(
-		'border-color',
-		'rgba(15, 28, 46, 0.09)'
-	);
+	await expect(page.getByTestId('sidebar-privacy')).toHaveCSS('border-top-width', '0px');
 });
 
 test('sidebar remains usable at short desktop heights and switches cleanly at the breakpoint', async ({

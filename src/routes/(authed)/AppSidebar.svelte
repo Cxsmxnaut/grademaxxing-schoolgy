@@ -232,9 +232,9 @@
 							<li>
 								<a
 									href={`/grades/${encodeURIComponent(course._CourseID)}`}
-									class="hover:bg-surface-raised hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring flex h-8 items-center gap-2 rounded-lg px-2 transition-colors outline-none focus-visible:ring-2 {page
+									class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring flex h-8 items-center gap-2 rounded-md px-2 transition-colors outline-none focus-visible:ring-2 {page
 										.url.pathname === `/grades/${encodeURIComponent(course._CourseID)}`
-										? 'bg-surface-raised text-sidebar-accent-foreground font-semibold shadow-sm'
+										? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold'
 										: 'text-muted-foreground'}"
 									aria-current={page.url.pathname ===
 									`/grades/${encodeURIComponent(course._CourseID)}`
@@ -268,7 +268,7 @@
 		>
 			{#if portalConnection.state === 'offline'}
 				<div
-					class="text-tertiary-foreground rounded-[0.5625rem] border border-amber-400/30 bg-amber-400/10 px-[0.6875rem] py-[0.5625rem] text-[0.71875rem] leading-[1.45]"
+					class="text-tertiary-foreground border-l-2 border-amber-400/60 px-2 py-1 text-[0.71875rem] leading-[1.45]"
 					role="status"
 					data-testid="portal-offline-indicator"
 				>
@@ -277,7 +277,7 @@
 			{/if}
 			<a
 				href="/privacy"
-				class="border-sidebar-border bg-surface-raised/55 text-tertiary-foreground hover:bg-surface-raised group flex items-start gap-2 rounded-xl border p-2.5 text-[0.6875rem] leading-[1.4] transition-colors"
+				class="text-tertiary-foreground hover:bg-sidebar-accent hover:text-foreground group flex items-start gap-2 rounded-md px-2 py-1.5 text-[0.6875rem] leading-[1.4] transition-colors"
 				data-testid="sidebar-privacy"
 			>
 				<ShieldCheckIcon class="text-success mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
@@ -291,7 +291,7 @@
 				type="button"
 				onclick={() => void refreshAll()}
 				disabled={refreshingAll}
-				class="border-sidebar-border bg-surface-raised/55 hover:bg-surface-raised flex min-h-10 w-full items-center gap-2 rounded-xl border px-3 text-[0.75rem] font-semibold shadow-sm transition-all hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-60"
+				class="hover:bg-sidebar-accent flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-[0.75rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
 				aria-busy={refreshingAll}
 				data-testid="sidebar-refresh"
 			>
@@ -315,17 +315,17 @@
 			</button>
 
 			<div
-				class="bg-surface-sunken grid grid-cols-2 gap-1 rounded-xl p-1"
+				class="border-sidebar-border grid grid-cols-2 border-y py-1"
 				aria-label="Color theme"
 				data-testid="sidebar-theme"
 			>
 				<button
 					type="button"
 					onclick={() => setMode('dark')}
-					class="flex h-7 items-center justify-center gap-[0.4375rem] rounded-lg text-xs font-semibold transition-all {mode.current ===
+					class="flex h-7 items-center justify-center gap-[0.4375rem] rounded-md text-xs font-semibold transition-colors {mode.current ===
 					'dark'
-						? 'bg-surface-raised text-foreground shadow-sm'
-						: 'text-muted-foreground hover:text-foreground'}"
+						? 'text-primary'
+						: 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'}"
 					aria-pressed={mode.current === 'dark'}
 				>
 					<MoonIcon class="size-[0.8125rem]" strokeWidth={1.5} /> Dark
@@ -333,10 +333,10 @@
 				<button
 					type="button"
 					onclick={() => setMode('light')}
-					class="flex h-7 items-center justify-center gap-[0.4375rem] rounded-lg text-xs font-semibold transition-all {mode.current ===
+					class="flex h-7 items-center justify-center gap-[0.4375rem] rounded-md text-xs font-semibold transition-colors {mode.current ===
 					'light'
-						? 'bg-surface-raised text-foreground shadow-sm'
-						: 'text-muted-foreground hover:text-foreground'}"
+						? 'text-primary'
+						: 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'}"
 					aria-pressed={mode.current === 'light'}
 				>
 					<SunIcon class="size-[0.8125rem]" strokeWidth={1.5} /> Light
