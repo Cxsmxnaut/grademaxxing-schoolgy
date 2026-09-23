@@ -328,3 +328,31 @@ test('sidebar remains usable at short desktop heights and switches cleanly at th
 	await expect(page.getByTestId('app-sidebar')).toBeVisible();
 	await expect(page.getByRole('navigation', { name: 'Mobile navigation' })).toBeHidden();
 });
+
+test('desktop sidebar persists while the main content pane scrolls', async ({ page }) => {
+	await page.setViewportSize({ width: 1024, height: 640 });
+	await page.goto('/grades');
+	await expect(page.getByTestId('sidebar-course')).toHaveCount(6);
+
+	const sidebarBefore = await boundingBox(page, 'app-sidebar');
+	const brandBefore = await boundingBox(page, 'sidebar-brand');
+	const content = page.getByTestId('app-content-scroll');
+	await expect(content).toHaveCSS('overflow-y', 'auto');
+
+	const scrollState = await content.evaluate((element) => {
+		element.scrollTop = Math.min(500, element.scrollHeight - element.clientHeight);
+		return {
+			scrollTop: element.scrollTop,
+			clientHeight: element.clientHeight,
+			scrollHeight: element.scrollHeight
+		};
+	});
+	expect(scrollState.scrollHeight).toBeGreaterThan(scrollState.clientHeight);
+	expect(scrollState.scrollTop).toBeGreaterThan(0);
+
+	const sidebarAfter = await boundingBox(page, 'app-sidebar');
+	const brandAfter = await boundingBox(page, 'sidebar-brand');
+	expect(sidebarAfter).toEqual(sidebarBefore);
+	expect(brandAfter).toEqual(brandBefore);
+	expect(sidebarAfter.y).toBe(0);
+});

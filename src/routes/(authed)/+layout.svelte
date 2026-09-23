@@ -252,10 +252,13 @@
 </script>
 
 <svelte:boundary>
-	<Sidebar.Provider>
+	<Sidebar.Provider class="md:h-svh md:overflow-hidden">
 		<AppSidebar />
 
-		<Sidebar.Inset class="min-w-0 pb-[3.75rem] md:pb-0">
+		<Sidebar.Inset
+			class="min-w-0 pb-[3.75rem] md:h-svh md:overflow-y-auto md:pb-0"
+			data-testid="app-content-scroll"
+		>
 			<ReconnectStudentVue />
 			<header
 				class="bg-card border-border/70 sticky top-0 z-30 flex h-[3.09375rem] shrink-0 items-center border-b px-4 md:hidden"
