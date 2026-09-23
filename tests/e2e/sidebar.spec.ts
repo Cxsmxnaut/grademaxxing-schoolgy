@@ -113,12 +113,17 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	expect(brand.height).toBe(48);
 
 	const logo = page.getByTestId('sidebar-brand').locator('img');
-	await expect(logo).toHaveCSS('width', '24px');
-	await expect(logo).toHaveCSS('height', '24px');
+	await expect(logo).toHaveCSS('width', '32px');
+	await expect(logo).toHaveCSS('height', '32px');
 	const wordmark = page.getByTestId('sidebar-brand').locator(':scope > span.flex-1');
 	await expect(wordmark).toHaveCSS('font-family', /^"Space Grotesk"/);
-	await expect(wordmark).toHaveCSS('font-size', '14px');
+	await expect(wordmark).toHaveCSS('font-size', '19px');
 	await expect(wordmark).toHaveCSS('font-weight', '700');
+	await expect(page.getByTestId('sidebar-brand')).toHaveCSS(
+		'background-color',
+		'rgba(0, 0, 0, 0)'
+	);
+	await expect(page.getByTestId('sidebar-brand').locator('svg')).toHaveCount(0);
 
 	const nav = await boundingBox(page, 'sidebar-primary-nav');
 	expect(nav.x).toBe(14);
@@ -258,8 +263,6 @@ test('hover, keyboard focus, and active-course states remain legible in dark mod
 
 	await page.mouse.move(800, 500);
 	await page.keyboard.press('Tab');
-	await expect(page.getByTestId('sidebar-brand')).toBeFocused();
-	await page.keyboard.press('Tab');
 	await expect(gradebook).toBeFocused();
 	await expect
 		.poll(() => gradebook.evaluate((element) => getComputedStyle(element).boxShadow))
@@ -279,7 +282,7 @@ test('hover, keyboard focus, and active-course states remain legible in dark mod
 	await expect(page.locator('html')).toHaveClass(/dark/);
 	await expect(activeCourse).toHaveCSS('background-color', 'rgba(110, 168, 220, 0.12)');
 	await expect(activeCourse).toHaveCSS('color', 'rgb(110, 168, 220)');
-	await expect(page.locator('[data-slot="sidebar-inner"]')).toHaveCSS(
+	await expect(page.getByTestId('app-sidebar')).toHaveCSS(
 		'background-color',
 		'rgb(11, 24, 34)'
 	);
@@ -307,19 +310,10 @@ test('sidebar remains usable at short desktop heights and switches cleanly at th
 	await expect(page.getByTestId('sidebar-refresh')).toBeVisible();
 	await expect(page.getByTestId('sidebar-brand')).toBeVisible();
 
-	await page.getByRole('button', { name: 'Toggle Sidebar' }).click();
-	await expect(page.locator('[data-slot="sidebar"][data-state]')).toHaveAttribute(
-		'data-state',
-		'collapsed'
-	);
+	await expect(page.getByRole('button', { name: 'Toggle Sidebar' })).toHaveCount(0);
 	await expect(page.getByTestId('sidebar-primary-nav')).toBeVisible();
-	await expect(page.getByTestId('sidebar-classes')).toBeHidden();
-	await expect(page.getByTestId('sidebar-utilities')).toBeHidden();
-	await page.getByRole('button', { name: 'Toggle Sidebar' }).click();
-	await expect(page.locator('[data-slot="sidebar"][data-state]')).toHaveAttribute(
-		'data-state',
-		'expanded'
-	);
+	await expect(page.getByTestId('sidebar-classes')).toBeVisible();
+	await expect(page.getByTestId('sidebar-utilities')).toBeVisible();
 
 	await page.setViewportSize({ width: 767, height: 640 });
 	await expect(page.getByTestId('app-sidebar')).toBeHidden();

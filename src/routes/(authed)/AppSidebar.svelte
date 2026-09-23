@@ -3,7 +3,7 @@
 	import { getRelativeTime } from '$lib/format/date-time';
 	import { removeCourseType } from '$lib/grades/course-name';
 	import { acc } from '$lib/account.svelte';
-	import { brand, brandName, releaseChannel } from '$lib/brand';
+	import { brandName, releaseChannel } from '$lib/brand';
 	import ThinkingOrb from '$lib/components/ThinkingOrb.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Spinner } from '$lib/components/ui/spinner';
@@ -23,7 +23,6 @@
 	import AppWindowMacIcon from '@lucide/svelte/icons/app-window-mac';
 	import ChartNoAxesCombinedIcon from '@lucide/svelte/icons/chart-no-axes-combined';
 	import CheckIcon from '@lucide/svelte/icons/check';
-	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import FolderOpenIcon from '@lucide/svelte/icons/folder-open';
 	import InboxIcon from '@lucide/svelte/icons/inbox';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
@@ -149,32 +148,28 @@
 	});
 </script>
 
-<Sidebar.Root collapsible="icon" class="border-sidebar-border/80" data-testid="app-sidebar">
+<Sidebar.Root
+	collapsible={sidebar.isMobile ? 'offcanvas' : 'none'}
+	class="border-sidebar-border/80 h-svh shrink-0 border-r"
+	data-testid="app-sidebar"
+>
 	<Sidebar.Header
-		class="border-b-0 px-3.5 pt-5 pb-0 group-data-[collapsible=icon]:p-2"
+		class="border-b-0 px-3.5 pt-5 pb-0"
 	>
-		<a
-			href="/grades"
-			class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring flex h-12 w-full items-center gap-2 rounded-lg px-2 transition-colors outline-none group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0 focus-visible:ring-2"
-			aria-label={`${brand} gradebook`}
+		<div
+			class="flex h-12 w-full items-start gap-[0.5625rem] px-2 pt-1"
 			data-testid="sidebar-brand"
 		>
-			<span class="bg-primary/10 flex size-8 shrink-0 items-center justify-center rounded-lg">
-				<img src="/grademaxxing-logo.png" class="size-6" alt="" />
-			</span>
+			<img src="/grademaxxing-logo.png" class="size-8 shrink-0" alt="" />
 			<span
-				class="flex min-w-0 flex-1 flex-col text-sm leading-4 font-bold tracking-[-0.02em] group-data-[collapsible=icon]:hidden"
+				class="flex min-w-0 flex-1 flex-col text-[1.1875rem] leading-5 font-bold tracking-[-0.01em]"
 				style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
 				><span>{brandName}</span><small
-					class="text-primary mt-0.5 text-[0.5625rem] leading-3 font-bold tracking-[0.12em] uppercase"
-					>{releaseChannel} workspace</small
+					class="text-muted-foreground mt-0.5 text-[0.625rem] leading-3 font-semibold tracking-[0.04em]"
+					>({releaseChannel})</small
 				></span
 			>
-			<ChevronRightIcon
-				class="text-muted-foreground size-4 group-data-[collapsible=icon]:hidden"
-				strokeWidth={1.75}
-			/>
-		</a>
+		</div>
 	</Sidebar.Header>
 
 	<Sidebar.Content
@@ -387,5 +382,4 @@
 			</button>
 		</div>
 	</Sidebar.Footer>
-	<Sidebar.Rail />
 </Sidebar.Root>
