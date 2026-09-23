@@ -167,10 +167,15 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	}
 
 	const privacy = await boundingBox(page, 'sidebar-privacy');
+	const refresh = await boundingBox(page, 'sidebar-refresh');
 	const utilities = await boundingBox(page, 'sidebar-utilities');
 	const footer = await boundingBox(page, 'sidebar-profile-footer');
 	expect(privacy.x).toBe(14);
 	expect(privacy.width).toBe(211);
+	expect(refresh.width).toBe(211);
+	expect(refresh.height).toBe(48);
+	await expect(page.getByTestId('sidebar-refresh')).toContainText('Refresh data');
+	await expect(page.getByTestId('sidebar-refresh')).toContainText('Updated');
 	expect(utilities.y).toBeGreaterThanOrEqual(classes.y + classes.height);
 	expect(utilities.y + utilities.height).toBeLessThanOrEqual(footer.y);
 	expect(footer.x).toBe(0);
@@ -209,6 +214,7 @@ test('every sidebar action works and preserves a single active destination', asy
 	const beforeRefresh = { ...requestCounts };
 	await page.getByTestId('sidebar-refresh').click();
 	await expect(page.getByTestId('sidebar-refresh')).toBeEnabled();
+	await expect(page.getByTestId('sidebar-refresh')).toContainText('Refresh data');
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Updated');
 	for (const resource of ['gradebook', 'attendance', 'documents', 'messages', 'student-info'])
 		await expect

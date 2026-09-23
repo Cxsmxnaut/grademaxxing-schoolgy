@@ -288,26 +288,43 @@
 				type="button"
 				onclick={() => void refreshAll()}
 				disabled={refreshingAll}
-				class="hover:bg-sidebar-accent flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-[0.75rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+				class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring flex min-h-12 w-full items-center gap-2.5 rounded-lg px-2 text-left transition-colors outline-none focus-visible:ring-2 disabled:cursor-wait disabled:opacity-70"
 				aria-busy={refreshingAll}
+				aria-label={refreshingAll
+					? 'Refreshing grades and records'
+					: portalConnection.state === 'offline'
+						? 'Retry StudentVUE connection'
+						: 'Refresh grades and records'}
 				data-testid="sidebar-refresh"
 			>
-				{#if lastSync !== undefined && !refreshingAll}
-					<CheckIcon class="size-3.5" strokeWidth={1.75} />
-				{:else}
-					<RefreshCwIcon class="size-3.5 {refreshingAll ? 'animate-spin' : ''}" strokeWidth={1.5} />
-				{/if}
-				<span class="flex-1 text-left"
-					>{refreshingAll
+				<span class="flex size-8 shrink-0 items-center justify-center">
+					<RefreshCwIcon
+						class="size-4 {refreshingAll ? 'animate-spin' : ''}"
+						strokeWidth={1.75}
+					/>
+				</span>
+				<span class="min-w-0 flex-1">
+					<span class="block text-[0.8125rem] leading-4 font-semibold"
+						>{refreshingAll
 						? 'Refreshing'
 						: portalConnection.state === 'offline'
-							? 'Retry now'
-							: 'Refresh'}</span
-				>
-				{#if lastSync !== undefined && !refreshingAll}
-					<span class="text-muted-foreground font-normal"
-						>Updated {getRelativeTime(new Date(lastSync))}</span
+							? 'Retry connection'
+							: 'Refresh data'}</span
 					>
+					<span
+						class="text-muted-foreground block truncate text-[0.6875rem] leading-4 font-normal"
+						aria-live="polite"
+						aria-atomic="true"
+					>
+						{refreshingAll
+							? 'Checking grades and records…'
+							: lastSync !== undefined
+								? `Updated ${getRelativeTime(new Date(lastSync))}`
+								: 'Grades and records'}
+					</span>
+				</span>
+				{#if lastSync !== undefined && !refreshingAll}
+					<CheckIcon class="text-success size-3.5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
 				{/if}
 			</button>
 
