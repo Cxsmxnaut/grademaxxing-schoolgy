@@ -50,11 +50,11 @@ test('the complete semantic palette resolves in light and dark modes', async ({ 
 	});
 	expect(dark).toMatchObject({
 		'--background': '#0b1218',
-		'--primary': '#04dfa7',
-		'--success': '#58cb91',
+		'--primary': '#6ea8dc',
+		'--success': '#04dfa7',
 		'--warning': '#e7bd62',
 		'--destructive': '#f08078',
-		'--grade-strong': '#58cb91'
+		'--grade-strong': '#04dfa7'
 	});
 	expect(light['--primary']).not.toBe(light['--success']);
 	expect(dark['--primary']).not.toBe(dark['--success']);

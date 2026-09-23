@@ -130,9 +130,9 @@
 						<svg viewBox="0 0 300 120" preserveAspectRatio="none">
 							<defs
 								><linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1"
-									><stop offset="0" stop-color="#04dfa7" stop-opacity="0.24" /><stop
+									><stop offset="0" stop-color="#6ea8dc" stop-opacity="0.24" /><stop
 										offset="1"
-										stop-color="#04dfa7"
+										stop-color="#6ea8dc"
 										stop-opacity="0"
 									/></linearGradient
 								></defs

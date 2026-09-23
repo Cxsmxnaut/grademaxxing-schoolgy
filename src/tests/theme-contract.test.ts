@@ -61,15 +61,15 @@ test('brand, status, and grade semantics remain visually distinct', () => {
 
 	expect(darkBlock).toContain('--background: #0b1218;');
 	expect(darkBlock).toContain('--card: #121d26;');
-	expect(darkBlock).toContain('--primary: #04dfa7;');
-	expect(darkBlock).toContain('--success: #58cb91;');
+	expect(darkBlock).toContain('--primary: #6ea8dc;');
+	expect(darkBlock).toContain('--success: #04dfa7;');
 	expect(darkBlock).toContain('--warning: #e7bd62;');
 	expect(darkBlock).toContain('--destructive: #f08078;');
-	expect(darkBlock).toContain('--grade-strong: #58cb91;');
-	expect(darkBlock).toContain('--chart: #04dfa7;');
+	expect(darkBlock).toContain('--grade-strong: #04dfa7;');
+	expect(darkBlock).toContain('--chart: #6ea8dc;');
 
 	expect(rootBlock).not.toContain('--success: #0a73b2;');
-	expect(darkBlock).not.toContain('--success: #04dfa7;');
+	expect(darkBlock).not.toContain('--success: #6ea8dc;');
 });
 
 test('named badge colors are not collapsed into the brand palette', () => {

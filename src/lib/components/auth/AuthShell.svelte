@@ -55,7 +55,7 @@
 	{/if}
 	<main
 		class="bg-background flex min-h-screen items-start justify-center overflow-y-auto px-4 py-6 sm:px-8 lg:items-center lg:px-10 lg:py-0"
-		style="background-image: radial-gradient(900px 520px at 85% -10%, rgba(4, 223, 167, 0.1), transparent 62%), radial-gradient(720px 440px at -12% 22%, rgba(39, 86, 136, 0.16), transparent 60%);"
+		style="background-image: radial-gradient(900px 520px at 85% -10%, rgba(110, 168, 220, 0.1), transparent 62%), radial-gradient(720px 440px at -12% 22%, rgba(39, 86, 136, 0.16), transparent 60%);"
 	>
 		{@render children()}
 	</main>

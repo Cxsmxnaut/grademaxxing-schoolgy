@@ -128,7 +128,7 @@
 	>
 	{#if !editing && selectedDistrict}
 		<div
-			class="flex h-12 items-center gap-2.5 rounded-[0.625rem] border border-[#04dfa7] bg-[#11342c] px-3.5 py-3 text-[0.90625rem] leading-[1.5] font-bold text-[#04dfa7]"
+			class="flex h-12 items-center gap-2.5 rounded-[0.625rem] border border-[#6ea8dc] bg-[#172a3a] px-3.5 py-3 text-[0.90625rem] leading-[1.5] font-bold text-[#6ea8dc]"
 		>
 			<span class="min-w-0 flex-1 truncate">
 				{selectedDistrict.name}

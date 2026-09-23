@@ -135,8 +135,8 @@ test('desktop sidebar matches the 240px reference geometry and visual tokens', a
 
 	const active = page.getByTestId('sidebar-nav-documents');
 	await expect(active).toHaveAttribute('aria-current', 'page');
-	await expect(active).toHaveCSS('color', 'rgb(4, 223, 167)');
-	await expect(active).toHaveCSS('background-color', 'rgba(4, 223, 167, 0.12)');
+	await expect(active).toHaveCSS('color', 'rgb(110, 168, 220)');
+	await expect(active).toHaveCSS('background-color', 'rgba(110, 168, 220, 0.12)');
 	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS('color', 'rgb(154, 170, 180)');
 
 	const classes = await boundingBox(page, 'sidebar-classes');
@@ -225,8 +225,8 @@ test('hover, keyboard focus, active-course, and light-mode states remain legible
 	const gradebook = page.getByTestId('sidebar-nav-grades');
 	await expect(gradebook).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 	await gradebook.hover();
-	await expect(gradebook).toHaveCSS('background-color', 'rgba(4, 223, 167, 0.12)');
-	await expect(gradebook).toHaveCSS('color', 'rgb(4, 223, 167)');
+	await expect(gradebook).toHaveCSS('background-color', 'rgba(110, 168, 220, 0.12)');
+	await expect(gradebook).toHaveCSS('color', 'rgb(110, 168, 220)');
 
 	await page.mouse.move(800, 500);
 	await page.keyboard.press('Tab');
@@ -243,10 +243,10 @@ test('hover, keyboard focus, active-course, and light-mode states remain legible
 	await expect(page.getByTestId('sidebar-nav-grades')).not.toHaveAttribute('aria-current', 'page');
 	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS(
 		'background-color',
-		'rgba(4, 223, 167, 0.12)'
+		'rgba(110, 168, 220, 0.12)'
 	);
-	await expect(activeCourse).toHaveCSS('background-color', 'rgba(4, 223, 167, 0.12)');
-	await expect(activeCourse).toHaveCSS('color', 'rgb(4, 223, 167)');
+	await expect(activeCourse).toHaveCSS('background-color', 'rgba(110, 168, 220, 0.12)');
+	await expect(activeCourse).toHaveCSS('color', 'rgb(110, 168, 220)');
 
 	await page.getByRole('button', { name: 'Light', exact: true }).click();
 	await expect(page.locator('html')).not.toHaveClass(/dark/);

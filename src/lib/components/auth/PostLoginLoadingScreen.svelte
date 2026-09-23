@@ -42,7 +42,7 @@
 		place-items: center;
 		overflow: hidden;
 		background:
-			radial-gradient(720px 460px at 50% 48%, rgba(4, 223, 167, 0.04), transparent 70%),
+			radial-gradient(720px 460px at 50% 48%, rgba(110, 168, 220, 0.04), transparent 70%),
 			radial-gradient(980px 620px at 82% -18%, rgba(39, 86, 136, 0.3), transparent 65%),
 			linear-gradient(145deg, #080f14, #0b1218 58%, #070d12);
 		color: #f1f5f7;
@@ -59,7 +59,7 @@
 		background: repeating-radial-gradient(
 			ellipse at 52% 48%,
 			transparent 0 92px,
-			rgba(4, 223, 167, 0.032) 112px 142px,
+			rgba(110, 168, 220, 0.032) 112px 142px,
 			transparent 166px 230px
 		);
 		filter: blur(12px);
@@ -102,8 +102,8 @@
 		width: 10px;
 		height: 10px;
 		border-radius: 999px;
-		background: #04dfa7;
-		box-shadow: 0 0 12px rgba(4, 223, 167, 0.2);
+		background: #6ea8dc;
+		box-shadow: 0 0 12px rgba(110, 168, 220, 0.2);
 		animation: loading-pulse 1.15s ease-in-out infinite;
 	}
 	.loading-dots span:nth-child(2) {
@@ -148,7 +148,7 @@
 		color: #c7d3d9;
 	}
 	.loading-steps li.complete {
-		color: #58cb91;
+		color: #04dfa7;
 	}
 	.loading-steps li span {
 		display: grid;
@@ -161,11 +161,11 @@
 		font-size: 10px;
 	}
 	.loading-steps li.active span {
-		border-color: #04dfa7;
-		color: #04dfa7;
+		border-color: #6ea8dc;
+		color: #6ea8dc;
 	}
 	.loading-steps li.complete span {
-		border-color: #58cb91;
+		border-color: #04dfa7;
 	}
 	.sr-only {
 		position: absolute;
