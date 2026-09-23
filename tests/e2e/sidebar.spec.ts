@@ -105,6 +105,7 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	expect(sidebar.y).toBe(0);
 	expect(sidebar.width).toBe(240);
 	expect(sidebar.height).toBe(900);
+	await expect(page.locator('[data-slot="sidebar-content"]')).toHaveCSS('overflow-y', 'hidden');
 
 	const brand = await boundingBox(page, 'sidebar-brand');
 	expect(brand.x).toBe(16);
@@ -311,6 +312,7 @@ test('sidebar remains usable at short desktop heights and switches cleanly at th
 	}));
 	expect(overflow.scrollHeight).toBeGreaterThanOrEqual(overflow.clientHeight);
 	expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth);
+	await expect(content).toHaveCSS('overflow-y', 'auto');
 	await expect(content).toHaveCSS('overscroll-behavior-y', 'none');
 	await page.getByTestId('sidebar-refresh').scrollIntoViewIfNeeded();
 	await expect(page.getByTestId('sidebar-refresh')).toBeVisible();
