@@ -311,6 +311,7 @@ test('sidebar remains usable at short desktop heights and switches cleanly at th
 	}));
 	expect(overflow.scrollHeight).toBeGreaterThanOrEqual(overflow.clientHeight);
 	expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth);
+	await expect(content).toHaveCSS('overscroll-behavior-y', 'none');
 	await page.getByTestId('sidebar-refresh').scrollIntoViewIfNeeded();
 	await expect(page.getByTestId('sidebar-refresh')).toBeVisible();
 	await expect(page.getByTestId('sidebar-brand')).toBeVisible();
@@ -338,9 +339,9 @@ test('desktop sidebar persists while the main content pane scrolls', async ({ pa
 	const brandBefore = await boundingBox(page, 'sidebar-brand');
 	const content = page.getByTestId('app-content-scroll');
 	await expect(content).toHaveCSS('overflow-y', 'auto');
-	await expect(content).toHaveCSS('overscroll-behavior-y', 'none');
-	await expect(page.locator('html')).toHaveCSS('overscroll-behavior-y', 'none');
-	await expect(page.locator('body')).toHaveCSS('overscroll-behavior-y', 'none');
+	await expect(content).toHaveCSS('overscroll-behavior-y', 'auto');
+	await expect(page.locator('html')).toHaveCSS('overscroll-behavior-y', 'auto');
+	await expect(page.locator('body')).toHaveCSS('overscroll-behavior-y', 'auto');
 
 	const scrollState = await content.evaluate((element) => {
 		element.scrollTop = Math.min(500, element.scrollHeight - element.clientHeight);

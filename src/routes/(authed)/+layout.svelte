@@ -256,7 +256,7 @@
 		<AppSidebar />
 
 		<Sidebar.Inset
-			class="min-w-0 overscroll-none pb-[3.75rem] md:h-svh md:overflow-y-auto md:pb-0"
+			class="min-w-0 pb-[3.75rem] md:h-svh md:overflow-y-auto md:pb-0"
 			data-testid="app-content-scroll"
 		>
 			<ReconnectStudentVue />

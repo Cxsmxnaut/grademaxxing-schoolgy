@@ -181,7 +181,7 @@
 		</div>
 	</Sidebar.Header>
 
-	<Sidebar.Content class="gap-0 px-4 pt-0 pb-2 group-data-[collapsible=icon]:p-2">
+	<Sidebar.Content class="gap-0 overscroll-none px-4 pt-0 pb-2 group-data-[collapsible=icon]:p-2">
 		<nav
 			aria-label="Primary navigation"
 			data-testid="sidebar-primary-nav"
