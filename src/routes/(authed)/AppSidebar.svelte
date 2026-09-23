@@ -297,7 +297,7 @@
 						: 'Refresh grades and records'}
 				data-testid="sidebar-refresh"
 			>
-				<span class="flex size-8 shrink-0 items-center justify-center">
+				<span class="flex size-10 shrink-0 items-center justify-center">
 					{#key refreshingAll}
 						<ThinkingOrb state={refreshingAll ? 'searching' : 'breathing'} />
 					{/key}

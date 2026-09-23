@@ -6,13 +6,14 @@
 	let canvas: HTMLCanvasElement;
 
 	onMount(() => {
-		const size = 20;
+		const size = 40;
+		const presetSize = 32;
 		const dpr = Math.min(2, window.devicePixelRatio || 1);
 		const context = canvas.getContext('2d')!;
 
 		canvas.width = Math.round(size * dpr);
 		canvas.height = Math.round(size * dpr);
-		const { mode, speed, opts } = resolvePreset(state, size);
+		const { mode, speed, opts } = resolvePreset(state, presetSize);
 		const frame = MODE_FRAMES[mode];
 		const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 		let animationFrame = 0;
@@ -67,7 +68,7 @@
 
 <canvas
 	bind:this={canvas}
-	class="size-5 shrink-0"
+	class="size-10 shrink-0"
 	aria-hidden="true"
 	data-state={state}
 	data-testid="thinking-orb"
