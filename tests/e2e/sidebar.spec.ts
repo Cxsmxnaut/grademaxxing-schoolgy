@@ -105,6 +105,11 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	expect(sidebar.y).toBe(0);
 	expect(sidebar.width).toBe(240);
 	expect(sidebar.height).toBe(900);
+	await expect(page.getByTestId('app-sidebar')).toHaveCSS('position', 'fixed');
+	await expect(page.getByTestId('app-sidebar')).toHaveCSS('overscroll-behavior-y', 'none');
+	const spacer = await boundingBox(page, 'sidebar-layout-spacer');
+	expect(spacer.x).toBe(0);
+	expect(spacer.width).toBe(240);
 	await expect(page.locator('[data-slot="sidebar-content"]')).toHaveCSS('overflow-y', 'hidden');
 
 	const brand = await boundingBox(page, 'sidebar-brand');
@@ -310,11 +315,10 @@ test('sidebar remains usable at short desktop heights and switches cleanly at th
 		clientWidth: element.clientWidth,
 		scrollWidth: element.scrollWidth
 	}));
-	expect(overflow.scrollHeight).toBeGreaterThanOrEqual(overflow.clientHeight);
+	expect(overflow.scrollHeight).toBeLessThanOrEqual(overflow.clientHeight);
 	expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth);
-	await expect(content).toHaveCSS('overflow-y', 'auto');
+	await expect(content).toHaveCSS('overflow-y', 'hidden');
 	await expect(content).toHaveCSS('overscroll-behavior-y', 'none');
-	await page.getByTestId('sidebar-refresh').scrollIntoViewIfNeeded();
 	await expect(page.getByTestId('sidebar-refresh')).toBeVisible();
 	await expect(page.getByTestId('sidebar-brand')).toBeVisible();
 
@@ -340,6 +344,8 @@ test('desktop sidebar persists while the main content pane scrolls', async ({ pa
 	const sidebarBefore = await boundingBox(page, 'app-sidebar');
 	const brandBefore = await boundingBox(page, 'sidebar-brand');
 	const content = page.getByTestId('app-content-scroll');
+	const contentBefore = await boundingBox(page, 'app-content-scroll');
+	expect(contentBefore.x).toBe(240);
 	await expect(content).toHaveCSS('overflow-y', 'auto');
 	await expect(content).toHaveCSS('overscroll-behavior-y', 'auto');
 	await expect(page.locator('html')).toHaveCSS('overscroll-behavior-y', 'auto');
@@ -355,6 +361,14 @@ test('desktop sidebar persists while the main content pane scrolls', async ({ pa
 	});
 	expect(scrollState.scrollHeight).toBeGreaterThan(scrollState.clientHeight);
 	expect(scrollState.scrollTop).toBeGreaterThan(0);
+
+	const sidebarContent = page.locator('[data-slot="sidebar-content"]');
+	const sidebarScrollTopBefore = await sidebarContent.evaluate((element) => element.scrollTop);
+	await page.mouse.move(120, 320);
+	await page.mouse.wheel(0, 500);
+	await expect
+		.poll(() => sidebarContent.evaluate((element) => element.scrollTop))
+		.toBe(sidebarScrollTopBefore);
 
 	const sidebarAfter = await boundingBox(page, 'app-sidebar');
 	const brandAfter = await boundingBox(page, 'sidebar-brand');

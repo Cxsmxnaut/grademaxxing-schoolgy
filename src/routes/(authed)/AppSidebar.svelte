@@ -163,13 +163,22 @@
 <!-- Hallmark · component: sidebar · genre: atmospheric · theme: existing Grademaxxing tokens
  states: default · hover · focus · active · disabled · loading · error · success
  pre-emit critique: P5 H5 E5 S5 R5 V5 -->
+<div
+	class="hidden w-(--sidebar-width) shrink-0 md:block"
+	aria-hidden="true"
+	data-testid="sidebar-layout-spacer"
+></div>
+
 <Sidebar.Root
 	collapsible={sidebar.isMobile ? 'offcanvas' : 'none'}
-	class="border-sidebar-border/80 h-svh shrink-0 border-r"
+	class="sidebar-shell border-sidebar-border/80 h-svh shrink-0 overflow-hidden overscroll-none border-r md:fixed md:inset-y-0 md:left-0 md:z-40"
 	data-testid="app-sidebar"
 >
-	<Sidebar.Header class="border-b-0 px-4 pt-5 pb-0">
-		<div class="flex h-12 w-full items-start gap-2 px-1 pt-1" data-testid="sidebar-brand">
+	<Sidebar.Header class="sidebar-header border-b-0 px-4 pt-5 pb-0">
+		<div
+			class="sidebar-brand flex h-12 w-full items-start gap-2 px-1 pt-1"
+			data-testid="sidebar-brand"
+		>
 			<img src="/grademaxxing-logo.png" class="size-8 shrink-0" alt="" />
 			<span
 				class="font-heading flex min-w-0 flex-1 flex-col text-xl leading-5 font-bold tracking-[-0.01em]"
@@ -190,9 +199,9 @@
 			class="group-data-[collapsible=icon]:w-8"
 		>
 			{#each navigationSections as section, sectionIndex (section)}
-				<div class:mt-4={sectionIndex > 0}>
+				<div class="sidebar-nav-section" class:mt-4={sectionIndex > 0}>
 					<h2
-						class="text-tertiary-foreground mb-1.5 h-4 px-2 font-mono text-[0.5625rem] leading-4 font-semibold tracking-[0.18em] uppercase"
+						class="sidebar-section-heading text-tertiary-foreground mb-1.5 h-4 px-2 font-mono text-[0.5625rem] leading-4 font-semibold tracking-[0.18em] uppercase"
 					>
 						{section}
 					</h2>
@@ -200,7 +209,7 @@
 						{#each navigation.filter((item) => item.section === section) as item (item.url)}
 							<Sidebar.MenuItem>
 								<Sidebar.MenuButton
-									class="text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground data-[active=true]:text-sidebar-accent-foreground h-9 gap-2.5 rounded-sm border-l-2 border-transparent px-3 text-sm font-medium transition-colors data-[active=true]:bg-transparent data-[active=true]:font-semibold!"
+									class="sidebar-nav-row text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground data-[active=true]:text-sidebar-accent-foreground h-9 gap-2.5 rounded-sm border-l-2 border-transparent px-3 text-sm font-medium transition-colors data-[active=true]:bg-transparent data-[active=true]:font-semibold!"
 									isActive={isRouteActive(item.url)}
 									tooltipContent={item.title}
 								>
@@ -224,13 +233,13 @@
 		</nav>
 
 		<nav
-			class="mt-5 group-data-[collapsible=icon]:hidden"
+			class="sidebar-classes-region mt-5 group-data-[collapsible=icon]:hidden"
 			aria-labelledby="classes-heading"
 			data-testid="sidebar-classes"
 		>
 			<h2
 				id="classes-heading"
-				class="text-tertiary-foreground mb-1.5 flex h-4 items-center px-2 font-mono text-[0.5625rem] font-semibold tracking-[0.18em] uppercase"
+				class="sidebar-section-heading text-tertiary-foreground mb-1.5 flex h-4 items-center px-2 font-mono text-[0.5625rem] font-semibold tracking-[0.18em] uppercase"
 			>
 				Classes
 			</h2>
@@ -242,7 +251,7 @@
 							<li>
 								<a
 									href={`/grades/${encodeURIComponent(course._CourseID)}`}
-									class="hover:bg-sidebar-accent/60 hover:text-foreground active:bg-sidebar-accent focus-visible:ring-sidebar-ring flex h-7 items-center gap-2.5 rounded-sm border-l-2 px-2 text-[0.8125rem] transition-colors outline-none focus-visible:ring-2 {page
+									class="sidebar-course-row hover:bg-sidebar-accent/60 hover:text-foreground active:bg-sidebar-accent focus-visible:ring-sidebar-ring flex h-7 items-center gap-2.5 rounded-sm border-l-2 px-2 text-[0.8125rem] transition-colors outline-none focus-visible:ring-2 {page
 										.url.pathname === `/grades/${encodeURIComponent(course._CourseID)}`
 										? 'text-sidebar-accent-foreground border-transparent font-semibold'
 										: 'text-muted-foreground border-transparent'}"
@@ -276,7 +285,7 @@
 		</nav>
 
 		<div
-			class="mt-auto flex flex-col gap-2 pt-3 group-data-[collapsible=icon]:hidden"
+			class="sidebar-utilities mt-auto flex flex-col gap-2 pt-3 group-data-[collapsible=icon]:hidden"
 			data-testid="sidebar-utilities"
 		>
 			{#if portalConnection.state === 'offline'}
@@ -344,7 +353,10 @@
 		</div>
 	</Sidebar.Content>
 
-	<Sidebar.Footer class="border-sidebar-border border-t p-2" data-testid="sidebar-profile-footer">
+	<Sidebar.Footer
+		class="sidebar-footer border-sidebar-border border-t p-2"
+		data-testid="sidebar-profile-footer"
+	>
 		<div class="flex items-center gap-1">
 			<a
 				href="/studentinfo"

@@ -237,8 +237,44 @@ html {
 }
 
 @media (min-width: 768px) and (max-height: 700px) {
-	.sidebar-scroll-region {
-		overflow-y: auto;
+	.sidebar-header {
+		padding-top: 0.625rem;
+	}
+
+	.sidebar-brand {
+		height: 2.5rem;
+		padding-top: 0;
+	}
+
+	.sidebar-nav-section.mt-4 {
+		margin-top: 0.5rem;
+	}
+
+	.sidebar-section-heading {
+		margin-bottom: 0.125rem;
+		height: 0.875rem;
+		line-height: 0.875rem;
+	}
+
+	.sidebar-nav-row {
+		height: 2rem;
+	}
+
+	.sidebar-classes-region {
+		margin-top: 0.625rem;
+	}
+
+	.sidebar-course-row {
+		height: 1.5rem;
+	}
+
+	.sidebar-utilities {
+		gap: 0.25rem;
+		padding-top: 0.25rem;
+	}
+
+	.sidebar-footer {
+		padding-block: 0.25rem;
 	}
 }
 
