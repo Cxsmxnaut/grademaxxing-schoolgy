@@ -215,12 +215,12 @@
 	<AuthShell promo>
 		<form
 			onsubmit={login}
-			class="min-h-[41.375rem] w-full max-w-[25rem] rounded-2xl border border-[rgba(228,238,248,0.08)] bg-[#0d2033] px-5 pt-[1.5625rem] pb-[0.9375rem] shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)] sm:min-h-[42.57rem] sm:p-9"
+			class="border-border bg-card min-h-[41.375rem] w-full max-w-[25rem] rounded-2xl border px-5 pt-[1.5625rem] pb-[0.9375rem] shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)] sm:min-h-[42.57rem] sm:p-9"
 		>
 			<AuthPanelHeader />
 
 			<h1
-				class="text-[1.4375rem] leading-[2.15625rem] font-bold tracking-[-0.01em] text-[#e4eef8]"
+				class="text-foreground text-[1.4375rem] leading-[2.15625rem] font-bold tracking-[-0.01em]"
 				style="font-family: 'Space Grotesk', sans-serif"
 			>
 				Sign in to {brand}
@@ -237,7 +237,7 @@
 				<div>
 					<label
 						for="username"
-						class="mb-1.5 block text-[0.78125rem] leading-[1.172rem] font-semibold text-[#8fa9c2]"
+						class="text-muted-foreground mb-1.5 block text-[0.78125rem] leading-[1.172rem] font-semibold"
 					>
 						StudentVUE email
 					</label>
@@ -246,7 +246,7 @@
 						type="text"
 						bind:value={username}
 						autocomplete="username"
-						class="h-[2.625rem] rounded-[0.5rem] border-[rgba(228,238,248,0.16)] bg-[#081522] px-3 py-[0.6875rem] text-sm text-[#e4eef8] shadow-none focus-visible:border-[#4db6f5] focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4db6f5]"
+						class="border-input bg-background text-foreground focus-visible:border-primary focus-visible:outline-primary h-[2.625rem] rounded-[0.5rem] px-3 py-[0.6875rem] text-sm shadow-none focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2"
 						disabled={!interactive}
 						required
 					/>
@@ -255,7 +255,7 @@
 				<div>
 					<label
 						for="password"
-						class="mb-1.5 block text-[0.78125rem] leading-[1.172rem] font-semibold text-[#8fa9c2]"
+						class="text-muted-foreground mb-1.5 block text-[0.78125rem] leading-[1.172rem] font-semibold"
 					>
 						StudentVUE password
 					</label>
@@ -264,7 +264,7 @@
 						type="password"
 						bind:value={password}
 						autocomplete="current-password"
-						class="h-[2.625rem] rounded-[0.5rem] border-[rgba(228,238,248,0.16)] bg-[#081522] px-3 py-[0.6875rem] text-sm text-[#e4eef8] shadow-none focus-visible:border-[#4db6f5] focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4db6f5]"
+						class="border-input bg-background text-foreground focus-visible:border-primary focus-visible:outline-primary h-[2.625rem] rounded-[0.5rem] px-3 py-[0.6875rem] text-sm shadow-none focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2"
 						disabled={!interactive}
 						required
 					/>
@@ -273,18 +273,20 @@
 							type="button"
 							onclick={() => (passwordResetOpen = true)}
 							disabled={!interactive}
-							class="mt-2 inline-block text-[0.78125rem] font-medium text-[#4db6f5] hover:text-[#79cbf8] hover:underline"
+							class="text-primary mt-2 inline-block text-[0.78125rem] font-medium hover:underline hover:brightness-110"
 						>
 							Forgot password?
 						</button>
 					{/if}
 				</div>
 
-				<label class="flex items-start gap-2 text-[0.78125rem] leading-[1.172rem] text-[#8fa9c2]">
-					<input type="checkbox" bind:checked={rememberMe} class="mt-0.5 size-4 accent-[#4db6f5]" />
+				<label
+					class="text-muted-foreground flex items-start gap-2 text-[0.78125rem] leading-[1.172rem]"
+				>
+					<input type="checkbox" bind:checked={rememberMe} class="accent-primary mt-0.5 size-4" />
 					<span>
 						Keep me signed in on this device
-						<span class="block text-xs text-[#7d98b1]"
+						<span class="text-tertiary-foreground block text-xs"
 							>Your password is encrypted locally and sent only over HTTPS when reconnecting.</span
 						>
 					</span>
@@ -292,21 +294,23 @@
 
 				<Button
 					type="submit"
-					class="mt-1.5 h-[2.6875rem] w-full rounded-[0.5rem] border border-[#4db6f5] bg-[#4db6f5] text-[0.90625rem] font-semibold text-[#06131f] shadow-none transition-none hover:brightness-[1.08]"
+					class="border-primary bg-primary text-primary-foreground mt-1.5 h-[2.6875rem] w-full rounded-[0.5rem] border text-[0.90625rem] font-semibold shadow-none transition-none hover:brightness-[1.08]"
 					disabled={!interactive || loggingIn}
 				>
 					{loggingIn ? 'Logging in…' : 'Log in'}
 				</Button>
 			</div>
 
-			<div class="mt-[1.125rem] text-center text-[0.8125rem] leading-[1.259375rem] text-[#8fa9c2]">
+			<div
+				class="text-muted-foreground mt-[1.125rem] text-center text-[0.8125rem] leading-[1.259375rem]"
+			>
 				<p>
 					Your password is encrypted on this device and passed directly to your district when {brand}
 					reconnects. We never store it on our servers.
 				</p>
 				<p class="mt-2.5">{brand} is independent and is not affiliated with Edupoint.</p>
-				<p class="mt-[0.875rem] text-xs leading-[1.125rem] text-[#7d98b1]">
-					<a href="/privacy" class="text-[#4db6f5] hover:text-[#79cbf8]">Privacy</a>
+				<p class="text-tertiary-foreground mt-[0.875rem] text-xs leading-[1.125rem]">
+					<a href="/privacy" class="text-primary hover:brightness-110">Privacy</a>
 				</p>
 			</div>
 		</form>
@@ -315,11 +319,11 @@
 	{#if studentVueForgotPasswordUrl}
 		<Dialog.Root bind:open={passwordResetOpen}>
 			<Dialog.Content
-				class="border-[#294258] bg-[#0d2033] text-[#e4eef8] shadow-2xl shadow-black/50 sm:max-w-md"
+				class="border-border bg-card text-card-foreground shadow-2xl shadow-black/50 sm:max-w-md"
 			>
 				<Dialog.Header>
 					<Dialog.Title>Before you go, check All Mail</Dialog.Title>
-					<Dialog.Description class="text-[#8fa9c2]">
+					<Dialog.Description class="text-muted-foreground">
 						Make sure to click <strong>All Mail</strong> in your school email. The reset message may not
 						appear in the main inbox.
 					</Dialog.Description>
@@ -327,14 +331,14 @@
 				<Dialog.Footer>
 					<Button
 						variant="outline"
-						class="border-[rgba(228,238,248,0.16)] bg-transparent text-[#e4eef8] hover:border-[#4db6f5] hover:bg-transparent hover:text-[#e4eef8]"
+						class="border-input text-foreground hover:border-primary hover:text-foreground bg-transparent hover:bg-transparent"
 						onclick={() => (passwordResetOpen = false)}>Not now</Button
 					>
 					<Button
 						href={studentVueForgotPasswordUrl}
 						target="_blank"
 						rel="noopener noreferrer"
-						class="bg-[#4db6f5] text-[#06131f] hover:bg-[#6fc4f7]"
+						class="bg-primary text-primary-foreground hover:brightness-110"
 						onclick={() => (passwordResetOpen = false)}
 					>
 						Open StudentVUE password help

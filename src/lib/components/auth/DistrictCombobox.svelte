@@ -123,19 +123,19 @@
 <div class="relative" onfocusout={closeAfterFocusLeaves}>
 	<label
 		for={editing ? 'district-search' : undefined}
-		class="mb-1.5 block text-[0.78125rem] leading-[1.172rem] font-semibold text-[#8fa9c2]"
+		class="text-muted-foreground mb-1.5 block text-[0.78125rem] leading-[1.172rem] font-semibold"
 		>School district</label
 	>
 	{#if !editing && selectedDistrict}
 		<div
-			class="flex h-12 items-center gap-2.5 rounded-[0.625rem] border border-[#4db6f5] bg-[rgba(77,182,245,0.13)] px-3.5 py-3 text-[0.90625rem] leading-[1.5] font-bold text-[#4db6f5]"
+			class="flex h-12 items-center gap-2.5 rounded-[0.625rem] border border-[#6ea8dc] bg-[#17263a] px-3.5 py-3 text-[0.90625rem] leading-[1.5] font-bold text-[#6ea8dc]"
 		>
 			<span class="min-w-0 flex-1 truncate">
 				{selectedDistrict.name}
 			</span>
 			<button
 				type="button"
-				class="shrink-0 text-[0.78125rem] leading-normal font-semibold text-[#8fa9c2] underline underline-offset-2 hover:text-[#e4eef8]"
+				class="shrink-0 text-[0.78125rem] leading-normal font-semibold text-[#9caec2] underline underline-offset-2 hover:text-[#f1f5f7]"
 				{disabled}
 				onclick={async () => {
 					editing = true;
@@ -150,7 +150,7 @@
 		</div>
 	{:else}
 		<div
-			class="flex h-12 items-center overflow-hidden rounded-lg border border-[rgba(228,238,248,0.16)] bg-[#081522] focus-within:border-[#4db6f5] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#4db6f5]"
+			class="border-input bg-background focus-within:border-primary focus-within:outline-primary flex h-12 items-center overflow-hidden rounded-lg border focus-within:outline-2 focus-within:outline-offset-2"
 		>
 			<input
 				id="district-search"
@@ -172,7 +172,7 @@
 				oninput={handleInput}
 				onfocus={() => (open = true)}
 				onkeydown={handleKeydown}
-				class="h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-[#e4eef8] outline-none placeholder:text-[#68839c]"
+				class="text-foreground placeholder:text-tertiary-foreground h-full min-w-0 flex-1 border-0 bg-transparent px-3 text-sm outline-none"
 			/>
 			{#if query}
 				<button
@@ -240,7 +240,7 @@
 						}`}
 					>
 						<span class="min-w-0 flex-1">
-							<span class="block truncate font-medium text-[#e4eef8]">{district.name}</span>
+							<span class="text-foreground block truncate font-medium">{district.name}</span>
 							<span class="block truncate text-xs text-[#7893ab]">{district.domain}</span>
 						</span>
 						<span class="shrink-0 text-xs text-[#91aac2]">{district.state}</span>

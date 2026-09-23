@@ -15,9 +15,10 @@
 		style="font-family: 'Space Grotesk', sans-serif"
 	>
 		<img src="/grademaxxing-logo.png" class="size-[2.125rem] shrink-0" alt="" />
-		<span class="flex min-w-0 items-baseline gap-1.5 whitespace-nowrap text-[#e4eef8]">
+		<span class="text-foreground flex min-w-0 items-baseline gap-1.5 whitespace-nowrap">
 			<span class="text-[1rem] sm:text-[1.1875rem]">{brandName}</span>
-			<small class="text-[0.6875rem] font-semibold tracking-[0.03em] text-[#8fa9c2] sm:text-xs"
+			<small
+				class="text-muted-foreground text-[0.6875rem] font-semibold tracking-[0.03em] sm:text-xs"
 				>({releaseChannel})</small
 			>
 		</span>
@@ -25,7 +26,7 @@
 	<Button
 		href={backHref}
 		variant="outline"
-		class="h-auto rounded-[0.4375rem] border-[rgba(228,238,248,0.16)] bg-transparent px-3 py-[0.4375rem] text-[0.78125rem] leading-[1.5] font-semibold text-[#8fa9c2] shadow-none hover:border-[#4db6f5] hover:bg-transparent hover:text-[#e4eef8]"
+		class="border-input text-muted-foreground hover:border-primary hover:text-foreground h-auto rounded-[0.4375rem] bg-transparent px-3 py-[0.4375rem] text-[0.78125rem] leading-[1.5] font-semibold shadow-none hover:bg-transparent"
 		><ArrowLeftIcon class="size-3.5" strokeWidth={1.5} /> Back</Button
 	>
 </header>

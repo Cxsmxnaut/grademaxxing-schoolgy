@@ -42,10 +42,10 @@
 		place-items: center;
 		overflow: hidden;
 		background:
-			radial-gradient(720px 460px at 50% 48%, rgba(77, 182, 245, 0.045), transparent 70%),
-			radial-gradient(980px 620px at 82% -18%, rgba(18, 55, 89, 0.34), transparent 65%),
-			linear-gradient(145deg, #071724, #081522 58%, #06131f);
-		color: #e4eef8;
+			radial-gradient(720px 460px at 50% 48%, rgba(110, 168, 220, 0.04), transparent 70%),
+			radial-gradient(980px 620px at 82% -18%, rgba(39, 86, 136, 0.3), transparent 65%),
+			linear-gradient(145deg, #071018, #0b1822 58%, #050c12);
+		color: #f1f5f7;
 		font-family: 'Instrument Sans', system-ui, sans-serif;
 	}
 	.post-login-loading::before,
@@ -59,7 +59,7 @@
 		background: repeating-radial-gradient(
 			ellipse at 52% 48%,
 			transparent 0 92px,
-			rgba(77, 182, 245, 0.036) 112px 142px,
+			rgba(110, 168, 220, 0.032) 112px 142px,
 			transparent 166px 230px
 		);
 		filter: blur(12px);
@@ -102,8 +102,8 @@
 		width: 10px;
 		height: 10px;
 		border-radius: 999px;
-		background: #4db6f5;
-		box-shadow: 0 0 12px rgba(77, 182, 245, 0.22);
+		background: #6ea8dc;
+		box-shadow: 0 0 12px rgba(110, 168, 220, 0.2);
 		animation: loading-pulse 1.15s ease-in-out infinite;
 	}
 	.loading-dots span:nth-child(2) {
@@ -116,12 +116,12 @@
 	}
 	.loading-content p {
 		margin: 0;
-		color: #9bb3ca;
+		color: #9caec2;
 		letter-spacing: -0.01em;
 	}
 	.loading-message {
 		margin-top: 17px !important;
-		color: #e4eef8 !important;
+		color: #f1f5f7 !important;
 		font-size: 18px;
 		font-weight: 700;
 	}
@@ -134,7 +134,7 @@
 		gap: 18px;
 		margin: 28px 0 0;
 		padding: 0;
-		color: #66819b;
+		color: #8195ab;
 		font-size: 12px;
 		font-weight: 650;
 		list-style: none;
@@ -145,27 +145,27 @@
 		gap: 7px;
 	}
 	.loading-steps li.active {
-		color: #b9d8ef;
+		color: #c7d3d9;
 	}
 	.loading-steps li.complete {
-		color: #65d397;
+		color: #04dfa7;
 	}
 	.loading-steps li span {
 		display: grid;
 		width: 20px;
 		height: 20px;
 		place-items: center;
-		border: 1px solid rgba(102, 129, 155, 0.55);
+		border: 1px solid rgba(127, 146, 158, 0.55);
 		border-radius: 999px;
 		font-family: 'IBM Plex Mono', monospace;
 		font-size: 10px;
 	}
 	.loading-steps li.active span {
-		border-color: #4db6f5;
-		color: #4db6f5;
+		border-color: #6ea8dc;
+		color: #6ea8dc;
 	}
 	.loading-steps li.complete span {
-		border-color: #65d397;
+		border-color: #04dfa7;
 	}
 	.sr-only {
 		position: absolute;

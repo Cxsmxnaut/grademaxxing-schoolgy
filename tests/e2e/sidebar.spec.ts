@@ -137,9 +137,9 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 
 	const active = page.getByTestId('sidebar-nav-documents');
 	await expect(active).toHaveAttribute('aria-current', 'page');
-	await expect(active).toHaveCSS('color', 'rgb(6, 19, 31)');
-	await expect(active).toHaveCSS('background-color', 'rgb(77, 182, 245)');
-	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS('color', 'rgb(143, 169, 194)');
+	await expect(active).toHaveCSS('color', 'rgb(11, 24, 34)');
+	await expect(active).toHaveCSS('background-color', 'rgb(110, 168, 220)');
+	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS('color', 'rgb(156, 174, 194)');
 
 	const classes = await boundingBox(page, 'sidebar-classes');
 	expect(classes.x).toBe(12);
@@ -227,8 +227,8 @@ test('hover, keyboard focus, active-course, and light-mode states remain legible
 	const gradebook = page.getByTestId('sidebar-nav-grades');
 	await expect(gradebook).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 	await gradebook.hover();
-	await expect(gradebook).toHaveCSS('background-color', 'rgba(77, 182, 245, 0.13)');
-	await expect(gradebook).toHaveCSS('color', 'rgb(77, 182, 245)');
+	await expect(gradebook).toHaveCSS('background-color', 'rgba(110, 168, 220, 0.12)');
+	await expect(gradebook).toHaveCSS('color', 'rgb(110, 168, 220)');
 
 	await page.mouse.move(800, 500);
 	await page.keyboard.press('Tab');
@@ -245,10 +245,10 @@ test('hover, keyboard focus, active-course, and light-mode states remain legible
 	await expect(page.getByTestId('sidebar-nav-grades')).not.toHaveAttribute('aria-current', 'page');
 	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS(
 		'background-color',
-		'rgb(77, 182, 245)'
+		'rgb(110, 168, 220)'
 	);
-	await expect(activeCourse).toHaveCSS('background-color', 'rgb(13, 32, 51)');
-	await expect(activeCourse).toHaveCSS('color', 'rgb(77, 182, 245)');
+	await expect(activeCourse).toHaveCSS('background-color', 'rgb(17, 34, 50)');
+	await expect(activeCourse).toHaveCSS('color', 'rgb(110, 168, 220)');
 
 	await page.getByRole('button', { name: 'Light', exact: true }).click();
 	await expect(page.locator('html')).not.toHaveClass(/dark/);

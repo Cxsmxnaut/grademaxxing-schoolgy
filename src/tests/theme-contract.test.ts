@@ -59,17 +59,17 @@ test('brand, status, and grade semantics remain visually distinct', () => {
 	expect(rootBlock).toContain('--grade-strong: #177a52;');
 	expect(rootBlock).toContain('--chart: #0a73b2;');
 
-	expect(darkBlock).toContain('--background: #081522;');
-	expect(darkBlock).toContain('--card: #0d2033;');
-	expect(darkBlock).toContain('--primary: #4db6f5;');
-	expect(darkBlock).toContain('--success: #5fc98e;');
-	expect(darkBlock).toContain('--warning: #e0b95c;');
-	expect(darkBlock).toContain('--destructive: #e57373;');
-	expect(darkBlock).toContain('--grade-strong: #5fc98e;');
-	expect(darkBlock).toContain('--chart: #4db6f5;');
+	expect(darkBlock).toContain('--background: #0b1822;');
+	expect(darkBlock).toContain('--card: #112232;');
+	expect(darkBlock).toContain('--primary: #6ea8dc;');
+	expect(darkBlock).toContain('--success: #04dfa7;');
+	expect(darkBlock).toContain('--warning: #e7bd62;');
+	expect(darkBlock).toContain('--destructive: #f08078;');
+	expect(darkBlock).toContain('--grade-strong: #04dfa7;');
+	expect(darkBlock).toContain('--chart: #6ea8dc;');
 
 	expect(rootBlock).not.toContain('--success: #0a73b2;');
-	expect(darkBlock).not.toContain('--success: #4db6f5;');
+	expect(darkBlock).not.toContain('--success: #6ea8dc;');
 });
 
 test('named badge colors are not collapsed into the brand palette', () => {

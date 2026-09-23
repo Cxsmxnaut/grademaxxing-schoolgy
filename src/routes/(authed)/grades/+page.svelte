@@ -157,7 +157,7 @@
 		const rankName = rank.current.name.replaceAll('&', '&amp;').replaceAll('<', '&lt;');
 		const appName = brand.replaceAll('&', '&amp;').replaceAll('<', '&lt;');
 		const rankLabel = rank.provisional ? 'Your provisional GPA rank is' : 'Your GPA rank is';
-		const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080"><rect width="1080" height="1080" rx="72" fill="#0d2033"/><path d="M0 760 Q270 680 540 760 T1080 760 V1080 H0Z" fill="#12395d"/><text x="80" y="120" fill="#e4eef8" font-family="Arial,sans-serif" font-size="48" font-weight="700">${appName}</text><path d="M540 250 675 340 630 560 540 650 450 560 405 340Z" fill="${color}" stroke="#e4eef8" stroke-width="12"/><text x="540" y="780" text-anchor="middle" fill="#8fa9c2" font-family="Arial,sans-serif" font-size="40">${rankLabel}</text><text x="540" y="880" text-anchor="middle" fill="${color}" font-family="Arial,sans-serif" font-size="96" font-weight="700">${rankName}</text><text x="540" y="975" text-anchor="middle" fill="#4db6f5" font-family="monospace" font-size="34">What’s your rank?</text></svg>`;
+		const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080"><rect width="1080" height="1080" rx="72" fill="#112232"/><path d="M0 760 Q270 680 540 760 T1080 760 V1080 H0Z" fill="#17263a"/><text x="80" y="120" fill="#f1f5f7" font-family="Arial,sans-serif" font-size="48" font-weight="700">${appName}</text><path d="M540 250 675 340 630 560 540 650 450 560 405 340Z" fill="${color}" stroke="#f1f5f7" stroke-width="12"/><text x="540" y="780" text-anchor="middle" fill="#9caec2" font-family="Arial,sans-serif" font-size="40">${rankLabel}</text><text x="540" y="880" text-anchor="middle" fill="${color}" font-family="Arial,sans-serif" font-size="96" font-weight="700">${rankName}</text><text x="540" y="975" text-anchor="middle" fill="#6ea8dc" font-family="monospace" font-size="34">What’s your rank?</text></svg>`;
 		const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
 		const anchor = document.createElement('a');
 		anchor.href = url;
@@ -484,7 +484,7 @@
 		{#if rank}
 			<div class="p-4">
 				<div
-					class="rank-card-preview relative overflow-hidden rounded-xl bg-[#081522] px-6 pt-5 pb-6 text-center"
+					class="rank-card-preview bg-background relative overflow-hidden rounded-xl px-6 pt-5 pb-6 text-center"
 				>
 					<div class="flex items-center gap-2 text-left">
 						<img src="/grademaxxing-logo.png" class="size-8" alt="" />
