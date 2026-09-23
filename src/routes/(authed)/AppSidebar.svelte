@@ -151,39 +151,40 @@
 	});
 </script>
 
-<Sidebar.Root
-	class="border-sidebar-border/80 shadow-[8px_0_32px_color-mix(in_srgb,var(--foreground)_4%,transparent)]"
-	data-testid="app-sidebar"
->
-	<Sidebar.Header class="relative overflow-hidden px-3 pt-3 pb-4">
-		<div
-			class="bg-primary/10 pointer-events-none absolute -top-16 -right-12 size-36 rounded-full blur-3xl"
-		></div>
+<Sidebar.Root collapsible="icon" class="border-sidebar-border/80" data-testid="app-sidebar">
+	<Sidebar.Header class="border-sidebar-border border-b p-2">
 		<a
 			href="/grades"
-			class="border-sidebar-border bg-surface-raised/60 hover:bg-surface-raised focus-visible:ring-sidebar-ring relative flex w-full items-center gap-2.5 rounded-2xl border p-2.5 shadow-sm transition-all outline-none hover:-translate-y-px hover:shadow-md focus-visible:ring-2"
+			class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring flex h-12 w-full items-center gap-2 rounded-lg px-2 transition-colors outline-none group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0 focus-visible:ring-2"
 			aria-label={`${brand} gradebook`}
 			data-testid="sidebar-brand"
 		>
-			<span class="bg-primary/10 flex size-10 shrink-0 items-center justify-center rounded-xl">
-				<img src="/grademaxxing-logo.png" class="size-7" alt="" />
+			<span class="bg-primary/10 flex size-8 shrink-0 items-center justify-center rounded-lg">
+				<img src="/grademaxxing-logo.png" class="size-6" alt="" />
 			</span>
 			<span
-				class="flex min-w-0 flex-1 flex-col text-[1.0625rem] leading-5 font-bold tracking-[-0.025em]"
+				class="flex min-w-0 flex-1 flex-col text-sm leading-4 font-bold tracking-[-0.02em] group-data-[collapsible=icon]:hidden"
 				style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
 				><span>{brandName}</span><small
 					class="text-primary mt-0.5 text-[0.5625rem] leading-3 font-bold tracking-[0.12em] uppercase"
 					>{releaseChannel} workspace</small
 				></span
 			>
-			<ChevronRightIcon class="text-muted-foreground size-4" strokeWidth={1.75} />
+			<ChevronRightIcon
+				class="text-muted-foreground size-4 group-data-[collapsible=icon]:hidden"
+				strokeWidth={1.75}
+			/>
 		</a>
 	</Sidebar.Header>
 
-	<Sidebar.Content class="gap-0 px-3 pb-3">
-		<nav aria-label="Primary navigation" data-testid="sidebar-primary-nav">
+	<Sidebar.Content class="gap-2 p-2">
+		<nav
+			aria-label="Primary navigation"
+			data-testid="sidebar-primary-nav"
+			class="group-data-[collapsible=icon]:w-8"
+		>
 			<p
-				class="text-tertiary-foreground mb-2 px-2 font-mono text-[0.625rem] font-semibold tracking-[0.16em] uppercase"
+				class="text-tertiary-foreground mb-1 flex h-7 items-center px-2 font-mono text-[0.625rem] font-semibold tracking-[0.14em] uppercase group-data-[collapsible=icon]:invisible"
 			>
 				Explore
 			</p>
@@ -191,8 +192,9 @@
 				{#each navigation as item (item.url)}
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton
-							class="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground h-10 gap-3 rounded-xl px-3 text-[0.8125rem] font-semibold transition-all data-[active=true]:font-semibold! data-[active=true]:shadow-md"
+							class="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground h-9 gap-3 rounded-md px-2 text-[0.8125rem] font-medium transition-colors data-[active=true]:font-semibold!"
 							isActive={isRouteActive(item.url)}
+							tooltipContent={item.title}
 						>
 							{#snippet child({ props })}
 								<a
@@ -201,11 +203,8 @@
 									data-testid={`sidebar-nav-${item.url.slice(1)}`}
 									{...props}
 								>
-									<span class="flex size-7 items-center justify-center rounded-lg bg-current/10"
-										><item.icon class="size-4" strokeWidth={1.75} /></span
-									>
+									<item.icon class="size-4" strokeWidth={1.75} />
 									<span class="flex-1">{item.title}</span>
-									<ChevronRightIcon class="size-3.5 opacity-55" strokeWidth={1.75} />
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
@@ -215,7 +214,7 @@
 		</nav>
 
 		<nav
-			class="bg-surface-sunken/65 border-sidebar-border mt-5 rounded-2xl border p-2"
+			class="border-sidebar-border mt-2 border-t pt-2 group-data-[collapsible=icon]:hidden"
 			aria-labelledby="classes-heading"
 			data-testid="sidebar-classes"
 		>
@@ -263,7 +262,10 @@
 			</svelte:boundary>
 		</nav>
 
-		<div class="mt-auto flex flex-col gap-2 pt-4" data-testid="sidebar-utilities">
+		<div
+			class="mt-auto flex flex-col gap-2 pt-3 group-data-[collapsible=icon]:hidden"
+			data-testid="sidebar-utilities"
+		>
 			{#if portalConnection.state === 'offline'}
 				<div
 					class="text-tertiary-foreground rounded-[0.5625rem] border border-amber-400/30 bg-amber-400/10 px-[0.6875rem] py-[0.5625rem] text-[0.71875rem] leading-[1.45]"
@@ -350,16 +352,11 @@
 		</div>
 	</Sidebar.Content>
 
-	<Sidebar.Footer
-		class="border-sidebar-border bg-surface-sunken/35 border-t p-2.5"
-		data-testid="sidebar-profile-footer"
-	>
-		<div
-			class="border-sidebar-border bg-surface-raised/65 flex items-center gap-1 rounded-2xl border p-1.5 shadow-sm"
-		>
+	<Sidebar.Footer class="border-sidebar-border border-t p-2" data-testid="sidebar-profile-footer">
+		<div class="flex items-center gap-1">
 			<a
 				href="/studentinfo"
-				class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring flex min-w-0 flex-1 items-center gap-2.5 rounded-xl p-1.5 transition-colors outline-none focus-visible:ring-2"
+				class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring flex h-11 min-w-0 flex-1 items-center gap-2.5 rounded-md px-2 transition-colors outline-none group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0 focus-visible:ring-2"
 				title={studentInfoState.data?.FormattedName ?? 'Student profile'}
 				data-testid="sidebar-profile"
 			>
@@ -367,17 +364,17 @@
 					<img
 						src="data:{studentInfoState.data.PhotoMimeType || 'image/png'};base64,{studentInfoState
 							.data.Photo}"
-						class="size-9 shrink-0 rounded-full object-cover"
+						class="size-8 shrink-0 rounded-md object-cover"
 						alt=""
 					/>
 				{:else}
 					<span
-						class="bg-sidebar-accent text-sidebar-accent-foreground flex size-9 shrink-0 items-center justify-center rounded-full font-bold"
+						class="bg-sidebar-accent text-sidebar-accent-foreground flex size-8 shrink-0 items-center justify-center rounded-md font-bold"
 					>
 						{profileName.charAt(0) || 'S'}
 					</span>
 				{/if}
-				<span class="min-w-0">
+				<span class="min-w-0 group-data-[collapsible=icon]:hidden">
 					<span class="block truncate text-sm font-bold">
 						{profileName}
 					</span>
@@ -393,7 +390,7 @@
 				<button
 					type="button"
 					onclick={installWebApp}
-					class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-lg outline-none focus-visible:ring-2"
+					class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md outline-none group-data-[collapsible=icon]:hidden focus-visible:ring-2"
 					title="Install web app"
 					aria-label="Install web app"
 				>
@@ -404,7 +401,7 @@
 			<button
 				type="button"
 				onclick={logOut}
-				class="text-muted-foreground hover:bg-destructive-soft hover:text-destructive focus-visible:ring-sidebar-ring flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors outline-none focus-visible:ring-2"
+				class="text-muted-foreground hover:bg-destructive-soft hover:text-destructive focus-visible:ring-sidebar-ring flex size-8 shrink-0 items-center justify-center rounded-md transition-colors outline-none group-data-[collapsible=icon]:hidden focus-visible:ring-2"
 				title="Log out"
 				aria-label="Log out"
 			>
@@ -412,4 +409,5 @@
 			</button>
 		</div>
 	</Sidebar.Footer>
+	<Sidebar.Rail />
 </Sidebar.Root>

@@ -107,44 +107,43 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	expect(sidebar.height).toBe(900);
 
 	const brand = await boundingBox(page, 'sidebar-brand');
-	expect(brand.x).toBe(12);
-	expect(brand.y).toBe(12);
-	expect(brand.width).toBe(215);
-	expect(brand.height).toBeGreaterThanOrEqual(60);
+	expect(brand.x).toBe(8);
+	expect(brand.y).toBe(8);
+	expect(brand.width).toBe(223);
+	expect(brand.height).toBe(48);
 
 	const logo = page.getByTestId('sidebar-brand').locator('img');
-	await expect(logo).toHaveCSS('width', '28px');
-	await expect(logo).toHaveCSS('height', '28px');
+	await expect(logo).toHaveCSS('width', '24px');
+	await expect(logo).toHaveCSS('height', '24px');
 	const wordmark = page.getByTestId('sidebar-brand').locator(':scope > span.flex-1');
 	await expect(wordmark).toHaveCSS('font-family', /^"Space Grotesk"/);
-	await expect(wordmark).toHaveCSS('font-size', '17px');
+	await expect(wordmark).toHaveCSS('font-size', '14px');
 	await expect(wordmark).toHaveCSS('font-weight', '700');
 
 	const nav = await boundingBox(page, 'sidebar-primary-nav');
-	expect(nav.x).toBe(12);
+	expect(nav.x).toBe(8);
 	expect(nav.y).toBeGreaterThan(brand.y + brand.height);
-	expect(nav.width).toBe(215);
+	expect(nav.width).toBe(223);
 	const navItems = page.getByTestId('sidebar-primary-nav').locator('a');
 	await expect(navItems).toHaveCount(5);
 	for (const item of await navItems.all()) {
 		const box = await item.boundingBox();
-		expect(box?.width).toBe(215);
-		expect(box?.height).toBe(40);
+		expect(box?.width).toBe(223);
+		expect(box?.height).toBe(36);
 		await expect(item).toHaveCSS('font-size', '13px');
-		await expect(item).toHaveCSS('font-weight', '600');
-		await expect(item).toHaveCSS('border-radius', '14px');
+		await expect(item).toHaveCSS('border-radius', '8px');
 	}
 
 	const active = page.getByTestId('sidebar-nav-documents');
 	await expect(active).toHaveAttribute('aria-current', 'page');
-	await expect(active).toHaveCSS('color', 'rgb(11, 24, 34)');
-	await expect(active).toHaveCSS('background-color', 'rgb(110, 168, 220)');
+	await expect(active).toHaveCSS('color', 'rgb(110, 168, 220)');
+	await expect(active).toHaveCSS('background-color', 'rgba(110, 168, 220, 0.12)');
 	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS('color', 'rgb(156, 174, 194)');
 
 	const classes = await boundingBox(page, 'sidebar-classes');
-	expect(classes.x).toBe(12);
+	expect(classes.x).toBe(8);
 	expect(classes.y).toBeGreaterThan(nav.y + nav.height);
-	expect(classes.width).toBe(215);
+	expect(classes.width).toBe(223);
 	const classHeading = page.getByRole('heading', { name: 'Classes' });
 	await expect(classHeading).toHaveCSS('font-size', '10px');
 	await expect(classHeading).toHaveCSS('font-weight', '600');
@@ -153,7 +152,7 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	const classRows = page.getByTestId('sidebar-course');
 	for (const row of await classRows.all()) {
 		const box = await row.boundingBox();
-		expect(box?.width).toBe(197);
+		expect(box?.width).toBe(223);
 		expect(box?.height).toBe(32);
 		await expect(row).toHaveCSS('border-radius', '10px');
 	}
@@ -161,8 +160,8 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	const privacy = await boundingBox(page, 'sidebar-privacy');
 	const utilities = await boundingBox(page, 'sidebar-utilities');
 	const footer = await boundingBox(page, 'sidebar-profile-footer');
-	expect(privacy.x).toBe(12);
-	expect(privacy.width).toBe(215);
+	expect(privacy.x).toBe(8);
+	expect(privacy.width).toBe(223);
 	expect(utilities.y).toBeGreaterThanOrEqual(classes.y + classes.height);
 	expect(utilities.y + utilities.height).toBeLessThanOrEqual(footer.y);
 	expect(footer.x).toBe(0);
@@ -245,7 +244,7 @@ test('hover, keyboard focus, active-course, and light-mode states remain legible
 	await expect(page.getByTestId('sidebar-nav-grades')).not.toHaveAttribute('aria-current', 'page');
 	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS(
 		'background-color',
-		'rgb(110, 168, 220)'
+		'rgba(110, 168, 220, 0.12)'
 	);
 	await expect(activeCourse).toHaveCSS('background-color', 'rgb(17, 34, 50)');
 	await expect(activeCourse).toHaveCSS('color', 'rgb(110, 168, 220)');
@@ -284,6 +283,20 @@ test('sidebar remains usable at short desktop heights and switches cleanly at th
 	await page.getByTestId('sidebar-refresh').scrollIntoViewIfNeeded();
 	await expect(page.getByTestId('sidebar-refresh')).toBeVisible();
 	await expect(page.getByTestId('sidebar-brand')).toBeVisible();
+
+	await page.getByRole('button', { name: 'Toggle Sidebar' }).click();
+	await expect(page.locator('[data-slot="sidebar"][data-state]')).toHaveAttribute(
+		'data-state',
+		'collapsed'
+	);
+	await expect(page.getByTestId('sidebar-primary-nav')).toBeVisible();
+	await expect(page.getByTestId('sidebar-classes')).toBeHidden();
+	await expect(page.getByTestId('sidebar-utilities')).toBeHidden();
+	await page.getByRole('button', { name: 'Toggle Sidebar' }).click();
+	await expect(page.locator('[data-slot="sidebar"][data-state]')).toHaveAttribute(
+		'data-state',
+		'expanded'
+	);
 
 	await page.setViewportSize({ width: 767, height: 640 });
 	await expect(page.getByTestId('app-sidebar')).toBeHidden();
