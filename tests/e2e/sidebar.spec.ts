@@ -107,9 +107,9 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	expect(sidebar.height).toBe(900);
 
 	const brand = await boundingBox(page, 'sidebar-brand');
-	expect(brand.x).toBe(8);
-	expect(brand.y).toBe(8);
-	expect(brand.width).toBe(223);
+	expect(brand.x).toBe(14);
+	expect(brand.y).toBe(20);
+	expect(brand.width).toBe(211);
 	expect(brand.height).toBe(48);
 
 	const logo = page.getByTestId('sidebar-brand').locator('img');
@@ -121,9 +121,9 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	await expect(wordmark).toHaveCSS('font-weight', '700');
 
 	const nav = await boundingBox(page, 'sidebar-primary-nav');
-	expect(nav.x).toBe(8);
-	expect(nav.y).toBeGreaterThan(brand.y + brand.height);
-	expect(nav.width).toBe(223);
+	expect(nav.x).toBe(14);
+	expect(nav.y).toBe(brand.y + brand.height);
+	expect(nav.width).toBe(211);
 	const navItems = page.getByTestId('sidebar-primary-nav').locator('a');
 	await expect(navItems).toHaveCount(6);
 	for (const [testId, iconClass] of [
@@ -137,9 +137,9 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 		await expect(page.getByTestId(testId).locator(`svg.${iconClass}`)).toHaveCount(1);
 	for (const item of await navItems.all()) {
 		const box = await item.boundingBox();
-		expect(box?.width).toBe(223);
-		expect(box?.height).toBe(36);
-		await expect(item).toHaveCSS('font-size', '13px');
+		expect(box?.width).toBe(211);
+		expect(box?.height).toBe(36.5);
+		await expect(item).toHaveCSS('font-size', '14px');
 		await expect(item).toHaveCSS('border-radius', '8px');
 	}
 
@@ -150,9 +150,9 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS('color', 'rgb(156, 174, 194)');
 
 	const classes = await boundingBox(page, 'sidebar-classes');
-	expect(classes.x).toBe(8);
+	expect(classes.x).toBe(14);
 	expect(classes.y).toBeGreaterThan(nav.y + nav.height);
-	expect(classes.width).toBe(223);
+	expect(classes.width).toBe(211);
 	const classHeading = page.getByRole('heading', { name: 'Classes' });
 	await expect(classHeading).toHaveCSS('font-size', '10px');
 	await expect(classHeading).toHaveCSS('font-weight', '600');
@@ -161,16 +161,16 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	const classRows = page.getByTestId('sidebar-course');
 	for (const row of await classRows.all()) {
 		const box = await row.boundingBox();
-		expect(box?.width).toBe(223);
-		expect(box?.height).toBe(32);
-		await expect(row).toHaveCSS('border-radius', '8px');
+		expect(box?.width).toBe(211);
+		expect(box?.height).toBe(28.5);
+		await expect(row).toHaveCSS('border-radius', '7px');
 	}
 
 	const privacy = await boundingBox(page, 'sidebar-privacy');
 	const utilities = await boundingBox(page, 'sidebar-utilities');
 	const footer = await boundingBox(page, 'sidebar-profile-footer');
-	expect(privacy.x).toBe(8);
-	expect(privacy.width).toBe(223);
+	expect(privacy.x).toBe(14);
+	expect(privacy.width).toBe(211);
 	expect(utilities.y).toBeGreaterThanOrEqual(classes.y + classes.height);
 	expect(utilities.y + utilities.height).toBeLessThanOrEqual(footer.y);
 	expect(footer.x).toBe(0);

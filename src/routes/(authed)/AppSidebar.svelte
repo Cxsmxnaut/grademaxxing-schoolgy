@@ -153,7 +153,9 @@
 </script>
 
 <Sidebar.Root collapsible="icon" class="border-sidebar-border/80" data-testid="app-sidebar">
-	<Sidebar.Header class="border-sidebar-border border-b p-2">
+	<Sidebar.Header
+		class="border-b-0 px-3.5 pt-5 pb-0 group-data-[collapsible=icon]:p-2"
+	>
 		<a
 			href="/grades"
 			class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring flex h-12 w-full items-center gap-2 rounded-lg px-2 transition-colors outline-none group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0 focus-visible:ring-2"
@@ -178,22 +180,19 @@
 		</a>
 	</Sidebar.Header>
 
-	<Sidebar.Content class="gap-2 p-2">
+	<Sidebar.Content
+		class="gap-0 px-3.5 pt-0 pb-2 group-data-[collapsible=icon]:p-2"
+	>
 		<nav
 			aria-label="Primary navigation"
 			data-testid="sidebar-primary-nav"
 			class="group-data-[collapsible=icon]:w-8"
 		>
-			<p
-				class="text-tertiary-foreground mb-1 flex h-7 items-center px-2 font-mono text-[0.625rem] font-semibold tracking-[0.14em] uppercase group-data-[collapsible=icon]:invisible"
-			>
-				Explore
-			</p>
-			<Sidebar.Menu class="gap-1">
+			<Sidebar.Menu class="gap-0.5">
 				{#each navigation as item (item.url)}
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton
-							class="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground h-9 gap-3 rounded-md px-2 text-[0.8125rem] font-medium transition-colors data-[active=true]:font-semibold!"
+							class="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground h-[2.28125rem] gap-2.5 rounded-[0.5rem] px-3 text-sm font-medium transition-colors data-[active=true]:font-semibold!"
 							isActive={isRouteActive(item.url)}
 							tooltipContent={item.title}
 						>
@@ -215,25 +214,25 @@
 		</nav>
 
 		<nav
-			class="border-sidebar-border mt-2 border-t pt-2 group-data-[collapsible=icon]:hidden"
+			class="mt-[1.375rem] group-data-[collapsible=icon]:hidden"
 			aria-labelledby="classes-heading"
 			data-testid="sidebar-classes"
 		>
 			<h2
 				id="classes-heading"
-				class="text-tertiary-foreground flex h-7 items-center px-2 font-mono text-[0.625rem] font-semibold tracking-[0.16em] uppercase"
+				class="text-tertiary-foreground mb-2 flex h-[1.03125rem] items-center px-2 font-mono text-[0.625rem] font-semibold tracking-[0.16em] uppercase"
 			>
 				Classes
 			</h2>
 
 			<svelte:boundary>
 				{#if courses}
-					<ol class="mt-1 space-y-0.5">
+					<ol class="space-y-px">
 						{#each courses as course, index (course._CourseID)}
 							<li>
 								<a
 									href={`/grades/${encodeURIComponent(course._CourseID)}`}
-									class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring flex h-8 items-center gap-2 rounded-md px-2 transition-colors outline-none focus-visible:ring-2 {page
+									class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring flex h-[1.78125rem] items-center gap-2 rounded-[0.4375rem] px-2 text-[0.83333rem] transition-colors outline-none focus-visible:ring-2 {page
 										.url.pathname === `/grades/${encodeURIComponent(course._CourseID)}`
 										? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold'
 										: 'text-muted-foreground'}"
@@ -245,7 +244,7 @@
 									data-testid="sidebar-course"
 								>
 									<span
-										class="bg-sidebar-accent text-sidebar-accent-foreground flex size-5 shrink-0 items-center justify-center rounded-md font-mono text-[0.625rem] leading-none tabular-nums"
+										class="text-sidebar-accent-foreground flex w-3 shrink-0 items-center justify-center font-mono text-[0.625rem] leading-none tabular-nums"
 										>{index + 1}</span
 									>
 									<span class="truncate text-[0.78125rem] leading-none font-medium"
