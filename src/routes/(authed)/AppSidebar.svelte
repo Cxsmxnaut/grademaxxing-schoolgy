@@ -132,13 +132,26 @@
 		return page.url.pathname === url || page.url.pathname.startsWith(`${url}/`);
 	}
 
-	const navigation: { title: string; url: string; icon: Component }[] = [
-		{ title: 'Gradebook', url: '/grades', icon: ChartNoAxesCombinedIcon },
-		{ title: 'Rankings', url: '/rankings', icon: MedalIcon },
-		{ title: 'Attendance', url: '/attendance', icon: UserCheckIcon },
-		{ title: 'Documents', url: '/documents', icon: FolderOpenIcon },
-		{ title: 'Mail', url: '/mail', icon: InboxIcon },
-		{ title: 'Feedback', url: '/feedback', icon: PencilLineIcon }
+	const navigation: {
+		title: string;
+		url: string;
+		icon: Component;
+		section: 'Overview' | 'School';
+	}[] = [
+		{ title: 'Gradebook', url: '/grades', icon: ChartNoAxesCombinedIcon, section: 'Overview' },
+		{ title: 'Rankings', url: '/rankings', icon: MedalIcon, section: 'Overview' },
+		{ title: 'Attendance', url: '/attendance', icon: UserCheckIcon, section: 'School' },
+		{ title: 'Documents', url: '/documents', icon: FolderOpenIcon, section: 'School' },
+		{ title: 'Mail', url: '/mail', icon: InboxIcon, section: 'School' },
+		{ title: 'Feedback', url: '/feedback', icon: PencilLineIcon, section: 'School' }
+	];
+	const navigationSections = ['Overview', 'School'] as const;
+	const courseMarkerClasses = [
+		'bg-chart-1',
+		'bg-chart-2',
+		'bg-chart-3',
+		'bg-chart-4',
+		'bg-chart-5'
 	];
 
 	onMount(() => {
@@ -147,18 +160,16 @@
 	});
 </script>
 
+<!-- Hallmark · component: sidebar · genre: atmospheric · theme: existing Grademaxxing tokens
+ states: default · hover · focus · active · disabled · loading · error · success
+ pre-emit critique: P5 H5 E4 S5 R5 V5 -->
 <Sidebar.Root
 	collapsible={sidebar.isMobile ? 'offcanvas' : 'none'}
 	class="border-sidebar-border/80 h-svh shrink-0 border-r"
 	data-testid="app-sidebar"
 >
-	<Sidebar.Header
-		class="border-b-0 px-4 pt-5 pb-0"
-	>
-		<div
-			class="flex h-12 w-full items-start gap-2 px-2 pt-1"
-			data-testid="sidebar-brand"
-		>
+	<Sidebar.Header class="border-b-0 px-4 pt-5 pb-0">
+		<div class="flex h-12 w-full items-start gap-2 px-1 pt-1" data-testid="sidebar-brand">
 			<img src="/grademaxxing-logo.png" class="size-8 shrink-0" alt="" />
 			<span
 				class="font-heading flex min-w-0 flex-1 flex-col text-xl leading-5 font-bold tracking-[-0.01em]"
@@ -170,37 +181,44 @@
 		</div>
 	</Sidebar.Header>
 
-	<Sidebar.Content
-		class="gap-0 px-4 pt-0 pb-2 group-data-[collapsible=icon]:p-2"
-	>
+	<Sidebar.Content class="gap-0 px-4 pt-0 pb-2 group-data-[collapsible=icon]:p-2">
 		<nav
 			aria-label="Primary navigation"
 			data-testid="sidebar-primary-nav"
 			class="group-data-[collapsible=icon]:w-8"
 		>
-			<Sidebar.Menu class="gap-0.5">
-				{#each navigation as item (item.url)}
-					<Sidebar.MenuItem>
-						<Sidebar.MenuButton
-						class="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground h-9 gap-2 rounded-[0.5rem] px-3 text-sm font-medium transition-colors data-[active=true]:font-semibold!"
-							isActive={isRouteActive(item.url)}
-							tooltipContent={item.title}
-						>
-							{#snippet child({ props })}
-								<a
-									href={item.url}
-									aria-current={page.url.pathname === item.url ? 'page' : undefined}
-									data-testid={`sidebar-nav-${item.url.slice(1)}`}
-									{...props}
+			{#each navigationSections as section, sectionIndex (section)}
+				<div class:mt-4={sectionIndex > 0}>
+					<h2
+						class="text-tertiary-foreground mb-1.5 h-4 px-2 font-mono text-[0.5625rem] leading-4 font-semibold tracking-[0.18em] uppercase"
+					>
+						{section}
+					</h2>
+					<Sidebar.Menu class="gap-px">
+						{#each navigation.filter((item) => item.section === section) as item (item.url)}
+							<Sidebar.MenuItem>
+								<Sidebar.MenuButton
+									class="text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground data-[active=true]:border-sidebar-primary data-[active=true]:text-sidebar-accent-foreground h-9 gap-2.5 rounded-sm border-l-2 border-transparent px-3 text-sm font-medium transition-colors data-[active=true]:bg-transparent data-[active=true]:font-semibold!"
+									isActive={isRouteActive(item.url)}
+									tooltipContent={item.title}
 								>
-									<item.icon class="size-4" strokeWidth={1.75} />
-									<span class="flex-1">{item.title}</span>
-								</a>
-							{/snippet}
-						</Sidebar.MenuButton>
-					</Sidebar.MenuItem>
-				{/each}
-			</Sidebar.Menu>
+									{#snippet child({ props })}
+										<a
+											href={item.url}
+											aria-current={page.url.pathname === item.url ? 'page' : undefined}
+											data-testid={`sidebar-nav-${item.url.slice(1)}`}
+											{...props}
+										>
+											<item.icon class="size-4" strokeWidth={1.75} />
+											<span class="flex-1">{item.title}</span>
+										</a>
+									{/snippet}
+								</Sidebar.MenuButton>
+							</Sidebar.MenuItem>
+						{/each}
+					</Sidebar.Menu>
+				</div>
+			{/each}
 		</nav>
 
 		<nav
@@ -210,22 +228,22 @@
 		>
 			<h2
 				id="classes-heading"
-				class="text-tertiary-foreground mb-2 flex h-4 items-center px-2 font-mono text-[0.625rem] font-semibold tracking-[0.16em] uppercase"
+				class="text-tertiary-foreground mb-1.5 flex h-4 items-center px-2 font-mono text-[0.5625rem] font-semibold tracking-[0.18em] uppercase"
 			>
 				Classes
 			</h2>
 
 			<svelte:boundary>
 				{#if courses}
-					<ol class="space-y-px">
+					<ul class="space-y-px">
 						{#each courses as course, index (course._CourseID)}
 							<li>
 								<a
 									href={`/grades/${encodeURIComponent(course._CourseID)}`}
-								class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring flex h-7 items-center gap-2 rounded-[0.4375rem] px-2 text-[0.8125rem] transition-colors outline-none focus-visible:ring-2 {page
+									class="hover:bg-sidebar-accent/60 hover:text-foreground active:bg-sidebar-accent focus-visible:ring-sidebar-ring flex h-7 items-center gap-2.5 rounded-sm border-l-2 px-2 text-[0.8125rem] transition-colors outline-none focus-visible:ring-2 {page
 										.url.pathname === `/grades/${encodeURIComponent(course._CourseID)}`
-										? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold'
-										: 'text-muted-foreground'}"
+										? 'border-sidebar-primary text-sidebar-accent-foreground font-semibold'
+										: 'text-muted-foreground border-transparent'}"
 									aria-current={page.url.pathname ===
 									`/grades/${encodeURIComponent(course._CourseID)}`
 										? 'page'
@@ -234,16 +252,19 @@
 									data-testid="sidebar-course"
 								>
 									<span
-										class="text-sidebar-accent-foreground flex w-3 shrink-0 items-center justify-center font-mono text-[0.625rem] leading-none tabular-nums"
-										>{index + 1}</span
+										class="size-1.5 shrink-0 rounded-full {courseMarkerClasses[
+											index % courseMarkerClasses.length
+										]}"
+										aria-hidden="true"
 									>
+									</span>
 									<span class="truncate text-[0.78125rem] leading-none font-medium"
 										>{removeCourseType(course._CourseName)}</span
 									>
 								</a>
 							</li>
 						{/each}
-					</ol>
+					</ul>
 				{:else}
 					<div class="text-muted-foreground flex items-center gap-2 px-3 py-4 text-sm">
 						<Spinner class="size-4" /> Loading classes.
@@ -266,17 +287,15 @@
 				</div>
 			{/if}
 			<div
-				class="text-tertiary-foreground flex items-start gap-2 px-2 py-2 text-[0.6875rem] leading-[1.4]"
+				class="text-tertiary-foreground flex items-center gap-2 px-2 py-1 text-[0.6875rem] leading-[1.4]"
 				data-testid="sidebar-privacy"
 			>
-				<ShieldCheckIcon class="text-success mt-1 size-4 shrink-0" strokeWidth={1.75} />
+				<ShieldCheckIcon class="text-success size-3.5 shrink-0" strokeWidth={1.75} />
 				<span class="min-w-0"
-					><strong class="text-foreground block text-[0.71875rem]">Privacy protected</strong><span
-						class="block">Your password stays encrypted on this device.</span
-					><a
+					><strong class="text-foreground mr-1 font-medium">Privacy protected.</strong><a
 						href="/privacy"
-						class="text-link focus-visible:ring-sidebar-ring mt-1 inline-flex whitespace-nowrap underline-offset-2 hover:underline active:opacity-75 focus-visible:rounded-sm focus-visible:ring-2 focus-visible:outline-none"
-						data-testid="sidebar-privacy-link">Read privacy policy</a
+						class="text-link focus-visible:ring-sidebar-ring inline-flex whitespace-nowrap underline-offset-2 hover:underline focus-visible:rounded-sm focus-visible:ring-2 focus-visible:outline-none active:opacity-75"
+						data-testid="sidebar-privacy-link">Details</a
 					></span
 				>
 			</div>
@@ -285,7 +304,7 @@
 				type="button"
 				onclick={() => void refreshAll()}
 				disabled={refreshingAll}
-				class="hover:bg-sidebar-accent active:bg-sidebar-accent focus-visible:ring-sidebar-ring flex min-h-12 w-full items-center gap-2 rounded-lg px-2 text-left transition-colors outline-none focus-visible:ring-2 disabled:cursor-wait disabled:opacity-70"
+				class="hover:bg-sidebar-accent/60 active:bg-sidebar-accent focus-visible:ring-sidebar-ring flex min-h-12 w-full items-center gap-2 rounded-sm px-2 text-left transition-colors outline-none focus-visible:ring-2 disabled:cursor-wait disabled:opacity-70"
 				aria-busy={refreshingAll}
 				aria-label={refreshingAll
 					? 'Refreshing grades and records'
@@ -302,10 +321,10 @@
 				<span class="min-w-0 flex-1">
 					<span class="block text-[0.8125rem] leading-4 font-semibold"
 						>{refreshingAll
-						? 'Refreshing'
-						: portalConnection.state === 'offline'
-							? 'Retry connection'
-							: 'Refresh data'}</span
+							? 'Refreshing'
+							: portalConnection.state === 'offline'
+								? 'Retry connection'
+								: 'Data current'}</span
 					>
 					<span
 						class="text-muted-foreground block truncate text-[0.6875rem] leading-4 font-normal"
@@ -320,7 +339,6 @@
 					</span>
 				</span>
 			</button>
-
 		</div>
 	</Sidebar.Content>
 

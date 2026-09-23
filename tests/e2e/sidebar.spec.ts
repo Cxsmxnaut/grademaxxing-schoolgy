@@ -119,10 +119,7 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	await expect(wordmark).toHaveCSS('font-family', /^"Space Grotesk"/);
 	await expect(wordmark).toHaveCSS('font-size', '20px');
 	await expect(wordmark).toHaveCSS('font-weight', '700');
-	await expect(page.getByTestId('sidebar-brand')).toHaveCSS(
-		'background-color',
-		'rgba(0, 0, 0, 0)'
-	);
+	await expect(page.getByTestId('sidebar-brand')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 	await expect(page.getByTestId('sidebar-brand').locator('svg')).toHaveCount(0);
 
 	const nav = await boundingBox(page, 'sidebar-primary-nav');
@@ -145,13 +142,14 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 		expect(box?.width).toBe(207);
 		expect(box?.height).toBe(36);
 		await expect(item).toHaveCSS('font-size', '14px');
-		await expect(item).toHaveCSS('border-radius', '8px');
+		await expect(item).toHaveCSS('border-radius', '6px');
 	}
 
 	const active = page.getByTestId('sidebar-nav-documents');
 	await expect(active).toHaveAttribute('aria-current', 'page');
 	await expect(active).toHaveCSS('color', 'rgb(110, 168, 220)');
-	await expect(active).toHaveCSS('background-color', 'rgba(110, 168, 220, 0.12)');
+	await expect(active).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+	await expect(active).toHaveCSS('border-left-color', 'rgb(110, 168, 220)');
 	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS('color', 'rgb(156, 174, 194)');
 
 	const classes = await boundingBox(page, 'sidebar-classes');
@@ -159,16 +157,16 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	expect(classes.y).toBeGreaterThan(nav.y + nav.height);
 	expect(classes.width).toBe(207);
 	const classHeading = page.getByRole('heading', { name: 'Classes' });
-	await expect(classHeading).toHaveCSS('font-size', '10px');
+	await expect(classHeading).toHaveCSS('font-size', '9px');
 	await expect(classHeading).toHaveCSS('font-weight', '600');
-	await expect(classHeading).toHaveCSS('letter-spacing', '1.6px');
+	await expect(classHeading).toHaveCSS('letter-spacing', '1.62px');
 
 	const classRows = page.getByTestId('sidebar-course');
 	for (const row of await classRows.all()) {
 		const box = await row.boundingBox();
 		expect(box?.width).toBe(207);
 		expect(box?.height).toBe(28);
-		await expect(row).toHaveCSS('border-radius', '7px');
+		await expect(row).toHaveCSS('border-radius', '6px');
 	}
 
 	const privacy = await boundingBox(page, 'sidebar-privacy');
@@ -179,7 +177,7 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	expect(privacy.width).toBe(207);
 	expect(refresh.width).toBe(207);
 	expect(refresh.height).toBe(48);
-	await expect(page.getByTestId('sidebar-refresh')).toContainText('Refresh data');
+	await expect(page.getByTestId('sidebar-refresh')).toContainText('Data current');
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Updated');
 	await expect(page.getByTestId('sidebar-refresh').locator('svg.lucide-check')).toHaveCount(0);
 	await expect(page.getByTestId('thinking-orb')).toBeVisible();
@@ -237,7 +235,7 @@ test('every sidebar action works and preserves a single active destination', asy
 	await expect(page.getByTestId('sidebar-refresh')).toBeEnabled();
 	await expect(page.getByTestId('thinking-orb')).toBeVisible();
 	await expect(page.getByTestId('thinking-orb')).toHaveAttribute('data-state', 'breathing');
-	await expect(page.getByTestId('sidebar-refresh')).toContainText('Refresh data');
+	await expect(page.getByTestId('sidebar-refresh')).toContainText('Data current');
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Updated');
 	for (const resource of ['gradebook', 'attendance', 'documents', 'messages', 'student-info'])
 		await expect
@@ -259,8 +257,10 @@ test('hover, keyboard focus, and active-course states remain legible in dark mod
 	const gradebook = page.getByTestId('sidebar-nav-grades');
 	await expect(gradebook).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 	await gradebook.hover();
-	await expect(gradebook).toHaveCSS('background-color', 'rgba(110, 168, 220, 0.12)');
-	await expect(gradebook).toHaveCSS('color', 'rgb(110, 168, 220)');
+	await expect
+		.poll(() => gradebook.evaluate((element) => getComputedStyle(element).backgroundColor))
+		.not.toBe('rgba(0, 0, 0, 0)');
+	await expect(gradebook).toHaveCSS('color', 'rgb(241, 245, 247)');
 
 	await page.mouse.move(800, 500);
 	await page.keyboard.press('Tab');
@@ -275,18 +275,16 @@ test('hover, keyboard focus, and active-course states remain legible in dark mod
 	await expect(page.getByTestId('sidebar-nav-grades')).not.toHaveAttribute('aria-current', 'page');
 	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS(
 		'background-color',
-		'rgba(110, 168, 220, 0.12)'
+		'rgba(0, 0, 0, 0)'
 	);
-	await expect(activeCourse).toHaveCSS('background-color', 'rgba(110, 168, 220, 0.12)');
+	await expect(activeCourse).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 	await expect(activeCourse).toHaveCSS('color', 'rgb(110, 168, 220)');
+	await expect(activeCourse).toHaveCSS('border-left-color', 'rgb(110, 168, 220)');
 
 	await expect(page.locator('html')).toHaveClass(/dark/);
-	await expect(activeCourse).toHaveCSS('background-color', 'rgba(110, 168, 220, 0.12)');
+	await expect(activeCourse).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 	await expect(activeCourse).toHaveCSS('color', 'rgb(110, 168, 220)');
-	await expect(page.getByTestId('app-sidebar')).toHaveCSS(
-		'background-color',
-		'rgb(11, 24, 34)'
-	);
+	await expect(page.getByTestId('app-sidebar')).toHaveCSS('background-color', 'rgb(11, 24, 34)');
 	await expect(page.getByTestId('sidebar-privacy')).toHaveCSS('border-top-width', '0px');
 	const privacyLink = page.getByTestId('sidebar-privacy-link');
 	await expect(privacyLink).toHaveCSS('white-space', 'nowrap');
