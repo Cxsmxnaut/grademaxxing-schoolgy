@@ -162,7 +162,7 @@
 
 <!-- Hallmark · component: sidebar · genre: atmospheric · theme: existing Grademaxxing tokens
  states: default · hover · focus · active · disabled · loading · error · success
- pre-emit critique: P5 H5 E4 S5 R5 V5 -->
+ pre-emit critique: P5 H5 E5 S5 R5 V5 -->
 <Sidebar.Root
 	collapsible={sidebar.isMobile ? 'offcanvas' : 'none'}
 	class="border-sidebar-border/80 h-svh shrink-0 border-r"
@@ -198,7 +198,7 @@
 						{#each navigation.filter((item) => item.section === section) as item (item.url)}
 							<Sidebar.MenuItem>
 								<Sidebar.MenuButton
-									class="text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground data-[active=true]:border-sidebar-primary data-[active=true]:text-sidebar-accent-foreground h-9 gap-2.5 rounded-sm border-l-2 border-transparent px-3 text-sm font-medium transition-colors data-[active=true]:bg-transparent data-[active=true]:font-semibold!"
+									class="text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground data-[active=true]:text-sidebar-accent-foreground h-9 gap-2.5 rounded-sm border-l-2 border-transparent px-3 text-sm font-medium transition-colors data-[active=true]:bg-transparent data-[active=true]:font-semibold!"
 									isActive={isRouteActive(item.url)}
 									tooltipContent={item.title}
 								>
@@ -242,7 +242,7 @@
 									href={`/grades/${encodeURIComponent(course._CourseID)}`}
 									class="hover:bg-sidebar-accent/60 hover:text-foreground active:bg-sidebar-accent focus-visible:ring-sidebar-ring flex h-7 items-center gap-2.5 rounded-sm border-l-2 px-2 text-[0.8125rem] transition-colors outline-none focus-visible:ring-2 {page
 										.url.pathname === `/grades/${encodeURIComponent(course._CourseID)}`
-										? 'border-sidebar-primary text-sidebar-accent-foreground font-semibold'
+										? 'text-sidebar-accent-foreground border-transparent font-semibold'
 										: 'text-muted-foreground border-transparent'}"
 									aria-current={page.url.pathname ===
 									`/grades/${encodeURIComponent(course._CourseID)}`

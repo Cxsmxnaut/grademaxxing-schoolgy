@@ -149,7 +149,7 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	await expect(active).toHaveAttribute('aria-current', 'page');
 	await expect(active).toHaveCSS('color', 'rgb(110, 168, 220)');
 	await expect(active).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-	await expect(active).toHaveCSS('border-left-color', 'rgb(110, 168, 220)');
+	await expect(active).toHaveCSS('border-left-color', 'rgba(0, 0, 0, 0)');
 	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS('color', 'rgb(156, 174, 194)');
 
 	const classes = await boundingBox(page, 'sidebar-classes');
@@ -279,7 +279,7 @@ test('hover, keyboard focus, and active-course states remain legible in dark mod
 	);
 	await expect(activeCourse).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 	await expect(activeCourse).toHaveCSS('color', 'rgb(110, 168, 220)');
-	await expect(activeCourse).toHaveCSS('border-left-color', 'rgb(110, 168, 220)');
+	await expect(activeCourse).toHaveCSS('border-left-color', 'rgba(0, 0, 0, 0)');
 
 	await expect(page.locator('html')).toHaveClass(/dark/);
 	await expect(activeCourse).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
