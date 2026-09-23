@@ -107,9 +107,9 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	expect(sidebar.height).toBe(900);
 
 	const brand = await boundingBox(page, 'sidebar-brand');
-	expect(brand.x).toBe(14);
+	expect(brand.x).toBe(16);
 	expect(brand.y).toBe(20);
-	expect(brand.width).toBe(211);
+	expect(brand.width).toBe(207);
 	expect(brand.height).toBe(48);
 
 	const logo = page.getByTestId('sidebar-brand').locator('img');
@@ -117,7 +117,7 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	await expect(logo).toHaveCSS('height', '32px');
 	const wordmark = page.getByTestId('sidebar-brand').locator(':scope > span.flex-1');
 	await expect(wordmark).toHaveCSS('font-family', /^"Space Grotesk"/);
-	await expect(wordmark).toHaveCSS('font-size', '19px');
+	await expect(wordmark).toHaveCSS('font-size', '20px');
 	await expect(wordmark).toHaveCSS('font-weight', '700');
 	await expect(page.getByTestId('sidebar-brand')).toHaveCSS(
 		'background-color',
@@ -126,9 +126,9 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	await expect(page.getByTestId('sidebar-brand').locator('svg')).toHaveCount(0);
 
 	const nav = await boundingBox(page, 'sidebar-primary-nav');
-	expect(nav.x).toBe(14);
+	expect(nav.x).toBe(16);
 	expect(nav.y).toBe(brand.y + brand.height);
-	expect(nav.width).toBe(211);
+	expect(nav.width).toBe(207);
 	const navItems = page.getByTestId('sidebar-primary-nav').locator('a');
 	await expect(navItems).toHaveCount(6);
 	for (const [testId, iconClass] of [
@@ -142,8 +142,8 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 		await expect(page.getByTestId(testId).locator(`svg.${iconClass}`)).toHaveCount(1);
 	for (const item of await navItems.all()) {
 		const box = await item.boundingBox();
-		expect(box?.width).toBe(211);
-		expect(box?.height).toBe(36.5);
+		expect(box?.width).toBe(207);
+		expect(box?.height).toBe(36);
 		await expect(item).toHaveCSS('font-size', '14px');
 		await expect(item).toHaveCSS('border-radius', '8px');
 	}
@@ -155,9 +155,9 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS('color', 'rgb(156, 174, 194)');
 
 	const classes = await boundingBox(page, 'sidebar-classes');
-	expect(classes.x).toBe(14);
+	expect(classes.x).toBe(16);
 	expect(classes.y).toBeGreaterThan(nav.y + nav.height);
-	expect(classes.width).toBe(211);
+	expect(classes.width).toBe(207);
 	const classHeading = page.getByRole('heading', { name: 'Classes' });
 	await expect(classHeading).toHaveCSS('font-size', '10px');
 	await expect(classHeading).toHaveCSS('font-weight', '600');
@@ -166,8 +166,8 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	const classRows = page.getByTestId('sidebar-course');
 	for (const row of await classRows.all()) {
 		const box = await row.boundingBox();
-		expect(box?.width).toBe(211);
-		expect(box?.height).toBe(28.5);
+		expect(box?.width).toBe(207);
+		expect(box?.height).toBe(28);
 		await expect(row).toHaveCSS('border-radius', '7px');
 	}
 
@@ -175,9 +175,9 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	const refresh = await boundingBox(page, 'sidebar-refresh');
 	const utilities = await boundingBox(page, 'sidebar-utilities');
 	const footer = await boundingBox(page, 'sidebar-profile-footer');
-	expect(privacy.x).toBe(14);
-	expect(privacy.width).toBe(211);
-	expect(refresh.width).toBe(211);
+	expect(privacy.x).toBe(16);
+	expect(privacy.width).toBe(207);
+	expect(refresh.width).toBe(207);
 	expect(refresh.height).toBe(48);
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Refresh data');
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Updated');
@@ -288,6 +288,12 @@ test('hover, keyboard focus, and active-course states remain legible in dark mod
 		'rgb(11, 24, 34)'
 	);
 	await expect(page.getByTestId('sidebar-privacy')).toHaveCSS('border-top-width', '0px');
+	const privacyLink = page.getByTestId('sidebar-privacy-link');
+	await expect(privacyLink).toHaveCSS('white-space', 'nowrap');
+	await privacyLink.focus();
+	await expect
+		.poll(() => privacyLink.evaluate((element) => getComputedStyle(element).boxShadow))
+		.not.toBe('none');
 });
 
 test('sidebar remains usable at short desktop heights and switches cleanly at the breakpoint', async ({

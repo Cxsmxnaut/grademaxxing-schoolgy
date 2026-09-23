@@ -153,18 +153,17 @@
 	data-testid="app-sidebar"
 >
 	<Sidebar.Header
-		class="border-b-0 px-3.5 pt-5 pb-0"
+		class="border-b-0 px-4 pt-5 pb-0"
 	>
 		<div
-			class="flex h-12 w-full items-start gap-[0.5625rem] px-2 pt-1"
+			class="flex h-12 w-full items-start gap-2 px-2 pt-1"
 			data-testid="sidebar-brand"
 		>
 			<img src="/grademaxxing-logo.png" class="size-8 shrink-0" alt="" />
 			<span
-				class="flex min-w-0 flex-1 flex-col text-[1.1875rem] leading-5 font-bold tracking-[-0.01em]"
-				style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
+				class="font-heading flex min-w-0 flex-1 flex-col text-xl leading-5 font-bold tracking-[-0.01em]"
 				><span>{brandName}</span><small
-					class="text-muted-foreground mt-0.5 text-[0.625rem] leading-3 font-semibold tracking-[0.04em]"
+					class="text-muted-foreground mt-1 text-[0.625rem] leading-3 font-semibold tracking-[0.04em]"
 					>({releaseChannel})</small
 				></span
 			>
@@ -172,7 +171,7 @@
 	</Sidebar.Header>
 
 	<Sidebar.Content
-		class="gap-0 px-3.5 pt-0 pb-2 group-data-[collapsible=icon]:p-2"
+		class="gap-0 px-4 pt-0 pb-2 group-data-[collapsible=icon]:p-2"
 	>
 		<nav
 			aria-label="Primary navigation"
@@ -183,7 +182,7 @@
 				{#each navigation as item (item.url)}
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton
-							class="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground h-[2.28125rem] gap-2.5 rounded-[0.5rem] px-3 text-sm font-medium transition-colors data-[active=true]:font-semibold!"
+						class="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground h-9 gap-2 rounded-[0.5rem] px-3 text-sm font-medium transition-colors data-[active=true]:font-semibold!"
 							isActive={isRouteActive(item.url)}
 							tooltipContent={item.title}
 						>
@@ -205,13 +204,13 @@
 		</nav>
 
 		<nav
-			class="mt-[1.375rem] group-data-[collapsible=icon]:hidden"
+			class="mt-5 group-data-[collapsible=icon]:hidden"
 			aria-labelledby="classes-heading"
 			data-testid="sidebar-classes"
 		>
 			<h2
 				id="classes-heading"
-				class="text-tertiary-foreground mb-2 flex h-[1.03125rem] items-center px-2 font-mono text-[0.625rem] font-semibold tracking-[0.16em] uppercase"
+				class="text-tertiary-foreground mb-2 flex h-4 items-center px-2 font-mono text-[0.625rem] font-semibold tracking-[0.16em] uppercase"
 			>
 				Classes
 			</h2>
@@ -223,7 +222,7 @@
 							<li>
 								<a
 									href={`/grades/${encodeURIComponent(course._CourseID)}`}
-									class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring flex h-[1.78125rem] items-center gap-2 rounded-[0.4375rem] px-2 text-[0.83333rem] transition-colors outline-none focus-visible:ring-2 {page
+								class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring flex h-7 items-center gap-2 rounded-[0.4375rem] px-2 text-[0.8125rem] transition-colors outline-none focus-visible:ring-2 {page
 										.url.pathname === `/grades/${encodeURIComponent(course._CourseID)}`
 										? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold'
 										: 'text-muted-foreground'}"
@@ -266,23 +265,27 @@
 					StudentVUE is unavailable. Saved records stay available; we'll retry automatically.
 				</div>
 			{/if}
-			<a
-				href="/privacy"
-				class="text-tertiary-foreground hover:bg-sidebar-accent hover:text-foreground group flex items-start gap-2 rounded-md px-2 py-1.5 text-[0.6875rem] leading-[1.4] transition-colors"
+			<div
+				class="text-tertiary-foreground flex items-start gap-2 px-2 py-2 text-[0.6875rem] leading-[1.4]"
 				data-testid="sidebar-privacy"
 			>
-				<ShieldCheckIcon class="text-success mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
-				<span
-					><strong class="text-foreground block text-[0.71875rem]">Privacy protected</strong>Your
-					password stays encrypted on this device.</span
+				<ShieldCheckIcon class="text-success mt-1 size-4 shrink-0" strokeWidth={1.75} />
+				<span class="min-w-0"
+					><strong class="text-foreground block text-[0.71875rem]">Privacy protected</strong><span
+						class="block">Your password stays encrypted on this device.</span
+					><a
+						href="/privacy"
+						class="text-link focus-visible:ring-sidebar-ring mt-1 inline-flex whitespace-nowrap underline-offset-2 hover:underline active:opacity-75 focus-visible:rounded-sm focus-visible:ring-2 focus-visible:outline-none"
+						data-testid="sidebar-privacy-link">Read privacy policy</a
+					></span
 				>
-			</a>
+			</div>
 
 			<button
 				type="button"
 				onclick={() => void refreshAll()}
 				disabled={refreshingAll}
-				class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring flex min-h-12 w-full items-center gap-2.5 rounded-lg px-2 text-left transition-colors outline-none focus-visible:ring-2 disabled:cursor-wait disabled:opacity-70"
+				class="hover:bg-sidebar-accent active:bg-sidebar-accent focus-visible:ring-sidebar-ring flex min-h-12 w-full items-center gap-2 rounded-lg px-2 text-left transition-colors outline-none focus-visible:ring-2 disabled:cursor-wait disabled:opacity-70"
 				aria-busy={refreshingAll}
 				aria-label={refreshingAll
 					? 'Refreshing grades and records'
@@ -325,7 +328,7 @@
 		<div class="flex items-center gap-1">
 			<a
 				href="/studentinfo"
-				class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring flex h-11 min-w-0 flex-1 items-center gap-2.5 rounded-md px-2 transition-colors outline-none group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0 focus-visible:ring-2"
+				class="hover:bg-sidebar-accent active:bg-sidebar-accent focus-visible:ring-sidebar-ring flex h-11 min-w-0 flex-1 items-center gap-2 rounded-md px-2 transition-colors outline-none group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0 focus-visible:ring-2"
 				title={studentInfoState.data?.FormattedName ?? 'Student profile'}
 				data-testid="sidebar-profile"
 			>
@@ -359,7 +362,7 @@
 				<button
 					type="button"
 					onclick={installWebApp}
-					class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md outline-none group-data-[collapsible=icon]:hidden focus-visible:ring-2"
+					class="hover:bg-sidebar-accent active:bg-sidebar-accent focus-visible:ring-sidebar-ring text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md outline-none group-data-[collapsible=icon]:hidden focus-visible:ring-2"
 					title="Install web app"
 					aria-label="Install web app"
 				>
@@ -370,7 +373,7 @@
 			<button
 				type="button"
 				onclick={logOut}
-				class="text-muted-foreground hover:bg-destructive-soft hover:text-destructive focus-visible:ring-sidebar-ring flex size-8 shrink-0 items-center justify-center rounded-md transition-colors outline-none group-data-[collapsible=icon]:hidden focus-visible:ring-2"
+				class="text-muted-foreground hover:bg-destructive-soft hover:text-destructive active:bg-destructive-soft active:text-destructive focus-visible:ring-sidebar-ring flex size-8 shrink-0 items-center justify-center rounded-md transition-colors outline-none group-data-[collapsible=icon]:hidden focus-visible:ring-2"
 				title="Log out"
 				aria-label="Log out"
 			>

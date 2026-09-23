@@ -5,6 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+	--font-body: 'Instrument Sans', system-ui, sans-serif;
+	--font-heading: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;
+	--font-technical: 'IBM Plex Mono', ui-monospace, monospace;
 	--radius: 0.625rem;
 	--background: #f5f9fd;
 	--foreground: #0f1c2e;
@@ -222,7 +225,7 @@
 }
 
 html {
-	font-family: 'Instrument Sans', system-ui, sans-serif;
+	font-family: var(--font-body);
 	font-size: 1rem;
 	line-height: 1.5;
 }
@@ -239,7 +242,7 @@ h3,
 h4,
 h5,
 h6 {
-	font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;
+	font-family: var(--font-heading);
 }
 
 code,
@@ -247,7 +250,11 @@ kbd,
 samp,
 pre,
 .font-mono {
-	font-family: 'IBM Plex Mono', ui-monospace, monospace;
+	font-family: var(--font-technical);
+}
+
+@utility font-heading {
+	font-family: var(--font-heading);
 }
 
 @theme {
