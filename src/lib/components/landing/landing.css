@@ -22,9 +22,9 @@ body {
 	font-family: 'Instrument Sans', system-ui, sans-serif;
 	font-size: 14.5px;
 	line-height: 1.5;
-	background:
-		radial-gradient(900px 520px at 85% -10%, rgba(110, 168, 220, 0.1), transparent 62%),
-		radial-gradient(720px 440px at -12% 14%, rgba(39, 86, 136, 0.16), transparent 60%), var(--bg);
+	background-color: var(--bg);
+	background-image: var(--canvas-background);
+	background-repeat: no-repeat;
 }
 .landing-nav {
 	position: relative;

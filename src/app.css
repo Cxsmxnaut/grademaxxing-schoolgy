@@ -69,6 +69,7 @@
 	--chart-error: #b0483a;
 	--chart-bg: #acd9f3;
 	--chart-bg-error: #e39b95;
+	--canvas-background: none;
 }
 
 .dark {
@@ -135,6 +136,9 @@
 	--chart-error: #f08078;
 	--chart-bg: #234a68;
 	--chart-bg-error: #6f3b39;
+	--canvas-background:
+		radial-gradient(900px 520px at 88% -8%, rgb(110 168 220 / 7%), transparent 64%),
+		radial-gradient(760px 520px at -10% 100%, rgb(39 86 136 / 5%), transparent 68%);
 }
 
 @theme inline {
@@ -221,6 +225,12 @@ html {
 	font-family: 'Instrument Sans', system-ui, sans-serif;
 	font-size: 1rem;
 	line-height: 1.5;
+}
+
+.app-canvas {
+	background-color: var(--background);
+	background-image: var(--canvas-background);
+	background-repeat: no-repeat;
 }
 
 h1,
