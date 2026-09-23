@@ -142,7 +142,8 @@
 		{ title: 'Rankings', url: '/rankings', icon: TrophyIcon },
 		{ title: 'Attendance', url: '/attendance', icon: CalendarDaysIcon },
 		{ title: 'Documents', url: '/documents', icon: FileTextIcon },
-		{ title: 'Mail', url: '/mail', icon: MailIcon }
+		{ title: 'Mail', url: '/mail', icon: MailIcon },
+		{ title: 'Feedback', url: '/feedback', icon: MessageCircleIcon }
 	];
 
 	onMount(() => {
@@ -343,12 +344,6 @@
 				</button>
 			</div>
 
-			<a
-				href="/feedback"
-				class="text-tertiary-foreground hover:bg-sidebar-accent hover:text-foreground flex h-6 items-center justify-center gap-2 rounded-lg text-[0.6875rem] font-semibold transition-colors"
-			>
-				<MessageCircleIcon class="size-3.5" strokeWidth={1.75} /> Share feedback
-			</a>
 		</div>
 	</Sidebar.Content>
 

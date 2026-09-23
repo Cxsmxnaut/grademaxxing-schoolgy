@@ -125,7 +125,7 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	expect(nav.y).toBeGreaterThan(brand.y + brand.height);
 	expect(nav.width).toBe(223);
 	const navItems = page.getByTestId('sidebar-primary-nav').locator('a');
-	await expect(navItems).toHaveCount(5);
+	await expect(navItems).toHaveCount(6);
 	for (const item of await navItems.all()) {
 		const box = await item.boundingBox();
 		expect(box?.width).toBe(223);
@@ -177,6 +177,7 @@ test('every sidebar action works and preserves a single active destination', asy
 		['sidebar-nav-attendance', '/attendance'],
 		['sidebar-nav-documents', '/documents'],
 		['sidebar-nav-mail', '/mail'],
+		['sidebar-nav-feedback', '/feedback'],
 		['sidebar-nav-grades', '/grades']
 	] as const) {
 		await page.getByTestId(testId).click();
