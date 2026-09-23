@@ -20,7 +20,7 @@
 	style="font-family: 'Instrument Sans', system-ui, sans-serif"
 >
 	{#if promo}
-		<aside class="relative hidden min-h-screen overflow-hidden bg-[#081522] lg:flex lg:flex-col">
+		<aside class="relative hidden min-h-screen overflow-hidden bg-[#0d1426] lg:flex lg:flex-col">
 			<div class="relative my-auto max-w-2xl px-12 py-14 xl:px-16">
 				<img src="/grademaxxing-logo.png" class="mb-8 size-20" alt="" />
 				<h1
