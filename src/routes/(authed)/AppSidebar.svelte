@@ -23,11 +23,14 @@
 	import BookOpenIcon from '@lucide/svelte/icons/book-open';
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
 	import CheckIcon from '@lucide/svelte/icons/check';
+	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import FileTextIcon from '@lucide/svelte/icons/file-text';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import MailIcon from '@lucide/svelte/icons/mail';
+	import MessageCircleIcon from '@lucide/svelte/icons/message-circle';
 	import MoonIcon from '@lucide/svelte/icons/moon';
 	import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
+	import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
 	import SunIcon from '@lucide/svelte/icons/sun';
 	import TrophyIcon from '@lucide/svelte/icons/trophy';
 	import { mode, setMode } from 'mode-watcher';
@@ -148,33 +151,47 @@
 	});
 </script>
 
-<Sidebar.Root class="border-sidebar-border/80" data-testid="app-sidebar">
-	<Sidebar.Header class="px-[0.875rem] pt-5 pb-[1.734375rem]">
+<Sidebar.Root
+	class="border-sidebar-border/80 shadow-[8px_0_32px_color-mix(in_srgb,var(--foreground)_4%,transparent)]"
+	data-testid="app-sidebar"
+>
+	<Sidebar.Header class="relative overflow-hidden px-3 pt-3 pb-4">
+		<div
+			class="bg-primary/10 pointer-events-none absolute -top-16 -right-12 size-36 rounded-full blur-3xl"
+		></div>
 		<a
 			href="/grades"
-			class="focus-visible:ring-sidebar-ring flex h-[3.03125rem] w-full items-start gap-[0.5625rem] rounded-lg px-2 pt-1 pb-4 outline-none focus-visible:ring-2"
+			class="border-sidebar-border bg-surface-raised/60 hover:bg-surface-raised focus-visible:ring-sidebar-ring relative flex w-full items-center gap-2.5 rounded-2xl border p-2.5 shadow-sm transition-all outline-none hover:-translate-y-px hover:shadow-md focus-visible:ring-2"
 			aria-label={`${brand} gradebook`}
 			data-testid="sidebar-brand"
 		>
-			<img src="/grademaxxing-logo.png" class="size-8" alt="" />
+			<span class="bg-primary/10 flex size-10 shrink-0 items-center justify-center rounded-xl">
+				<img src="/grademaxxing-logo.png" class="size-7" alt="" />
+			</span>
 			<span
-				class="flex min-w-0 flex-col text-[1.1875rem] leading-5 font-bold tracking-[-0.01em]"
+				class="flex min-w-0 flex-1 flex-col text-[1.0625rem] leading-5 font-bold tracking-[-0.025em]"
 				style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
 				><span>{brandName}</span><small
-					class="mt-0.5 text-[0.625rem] leading-3 font-semibold tracking-[0.04em] text-[#8fa9c2]"
-					>({releaseChannel})</small
+					class="text-primary mt-0.5 text-[0.5625rem] leading-3 font-bold tracking-[0.12em] uppercase"
+					>{releaseChannel} workspace</small
 				></span
 			>
+			<ChevronRightIcon class="text-muted-foreground size-4" strokeWidth={1.75} />
 		</a>
 	</Sidebar.Header>
 
-	<Sidebar.Content class="gap-0 px-[0.875rem] pb-0">
+	<Sidebar.Content class="gap-0 px-3 pb-3">
 		<nav aria-label="Primary navigation" data-testid="sidebar-primary-nav">
-			<Sidebar.Menu class="gap-[0.1875rem]">
+			<p
+				class="text-tertiary-foreground mb-2 px-2 font-mono text-[0.625rem] font-semibold tracking-[0.16em] uppercase"
+			>
+				Explore
+			</p>
+			<Sidebar.Menu class="gap-1">
 				{#each navigation as item (item.url)}
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton
-							class="text-muted-foreground hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground h-[2.3125rem] gap-2.5 rounded-[0.5rem] px-3 py-2.5 text-sm font-semibold transition-colors data-[active=true]:font-semibold"
+							class="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground h-10 gap-3 rounded-xl px-3 text-[0.8125rem] font-semibold transition-all data-[active=true]:font-semibold! data-[active=true]:shadow-md"
 							isActive={isRouteActive(item.url)}
 						>
 							{#snippet child({ props })}
@@ -184,8 +201,11 @@
 									data-testid={`sidebar-nav-${item.url.slice(1)}`}
 									{...props}
 								>
-									<item.icon class="size-4" strokeWidth={1.5} />
-									<span>{item.title}</span>
+									<span class="flex size-7 items-center justify-center rounded-lg bg-current/10"
+										><item.icon class="size-4" strokeWidth={1.75} /></span
+									>
+									<span class="flex-1">{item.title}</span>
+									<ChevronRightIcon class="size-3.5 opacity-55" strokeWidth={1.75} />
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
@@ -194,24 +214,28 @@
 			</Sidebar.Menu>
 		</nav>
 
-		<section class="mt-[1.375rem]" aria-labelledby="classes-heading" data-testid="sidebar-classes">
+		<nav
+			class="bg-surface-sunken/65 border-sidebar-border mt-5 rounded-2xl border p-2"
+			aria-labelledby="classes-heading"
+			data-testid="sidebar-classes"
+		>
 			<h2
 				id="classes-heading"
-				class="text-tertiary-foreground h-[1.03125rem] px-2 text-[0.6875rem] leading-[1.03125rem] font-semibold tracking-[0.1em] uppercase"
+				class="text-tertiary-foreground flex h-7 items-center px-2 font-mono text-[0.625rem] font-semibold tracking-[0.16em] uppercase"
 			>
 				Classes
 			</h2>
 
 			<svelte:boundary>
 				{#if courses}
-					<ol class="mt-2 space-y-px">
+					<ol class="mt-1 space-y-0.5">
 						{#each courses as course, index (course._CourseID)}
 							<li>
 								<a
 									href={`/grades/${encodeURIComponent(course._CourseID)}`}
-									class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring flex h-[1.8125rem] items-center gap-2 rounded-[0.4375rem] px-2 py-[0.4375rem] outline-none focus-visible:ring-2 {page
+									class="hover:bg-surface-raised hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring flex h-8 items-center gap-2 rounded-lg px-2 transition-colors outline-none focus-visible:ring-2 {page
 										.url.pathname === `/grades/${encodeURIComponent(course._CourseID)}`
-										? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold'
+										? 'bg-surface-raised text-sidebar-accent-foreground font-semibold shadow-sm'
 										: 'text-muted-foreground'}"
 									aria-current={page.url.pathname ===
 									`/grades/${encodeURIComponent(course._CourseID)}`
@@ -221,7 +245,7 @@
 									data-testid="sidebar-course"
 								>
 									<span
-										class="text-tertiary-foreground w-3 shrink-0 font-mono text-[0.6875rem] leading-none tabular-nums"
+										class="bg-sidebar-accent text-sidebar-accent-foreground flex size-5 shrink-0 items-center justify-center rounded-md font-mono text-[0.625rem] leading-none tabular-nums"
 										>{index + 1}</span
 									>
 									<span class="truncate text-[0.78125rem] leading-none font-medium"
@@ -237,9 +261,9 @@
 					</div>
 				{/if}
 			</svelte:boundary>
-		</section>
+		</nav>
 
-		<div class="mt-auto flex flex-col gap-3 pt-4" data-testid="sidebar-utilities">
+		<div class="mt-auto flex flex-col gap-2 pt-4" data-testid="sidebar-utilities">
 			{#if portalConnection.state === 'offline'}
 				<div
 					class="text-tertiary-foreground rounded-[0.5625rem] border border-amber-400/30 bg-amber-400/10 px-[0.6875rem] py-[0.5625rem] text-[0.71875rem] leading-[1.45]"
@@ -251,26 +275,21 @@
 			{/if}
 			<a
 				href="/privacy"
-				class="border-border text-tertiary-foreground hover:bg-sidebar-accent block rounded-[0.5625rem] border px-[0.6875rem] py-[0.5625rem] text-[0.71875rem] leading-[1.45] transition-colors"
+				class="border-sidebar-border bg-surface-raised/55 text-tertiary-foreground hover:bg-surface-raised group flex items-start gap-2 rounded-xl border p-2.5 text-[0.6875rem] leading-[1.4] transition-colors"
 				data-testid="sidebar-privacy"
 			>
-				Your password stays encrypted on this device. Signing out deletes your secure server session
-				and saved credentials.
+				<ShieldCheckIcon class="text-success mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
+				<span
+					><strong class="text-foreground block text-[0.71875rem]">Privacy protected</strong>Your
+					password stays encrypted on this device.</span
+				>
 			</a>
-
-			<div
-				class="text-tertiary-foreground flex items-center px-1.5 text-[0.6875rem] leading-[0.9625rem]"
-			>
-				<span>Built for students. Somehow.</span>
-				<span class="px-1.5" aria-hidden="true">·</span>
-				<a href="/feedback" class="hover:text-foreground underline underline-offset-4">Feedback</a>
-			</div>
 
 			<button
 				type="button"
 				onclick={() => void refreshAll()}
 				disabled={refreshingAll}
-				class="border-input hover:bg-sidebar-accent flex h-9 w-full items-center justify-center gap-2 rounded-[0.4375rem] border px-3 text-[0.78125rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+				class="border-sidebar-border bg-surface-raised/55 hover:bg-surface-raised flex min-h-10 w-full items-center gap-2 rounded-xl border px-3 text-[0.75rem] font-semibold shadow-sm transition-all hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-60"
 				aria-busy={refreshingAll}
 				data-testid="sidebar-refresh"
 			>
@@ -279,7 +298,7 @@
 				{:else}
 					<RefreshCwIcon class="size-3.5 {refreshingAll ? 'animate-spin' : ''}" strokeWidth={1.5} />
 				{/if}
-				<span
+				<span class="flex-1 text-left"
 					>{refreshingAll
 						? 'Refreshing'
 						: portalConnection.state === 'offline'
@@ -294,16 +313,16 @@
 			</button>
 
 			<div
-				class="border-input grid grid-cols-2 gap-1 rounded-[0.5rem] border p-1"
+				class="bg-surface-sunken grid grid-cols-2 gap-1 rounded-xl p-1"
 				aria-label="Color theme"
 				data-testid="sidebar-theme"
 			>
 				<button
 					type="button"
 					onclick={() => setMode('dark')}
-					class="flex h-[1.9375rem] items-center justify-center gap-[0.4375rem] rounded-[0.3125rem] text-xs font-semibold transition-colors {mode.current ===
+					class="flex h-7 items-center justify-center gap-[0.4375rem] rounded-lg text-xs font-semibold transition-all {mode.current ===
 					'dark'
-						? 'bg-sidebar-accent text-sidebar-accent-foreground'
+						? 'bg-surface-raised text-foreground shadow-sm'
 						: 'text-muted-foreground hover:text-foreground'}"
 					aria-pressed={mode.current === 'dark'}
 				>
@@ -312,26 +331,35 @@
 				<button
 					type="button"
 					onclick={() => setMode('light')}
-					class="flex h-[1.9375rem] items-center justify-center gap-[0.4375rem] rounded-[0.3125rem] text-xs font-semibold transition-colors {mode.current ===
+					class="flex h-7 items-center justify-center gap-[0.4375rem] rounded-lg text-xs font-semibold transition-all {mode.current ===
 					'light'
-						? 'bg-sidebar-accent text-sidebar-accent-foreground'
+						? 'bg-surface-raised text-foreground shadow-sm'
 						: 'text-muted-foreground hover:text-foreground'}"
 					aria-pressed={mode.current === 'light'}
 				>
 					<SunIcon class="size-[0.8125rem]" strokeWidth={1.5} /> Light
 				</button>
 			</div>
+
+			<a
+				href="/feedback"
+				class="text-tertiary-foreground hover:bg-sidebar-accent hover:text-foreground flex h-6 items-center justify-center gap-2 rounded-lg text-[0.6875rem] font-semibold transition-colors"
+			>
+				<MessageCircleIcon class="size-3.5" strokeWidth={1.75} /> Share feedback
+			</a>
 		</div>
 	</Sidebar.Content>
 
 	<Sidebar.Footer
-		class="border-sidebar-border border-t px-[0.875rem] py-2.5"
+		class="border-sidebar-border bg-surface-sunken/35 border-t p-2.5"
 		data-testid="sidebar-profile-footer"
 	>
-		<div class="flex items-center gap-3">
+		<div
+			class="border-sidebar-border bg-surface-raised/65 flex items-center gap-1 rounded-2xl border p-1.5 shadow-sm"
+		>
 			<a
 				href="/studentinfo"
-				class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1.5 outline-none focus-visible:ring-2"
+				class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring flex min-w-0 flex-1 items-center gap-2.5 rounded-xl p-1.5 transition-colors outline-none focus-visible:ring-2"
 				title={studentInfoState.data?.FormattedName ?? 'Student profile'}
 				data-testid="sidebar-profile"
 			>
@@ -365,7 +393,7 @@
 				<button
 					type="button"
 					onclick={installWebApp}
-					class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg outline-none focus-visible:ring-2"
+					class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-lg outline-none focus-visible:ring-2"
 					title="Install web app"
 					aria-label="Install web app"
 				>
@@ -376,7 +404,7 @@
 			<button
 				type="button"
 				onclick={logOut}
-				class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg outline-none focus-visible:ring-2"
+				class="text-muted-foreground hover:bg-destructive-soft hover:text-destructive focus-visible:ring-sidebar-ring flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors outline-none focus-visible:ring-2"
 				title="Log out"
 				aria-label="Log out"
 			>

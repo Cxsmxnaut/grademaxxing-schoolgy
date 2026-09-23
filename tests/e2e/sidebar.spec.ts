@@ -92,7 +92,9 @@ async function boundingBox(page: Page, testId: string) {
 	return box!;
 }
 
-test('desktop sidebar matches the 240px reference geometry and visual tokens', async ({ page }) => {
+test('desktop sidebar matches the redesigned workspace geometry and visual tokens', async ({
+	page
+}) => {
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.goto('/documents');
 	await expect(page.locator('html')).toHaveClass(/dark/);
@@ -105,63 +107,63 @@ test('desktop sidebar matches the 240px reference geometry and visual tokens', a
 	expect(sidebar.height).toBe(900);
 
 	const brand = await boundingBox(page, 'sidebar-brand');
-	expect(brand.x).toBe(14);
-	expect(brand.y).toBe(20);
-	expect(brand.width).toBe(211);
-	expect(brand.height).toBeCloseTo(48.5, 0);
+	expect(brand.x).toBe(12);
+	expect(brand.y).toBe(12);
+	expect(brand.width).toBe(215);
+	expect(brand.height).toBeGreaterThanOrEqual(60);
 
 	const logo = page.getByTestId('sidebar-brand').locator('img');
-	await expect(logo).toHaveCSS('width', '32px');
-	await expect(logo).toHaveCSS('height', '32px');
-	const wordmark = page.getByTestId('sidebar-brand').locator(':scope > span');
+	await expect(logo).toHaveCSS('width', '28px');
+	await expect(logo).toHaveCSS('height', '28px');
+	const wordmark = page.getByTestId('sidebar-brand').locator(':scope > span.flex-1');
 	await expect(wordmark).toHaveCSS('font-family', /^"Space Grotesk"/);
-	await expect(wordmark).toHaveCSS('font-size', '19px');
+	await expect(wordmark).toHaveCSS('font-size', '17px');
 	await expect(wordmark).toHaveCSS('font-weight', '700');
 
 	const nav = await boundingBox(page, 'sidebar-primary-nav');
-	expect(nav.x).toBe(14);
-	expect(nav.y).toBeCloseTo(96.5, 0);
-	expect(nav.width).toBe(211);
+	expect(nav.x).toBe(12);
+	expect(nav.y).toBeGreaterThan(brand.y + brand.height);
+	expect(nav.width).toBe(215);
 	const navItems = page.getByTestId('sidebar-primary-nav').locator('a');
 	await expect(navItems).toHaveCount(5);
 	for (const item of await navItems.all()) {
 		const box = await item.boundingBox();
-		expect(box?.width).toBe(211);
-		expect(box?.height).toBe(37);
-		await expect(item).toHaveCSS('font-size', '14px');
+		expect(box?.width).toBe(215);
+		expect(box?.height).toBe(40);
+		await expect(item).toHaveCSS('font-size', '13px');
 		await expect(item).toHaveCSS('font-weight', '600');
-		await expect(item).toHaveCSS('border-radius', '8px');
+		await expect(item).toHaveCSS('border-radius', '14px');
 	}
 
 	const active = page.getByTestId('sidebar-nav-documents');
 	await expect(active).toHaveAttribute('aria-current', 'page');
-	await expect(active).toHaveCSS('color', 'rgb(77, 182, 245)');
-	await expect(active).toHaveCSS('background-color', 'rgba(77, 182, 245, 0.13)');
+	await expect(active).toHaveCSS('color', 'rgb(6, 19, 31)');
+	await expect(active).toHaveCSS('background-color', 'rgb(77, 182, 245)');
 	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS('color', 'rgb(143, 169, 194)');
 
 	const classes = await boundingBox(page, 'sidebar-classes');
-	expect(classes.x).toBe(14);
-	expect(classes.y).toBeCloseTo(315.25, 0);
-	expect(classes.width).toBe(211);
+	expect(classes.x).toBe(12);
+	expect(classes.y).toBeGreaterThan(nav.y + nav.height);
+	expect(classes.width).toBe(215);
 	const classHeading = page.getByRole('heading', { name: 'Classes' });
-	await expect(classHeading).toHaveCSS('font-size', '11px');
+	await expect(classHeading).toHaveCSS('font-size', '10px');
 	await expect(classHeading).toHaveCSS('font-weight', '600');
-	await expect(classHeading).toHaveCSS('letter-spacing', '1.1px');
+	await expect(classHeading).toHaveCSS('letter-spacing', '1.6px');
 
 	const classRows = page.getByTestId('sidebar-course');
 	for (const row of await classRows.all()) {
 		const box = await row.boundingBox();
-		expect(box?.width).toBe(211);
-		expect(box?.height).toBe(29);
-		await expect(row).toHaveCSS('border-radius', '7px');
+		expect(box?.width).toBe(197);
+		expect(box?.height).toBe(32);
+		await expect(row).toHaveCSS('border-radius', '10px');
 	}
 
 	const privacy = await boundingBox(page, 'sidebar-privacy');
 	const utilities = await boundingBox(page, 'sidebar-utilities');
 	const footer = await boundingBox(page, 'sidebar-profile-footer');
-	expect(privacy.x).toBe(14);
-	expect(privacy.width).toBe(211);
-	expect(utilities.y).toBeGreaterThan(classes.y + classes.height);
+	expect(privacy.x).toBe(12);
+	expect(privacy.width).toBe(215);
+	expect(utilities.y).toBeGreaterThanOrEqual(classes.y + classes.height);
 	expect(utilities.y + utilities.height).toBeLessThanOrEqual(footer.y);
 	expect(footer.x).toBe(0);
 	expect(footer.width).toBe(239);
@@ -243,14 +245,14 @@ test('hover, keyboard focus, active-course, and light-mode states remain legible
 	await expect(page.getByTestId('sidebar-nav-grades')).not.toHaveAttribute('aria-current', 'page');
 	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS(
 		'background-color',
-		'rgba(77, 182, 245, 0.13)'
+		'rgb(77, 182, 245)'
 	);
-	await expect(activeCourse).toHaveCSS('background-color', 'rgba(77, 182, 245, 0.13)');
+	await expect(activeCourse).toHaveCSS('background-color', 'rgb(13, 32, 51)');
 	await expect(activeCourse).toHaveCSS('color', 'rgb(77, 182, 245)');
 
 	await page.getByRole('button', { name: 'Light', exact: true }).click();
 	await expect(page.locator('html')).not.toHaveClass(/dark/);
-	await expect(activeCourse).toHaveCSS('background-color', 'rgba(10, 115, 178, 0.1)');
+	await expect(activeCourse).toHaveCSS('background-color', 'rgb(255, 255, 255)');
 	await expect(activeCourse).toHaveCSS('color', 'rgb(10, 115, 178)');
 	await expect(page.locator('[data-slot="sidebar-inner"]')).toHaveCSS(
 		'background-color',
