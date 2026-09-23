@@ -7,12 +7,12 @@ export type GpaRank = {
 };
 
 export const GPA_RANKS: readonly GpaRank[] = [
-	{ min: 0, name: 'Rising', color: '#5fc98e' },
+	{ min: 0, name: 'Rising', color: '#58cb91' },
 	{ min: 2.5, name: 'Bronze', color: '#c08552' },
 	{ min: 3.1, name: 'Silver', color: '#98a6b3' },
 	{ min: 3.5, name: 'Gold', color: '#d9a93a' },
 	{ min: 3.8, name: 'Platinum', color: '#9fb8cf' },
-	{ min: 4, name: 'Diamond', color: '#4db6f5' }
+	{ min: 4, name: 'Diamond', color: '#6ea8dc' }
 ] as const;
 
 export const GPA_RANK_MIN_GRADED_COURSES = 4;

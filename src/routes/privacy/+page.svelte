@@ -9,23 +9,23 @@
 </svelte:head>
 
 <AuthShell promo={false}>
-	<article class="w-full max-w-[46rem] py-2 text-[#e4eef8] sm:py-8">
+	<article class="text-foreground w-full max-w-[46rem] py-2 sm:py-8">
 		<AuthPanelHeader />
-		<p class="mb-2 text-xs font-bold tracking-[0.14em] text-[#4db6f5] uppercase">Privacy</p>
+		<p class="text-primary mb-2 text-xs font-bold tracking-[0.14em] uppercase">Privacy</p>
 		<h1
 			class="mb-4 text-3xl font-bold tracking-[-0.03em]"
 			style="font-family: 'Space Grotesk', sans-serif"
 		>
 			How {brand} handles your information
 		</h1>
-		<p class="mb-10 max-w-2xl text-base leading-7 text-[#8fa9c2]">
+		<p class="text-muted-foreground mb-10 max-w-2xl text-base leading-7">
 			{brand} keeps the convenience of a persistent sign-in without putting your StudentVUE password on
 			our servers.
 		</p>
 
-		<div class="space-y-9 text-[0.9375rem] leading-7 text-[#8fa9c2]">
+		<div class="text-muted-foreground space-y-9 text-[0.9375rem] leading-7">
 			<section>
-				<h2 class="mb-2 text-lg font-semibold text-[#e4eef8]">Signing in</h2>
+				<h2 class="text-foreground mb-2 text-lg font-semibold">Signing in</h2>
 				<p>
 					Your browser sends your credentials over HTTPS to this {brand} server. The server uses them
 					to establish a session with the official StudentVUE portal, then discards the password. It is
@@ -34,7 +34,7 @@
 			</section>
 
 			<section>
-				<h2 class="mb-2 text-lg font-semibold text-[#e4eef8]">While you are signed in</h2>
+				<h2 class="text-foreground mb-2 text-lg font-semibold">While you are signed in</h2>
 				<p>
 					The active StudentVUE session state is encrypted and authenticated inside a secure,
 					HTTP-only app cookie for up to 12 hours. The server uses it only to proxy read-only
@@ -43,7 +43,7 @@
 			</section>
 
 			<section>
-				<h2 class="mb-2 text-lg font-semibold text-[#e4eef8]">Local data and signing out</h2>
+				<h2 class="text-foreground mb-2 text-lg font-semibold">Local data and signing out</h2>
 				<p>
 					If you choose “Keep me signed in,” your district, username, and password are encrypted on
 					this device. The encryption key is held in IndexedDB as a non-exportable browser key,
@@ -54,7 +54,7 @@
 			</section>
 
 			<section>
-				<h2 class="mb-2 text-lg font-semibold text-[#e4eef8]">Invite-only referrals</h2>
+				<h2 class="text-foreground mb-2 text-lg font-semibold">Invite-only referrals</h2>
 				<p>
 					Invited referrers are created privately by the administrator using their name and email.
 					Visitors opening a referral link go directly to the standard StudentVUE sign-in and are

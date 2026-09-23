@@ -17,6 +17,10 @@
 		{
 			"pattern": "admin.grademaxxing.app",
 			"custom_domain": true
+		},
+		{
+			"pattern": "new.grademaxxing.app",
+			"custom_domain": true
 		}
 	],
 	"preview_urls": false,

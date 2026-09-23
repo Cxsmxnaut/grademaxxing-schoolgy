@@ -102,7 +102,7 @@
 		emerald: '#54c990',
 		teal: '#49b6a6',
 		cyan: '#4db6d5',
-		sky: '#4db6f5',
+		sky: '#6ea8dc',
 		blue: '#5a8ee8',
 		indigo: '#7278de',
 		violet: '#936fd6',

@@ -161,7 +161,7 @@
 				class="flex min-w-0 flex-col text-[1.1875rem] leading-5 font-bold tracking-[-0.01em]"
 				style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
 				><span>{brandName}</span><small
-					class="mt-0.5 text-[0.625rem] leading-3 font-semibold tracking-[0.04em] text-[#8fa9c2]"
+					class="text-muted-foreground mt-0.5 text-[0.625rem] leading-3 font-semibold tracking-[0.04em]"
 					>({releaseChannel})</small
 				></span
 			>
