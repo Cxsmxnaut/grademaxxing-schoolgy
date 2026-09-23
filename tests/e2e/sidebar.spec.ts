@@ -181,6 +181,7 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	expect(refresh.height).toBe(48);
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Refresh data');
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Updated');
+	await expect(page.getByTestId('sidebar-refresh').locator('svg.lucide-check')).toHaveCount(0);
 	await expect(page.getByTestId('thinking-orb')).toBeVisible();
 	await expect(page.getByTestId('thinking-orb')).toHaveAttribute('data-state', 'breathing');
 	await expect(page.getByTestId('thinking-orb')).toHaveCSS('width', '36px');

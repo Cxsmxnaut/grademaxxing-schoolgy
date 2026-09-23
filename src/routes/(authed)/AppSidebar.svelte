@@ -22,7 +22,6 @@
 	import { StudentVueSessionExpiredError } from '$lib/synergy';
 	import AppWindowMacIcon from '@lucide/svelte/icons/app-window-mac';
 	import ChartNoAxesCombinedIcon from '@lucide/svelte/icons/chart-no-axes-combined';
-	import CheckIcon from '@lucide/svelte/icons/check';
 	import FolderOpenIcon from '@lucide/svelte/icons/folder-open';
 	import InboxIcon from '@lucide/svelte/icons/inbox';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
@@ -317,9 +316,6 @@
 								: 'Grades and records'}
 					</span>
 				</span>
-				{#if lastSync !== undefined && !refreshingAll}
-					<CheckIcon class="text-success size-3.5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
-				{/if}
 			</button>
 
 		</div>
