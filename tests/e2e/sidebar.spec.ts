@@ -21,7 +21,7 @@ let requestCounts: Record<string, number>;
 test.beforeEach(async ({ page }) => {
 	requestCounts = {};
 	await page.addInitScript(() => {
-		localStorage.setItem('mode-watcher-mode', 'dark');
+		localStorage.setItem('mode-watcher-mode', 'light');
 		localStorage.setItem(
 			'token',
 			JSON.stringify({
@@ -203,14 +203,8 @@ test('every sidebar action works and preserves a single active destination', asy
 		page.getByTestId('sidebar-course').filter({ hasText: 'AP Calculus BC' })
 	).toHaveAttribute('aria-current', 'page');
 
-	await page.getByRole('button', { name: 'Light', exact: true }).click();
-	await expect(page.locator('html')).not.toHaveClass(/dark/);
-	await expect(page.getByRole('button', { name: 'Light', exact: true })).toHaveAttribute(
-		'aria-pressed',
-		'true'
-	);
-	await page.getByRole('button', { name: 'Dark', exact: true }).click();
 	await expect(page.locator('html')).toHaveClass(/dark/);
+	await expect(page.getByTestId('sidebar-theme')).toHaveCount(0);
 
 	const beforeRefresh = { ...requestCounts };
 	await page.getByTestId('sidebar-refresh').click();
@@ -229,7 +223,7 @@ test('every sidebar action works and preserves a single active destination', asy
 	await expect(page).toHaveURL(/\/login$/);
 });
 
-test('hover, keyboard focus, active-course, and light-mode states remain legible', async ({
+test('hover, keyboard focus, and active-course states remain legible in dark mode', async ({
 	page
 }) => {
 	await page.goto('/documents');
@@ -259,13 +253,12 @@ test('hover, keyboard focus, active-course, and light-mode states remain legible
 	await expect(activeCourse).toHaveCSS('background-color', 'rgba(110, 168, 220, 0.12)');
 	await expect(activeCourse).toHaveCSS('color', 'rgb(110, 168, 220)');
 
-	await page.getByRole('button', { name: 'Light', exact: true }).click();
-	await expect(page.locator('html')).not.toHaveClass(/dark/);
-	await expect(activeCourse).toHaveCSS('background-color', 'rgba(10, 115, 178, 0.1)');
-	await expect(activeCourse).toHaveCSS('color', 'rgb(10, 115, 178)');
+	await expect(page.locator('html')).toHaveClass(/dark/);
+	await expect(activeCourse).toHaveCSS('background-color', 'rgba(110, 168, 220, 0.12)');
+	await expect(activeCourse).toHaveCSS('color', 'rgb(110, 168, 220)');
 	await expect(page.locator('[data-slot="sidebar-inner"]')).toHaveCSS(
 		'background-color',
-		'rgb(245, 249, 253)'
+		'rgb(11, 24, 34)'
 	);
 	await expect(page.getByTestId('sidebar-privacy')).toHaveCSS('border-top-width', '0px');
 });

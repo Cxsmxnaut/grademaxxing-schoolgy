@@ -232,7 +232,7 @@ test('course what-if controls preserve compact mobile geometry and keyboard oper
 	);
 });
 
-test('empty records, feedback state, mobile navigation, and theme controls are clear', async ({
+test('empty records, feedback state, mobile navigation, and dark theme are clear', async ({
 	page
 }) => {
 	await page.goto('/documents');
@@ -294,13 +294,12 @@ test('empty records, feedback state, mobile navigation, and theme controls are c
 		await page.screenshot({ path: '/tmp/grademaxxing-feedback-chat-mobile.png', fullPage: true });
 	await page.setViewportSize({ width: 1280, height: 900 });
 
-	await page.getByRole('button', { name: 'Light' }).click();
-	await expect(page.locator('html')).not.toHaveClass(/dark/);
-	await page.getByRole('button', { name: 'Dark' }).click();
 	await expect(page.locator('html')).toHaveClass(/dark/);
+	await expect(page.getByTestId('sidebar-theme')).toHaveCount(0);
 
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.goto('/grades');
+	await expect(page.getByRole('button', { name: 'Use light theme' })).toHaveCount(0);
 	for (const label of ['Grades', 'Rankings', 'Attendance', 'Documents', 'Mail'])
 		await expect(
 			page.getByRole('navigation', { name: 'Mobile navigation' }).getByText(label, { exact: true })

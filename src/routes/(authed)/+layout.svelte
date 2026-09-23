@@ -29,10 +29,7 @@
 	import FileTextIcon from '@lucide/svelte/icons/file-text';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import MailIcon from '@lucide/svelte/icons/mail';
-	import MoonIcon from '@lucide/svelte/icons/moon';
-	import SunIcon from '@lucide/svelte/icons/sun';
 	import TrophyIcon from '@lucide/svelte/icons/trophy';
-	import { mode, setMode } from 'mode-watcher';
 	import AppSidebar from './AppSidebar.svelte';
 	import ReconnectStudentVue from './ReconnectStudentVue.svelte';
 	import { resetNonGradeRecords } from './resetNonGradeRecords.svelte';
@@ -273,16 +270,6 @@
 						>({releaseChannel})</small
 					>
 				</a>
-				<button
-					type="button"
-					onclick={() => setMode(mode.current === 'dark' ? 'light' : 'dark')}
-					class="text-muted-foreground hover:text-foreground flex size-9 items-center justify-center rounded-lg"
-					aria-label={mode.current === 'dark' ? 'Use light theme' : 'Use dark theme'}
-				>
-					{#if mode.current === 'dark'}<SunIcon class="size-4" />{:else}<MoonIcon
-							class="size-4"
-						/>{/if}
-				</button>
 				<button
 					type="button"
 					onclick={() => void logOut()}

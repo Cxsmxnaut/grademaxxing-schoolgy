@@ -27,13 +27,10 @@
 	import InboxIcon from '@lucide/svelte/icons/inbox';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import MedalIcon from '@lucide/svelte/icons/medal';
-	import MoonIcon from '@lucide/svelte/icons/moon';
 	import PencilLineIcon from '@lucide/svelte/icons/pencil-line';
 	import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
 	import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
-	import SunIcon from '@lucide/svelte/icons/sun';
 	import UserCheckIcon from '@lucide/svelte/icons/user-check';
-	import { mode, setMode } from 'mode-watcher';
 	import { toast } from 'svelte-sonner';
 	import { onMount, type Component } from 'svelte';
 	import { installPrompt } from '../../hooks.client';
@@ -313,35 +310,6 @@
 					>
 				{/if}
 			</button>
-
-			<div
-				class="border-sidebar-border grid grid-cols-2 border-y py-1"
-				aria-label="Color theme"
-				data-testid="sidebar-theme"
-			>
-				<button
-					type="button"
-					onclick={() => setMode('dark')}
-					class="flex h-7 items-center justify-center gap-[0.4375rem] rounded-md text-xs font-semibold transition-colors {mode.current ===
-					'dark'
-						? 'text-primary'
-						: 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'}"
-					aria-pressed={mode.current === 'dark'}
-				>
-					<MoonIcon class="size-[0.8125rem]" strokeWidth={1.5} /> Dark
-				</button>
-				<button
-					type="button"
-					onclick={() => setMode('light')}
-					class="flex h-7 items-center justify-center gap-[0.4375rem] rounded-md text-xs font-semibold transition-colors {mode.current ===
-					'light'
-						? 'text-primary'
-						: 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'}"
-					aria-pressed={mode.current === 'light'}
-				>
-					<SunIcon class="size-[0.8125rem]" strokeWidth={1.5} /> Light
-				</button>
-			</div>
 
 		</div>
 	</Sidebar.Content>
