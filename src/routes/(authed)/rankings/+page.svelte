@@ -120,7 +120,7 @@
 				></div>
 				<div class="relative flex flex-col gap-7 sm:flex-row sm:items-center">
 					<RankEmblem
-						color={rank?.current.color ?? '#9aaab4'}
+						color={rank?.current.color ?? '#9caec2'}
 						size={112}
 						label={`${rank?.current.name ?? 'Unranked'} GPA rank`}
 					/>

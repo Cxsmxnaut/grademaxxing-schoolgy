@@ -128,14 +128,14 @@
 	>
 	{#if !editing && selectedDistrict}
 		<div
-			class="flex h-12 items-center gap-2.5 rounded-[0.625rem] border border-[#6ea8dc] bg-[#172a3a] px-3.5 py-3 text-[0.90625rem] leading-[1.5] font-bold text-[#6ea8dc]"
+			class="flex h-12 items-center gap-2.5 rounded-[0.625rem] border border-[#6ea8dc] bg-[#17263a] px-3.5 py-3 text-[0.90625rem] leading-[1.5] font-bold text-[#6ea8dc]"
 		>
 			<span class="min-w-0 flex-1 truncate">
 				{selectedDistrict.name}
 			</span>
 			<button
 				type="button"
-				class="shrink-0 text-[0.78125rem] leading-normal font-semibold text-[#9aaab4] underline underline-offset-2 hover:text-[#f1f5f7]"
+				class="shrink-0 text-[0.78125rem] leading-normal font-semibold text-[#9caec2] underline underline-offset-2 hover:text-[#f1f5f7]"
 				{disabled}
 				onclick={async () => {
 					editing = true;

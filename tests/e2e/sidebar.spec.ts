@@ -137,7 +137,7 @@ test('desktop sidebar matches the 240px reference geometry and visual tokens', a
 	await expect(active).toHaveAttribute('aria-current', 'page');
 	await expect(active).toHaveCSS('color', 'rgb(110, 168, 220)');
 	await expect(active).toHaveCSS('background-color', 'rgba(110, 168, 220, 0.12)');
-	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS('color', 'rgb(154, 170, 180)');
+	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS('color', 'rgb(156, 174, 194)');
 
 	const classes = await boundingBox(page, 'sidebar-classes');
 	expect(classes.x).toBe(14);

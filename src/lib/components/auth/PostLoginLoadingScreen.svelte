@@ -44,7 +44,7 @@
 		background:
 			radial-gradient(720px 460px at 50% 48%, rgba(110, 168, 220, 0.04), transparent 70%),
 			radial-gradient(980px 620px at 82% -18%, rgba(39, 86, 136, 0.3), transparent 65%),
-			linear-gradient(145deg, #080f14, #0b1218 58%, #070d12);
+			linear-gradient(145deg, #070d17, #09111d 58%, #050b14);
 		color: #f1f5f7;
 		font-family: 'Instrument Sans', system-ui, sans-serif;
 	}
@@ -116,7 +116,7 @@
 	}
 	.loading-content p {
 		margin: 0;
-		color: #9aaab4;
+		color: #9caec2;
 		letter-spacing: -0.01em;
 	}
 	.loading-message {
@@ -134,7 +134,7 @@
 		gap: 18px;
 		margin: 28px 0 0;
 		padding: 0;
-		color: #7f929e;
+		color: #8195ab;
 		font-size: 12px;
 		font-weight: 650;
 		list-style: none;

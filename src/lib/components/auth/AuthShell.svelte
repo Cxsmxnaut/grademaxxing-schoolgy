@@ -21,7 +21,7 @@
 >
 	{#if promo}
 		<aside
-			class="relative hidden min-h-screen overflow-hidden bg-[linear-gradient(to_bottom,#0b1218,#132a33)] lg:flex lg:flex-col"
+			class="relative hidden min-h-screen overflow-hidden bg-[linear-gradient(to_bottom,#09111d,#142640)] lg:flex lg:flex-col"
 		>
 			<div class="relative my-auto max-w-2xl px-12 py-14 xl:px-16">
 				<img src="/grademaxxing-logo.png" class="mb-8 size-20" alt="" />
