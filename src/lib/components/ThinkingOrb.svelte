@@ -6,7 +6,7 @@
 	let canvas: HTMLCanvasElement;
 
 	onMount(() => {
-		const size = 40;
+		const size = 36;
 		const presetSize = 32;
 		const dpr = Math.min(2, window.devicePixelRatio || 1);
 		const context = canvas.getContext('2d')!;
@@ -68,7 +68,7 @@
 
 <canvas
 	bind:this={canvas}
-	class="size-10 shrink-0"
+	class="size-9 shrink-0"
 	aria-hidden="true"
 	data-state={state}
 	data-testid="thinking-orb"
