@@ -20,19 +20,19 @@
 	} from '$lib/session.svelte';
 	import { StudentVueSessionExpiredError } from '$lib/synergy';
 	import AppWindowMacIcon from '@lucide/svelte/icons/app-window-mac';
-	import BookOpenIcon from '@lucide/svelte/icons/book-open';
-	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
+	import ChartNoAxesCombinedIcon from '@lucide/svelte/icons/chart-no-axes-combined';
 	import CheckIcon from '@lucide/svelte/icons/check';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
-	import FileTextIcon from '@lucide/svelte/icons/file-text';
+	import FolderOpenIcon from '@lucide/svelte/icons/folder-open';
+	import InboxIcon from '@lucide/svelte/icons/inbox';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
-	import MailIcon from '@lucide/svelte/icons/mail';
-	import MessageCircleIcon from '@lucide/svelte/icons/message-circle';
+	import MedalIcon from '@lucide/svelte/icons/medal';
 	import MoonIcon from '@lucide/svelte/icons/moon';
+	import PencilLineIcon from '@lucide/svelte/icons/pencil-line';
 	import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
 	import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
 	import SunIcon from '@lucide/svelte/icons/sun';
-	import TrophyIcon from '@lucide/svelte/icons/trophy';
+	import UserCheckIcon from '@lucide/svelte/icons/user-check';
 	import { mode, setMode } from 'mode-watcher';
 	import { toast } from 'svelte-sonner';
 	import { onMount, type Component } from 'svelte';
@@ -138,12 +138,12 @@
 	}
 
 	const navigation: { title: string; url: string; icon: Component }[] = [
-		{ title: 'Gradebook', url: '/grades', icon: BookOpenIcon },
-		{ title: 'Rankings', url: '/rankings', icon: TrophyIcon },
-		{ title: 'Attendance', url: '/attendance', icon: CalendarDaysIcon },
-		{ title: 'Documents', url: '/documents', icon: FileTextIcon },
-		{ title: 'Mail', url: '/mail', icon: MailIcon },
-		{ title: 'Feedback', url: '/feedback', icon: MessageCircleIcon }
+		{ title: 'Gradebook', url: '/grades', icon: ChartNoAxesCombinedIcon },
+		{ title: 'Rankings', url: '/rankings', icon: MedalIcon },
+		{ title: 'Attendance', url: '/attendance', icon: UserCheckIcon },
+		{ title: 'Documents', url: '/documents', icon: FolderOpenIcon },
+		{ title: 'Mail', url: '/mail', icon: InboxIcon },
+		{ title: 'Feedback', url: '/feedback', icon: PencilLineIcon }
 	];
 
 	onMount(() => {
