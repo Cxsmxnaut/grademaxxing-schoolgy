@@ -4,6 +4,7 @@
 	import { removeCourseType } from '$lib/grades/course-name';
 	import { acc } from '$lib/account.svelte';
 	import { brand, brandName, releaseChannel } from '$lib/brand';
+	import ThinkingOrb from '$lib/components/ThinkingOrb.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Spinner } from '$lib/components/ui/spinner';
 	import {
@@ -298,10 +299,11 @@
 				data-testid="sidebar-refresh"
 			>
 				<span class="flex size-8 shrink-0 items-center justify-center">
-					<RefreshCwIcon
-						class="size-4 {refreshingAll ? 'animate-spin' : ''}"
-						strokeWidth={1.75}
-					/>
+					{#if refreshingAll}
+						<ThinkingOrb />
+					{:else}
+						<RefreshCwIcon class="size-4" strokeWidth={1.75} />
+					{/if}
 				</span>
 				<span class="min-w-0 flex-1">
 					<span class="block text-[0.8125rem] leading-4 font-semibold"

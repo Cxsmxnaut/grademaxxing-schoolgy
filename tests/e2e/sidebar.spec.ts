@@ -212,8 +212,19 @@ test('every sidebar action works and preserves a single active destination', asy
 	await expect(page.getByTestId('sidebar-theme')).toHaveCount(0);
 
 	const beforeRefresh = { ...requestCounts };
+	await page.route('**/api/session/keepalive', async (route) => {
+		await new Promise((resolve) => setTimeout(resolve, 200));
+		await route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({ signedIn: true, updatedAt: Date.now() })
+		});
+	});
 	await page.getByTestId('sidebar-refresh').click();
+	await expect(page.getByTestId('thinking-orb')).toBeVisible();
+	await expect(page.getByTestId('sidebar-refresh')).toContainText('Checking grades and records…');
 	await expect(page.getByTestId('sidebar-refresh')).toBeEnabled();
+	await expect(page.getByTestId('thinking-orb')).toHaveCount(0);
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Refresh data');
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Updated');
 	for (const resource of ['gradebook', 'attendance', 'documents', 'messages', 'student-info'])
