@@ -5,8 +5,8 @@ body {
 	margin: 0;
 }
 .landing-root {
-	--bg: #19283c;
-	--panel: #111c2b;
+	--bg: #081522;
+	--panel: #0c2033;
 	--panel2: #17263a;
 	--ink: #f1f5f7;
 	--muted: #9caec2;
@@ -264,7 +264,7 @@ body {
 .frame-image-wrap {
 	aspect-ratio: 16 / 9;
 	overflow: hidden;
-	background: #19283c;
+	background: #081522;
 }
 .frame-image-wrap img {
 	display: block;

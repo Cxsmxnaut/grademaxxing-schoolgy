@@ -44,7 +44,7 @@
 		background:
 			radial-gradient(720px 460px at 50% 48%, rgba(110, 168, 220, 0.04), transparent 70%),
 			radial-gradient(980px 620px at 82% -18%, rgba(39, 86, 136, 0.3), transparent 65%),
-			linear-gradient(145deg, #070d17, #09111d 58%, #050b14);
+			linear-gradient(145deg, #050e18, #081522 58%, #040b12);
 		color: #f1f5f7;
 		font-family: 'Instrument Sans', system-ui, sans-serif;
 	}
