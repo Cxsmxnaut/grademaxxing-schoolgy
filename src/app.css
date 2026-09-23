@@ -224,6 +224,11 @@
 	}
 }
 
+html,
+body {
+	overscroll-behavior: none;
+}
+
 html {
 	font-family: var(--font-body);
 	font-size: 1rem;

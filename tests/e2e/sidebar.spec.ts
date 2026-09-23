@@ -338,6 +338,9 @@ test('desktop sidebar persists while the main content pane scrolls', async ({ pa
 	const brandBefore = await boundingBox(page, 'sidebar-brand');
 	const content = page.getByTestId('app-content-scroll');
 	await expect(content).toHaveCSS('overflow-y', 'auto');
+	await expect(content).toHaveCSS('overscroll-behavior-y', 'none');
+	await expect(page.locator('html')).toHaveCSS('overscroll-behavior-y', 'none');
+	await expect(page.locator('body')).toHaveCSS('overscroll-behavior-y', 'none');
 
 	const scrollState = await content.evaluate((element) => {
 		element.scrollTop = Math.min(500, element.scrollHeight - element.clientHeight);
