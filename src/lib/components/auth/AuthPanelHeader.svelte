@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { brandName, releaseChannel } from '$lib/brand';
+	import { brandName } from '$lib/brand';
 	import { Button } from '$lib/components/ui/button';
 	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
 	interface Props {
@@ -15,12 +15,8 @@
 		style="font-family: 'Space Grotesk', sans-serif"
 	>
 		<img src="/grademaxxing-growth-logo.png" class="size-[2.125rem] shrink-0" alt="" />
-		<span class="text-foreground flex min-w-0 items-baseline gap-1.5 whitespace-nowrap">
+		<span class="text-foreground flex min-w-0 whitespace-nowrap">
 			<span class="text-[1rem] sm:text-[1.1875rem]">{brandName}</span>
-			<small
-				class="text-muted-foreground text-[0.6875rem] font-semibold tracking-[0.03em] sm:text-xs"
-				>({releaseChannel})</small
-			>
 		</span>
 	</a>
 	<Button

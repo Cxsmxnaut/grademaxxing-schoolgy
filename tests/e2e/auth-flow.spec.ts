@@ -8,14 +8,14 @@ test('the sign-in and district-password setup flow matches the current product',
 	await page.setViewportSize({ width: 1440, height: 1000 });
 	await page.goto('/login');
 
-	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing (Beta)' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing' })).toBeVisible();
 	await expect(page.getByLabel('StudentVUE email')).toBeVisible();
 	await expect(page.getByLabel('StudentVUE Password')).toBeVisible();
 	await expect(page.getByLabel('Keep me signed in on this device')).toBeChecked();
 	await expect(page.getByText('Pleasanton Unified School District', { exact: true })).toBeVisible();
 	await expect(
 		page.getByText(
-			'Your password is encrypted on this device and passed directly to your district when Grademaxxing (Beta) reconnects. We never store it on our servers.',
+			'Your password is encrypted on this device and passed directly to your district when Grademaxxing reconnects. We never store it on our servers.',
 			{ exact: true }
 		)
 	).toBeVisible();
@@ -43,7 +43,7 @@ test('the sign-in and district-password setup flow matches the current product',
 test('the sign-in flow fits a phone without horizontal overflow', async ({ page }) => {
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.goto('/login');
-	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing (Beta)' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing' })).toBeVisible();
 	const widths = await page.evaluate(() => ({
 		viewport: window.innerWidth,
 		document: document.documentElement.scrollWidth,

@@ -5,7 +5,7 @@
 	import { LocalStorageKey } from '$lib/storage/keys';
 	import { acc, loadStudentAccount, persistStudentAccount } from '$lib/account.svelte';
 	import { clearStoredCredentials, loadStoredCredentials } from '$lib/auth/credential-vault';
-	import { brandName, releaseChannel } from '$lib/brand';
+	import { brandName } from '$lib/brand';
 	import BoundaryFailure from '$lib/components/BoundaryFailure.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Spinner } from '$lib/components/ui/spinner';
@@ -268,10 +268,7 @@
 					class="mr-auto flex items-center gap-2 text-lg font-extrabold tracking-[-0.035em] whitespace-nowrap"
 				>
 					<img src="/grademaxxing-growth-logo.png" class="size-7" alt="" />
-					<span>{brandName}</span><small
-						class="rounded bg-sky-400/10 px-1.5 py-0.5 text-[0.5625rem] font-bold tracking-[0.04em] text-sky-400"
-						>({releaseChannel})</small
-					>
+					<span>{brandName}</span>
 				</a>
 				<button
 					type="button"

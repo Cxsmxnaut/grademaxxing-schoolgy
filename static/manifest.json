@@ -1,7 +1,7 @@
 {
-	"name": "Grademaxxing (Beta)",
-	"short_name": "Grademaxxing β",
-	"description": "A private StudentVUE grade companion in controlled beta.",
+	"name": "Grademaxxing",
+	"short_name": "Grademaxxing",
+	"description": "A private StudentVUE grade companion.",
 	"start_url": "/grades",
 	"display": "standalone",
 	"background_color": "#081522",

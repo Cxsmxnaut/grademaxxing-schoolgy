@@ -3,7 +3,7 @@
 	import { getRelativeTime } from '$lib/format/date-time';
 	import { removeCourseType } from '$lib/grades/course-name';
 	import { acc } from '$lib/account.svelte';
-	import { brandName, releaseChannel } from '$lib/brand';
+	import { brandName } from '$lib/brand';
 	import ThinkingOrb from '$lib/components/ThinkingOrb.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Spinner } from '$lib/components/ui/spinner';
@@ -187,10 +187,7 @@
 			<img src="/grademaxxing-growth-logo.png" class="size-8 shrink-0" alt="" />
 			<span
 				class="font-heading flex min-w-0 flex-1 flex-col text-xl leading-5 font-bold tracking-[-0.01em]"
-				><span>{brandName}</span><small
-					class="text-muted-foreground mt-1 text-[0.625rem] leading-3 font-semibold tracking-[0.04em]"
-					>({releaseChannel})</small
-				></span
+				><span>{brandName}</span></span
 			>
 		</div>
 	</Sidebar.Header>

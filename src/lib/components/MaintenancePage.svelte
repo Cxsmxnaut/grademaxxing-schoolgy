@@ -16,7 +16,7 @@
 	<div class="maintenance-card">
 		<div class="maintenance-brand" aria-label={brand}>
 			<img src="/grademaxxing-growth-logo.png" width="40" height="40" alt="" />
-			<span>Grade<span class="maintenance-accent">maxxing</span> <small>(Beta)</small></span>
+			<span>Grade<span class="maintenance-accent">maxxing</span></span>
 		</div>
 
 		<div class="maintenance-icon" aria-hidden="true">
@@ -81,14 +81,6 @@
 
 	.maintenance-brand img {
 		border-radius: 0.65rem;
-	}
-
-	.maintenance-brand small {
-		color: var(--muted-foreground);
-		font-family: 'IBM Plex Mono', monospace;
-		font-size: 0.58em;
-		font-weight: 600;
-		letter-spacing: 0.03em;
 	}
 
 	.maintenance-accent {

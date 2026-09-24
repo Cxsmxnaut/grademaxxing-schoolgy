@@ -61,7 +61,7 @@
 	<nav class="landing-nav" aria-label="Primary navigation">
 		<a class="wordmark" href="/" aria-label="{brand} home">
 			<img src="/grademaxxing-growth-logo.png" width="32" height="32" alt="" />
-			<span>Grade<span class="accent-word">maxxing</span> <small>(Beta)</small></span>
+			<span>Grade<span class="accent-word">maxxing</span></span>
 		</a>
 		<div class="nav-actions">
 			<a class="button button-ghost button-small" href="/login">Log in</a>
