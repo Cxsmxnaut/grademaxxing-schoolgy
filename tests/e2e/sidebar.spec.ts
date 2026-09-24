@@ -140,8 +140,9 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	expect(nav.y).toBe(brand.y + brand.height);
 	expect(nav.width).toBe(207);
 	const navItems = page.getByTestId('sidebar-primary-nav').locator('a');
-	await expect(navItems).toHaveCount(6);
+	await expect(navItems).toHaveCount(7);
 	for (const [testId, iconClass] of [
+		['sidebar-nav-dashboard', 'lucide-app-window-mac'],
 		['sidebar-nav-grades', 'lucide-book'],
 		['sidebar-nav-rankings', 'lucide-chart-no-axes-column-increasing'],
 		['sidebar-nav-attendance', 'lucide-calendar-check-2'],
@@ -163,7 +164,7 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	await expect(active).toHaveCSS('color', 'rgb(110, 168, 220)');
 	await expect(active).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 	await expect(active).toHaveCSS('border-left-color', 'rgba(0, 0, 0, 0)');
-	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS('color', 'rgb(156, 174, 194)');
+	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS('color', 'rgb(170, 183, 197)');
 
 	const classes = await boundingBox(page, 'sidebar-classes');
 	expect(classes.x).toBe(16);
@@ -209,6 +210,7 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 test('every sidebar action works and preserves a single active destination', async ({ page }) => {
 	await page.goto('/grades');
 	for (const [testId, path] of [
+		['sidebar-nav-dashboard', '/dashboard'],
 		['sidebar-nav-attendance', '/attendance'],
 		['sidebar-nav-documents', '/documents'],
 		['sidebar-nav-mail', '/mail'],
@@ -277,6 +279,7 @@ test('hover, keyboard focus, and active-course states remain legible in dark mod
 
 	await page.mouse.move(800, 500);
 	await page.keyboard.press('Tab');
+	await page.keyboard.press('Tab');
 	await expect(gradebook).toBeFocused();
 	await expect
 		.poll(() => gradebook.evaluate((element) => getComputedStyle(element).boxShadow))
@@ -297,7 +300,7 @@ test('hover, keyboard focus, and active-course states remain legible in dark mod
 	await expect(page.locator('html')).toHaveClass(/dark/);
 	await expect(activeCourse).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 	await expect(activeCourse).toHaveCSS('color', 'rgb(110, 168, 220)');
-	await expect(page.getByTestId('app-sidebar')).toHaveCSS('background-color', 'rgb(11, 24, 34)');
+	await expect(page.getByTestId('app-sidebar')).toHaveCSS('background-color', 'rgb(21, 30, 40)');
 	await expect(page.getByTestId('sidebar-privacy')).toHaveCSS('border-top-width', '0px');
 	const privacyLink = page.getByTestId('sidebar-privacy-link');
 	await expect(privacyLink).toHaveCSS('white-space', 'nowrap');

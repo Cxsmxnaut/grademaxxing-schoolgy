@@ -138,6 +138,7 @@
 		icon: Component;
 		section: 'Overview' | 'School';
 	}[] = [
+		{ title: 'Dashboard', url: '/dashboard', icon: AppWindowMacIcon, section: 'Overview' },
 		{ title: 'Gradebook', url: '/grades', icon: BookIcon, section: 'Overview' },
 		{
 			title: 'Rankings',
