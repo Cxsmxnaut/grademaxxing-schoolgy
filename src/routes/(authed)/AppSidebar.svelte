@@ -343,7 +343,7 @@
 							? 'Refreshing'
 							: portalConnection.state === 'offline'
 								? 'Retry connection'
-								: 'Data current'}</span
+								: 'Refresh'}</span
 					>
 					<span
 						class="text-muted-foreground block truncate text-[0.6875rem] leading-4 font-normal"

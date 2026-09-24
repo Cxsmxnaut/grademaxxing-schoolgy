@@ -183,7 +183,7 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	expect(privacy.width).toBe(207);
 	expect(refresh.width).toBe(207);
 	expect(refresh.height).toBe(48);
-	await expect(page.getByTestId('sidebar-refresh')).toContainText('Data current');
+	await expect(page.getByTestId('sidebar-refresh')).toContainText('Refresh');
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Updated');
 	await expect(page.getByTestId('sidebar-refresh').locator('svg.lucide-check')).toHaveCount(0);
 	await expect(page.getByTestId('thinking-orb')).toBeVisible();
@@ -241,7 +241,7 @@ test('every sidebar action works and preserves a single active destination', asy
 	await expect(page.getByTestId('sidebar-refresh')).toBeEnabled();
 	await expect(page.getByTestId('thinking-orb')).toBeVisible();
 	await expect(page.getByTestId('thinking-orb')).toHaveAttribute('data-state', 'breathing');
-	await expect(page.getByTestId('sidebar-refresh')).toContainText('Data current');
+	await expect(page.getByTestId('sidebar-refresh')).toContainText('Refresh');
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Updated');
 	for (const resource of ['gradebook', 'attendance', 'documents', 'messages', 'student-info'])
 		await expect
