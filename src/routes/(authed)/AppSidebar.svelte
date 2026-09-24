@@ -21,14 +21,14 @@
 	} from '$lib/session.svelte';
 	import { StudentVueSessionExpiredError } from '$lib/synergy';
 	import AppWindowMacIcon from '@lucide/svelte/icons/app-window-mac';
-	import ChartNoAxesCombinedIcon from '@lucide/svelte/icons/chart-no-axes-combined';
-	import FolderOpenIcon from '@lucide/svelte/icons/folder-open';
-	import InboxIcon from '@lucide/svelte/icons/inbox';
+	import CalendarCheck2Icon from '@lucide/svelte/icons/calendar-check-2';
+	import ChartNoAxesColumnIncreasingIcon from '@lucide/svelte/icons/chart-no-axes-column-increasing';
+	import FilesIcon from '@lucide/svelte/icons/files';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
-	import MedalIcon from '@lucide/svelte/icons/medal';
-	import PencilLineIcon from '@lucide/svelte/icons/pencil-line';
+	import MailOpenIcon from '@lucide/svelte/icons/mail-open';
+	import MessageSquareQuoteIcon from '@lucide/svelte/icons/message-square-quote';
+	import NotebookTabsIcon from '@lucide/svelte/icons/notebook-tabs';
 	import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
-	import UserCheckIcon from '@lucide/svelte/icons/user-check';
 	import { toast } from 'svelte-sonner';
 	import { onMount, type Component } from 'svelte';
 	import { installPrompt } from '../../hooks.client';
@@ -136,39 +136,19 @@
 		title: string;
 		url: string;
 		icon: Component;
-		iconAsset?: string;
 		section: 'Overview' | 'School';
 	}[] = [
+		{ title: 'Gradebook', url: '/grades', icon: NotebookTabsIcon, section: 'Overview' },
 		{
-			title: 'Gradebook',
-			url: '/grades',
-			icon: ChartNoAxesCombinedIcon,
-			iconAsset: '/branding/studentvue-Gradebook.png',
+			title: 'Rankings',
+			url: '/rankings',
+			icon: ChartNoAxesColumnIncreasingIcon,
 			section: 'Overview'
 		},
-		{ title: 'Rankings', url: '/rankings', icon: MedalIcon, section: 'Overview' },
-		{
-			title: 'Attendance',
-			url: '/attendance',
-			icon: UserCheckIcon,
-			iconAsset: '/branding/studentvue-Attendance.png',
-			section: 'School'
-		},
-		{
-			title: 'Documents',
-			url: '/documents',
-			icon: FolderOpenIcon,
-			iconAsset: '/branding/studentvue-Documents.png',
-			section: 'School'
-		},
-		{
-			title: 'Mail',
-			url: '/mail',
-			icon: InboxIcon,
-			iconAsset: '/branding/studentvue-Messages.png',
-			section: 'School'
-		},
-		{ title: 'Feedback', url: '/feedback', icon: PencilLineIcon, section: 'School' }
+		{ title: 'Attendance', url: '/attendance', icon: CalendarCheck2Icon, section: 'School' },
+		{ title: 'Documents', url: '/documents', icon: FilesIcon, section: 'School' },
+		{ title: 'Mail', url: '/mail', icon: MailOpenIcon, section: 'School' },
+		{ title: 'Feedback', url: '/feedback', icon: MessageSquareQuoteIcon, section: 'School' }
 	];
 	const navigationSections = ['Overview', 'School'] as const;
 	const courseMarkerClasses = [
@@ -245,16 +225,7 @@
 											data-testid={`sidebar-nav-${item.url.slice(1)}`}
 											{...props}
 										>
-											{#if item.iconAsset}
-												<img
-													src={item.iconAsset}
-													class="size-5 shrink-0 object-contain"
-													alt=""
-													aria-hidden="true"
-												/>
-											{:else}
-												<item.icon class="size-4" strokeWidth={1.75} />
-											{/if}
+											<item.icon class="size-4" strokeWidth={1.75} />
 											<span class="flex-1">{item.title}</span>
 										</a>
 									{/snippet}
