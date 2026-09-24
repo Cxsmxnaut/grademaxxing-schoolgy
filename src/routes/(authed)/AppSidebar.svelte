@@ -334,7 +334,7 @@
 			>
 				<span class="flex size-9 shrink-0 items-center justify-center">
 					{#key refreshingAll}
-						<ThinkingOrb state={refreshingAll ? 'searching' : 'breathing'} />
+						<ThinkingOrb state={refreshingAll ? 'searching' : 'weaving'} />
 					{/key}
 				</span>
 				<span class="min-w-0 flex-1">

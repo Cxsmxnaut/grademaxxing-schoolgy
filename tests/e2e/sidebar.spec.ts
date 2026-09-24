@@ -187,7 +187,7 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Updated');
 	await expect(page.getByTestId('sidebar-refresh').locator('svg.lucide-check')).toHaveCount(0);
 	await expect(page.getByTestId('thinking-orb')).toBeVisible();
-	await expect(page.getByTestId('thinking-orb')).toHaveAttribute('data-state', 'breathing');
+	await expect(page.getByTestId('thinking-orb')).toHaveAttribute('data-state', 'weaving');
 	await expect(page.getByTestId('thinking-orb')).toHaveCSS('width', '36px');
 	await expect(page.getByTestId('thinking-orb')).toHaveCSS('height', '36px');
 	expect(utilities.y).toBeGreaterThanOrEqual(classes.y + classes.height);
@@ -240,7 +240,7 @@ test('every sidebar action works and preserves a single active destination', asy
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Checking grades and records…');
 	await expect(page.getByTestId('sidebar-refresh')).toBeEnabled();
 	await expect(page.getByTestId('thinking-orb')).toBeVisible();
-	await expect(page.getByTestId('thinking-orb')).toHaveAttribute('data-state', 'breathing');
+	await expect(page.getByTestId('thinking-orb')).toHaveAttribute('data-state', 'weaving');
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Refresh');
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Updated');
 	for (const resource of ['gradebook', 'attendance', 'documents', 'messages', 'student-info'])
