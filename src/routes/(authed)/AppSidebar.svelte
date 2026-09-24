@@ -225,7 +225,10 @@
 											data-testid={`sidebar-nav-${item.url.slice(1)}`}
 											{...props}
 										>
-											<item.icon class="size-4" strokeWidth={1.75} />
+											<item.icon
+												class="size-4 {item.url === '/grades' ? 'scale-[1.15]' : ''}"
+												strokeWidth={1.75}
+											/>
 											<span class="flex-1">{item.title}</span>
 										</a>
 									{/snippet}
