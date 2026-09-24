@@ -24,7 +24,7 @@
 			class="relative hidden min-h-screen overflow-hidden bg-[#0b1822] text-[#f1f5f7] lg:flex lg:flex-col"
 		>
 			<div class="relative my-auto max-w-2xl px-12 py-14 xl:px-16">
-				<img src="/grademaxxing-logo.png" class="mb-8 size-20" alt="" />
+				<img src="/grademaxxing-growth-logo.png" class="mb-8 size-20" alt="" />
 				<h1
 					class="max-w-2xl text-[2.7rem] leading-[1.15] font-bold tracking-[-0.02em] text-balance"
 					style="font-family: 'Space Grotesk', sans-serif"

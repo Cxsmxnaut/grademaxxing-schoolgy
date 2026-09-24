@@ -60,7 +60,7 @@
 <div class="landing-root">
 	<nav class="landing-nav" aria-label="Primary navigation">
 		<a class="wordmark" href="/" aria-label="{brand} home">
-			<img src="/grademaxxing-logo.png" width="32" height="32" alt="" />
+			<img src="/grademaxxing-growth-logo.png" width="32" height="32" alt="" />
 			<span>Grade<span class="accent-word">maxxing</span> <small>(Beta)</small></span>
 		</a>
 		<div class="nav-actions">
@@ -207,7 +207,7 @@
 		</section>
 
 		<section class="final-cta" aria-labelledby="cta-heading">
-			<img src="/grademaxxing-logo.png" width="64" height="64" alt="" />
+			<img src="/grademaxxing-growth-logo.png" width="64" height="64" alt="" />
 			<h2 id="cta-heading">Your grades are already enough of a puzzle.</h2>
 			<p>Connect StudentVUE. We'll do the sorting.</p>
 			<a class="button button-primary button-large" href="/login"
@@ -218,7 +218,7 @@
 
 	<footer class="landing-footer">
 		<div class="footer-wordmark">
-			<img src="/grademaxxing-logo.png" width="24" height="24" alt="" /><span>{brand}</span>
+			<img src="/grademaxxing-growth-logo.png" width="24" height="24" alt="" /><span>{brand}</span>
 		</div>
 		<div class="footer-links">
 			<a href="/login">Log in</a><a href="/privacy">Privacy</a>

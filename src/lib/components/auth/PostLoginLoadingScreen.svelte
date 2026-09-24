@@ -8,7 +8,7 @@
 <div class="post-login-loading" data-testid="post-login-loading">
 	<div class="loading-content" role="status" aria-live="polite" aria-atomic="true">
 		<div class="logo-glow" aria-hidden="true">
-			<img src="/grademaxxing-logo.png" width="100" height="100" alt="" />
+			<img src="/grademaxxing-growth-logo.png" width="100" height="100" alt="" />
 		</div>
 		<div class="loading-dots" aria-hidden="true">
 			<span></span><span></span><span></span>

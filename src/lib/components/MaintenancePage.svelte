@@ -15,7 +15,7 @@
 <main class="maintenance-root" aria-labelledby="maintenance-title">
 	<div class="maintenance-card">
 		<div class="maintenance-brand" aria-label={brand}>
-			<img src="/grademaxxing-logo.png" width="40" height="40" alt="" />
+			<img src="/grademaxxing-growth-logo.png" width="40" height="40" alt="" />
 			<span>Grade<span class="maintenance-accent">maxxing</span> <small>(Beta)</small></span>
 		</div>
 

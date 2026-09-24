@@ -8,17 +8,17 @@
 	"theme_color": "#4db6f5",
 	"icons": [
 		{
-			"src": "/grademaxxing-logo.png",
+			"src": "/grademaxxing-growth-logo.png",
 			"sizes": "64x64",
 			"type": "image/png"
 		},
 		{
-			"src": "/grademaxxing-logo.png",
+			"src": "/grademaxxing-growth-logo.png",
 			"sizes": "192x192",
 			"type": "image/png"
 		},
 		{
-			"src": "/grademaxxing-logo.png",
+			"src": "/grademaxxing-growth-logo.png",
 			"sizes": "512x512",
 			"type": "image/png"
 		}

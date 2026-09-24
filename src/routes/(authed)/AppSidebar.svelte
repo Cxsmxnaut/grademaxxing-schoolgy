@@ -184,7 +184,7 @@
 			class="sidebar-brand flex h-12 w-full items-start gap-2 px-1 pt-1"
 			data-testid="sidebar-brand"
 		>
-			<img src="/grademaxxing-logo.png" class="size-8 shrink-0" alt="" />
+			<img src="/grademaxxing-growth-logo.png" class="size-8 shrink-0" alt="" />
 			<span
 				class="font-heading flex min-w-0 flex-1 flex-col text-xl leading-5 font-bold tracking-[-0.01em]"
 				><span>{brandName}</span><small
