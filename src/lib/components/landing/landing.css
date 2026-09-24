@@ -15,7 +15,7 @@ body {
 	--line2: rgba(241, 245, 247, 0.16);
 	--accent: #6ea8dc;
 	--accent-soft: rgba(39, 86, 136, 0.24);
-	--action: #275688;
+	--action: #6ea8dc;
 	min-height: 100vh;
 	overflow-x: hidden;
 	isolation: isolate;
@@ -124,12 +124,12 @@ body {
 .button-primary {
 	border-color: var(--action);
 	background: var(--action);
-	color: #f7fafc;
-	box-shadow: 0 8px 24px -14px rgba(39, 86, 136, 0.72);
+	color: #151e28;
+	box-shadow: 0 8px 24px -14px rgba(110, 168, 220, 0.72);
 }
 .button-primary:hover {
 	filter: brightness(1.08);
-	box-shadow: 0 12px 28px -14px rgba(39, 86, 136, 0.78);
+	box-shadow: 0 12px 28px -14px rgba(110, 168, 220, 0.78);
 }
 .button-ghost {
 	background: transparent;
