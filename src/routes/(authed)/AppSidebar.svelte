@@ -21,13 +21,13 @@
 	} from '$lib/session.svelte';
 	import { StudentVueSessionExpiredError } from '$lib/synergy';
 	import AppWindowMacIcon from '@lucide/svelte/icons/app-window-mac';
+	import BookOpenCheckIcon from '@lucide/svelte/icons/book-open-check';
 	import CalendarCheck2Icon from '@lucide/svelte/icons/calendar-check-2';
 	import ChartNoAxesColumnIncreasingIcon from '@lucide/svelte/icons/chart-no-axes-column-increasing';
 	import FilesIcon from '@lucide/svelte/icons/files';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import MailOpenIcon from '@lucide/svelte/icons/mail-open';
 	import MessageSquareQuoteIcon from '@lucide/svelte/icons/message-square-quote';
-	import NotebookTabsIcon from '@lucide/svelte/icons/notebook-tabs';
 	import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
 	import { toast } from 'svelte-sonner';
 	import { onMount, type Component } from 'svelte';
@@ -138,7 +138,7 @@
 		icon: Component;
 		section: 'Overview' | 'School';
 	}[] = [
-		{ title: 'Gradebook', url: '/grades', icon: NotebookTabsIcon, section: 'Overview' },
+		{ title: 'Gradebook', url: '/grades', icon: BookOpenCheckIcon, section: 'Overview' },
 		{
 			title: 'Rankings',
 			url: '/rankings',

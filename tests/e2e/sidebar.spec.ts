@@ -135,7 +135,7 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	const navItems = page.getByTestId('sidebar-primary-nav').locator('a');
 	await expect(navItems).toHaveCount(6);
 	for (const [testId, iconClass] of [
-		['sidebar-nav-grades', 'lucide-notebook-tabs'],
+		['sidebar-nav-grades', 'lucide-book-open-check'],
 		['sidebar-nav-rankings', 'lucide-chart-no-axes-column-increasing'],
 		['sidebar-nav-attendance', 'lucide-calendar-check-2'],
 		['sidebar-nav-documents', 'lucide-files'],
