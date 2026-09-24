@@ -134,12 +134,18 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	expect(nav.width).toBe(207);
 	const navItems = page.getByTestId('sidebar-primary-nav').locator('a');
 	await expect(navItems).toHaveCount(6);
+	for (const [testId, iconAsset] of [
+		['sidebar-nav-grades', 'studentvue-Gradebook.png'],
+		['sidebar-nav-attendance', 'studentvue-Attendance.png'],
+		['sidebar-nav-documents', 'studentvue-Documents.png'],
+		['sidebar-nav-mail', 'studentvue-Messages.png']
+	] as const)
+		await expect(page.getByTestId(testId).locator('img')).toHaveAttribute(
+			'src',
+			`/branding/${iconAsset}`
+		);
 	for (const [testId, iconClass] of [
-		['sidebar-nav-grades', 'lucide-chart-no-axes-combined'],
 		['sidebar-nav-rankings', 'lucide-medal'],
-		['sidebar-nav-attendance', 'lucide-user-check'],
-		['sidebar-nav-documents', 'lucide-folder-open'],
-		['sidebar-nav-mail', 'lucide-inbox'],
 		['sidebar-nav-feedback', 'lucide-pencil-line']
 	] as const)
 		await expect(page.getByTestId(testId).locator(`svg.${iconClass}`)).toHaveCount(1);

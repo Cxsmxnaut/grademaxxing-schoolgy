@@ -136,13 +136,38 @@
 		title: string;
 		url: string;
 		icon: Component;
+		iconAsset?: string;
 		section: 'Overview' | 'School';
 	}[] = [
-		{ title: 'Gradebook', url: '/grades', icon: ChartNoAxesCombinedIcon, section: 'Overview' },
+		{
+			title: 'Gradebook',
+			url: '/grades',
+			icon: ChartNoAxesCombinedIcon,
+			iconAsset: '/branding/studentvue-Gradebook.png',
+			section: 'Overview'
+		},
 		{ title: 'Rankings', url: '/rankings', icon: MedalIcon, section: 'Overview' },
-		{ title: 'Attendance', url: '/attendance', icon: UserCheckIcon, section: 'School' },
-		{ title: 'Documents', url: '/documents', icon: FolderOpenIcon, section: 'School' },
-		{ title: 'Mail', url: '/mail', icon: InboxIcon, section: 'School' },
+		{
+			title: 'Attendance',
+			url: '/attendance',
+			icon: UserCheckIcon,
+			iconAsset: '/branding/studentvue-Attendance.png',
+			section: 'School'
+		},
+		{
+			title: 'Documents',
+			url: '/documents',
+			icon: FolderOpenIcon,
+			iconAsset: '/branding/studentvue-Documents.png',
+			section: 'School'
+		},
+		{
+			title: 'Mail',
+			url: '/mail',
+			icon: InboxIcon,
+			iconAsset: '/branding/studentvue-Messages.png',
+			section: 'School'
+		},
 		{ title: 'Feedback', url: '/feedback', icon: PencilLineIcon, section: 'School' }
 	];
 	const navigationSections = ['Overview', 'School'] as const;
@@ -220,7 +245,16 @@
 											data-testid={`sidebar-nav-${item.url.slice(1)}`}
 											{...props}
 										>
-											<item.icon class="size-4" strokeWidth={1.75} />
+											{#if item.iconAsset}
+												<img
+													src={item.iconAsset}
+													class="size-5 shrink-0 object-contain"
+													alt=""
+													aria-hidden="true"
+												/>
+											{:else}
+												<item.icon class="size-4" strokeWidth={1.75} />
+											{/if}
 											<span class="flex-1">{item.title}</span>
 										</a>
 									{/snippet}
