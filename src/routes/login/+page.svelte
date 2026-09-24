@@ -273,7 +273,7 @@
 							type="button"
 							onclick={() => (passwordResetOpen = true)}
 							disabled={!interactive}
-							class="text-primary mt-2 inline-block text-[0.78125rem] font-medium hover:underline hover:brightness-110"
+							class="text-link mt-2 inline-block text-[0.78125rem] font-medium hover:underline hover:brightness-110"
 						>
 							Forgot password?
 						</button>
@@ -310,7 +310,7 @@
 				</p>
 				<p class="mt-2.5">{brand} is independent and is not affiliated with Edupoint.</p>
 				<p class="text-tertiary-foreground mt-[0.875rem] text-xs leading-[1.125rem]">
-					<a href="/privacy" class="text-primary hover:brightness-110">Privacy</a>
+					<a href="/privacy" class="text-link hover:brightness-110">Privacy</a>
 				</p>
 			</div>
 		</form>
