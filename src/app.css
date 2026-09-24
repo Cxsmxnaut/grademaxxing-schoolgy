@@ -76,19 +76,19 @@
 }
 
 .dark {
-	--background: #0b1822;
+	--background: #10161b;
 	--foreground: #f1f5f7;
-	--card: #112232;
+	--card: #18232d;
 	--card-foreground: #f1f5f7;
-	--popover: #112232;
+	--popover: #18232d;
 	--popover-foreground: #f1f5f7;
-	--primary: #6ea8dc;
-	--primary-foreground: #0b1822;
-	--secondary: #17263a;
+	--primary: #275688;
+	--primary-foreground: #f7fafc;
+	--secondary: #202d38;
 	--secondary-foreground: #f1f5f7;
-	--muted: #17263a;
-	--muted-foreground: #9caec2;
-	--accent: rgb(110 168 220 / 12%);
+	--muted: #202d38;
+	--muted-foreground: #aab7c5;
+	--accent: rgb(39 86 136 / 24%);
 	--accent-foreground: #6ea8dc;
 	--destructive: #f08078;
 	--destructive-soft: rgb(240 128 120 / 12%);
@@ -101,26 +101,26 @@
 	--border: rgb(241 245 247 / 9%);
 	--input: rgb(241 245 247 / 16%);
 	--ring: #6ea8dc;
-	--chart-1: #6ea8dc;
+	--chart-1: #275688;
 	--chart-2: #04dfa7;
 	--chart-3: #e7bd62;
 	--chart-4: #65cbd2;
 	--chart-5: #f08078;
-	--sidebar: #0b1822;
+	--sidebar: #10161b;
 	--sidebar-foreground: #f1f5f7;
-	--sidebar-primary: #6ea8dc;
-	--sidebar-primary-foreground: #0b1822;
-	--sidebar-accent: rgb(110 168 220 / 12%);
+	--sidebar-primary: #275688;
+	--sidebar-primary-foreground: #f7fafc;
+	--sidebar-accent: rgb(39 86 136 / 24%);
 	--sidebar-accent-foreground: #6ea8dc;
 	--sidebar-border: rgb(241 245 247 / 9%);
 	--sidebar-ring: #6ea8dc;
 	--tertiary-foreground: #8195ab;
-	--surface-raised: #112232;
-	--surface-sunken: #050b14;
+	--surface-raised: #18232d;
+	--surface-sunken: #0a0f13;
 	--link: #6ea8dc;
 	--focus: #6ea8dc;
 	--disabled: #8195ab;
-	--skeleton: #17263a;
+	--skeleton: #202d38;
 	--overlay: rgb(0 0 0 / 58%);
 	--stale: #e7bd62;
 	--simulation: #c2a7e8;
@@ -131,17 +131,17 @@
 	--grade-watch-soft: rgb(231 189 98 / 12%);
 	--grade-risk: #f08078;
 	--grade-risk-soft: rgb(240 128 120 / 12%);
-	--grade-neutral: #9caec2;
-	--grade-neutral-soft: #17263a;
+	--grade-neutral: #aab7c5;
+	--grade-neutral-soft: #202d38;
 	--grade-extra: #c2a7e8;
 	--grade-extra-soft: rgb(194 167 232 / 14%);
-	--chart: #6ea8dc;
+	--chart: #275688;
 	--chart-error: #f08078;
-	--chart-bg: #234a68;
+	--chart-bg: #315f90;
 	--chart-bg-error: #6f3b39;
 	--canvas-background:
-		radial-gradient(900px 520px at 88% -8%, rgb(110 168 220 / 7%), transparent 64%),
-		radial-gradient(760px 520px at -10% 100%, rgb(39 86 136 / 5%), transparent 68%);
+		radial-gradient(880px 540px at 94% -14%, rgb(39 86 136 / 11%), transparent 68%),
+		radial-gradient(720px 520px at 5% 100%, rgb(110 168 220 / 4%), transparent 70%);
 }
 
 @theme inline {

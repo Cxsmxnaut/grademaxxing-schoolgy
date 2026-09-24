@@ -21,7 +21,7 @@
 >
 	{#if promo}
 		<aside
-			class="relative hidden min-h-screen overflow-hidden bg-[#0b1822] text-[#f1f5f7] lg:flex lg:flex-col"
+			class="relative hidden min-h-screen overflow-hidden bg-[#10161b] text-[#f1f5f7] lg:flex lg:flex-col"
 		>
 			<div class="relative my-auto max-w-2xl px-12 py-14 xl:px-16">
 				<img src="/grademaxxing-growth-mark.png" class="mb-8 size-20" alt="" />
@@ -31,7 +31,7 @@
 				>
 					Your grades are complicated enough.
 				</h1>
-				<ul class="mt-5 space-y-3.5 text-[0.9375rem] font-medium text-[#9caec2]">
+				<ul class="mt-5 space-y-3.5 text-[0.9375rem] font-medium text-[#aab7c5]">
 					<li class="flex items-center gap-3">
 						<CalculatorIcon class="size-[1.1875rem] text-[#6ea8dc]" strokeWidth={1.5} /> What-if calculator
 					</li>

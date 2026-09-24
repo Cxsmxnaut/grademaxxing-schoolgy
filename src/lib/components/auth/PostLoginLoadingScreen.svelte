@@ -44,7 +44,7 @@
 		background:
 			radial-gradient(720px 460px at 50% 48%, rgba(110, 168, 220, 0.04), transparent 70%),
 			radial-gradient(980px 620px at 82% -18%, rgba(39, 86, 136, 0.3), transparent 65%),
-			linear-gradient(145deg, #071018, #0b1822 58%, #050c12);
+			linear-gradient(145deg, #0a0f13, #10161b 58%, #080d11);
 		color: #f1f5f7;
 		font-family: 'Instrument Sans', system-ui, sans-serif;
 	}
@@ -116,7 +116,7 @@
 	}
 	.loading-content p {
 		margin: 0;
-		color: #9caec2;
+		color: #aab7c5;
 		letter-spacing: -0.01em;
 	}
 	.loading-message {

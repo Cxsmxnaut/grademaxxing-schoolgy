@@ -5,16 +5,17 @@ body {
 	margin: 0;
 }
 .landing-root {
-	--bg: #0b1822;
-	--panel: #112232;
-	--panel2: #17263a;
+	--bg: #10161b;
+	--panel: #18232d;
+	--panel2: #202d38;
 	--ink: #f1f5f7;
-	--muted: #9caec2;
-	--faint: #8195ab;
+	--muted: #aab7c5;
+	--faint: #8c9aab;
 	--line: rgba(241, 245, 247, 0.09);
 	--line2: rgba(241, 245, 247, 0.16);
 	--accent: #6ea8dc;
-	--accent-soft: rgba(110, 168, 220, 0.12);
+	--accent-soft: rgba(39, 86, 136, 0.24);
+	--action: #275688;
 	min-height: 100vh;
 	overflow-x: hidden;
 	isolation: isolate;
@@ -121,14 +122,14 @@ body {
 	font-size: 14.5px;
 }
 .button-primary {
-	border-color: var(--accent);
-	background: var(--accent);
-	color: #07130f;
-	box-shadow: 0 8px 24px -14px rgba(110, 168, 220, 0.72);
+	border-color: var(--action);
+	background: var(--action);
+	color: #f7fafc;
+	box-shadow: 0 8px 24px -14px rgba(39, 86, 136, 0.72);
 }
 .button-primary:hover {
 	filter: brightness(1.08);
-	box-shadow: 0 12px 28px -14px rgba(110, 168, 220, 0.78);
+	box-shadow: 0 12px 28px -14px rgba(39, 86, 136, 0.78);
 }
 .button-ghost {
 	background: transparent;
@@ -264,7 +265,7 @@ body {
 .frame-image-wrap {
 	aspect-ratio: 16 / 9;
 	overflow: hidden;
-	background: #0b1822;
+	background: #10161b;
 }
 .frame-image-wrap img {
 	display: block;

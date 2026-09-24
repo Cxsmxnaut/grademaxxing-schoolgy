@@ -49,8 +49,8 @@ test('the complete semantic palette resolves in light and dark modes', async ({ 
 		'--grade-strong': '#177a52'
 	});
 	expect(dark).toMatchObject({
-		'--background': '#0b1822',
-		'--primary': '#6ea8dc',
+		'--background': '#10161b',
+		'--primary': '#275688',
 		'--success': '#04dfa7',
 		'--warning': '#e7bd62',
 		'--destructive': '#f08078',
