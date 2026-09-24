@@ -487,7 +487,7 @@
 					class="rank-card-preview bg-background relative overflow-hidden rounded-xl px-6 pt-5 pb-6 text-center"
 				>
 					<div class="flex items-center gap-2 text-left">
-						<img src="/grademaxxing-growth-logo.png" class="size-8" alt="" />
+						<img src="/grademaxxing-growth-mark.png" class="size-8" alt="" />
 						<span class="font-heading text-base font-bold">{brand}</span>
 					</div>
 					<div class="relative z-10 mt-8 flex flex-col items-center">

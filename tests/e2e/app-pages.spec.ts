@@ -91,7 +91,7 @@ for (const [path, heading] of pages) {
 		await page.goto(path);
 		await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
 		await expect(page.getByRole('link', { name: 'Gradebook', exact: true })).toBeVisible();
-		await expect(page.locator('img[src="/grademaxxing-growth-logo.png"]').first()).toBeVisible();
+		await expect(page.locator('img[src="/grademaxxing-growth-mark.png"]').first()).toBeVisible();
 		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
 			await page.evaluate(() => window.innerWidth)
 		);

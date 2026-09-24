@@ -267,7 +267,7 @@
 					href="/grades"
 					class="mr-auto flex items-center gap-2 text-lg font-extrabold tracking-[-0.035em] whitespace-nowrap"
 				>
-					<img src="/grademaxxing-growth-logo.png" class="size-7" alt="" />
+					<img src="/grademaxxing-growth-mark.png" class="size-7" alt="" />
 					<span>{brandName}</span>
 				</a>
 				<button
