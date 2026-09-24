@@ -21,7 +21,7 @@
 >
 	{#if promo}
 		<aside
-			class="relative hidden min-h-screen overflow-hidden bg-[#10161b] text-[#f1f5f7] lg:flex lg:flex-col"
+			class="relative hidden min-h-screen overflow-hidden bg-[#16202a] text-[#f1f5f7] lg:flex lg:flex-col"
 		>
 			<div class="relative my-auto max-w-2xl px-12 py-14 xl:px-16">
 				<img src="/grademaxxing-growth-mark.png" class="mb-8 size-20" alt="" />
