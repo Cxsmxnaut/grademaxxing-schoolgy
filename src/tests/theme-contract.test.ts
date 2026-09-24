@@ -59,8 +59,8 @@ test('brand, status, and grade semantics remain visually distinct', () => {
 	expect(rootBlock).toContain('--grade-strong: #177a52;');
 	expect(rootBlock).toContain('--chart: #0a73b2;');
 
-	expect(darkBlock).toContain('--background: #16202a;');
-	expect(darkBlock).toContain('--card: #1d2934;');
+	expect(darkBlock).toContain('--background: #151e28;');
+	expect(darkBlock).toContain('--card: #1a2737;');
 	expect(darkBlock).toContain('--primary: #275688;');
 	expect(darkBlock).toContain('--success: #04dfa7;');
 	expect(darkBlock).toContain('--warning: #e7bd62;');
