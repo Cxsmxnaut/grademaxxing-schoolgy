@@ -125,6 +125,13 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	await expect(wordmark).toHaveCSS('font-family', /^"Space Grotesk"/);
 	await expect(wordmark).toHaveCSS('font-size', '20px');
 	await expect(wordmark).toHaveCSS('font-weight', '700');
+	const logoBox = await logo.boundingBox();
+	const wordmarkBox = await wordmark.boundingBox();
+	expect(logoBox).not.toBeNull();
+	expect(wordmarkBox).not.toBeNull();
+	expect(Math.abs(logoBox!.y + logoBox!.height / 2 - (wordmarkBox!.y + wordmarkBox!.height / 2))).toBeLessThanOrEqual(
+		1
+	);
 	await expect(page.getByTestId('sidebar-brand')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 	await expect(page.getByTestId('sidebar-brand').locator('svg')).toHaveCount(0);
 

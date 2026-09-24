@@ -181,7 +181,7 @@
 >
 	<Sidebar.Header class="sidebar-header border-b-0 px-4 pt-5 pb-0">
 		<div
-			class="sidebar-brand flex h-12 w-full items-start gap-2 px-1 pt-1"
+			class="sidebar-brand flex h-12 w-full items-center gap-2 px-1 pt-1"
 			data-testid="sidebar-brand"
 		>
 			<img src="/grademaxxing-growth-mark.png" class="size-8 shrink-0" alt="" />
