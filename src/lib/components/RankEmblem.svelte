@@ -1,11 +1,27 @@
 <script lang="ts">
 	interface Props {
 		color: string;
+		rankName?: string;
 		size?: number;
 		label?: string;
 	}
 
-	const { color, size = 48, label = 'GPA rank emblem' }: Props = $props();
+	const { color, rankName, size = 48, label = 'GPA rank emblem' }: Props = $props();
+
+	function getRankEmblemSource(name: string | undefined) {
+		if (!name) return undefined;
+		if (name.startsWith('Bronze')) return '/ranks/bronze.png';
+		if (name.startsWith('Silver')) return '/ranks/silver.png';
+		if (name.startsWith('Gold')) return '/ranks/gold.png';
+		if (name.startsWith('Platinum')) return '/ranks/platinum.png';
+		if (name.startsWith('Diamond')) return '/ranks/diamond.png';
+		if (name === 'Elite') return '/ranks/elite.png';
+		if (name === 'Champion') return '/ranks/champion.png';
+		if (name === 'Unreal') return '/ranks/unreal.png';
+		return undefined;
+	}
+
+	const emblemSource = $derived(getRankEmblemSource(rankName));
 </script>
 
 <span
@@ -16,7 +32,10 @@
 	role="img"
 	aria-label={label}
 >
-	<svg viewBox="0 0 64 64" aria-hidden="true">
+	{#if emblemSource}
+		<img src={emblemSource} alt="" />
+	{:else}
+		<svg viewBox="0 0 64 64" aria-hidden="true">
 		<path
 			class="aura"
 			d="M32 3 39 9 48 8 51 17 59 21 56 31 61 39 52 45 50 55 40 54 32 61 24 54 14 55 12 45 3 39 8 31 5 21 13 17 16 8 25 9Z"
@@ -51,7 +70,8 @@
 		<path class="gem-glint" d="m29 25 3-2 2 2-2 2Z" />
 
 		<path class="chevron" d="m18 45 8 8M46 45l-8 8" />
-	</svg>
+		</svg>
+	{/if}
 </span>
 
 <style>
@@ -68,6 +88,12 @@
 		width: 100%;
 		height: 100%;
 		overflow: visible;
+	}
+
+	img {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
 	}
 
 	.aura {

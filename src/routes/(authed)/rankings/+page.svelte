@@ -86,6 +86,15 @@
 	function rankRange(tier: (typeof GPA_RANKS)[number]) {
 		return `${tier.min.toFixed(2)}–${tier.max.toFixed(2)} GPA`;
 	}
+
+	const rankGroups = [
+		{ name: 'Bronze', tiers: GPA_RANKS.slice(0, 3) },
+		{ name: 'Silver', tiers: GPA_RANKS.slice(3, 6) },
+		{ name: 'Gold', tiers: GPA_RANKS.slice(6, 9) },
+		{ name: 'Platinum', tiers: GPA_RANKS.slice(9, 12) },
+		{ name: 'Diamond', tiers: GPA_RANKS.slice(12, 15) },
+		{ name: 'Summit', tiers: GPA_RANKS.slice(15) }
+	] as const;
 </script>
 
 <svelte:head><title>Rankings - {brand}</title></svelte:head>
@@ -125,6 +134,7 @@
 				<div class="relative flex flex-col gap-7 sm:flex-row sm:items-center">
 					<RankEmblem
 						color={rank?.current.color ?? '#aab7c5'}
+						rankName={rank?.current.name}
 						size={112}
 						label={`${rank?.current.name ?? 'Unranked'} GPA rank`}
 					/>
@@ -258,36 +268,55 @@
 				</p>
 			</div>
 
-			<ol class="relative grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-				{#each GPA_RANKS as tier (tier.name)}
-					{@const unlocked = (gpas.unweighted ?? -1) >= tier.min}
-					{@const current = rank?.current.name === tier.name}
-					<li
-						class="border-border bg-card relative overflow-hidden rounded-xl border p-4 shadow-sm transition-[border-color,transform] {current
-							? 'ring-primary ring-offset-background -translate-y-0.5 ring-2 ring-offset-2'
-							: ''} {unlocked ? '' : 'opacity-60'}"
-					>
-						<div class="flex items-center justify-between gap-3">
-							<RankEmblem color={tier.color} size={42} label={`${tier.name} GPA rank`} />
-							{#if current}
-								<span
-									class="bg-primary/10 text-primary rounded-full px-2 py-1 text-[0.625rem] font-bold uppercase"
-								>
-									Current
-								</span>
-							{:else if unlocked}
-								<CheckIcon class="text-grade-strong size-4" aria-label="Unlocked" />
-							{:else}
-								<LockKeyholeIcon class="text-muted-foreground size-4" aria-label="Not reached" />
-							{/if}
+			<div class="space-y-7 sm:space-y-8">
+				{#each rankGroups as group (group.name)}
+					<section class="border-border/70 border-t pt-4 first:border-t-0 first:pt-0" aria-labelledby={`rank-group-${group.name.toLowerCase()}`}>
+						<div class="mb-3 flex items-baseline justify-between gap-4">
+							<h3 id={`rank-group-${group.name.toLowerCase()}`} class="font-heading text-base font-bold">
+								{group.name}
+							</h3>
+							<p class="text-tertiary-foreground font-mono text-[0.6875rem] tracking-[0.12em] uppercase">
+								{group.name === 'Summit' ? 'Final tiers' : 'Three divisions'}
+							</p>
 						</div>
-						<h3 class="font-heading mt-4 text-base font-bold" style:color={tier.color}>
-							{tier.name}
-						</h3>
-						<p class="text-muted-foreground mt-1 font-mono text-xs">{rankRange(tier)}</p>
-					</li>
+						<ol class="grid gap-3 sm:grid-cols-3">
+							{#each group.tiers as tier (tier.name)}
+								{@const unlocked = (gpas.unweighted ?? -1) >= tier.min}
+								{@const current = rank?.current.name === tier.name}
+								<li
+									class="border-border bg-card relative overflow-hidden rounded-xl border p-4 shadow-sm transition-[border-color,transform] {current
+										? 'ring-primary ring-offset-background -translate-y-0.5 ring-2 ring-offset-2'
+										: ''} {unlocked ? '' : 'opacity-60'}"
+								>
+									<div class="flex items-center justify-between gap-3">
+										<RankEmblem
+											color={tier.color}
+											rankName={tier.name}
+											size={42}
+											label={`${tier.name} GPA rank`}
+										/>
+										{#if current}
+											<span
+												class="bg-primary/10 text-primary rounded-full px-2 py-1 text-[0.625rem] font-bold uppercase"
+											>
+												Current
+											</span>
+										{:else if unlocked}
+											<CheckIcon class="text-grade-strong size-4" aria-label="Unlocked" />
+										{:else}
+											<LockKeyholeIcon class="text-muted-foreground size-4" aria-label="Not reached" />
+										{/if}
+									</div>
+									<h4 class="font-heading mt-4 text-base font-bold" style:color={tier.color}>
+										{tier.name}
+									</h4>
+									<p class="text-muted-foreground mt-1 font-mono text-xs">{rankRange(tier)}</p>
+								</li>
+							{/each}
+						</ol>
+					</section>
 				{/each}
-			</ol>
+			</div>
 		</section>
 
 		<section class="mt-10 sm:mt-12" aria-labelledby="achievements-heading">

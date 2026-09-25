@@ -208,6 +208,7 @@
 							{#if rank}<span class="contents group-open:hidden"
 									><RankEmblem
 										color={rank.current.color}
+										rankName={rank.current.name}
 										size={18}
 										label={`${rank.current.name} GPA rank`}
 									/></span
@@ -249,6 +250,7 @@
 								<div class="mt-1.5 flex items-center gap-2">
 									{#if rank}<RankEmblem
 											color={rank.current.color}
+											rankName={rank.current.name}
 											size={34}
 											label={`${rank.current.name} GPA rank`}
 										/>{/if}
@@ -306,6 +308,7 @@
 						<div class="mt-1.5 flex items-center gap-2">
 							{#if rank}<RankEmblem
 									color={rank.current.color}
+									rankName={rank.current.name}
 									size={34}
 									label={`${rank.current.name} GPA rank`}
 								/>{/if}
@@ -374,6 +377,7 @@
 							<div class="flex items-center gap-3">
 								<RankEmblem
 									color={rank.next.color}
+									rankName={rank.next.name}
 									size={26}
 									label={`${rank.next.name} GPA rank`}
 								/>
@@ -411,6 +415,7 @@
 							<div class="flex items-center gap-3">
 								<RankEmblem
 									color={rank.current.color}
+									rankName={rank.current.name}
 									size={26}
 									label={`${rank.current.name} GPA rank`}
 								/>
@@ -493,6 +498,7 @@
 					<div class="relative z-10 mt-8 flex flex-col items-center">
 						<RankEmblem
 							color={rank.current.color}
+							rankName={rank.current.name}
 							size={112}
 							label={`${rank.current.name} GPA rank`}
 						/>
