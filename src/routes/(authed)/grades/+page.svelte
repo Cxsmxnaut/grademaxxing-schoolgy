@@ -415,7 +415,7 @@
 									label={`${rank.current.name} GPA rank`}
 								/>
 								<div>
-									<p class="text-lg font-bold" style:color={rank.current.color}>Diamond</p>
+									<p class="text-lg font-bold" style:color={rank.current.color}>{rank.current.name}</p>
 									<p class="text-muted-foreground mt-1 text-xs">
 										{rank.provisional
 											? `Provisional until ${rank.coursesNeeded} more graded ${rank.coursesNeeded === 1 ? 'class' : 'classes'}.`

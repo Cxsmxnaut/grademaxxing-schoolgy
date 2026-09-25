@@ -327,10 +327,10 @@ test('Rankings shows the tougher tier ladder and gradebook achievements', async 
 	await expect(
 		page.getByRole('heading', { level: 1, name: 'Rankings & achievements' })
 	).toBeVisible();
-	await expect(page.getByRole('heading', { level: 2, name: 'Diamond', exact: true })).toBeVisible();
+	await expect(page.getByRole('heading', { level: 2, name: 'Champion', exact: true })).toBeVisible();
 	await expect(page.getByText('Provisional', { exact: true }).first()).toBeVisible();
 	await expect(page.getByText('Add 3 more to confirm this tier.')).toBeVisible();
-	await expect(page.getByText('4.00+ GPA')).toBeVisible();
+	await expect(page.getByText('4.00–4.00 GPA')).toBeVisible();
 	await expect(page.getByRole('progressbar', { name: 'Achievements unlocked' })).toHaveAttribute(
 		'aria-valuenow',
 		'1'
@@ -376,14 +376,15 @@ test('Gradebook exposes the GPA rank summary on desktop and mobile', async ({ pa
 	await page.goto('/grades');
 	const summary = page.getByRole('region', { name: 'Grade summary' });
 	await expect(summary.getByText('Rank', { exact: true })).toBeVisible();
-	await expect(summary.getByText('Diamond', { exact: true })).toBeVisible();
+	await expect(summary.getByText('Champion', { exact: true })).toBeVisible();
 	await expect(page.getByRole('progressbar', { name: 'Theme Preview grade' })).toHaveAttribute(
 		'aria-valuenow',
 		'95'
 	);
 	await expect(page.getByRole('button', { name: 'Share your rank' })).toBeVisible();
 	await expect(page.getByRole('heading', { name: 'Next rank' })).toBeVisible();
-	await expect(page.getByText('Provisional until 3 more graded classes.')).toBeVisible();
+	await expect(page.getByText('Unreal', { exact: true })).toBeVisible();
+	await expect(page.getByText('0.01 GPA away')).toBeVisible();
 
 	await page.setViewportSize({ width: 390, height: 844 });
 	await expect(page.getByText('GPA and rank', { exact: true })).toBeVisible();

@@ -82,6 +82,10 @@
 	const unlockedAchievements = $derived(
 		achievements.filter((achievement) => achievement.unlocked).length
 	);
+
+	function rankRange(tier: (typeof GPA_RANKS)[number]) {
+		return `${tier.min.toFixed(2)}–${tier.max.toFixed(2)} GPA`;
+	}
 </script>
 
 <svelte:head><title>Rankings - {brand}</title></svelte:head>
@@ -280,9 +284,7 @@
 						<h3 class="font-heading mt-4 text-base font-bold" style:color={tier.color}>
 							{tier.name}
 						</h3>
-						<p class="text-muted-foreground mt-1 font-mono text-xs">
-							{tier.min === 0 ? 'Start here' : `${tier.min.toFixed(2)}+ GPA`}
-						</p>
+						<p class="text-muted-foreground mt-1 font-mono text-xs">{rankRange(tier)}</p>
 					</li>
 				{/each}
 			</ol>
