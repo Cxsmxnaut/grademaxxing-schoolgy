@@ -331,7 +331,11 @@ test('Rankings shows the tougher tier ladder and gradebook achievements', async 
 	await expect(page.getByText('Provisional', { exact: true }).first()).toBeVisible();
 	await expect(page.getByText('Add 3 more to confirm this tier.')).toBeVisible();
 	await expect(page.getByText('4.00–4.00 GPA')).toBeVisible();
-	await expect(page.getByRole('heading', { level: 3, name: 'Bronze', exact: true })).toBeVisible();
+	await expect(page.getByTestId('completed-ranks')).not.toHaveAttribute('open', '');
+	await expect(page.getByTestId('completed-ranks-toggle')).toContainText('Completed tiers');
+	await page.getByTestId('completed-ranks-toggle').click();
+	await expect(page.getByTestId('completed-ranks')).toHaveAttribute('open', '');
+	await expect(page.getByRole('heading', { level: 3, name: 'Bronze', exact: true })).toHaveCount(0);
 	await expect(page.getByRole('heading', { level: 3, name: 'Summit', exact: true })).toBeVisible();
 	await expect(page.locator('img[src="/ranks/bronze.png"]')).toHaveCount(3);
 	await expect(page.locator('img[src="/ranks/champion.png"]')).toHaveCount(2);

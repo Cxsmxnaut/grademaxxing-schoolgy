@@ -12,6 +12,7 @@
 	import { parseGradebookXML } from '$lib/synergy';
 	import AwardIcon from '@lucide/svelte/icons/award';
 	import CheckIcon from '@lucide/svelte/icons/check';
+	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import LockKeyholeIcon from '@lucide/svelte/icons/lock-keyhole';
 	import SparklesIcon from '@lucide/svelte/icons/sparkles';
 	import TargetIcon from '@lucide/svelte/icons/target';
@@ -95,6 +96,9 @@
 		{ name: 'Diamond', tiers: GPA_RANKS.slice(12, 15) },
 		{ name: 'Summit', tiers: GPA_RANKS.slice(15) }
 	] as const;
+	const completedTiers = $derived(
+		rank ? GPA_RANKS.filter((tier) => tier.min < rank.current.min) : []
+	);
 </script>
 
 <svelte:head><title>Rankings - {brand}</title></svelte:head>
@@ -269,7 +273,51 @@
 			</div>
 
 			<div class="space-y-7 sm:space-y-8">
+				{#if completedTiers.length}
+					<details
+						class="border-border bg-card group overflow-hidden rounded-xl border"
+						data-testid="completed-ranks"
+					>
+						<summary
+							class="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 px-4 py-3"
+							data-testid="completed-ranks-toggle"
+						>
+							<span class="flex min-w-0 items-baseline gap-2">
+								<span class="font-heading text-sm font-bold">Completed tiers</span>
+								<span class="text-muted-foreground font-mono text-xs"
+									>{completedTiers.length} reached</span
+								>
+							</span>
+							<ChevronDownIcon
+								class="text-muted-foreground size-4 transition-transform group-open:rotate-180"
+							/>
+						</summary>
+						<ol class="border-border grid gap-3 border-t p-4 sm:grid-cols-3">
+							{#each completedTiers as tier (tier.name)}
+								<li class="border-border/70 bg-secondary/30 flex items-center gap-3 rounded-lg border px-3 py-2.5">
+									<RankEmblem
+										color={tier.color}
+										rankName={tier.name}
+										size={32}
+										label={`${tier.name} GPA rank`}
+									/>
+									<div class="min-w-0 flex-1">
+										<p class="font-heading truncate text-sm font-bold" style:color={tier.color}>
+											{tier.name}
+										</p>
+										<p class="text-muted-foreground font-mono text-[0.6875rem]">{rankRange(tier)}</p>
+									</div>
+									<CheckIcon class="text-grade-strong size-4" aria-label="Unlocked" />
+								</li>
+							{/each}
+						</ol>
+					</details>
+				{/if}
+
+				<div class="space-y-7 sm:space-y-8" data-testid="active-rank-groups">
 				{#each rankGroups as group (group.name)}
+					{@const visibleTiers = group.tiers.filter((tier) => !rank || tier.min >= rank.current.min)}
+					{#if visibleTiers.length}
 					<section class="border-border/70 border-t pt-4 first:border-t-0 first:pt-0" aria-labelledby={`rank-group-${group.name.toLowerCase()}`}>
 						<div class="mb-3 flex items-baseline justify-between gap-4">
 							<h3 id={`rank-group-${group.name.toLowerCase()}`} class="font-heading text-base font-bold">
@@ -280,7 +328,7 @@
 							</p>
 						</div>
 						<ol class="grid gap-3 sm:grid-cols-3">
-							{#each group.tiers as tier (tier.name)}
+							{#each visibleTiers as tier (tier.name)}
 								{@const unlocked = (gpas.unweighted ?? -1) >= tier.min}
 								{@const current = rank?.current.name === tier.name}
 								<li
@@ -315,7 +363,9 @@
 							{/each}
 						</ol>
 					</section>
+					{/if}
 				{/each}
+				</div>
 			</div>
 		</section>
 
