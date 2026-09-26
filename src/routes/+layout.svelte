@@ -1,11 +1,11 @@
 <script lang="ts">
-	import '@fontsource/instrument-sans/400.css';
-	import '@fontsource/instrument-sans/500.css';
-	import '@fontsource/instrument-sans/600.css';
-	import '@fontsource/space-grotesk/600.css';
-	import '@fontsource/space-grotesk/700.css';
-	import '@fontsource/ibm-plex-mono/400.css';
-	import '@fontsource/ibm-plex-mono/600.css';
+	import '@fontsource/manrope/400.css';
+	import '@fontsource/manrope/500.css';
+	import '@fontsource/manrope/600.css';
+	import '@fontsource/outfit/600.css';
+	import '@fontsource/outfit/700.css';
+	import '@fontsource/jetbrains-mono/400.css';
+	import '@fontsource/jetbrains-mono/600.css';
 	import { browser } from '$app/environment';
 	import MaintenancePage from '$lib/components/MaintenancePage.svelte';
 	import { Toaster } from '$lib/components/ui/sonner';

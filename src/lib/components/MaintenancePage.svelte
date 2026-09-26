@@ -52,7 +52,7 @@
 			),
 			var(--background);
 		color: var(--foreground);
-		font-family: 'Instrument Sans', sans-serif;
+		font-family: 'Manrope', sans-serif;
 	}
 
 	.maintenance-card {
@@ -73,7 +73,7 @@
 		align-items: center;
 		gap: 0.7rem;
 		margin-bottom: 3.5rem;
-		font-family: 'Space Grotesk', sans-serif;
+		font-family: 'Outfit', sans-serif;
 		font-size: 1.05rem;
 		font-weight: 700;
 		letter-spacing: -0.02em;
@@ -102,7 +102,7 @@
 	.maintenance-eyebrow {
 		margin: 0 0 0.8rem;
 		color: var(--primary);
-		font-family: 'IBM Plex Mono', monospace;
+		font-family: 'JetBrains Mono', monospace;
 		font-size: 0.7rem;
 		font-weight: 600;
 		letter-spacing: 0.12em;
@@ -111,7 +111,7 @@
 
 	h1 {
 		margin: 0;
-		font-family: 'Space Grotesk', sans-serif;
+		font-family: 'Outfit', sans-serif;
 		font-size: clamp(2rem, 7vw, 3rem);
 		line-height: 1.05;
 		letter-spacing: -0.05em;

@@ -17,7 +17,7 @@
 		'bg-background text-foreground min-h-screen text-[0.90625rem] leading-[1.5] lg:grid',
 		promo && 'lg:grid-cols-[46%_54%]'
 	]}
-	style="font-family: 'Instrument Sans', system-ui, sans-serif"
+	style="font-family: 'Manrope', system-ui, sans-serif"
 >
 	{#if promo}
 		<aside
@@ -27,7 +27,7 @@
 				<img src="/grademaxxing-growth-mark.png" class="mb-8 size-20" alt="" />
 				<h1
 					class="max-w-2xl text-[2.7rem] leading-[1.15] font-bold tracking-[-0.02em] text-balance"
-					style="font-family: 'Space Grotesk', sans-serif"
+					style="font-family: 'Outfit', sans-serif"
 				>
 					Your grades are complicated enough.
 				</h1>
@@ -46,7 +46,7 @@
 				</ul>
 				<p
 					class="mt-12 text-xs leading-[1.125rem] text-[#8195ab]"
-					style="font-family: 'IBM Plex Mono', monospace"
+					style="font-family: 'JetBrains Mono', monospace"
 				>
 					Built for students who want the useful picture.<br />{brand}
 				</p>

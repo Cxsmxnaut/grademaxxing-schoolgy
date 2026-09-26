@@ -5,9 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-	--font-body: 'Instrument Sans', system-ui, sans-serif;
-	--font-heading: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;
-	--font-technical: 'IBM Plex Mono', ui-monospace, monospace;
+	--font-body: 'Manrope', system-ui, sans-serif;
+	--font-heading: 'Outfit', 'Manrope', system-ui, sans-serif;
+	--font-technical: 'JetBrains Mono', ui-monospace, monospace;
 	--space-3xs: 0.125rem;
 	--space-2xs: 0.25rem;
 	--space-xs: 0.5rem;

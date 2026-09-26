@@ -347,7 +347,7 @@
 				type="button"
 				onclick={toggleTargetGradeCalculator}
 				aria-expanded={showTargetGradeCalculator}
-				style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif; line-height: normal;"
+				style="font-family: 'Outfit', 'Manrope', system-ui, sans-serif; line-height: normal;"
 				class="hover:bg-accent/30 flex h-[3.3125rem] w-full items-center justify-between px-5 text-left text-base font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
 			>
 				<span>Finals Planner</span><span class="text-muted-foreground flex items-center text-xs"

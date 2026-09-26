@@ -20,7 +20,7 @@ body {
 	overflow-x: hidden;
 	isolation: isolate;
 	color: var(--ink);
-	font-family: 'Instrument Sans', system-ui, sans-serif;
+	font-family: 'Manrope', system-ui, sans-serif;
 	font-size: 14.5px;
 	line-height: 1.5;
 	background-color: var(--bg);
@@ -44,7 +44,7 @@ body {
 	align-items: center;
 	gap: 9px;
 	color: var(--ink);
-	font-family: 'Space Grotesk', sans-serif;
+	font-family: 'Outfit', sans-serif;
 	font-size: 19px;
 	font-weight: 700;
 	letter-spacing: -0.01em;
@@ -63,7 +63,7 @@ body {
 }
 .wordmark small {
 	color: var(--muted);
-	font-family: 'IBM Plex Mono', monospace;
+	font-family: 'JetBrains Mono', monospace;
 	font-size: 0.58em;
 	font-weight: 600;
 	letter-spacing: 0;
@@ -161,7 +161,7 @@ body {
 .showcase h2,
 .privacy-section h2,
 .final-cta h2 {
-	font-family: 'Space Grotesk', sans-serif;
+	font-family: 'Outfit', sans-serif;
 	font-weight: 700;
 	letter-spacing: -0.03em;
 }
@@ -259,7 +259,7 @@ body {
 	background: var(--panel);
 	color: var(--faint);
 	padding: 3px 24px;
-	font-family: 'IBM Plex Mono', monospace;
+	font-family: 'JetBrains Mono', monospace;
 	font-size: 11px;
 }
 .frame-image-wrap {
@@ -323,7 +323,7 @@ body {
 }
 .feature-card h2 {
 	margin: 1px 0 3px;
-	font-family: 'Space Grotesk', sans-serif;
+	font-family: 'Outfit', sans-serif;
 	font-size: 14.5px;
 	font-weight: 650;
 	letter-spacing: -0.01em;
@@ -344,7 +344,7 @@ body {
 .eyebrow {
 	margin: 0 0 8px;
 	color: var(--accent);
-	font-family: 'IBM Plex Mono', monospace;
+	font-family: 'JetBrains Mono', monospace;
 	font-size: 10.5px;
 	font-weight: 600;
 	letter-spacing: 0.14em;
@@ -420,7 +420,7 @@ body {
 	flex-direction: column;
 	justify-content: space-between;
 	color: var(--faint);
-	font-family: 'IBM Plex Mono', monospace;
+	font-family: 'JetBrains Mono', monospace;
 	font-size: 8px;
 }
 .trend-visual svg {
@@ -461,7 +461,7 @@ body {
 }
 .calc-top strong {
 	color: var(--ink);
-	font-family: 'Space Grotesk', sans-serif;
+	font-family: 'Outfit', sans-serif;
 	font-size: 18px;
 }
 .calc-row {
@@ -528,7 +528,7 @@ body {
 	gap: 7px;
 	margin-bottom: 12px;
 	color: var(--accent);
-	font-family: 'IBM Plex Mono', monospace;
+	font-family: 'JetBrains Mono', monospace;
 	font-size: 10px;
 	font-weight: 600;
 	letter-spacing: 0.1em;
@@ -540,7 +540,7 @@ body {
 }
 .detail-copy h3 {
 	margin: 0 0 8px;
-	font-family: 'Space Grotesk', sans-serif;
+	font-family: 'Outfit', sans-serif;
 	font-size: 18px;
 	line-height: 1.25;
 }

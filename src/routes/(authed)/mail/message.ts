@@ -5,7 +5,7 @@ export const srcdoc = (content: string, openNewTabInstruction: string) => `<!DOC
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
             html {
-                font-family: Inter, sans-serif;
+                font-family: Manrope, sans-serif;
                 line-height: 1.5;
             }
 

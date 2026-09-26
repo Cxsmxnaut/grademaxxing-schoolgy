@@ -20,7 +20,7 @@
 		</p>
 		<h1
 			class="text-[1.4375rem] leading-[2.15625rem] font-bold tracking-[-0.01em]"
-			style="font-family: 'Space Grotesk', sans-serif"
+			style="font-family: 'Outfit', sans-serif"
 		>
 			This page failed to show up.
 		</h1>

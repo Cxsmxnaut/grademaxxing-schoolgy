@@ -14,7 +14,7 @@ body:has(.loading-stage) {
 .login-stage,
 .loading-stage {
 	min-height: 100vh;
-	font-family: 'Instrument Sans', system-ui, sans-serif;
+	font-family: 'Manrope', system-ui, sans-serif;
 }
 button,
 input,
@@ -73,7 +73,7 @@ button:disabled {
 	line-height: 1.1;
 }
 .admin-brand strong {
-	font-family: 'Space Grotesk';
+	font-family: 'Outfit';
 	font-size: 15px;
 }
 .admin-brand small {
@@ -186,7 +186,7 @@ button:disabled {
 }
 .page-heading h1 {
 	margin: 0;
-	font-family: 'Space Grotesk';
+	font-family: 'Outfit';
 	font-size: clamp(28px, 3vw, 38px);
 	letter-spacing: -0.04em;
 }
@@ -278,7 +278,7 @@ button:disabled {
 .metrics-grid strong {
 	display: block;
 	margin-top: 3px;
-	font-family: 'Space Grotesk';
+	font-family: 'Outfit';
 	font-size: 28px;
 }
 .metrics-grid small {
@@ -310,7 +310,7 @@ button:disabled {
 }
 .panel-heading h2 {
 	margin: 0;
-	font-family: 'Space Grotesk';
+	font-family: 'Outfit';
 	font-size: 19px;
 	letter-spacing: -0.025em;
 }
@@ -357,7 +357,7 @@ button:disabled {
 .pulse-panel > strong {
 	display: block;
 	margin-top: 26px;
-	font-family: 'Space Grotesk';
+	font-family: 'Outfit';
 	font-size: 52px;
 	line-height: 1;
 }
@@ -839,7 +839,7 @@ button:disabled {
 }
 .login-card h1 {
 	margin: 0;
-	font-family: 'Space Grotesk';
+	font-family: 'Outfit';
 	font-size: 32px;
 }
 .login-card > span {

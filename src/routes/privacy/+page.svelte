@@ -14,7 +14,7 @@
 		<p class="text-primary mb-2 text-xs font-bold tracking-[0.14em] uppercase">Privacy</p>
 		<h1
 			class="mb-4 text-3xl font-bold tracking-[-0.03em]"
-			style="font-family: 'Space Grotesk', sans-serif"
+			style="font-family: 'Outfit', sans-serif"
 		>
 			How {brand} handles your information
 		</h1>

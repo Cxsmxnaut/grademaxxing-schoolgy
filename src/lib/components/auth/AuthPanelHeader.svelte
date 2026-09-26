@@ -12,7 +12,7 @@
 	<a
 		href="/"
 		class="flex min-w-0 items-center gap-[0.5625rem] text-[1.1875rem] leading-[1.5] font-bold tracking-[-0.01em]"
-		style="font-family: 'Space Grotesk', sans-serif"
+		style="font-family: 'Outfit', sans-serif"
 	>
 		<img src="/grademaxxing-growth-mark.png" class="size-[2.125rem] shrink-0" alt="" />
 		<span class="text-foreground flex min-w-0 whitespace-nowrap">

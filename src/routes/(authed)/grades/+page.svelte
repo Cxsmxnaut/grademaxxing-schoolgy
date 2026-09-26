@@ -157,7 +157,7 @@
 		const rankName = rank.current.name.replaceAll('&', '&amp;').replaceAll('<', '&lt;');
 		const appName = brand.replaceAll('&', '&amp;').replaceAll('<', '&lt;');
 		const rankLabel = rank.provisional ? 'Your provisional GPA rank is' : 'Your GPA rank is';
-		const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080"><rect width="1080" height="1080" rx="72" fill="#1a2737"/><path d="M0 760 Q270 680 540 760 T1080 760 V1080 H0Z" fill="#202d38"/><text x="80" y="120" fill="#f1f5f7" font-family="Arial,sans-serif" font-size="48" font-weight="700">${appName}</text><path d="M540 250 675 340 630 560 540 650 450 560 405 340Z" fill="${color}" stroke="#f1f5f7" stroke-width="12"/><text x="540" y="780" text-anchor="middle" fill="#aab7c5" font-family="Arial,sans-serif" font-size="40">${rankLabel}</text><text x="540" y="880" text-anchor="middle" fill="${color}" font-family="Arial,sans-serif" font-size="96" font-weight="700">${rankName}</text><text x="540" y="975" text-anchor="middle" fill="#6ea8dc" font-family="monospace" font-size="34">What’s your rank?</text></svg>`;
+		const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080"><rect width="1080" height="1080" rx="72" fill="#1a2737"/><path d="M0 760 Q270 680 540 760 T1080 760 V1080 H0Z" fill="#202d38"/><text x="80" y="120" fill="#f1f5f7" font-family="Outfit,sans-serif" font-size="48" font-weight="700">${appName}</text><path d="M540 250 675 340 630 560 540 650 450 560 405 340Z" fill="${color}" stroke="#f1f5f7" stroke-width="12"/><text x="540" y="780" text-anchor="middle" fill="#aab7c5" font-family="Manrope,sans-serif" font-size="40">${rankLabel}</text><text x="540" y="880" text-anchor="middle" fill="${color}" font-family="Outfit,sans-serif" font-size="96" font-weight="700">${rankName}</text><text x="540" y="975" text-anchor="middle" fill="#6ea8dc" font-family="JetBrains Mono,monospace" font-size="34">What’s your rank?</text></svg>`;
 		const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
 		const anchor = document.createElement('a');
 		anchor.href = url;
@@ -263,7 +263,7 @@
 										/>{/if}
 									<strong
 										class="truncate text-[1.5625rem] leading-[1.5] tracking-[-0.02em]"
-										style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif; color: {rank
+										style="font-family: 'Outfit', 'Manrope', system-ui, sans-serif; color: {rank
 											?.current.color};">{rank?.current.name ?? '—'}</strong
 									>
 									{#if rank?.provisional}<span
@@ -292,7 +292,7 @@
 						<div class="mt-2 flex items-baseline gap-[0.625rem]">
 							<strong
 								class="text-grade-strong text-[2rem] leading-[1.5]"
-								style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
+								style="font-family: 'Outfit', 'Manrope', system-ui, sans-serif;"
 								>{formatGpa(gpas.unweighted)}</strong
 							><span class="text-tertiary-foreground font-mono text-xs leading-[1.5]"
 								>{gpas.graded.length} graded courses</span
@@ -303,7 +303,7 @@
 						<p class="metric-label">GPA · Weighted</p>
 						<strong
 							class="mt-2 text-[2rem] leading-[1.5]"
-							style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
+							style="font-family: 'Outfit', 'Manrope', system-ui, sans-serif;"
 							>{formatGpa(gpas.weighted)}</strong
 						>
 					</div>
@@ -321,7 +321,7 @@
 								/>{/if}
 							<strong
 								class="truncate text-[1.5625rem] leading-[1.5] tracking-[-0.02em]"
-								style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif; color: {rank
+										style="font-family: 'Outfit', 'Manrope', system-ui, sans-serif; color: {rank
 									?.current.color};">{rank?.current.name ?? '—'}</strong
 							>
 							{#if rank?.provisional}<span
@@ -397,7 +397,7 @@
 									<div class="flex min-w-0 flex-1 items-baseline gap-2">
 										<p
 											class="text-base leading-[1.5] font-bold"
-											style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif; color: {rank
+											style="font-family: 'Outfit', 'Manrope', system-ui, sans-serif; color: {rank
 												.next.color};"
 										>
 											{rank.next.name}

@@ -46,7 +46,7 @@
 			radial-gradient(980px 620px at 82% -18%, rgba(39, 86, 136, 0.3), transparent 65%),
 			linear-gradient(145deg, #0d1319, #151e28 58%, #0b1117);
 		color: #f1f5f7;
-		font-family: 'Instrument Sans', system-ui, sans-serif;
+		font-family: 'Manrope', system-ui, sans-serif;
 	}
 	.post-login-loading::before,
 	.post-login-loading::after {
@@ -157,7 +157,7 @@
 		place-items: center;
 		border: 1px solid rgba(127, 146, 158, 0.55);
 		border-radius: 999px;
-		font-family: 'IBM Plex Mono', monospace;
+		font-family: 'JetBrains Mono', monospace;
 		font-size: 10px;
 	}
 	.loading-steps li.active span {

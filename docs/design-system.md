@@ -10,9 +10,9 @@ The main visual references used during prior work were GradeWave-style spacing, 
 
 `src/app.css` is the one source for semantic colors. It exposes background/foreground, sidebar, surface, input, border, focus, grade-state, chart, and light/dark variables. Change the theme by editing semantic tokens there; do not scatter hex overrides throughout components.
 
-- Body: Instrument Sans.
-- Headings: Space Grotesk.
-- Technical labels and compact metadata: IBM Plex Mono.
+- Body: Manrope.
+- Headings: Outfit.
+- Technical labels and compact metadata: JetBrains Mono.
 - Icons: Lucide Svelte.
 
 Use the existing semantic tokens and Tailwind aliases. Hard-coded colors are appropriate only for a genuinely local illustration/effect that cannot be represented semantically.
