@@ -204,140 +204,142 @@
 			</header>
 
 			<div class="gradebook-layout">
-				<section class="course-index" aria-labelledby="course-index-title">
-					<details class="gradebook-panel border-border bg-card group mb-6 border sm:hidden">
-						<summary
-							class="flex h-[2.625rem] cursor-pointer list-none items-center justify-between px-[0.875rem] text-[0.84375rem] leading-[normal] font-semibold"
-						>
-							<span>GPA and rank</span>
-							<span class="text-muted-foreground flex items-center gap-[0.4375rem] font-mono">
-								{#if rank}<span class="contents group-open:hidden"
-										><RankEmblem
-											color={rank.current.color}
-											rankName={rank.current.name}
-											size={18}
-											label={`${rank.current.name} GPA rank`}
-										/></span
-									>{/if}
-								<span class="group-open:hidden">{formatGpa(gpas.unweighted)}</span>
-								<ChevronDownIcon class="size-4 transition-transform group-open:rotate-180" /></span
-							>
-						</summary>
-						<div class="border-border/70 grid grid-cols-2 border-t">
-							<div class="flex h-[6.375rem] items-center px-4 py-[0.875rem]">
-								<div>
-									<p class="metric-label">GPA · Unweighted</p>
-									<div class="mt-2 flex items-baseline gap-2.5">
-										<p class="text-grade-strong text-[1.625rem] leading-[1.5] font-bold">
-											{formatGpa(gpas.unweighted)}
-										</p>
-										<span class="text-tertiary-foreground font-mono text-xs leading-[1.5]"
-											>{gpas.graded.length} graded courses</span
-										>
-									</div>
-								</div>
-							</div>
-							<div
-								class="border-border/70 flex h-[6.375rem] items-center border-l px-4 py-[0.875rem]"
-							>
-								<div>
-									<p class="metric-label">GPA · Weighted</p>
-									<p class="mt-2 text-[1.625rem] leading-[1.5] font-bold">
-										{formatGpa(gpas.weighted)}
-									</p>
-								</div>
-							</div>
-							<div
-								class="rank-summary border-border/70 col-span-2 flex h-[5.90625rem] items-center border-t px-4 py-[0.875rem]"
-								style:--rank-color={rank?.current.color ?? 'transparent'}
-							>
-								<div>
-									<p class="metric-label">Rank</p>
-									<div class="mt-1.5 flex items-center gap-2">
-										{#if rank}<RankEmblem
-												color={rank.current.color}
-												rankName={rank.current.name}
-												size={34}
-												label={`${rank.current.name} GPA rank`}
-											/>{/if}
-										<strong
-											class="truncate text-[1.5625rem] leading-[1.5] tracking-[-0.02em]"
-											style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif; color: {rank
-												?.current.color};">{rank?.current.name ?? '—'}</strong
-										>
-										{#if rank?.provisional}<span
-												class="bg-secondary text-muted-foreground rounded-full px-2 py-1 text-[0.5625rem] font-bold uppercase"
-												>Provisional</span
-											>{/if}
-										{#if rank}<button
-												type="button"
-												onclick={() => (rankShareOpen = true)}
-												class="rank-share hover:text-foreground ml-1 size-[2.3125rem] rounded-[0.625rem] p-2 transition-colors focus-visible:ring-2 focus-visible:outline-none"
-												title="Share your rank"
-												aria-label="Share your rank"><ShareIcon class="size-[1.0625rem]" /></button
-											>{/if}
-									</div>
-								</div>
-							</div>
-						</div>
-					</details>
-
-					<section
-						class="gradebook-panel academic-summary border-border bg-card mb-6 hidden h-28 grid-cols-[1.4fr_1fr_1fr] overflow-hidden border sm:grid"
-						aria-label="Grade summary"
+				<details
+					class="mobile-grade-summary gradebook-panel border-border bg-card group mb-6 border sm:hidden"
+				>
+					<summary
+						class="flex h-[2.625rem] cursor-pointer list-none items-center justify-between px-[0.875rem] text-[0.84375rem] leading-[normal] font-semibold"
 					>
-						<div class="flex flex-col px-5 py-[1.125rem]">
-							<p class="metric-label">GPA · Unweighted</p>
-							<div class="mt-2 flex items-baseline gap-[0.625rem]">
-								<strong
-									class="text-grade-strong text-[2rem] leading-[1.5]"
-									style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
-									>{formatGpa(gpas.unweighted)}</strong
-								><span class="text-tertiary-foreground font-mono text-xs leading-[1.5]"
-									>{gpas.graded.length} graded courses</span
-								>
-							</div>
-						</div>
-						<div class="border-border flex flex-col border-x px-5 py-[1.125rem]">
-							<p class="metric-label">GPA · Weighted</p>
-							<strong
-								class="mt-2 text-[2rem] leading-[1.5]"
-								style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
-								>{formatGpa(gpas.weighted)}</strong
-							>
-						</div>
-						<div
-							class="rank-summary flex flex-col px-5 py-[1.125rem]"
-							style:--rank-color={rank?.current.color ?? 'transparent'}
-						>
-							<p class="metric-label">Rank</p>
-							<div class="mt-1.5 flex items-center gap-2">
-								{#if rank}<RankEmblem
+						<span>GPA and rank</span>
+						<span class="text-muted-foreground flex items-center gap-[0.4375rem] font-mono">
+							{#if rank}<span class="contents group-open:hidden"
+									><RankEmblem
 										color={rank.current.color}
 										rankName={rank.current.name}
-										size={34}
+										size={18}
 										label={`${rank.current.name} GPA rank`}
-									/>{/if}
-								<strong
-									class="truncate text-[1.5625rem] leading-[1.5] tracking-[-0.02em]"
-									style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif; color: {rank
-										?.current.color};">{rank?.current.name ?? '—'}</strong
-								>
-								{#if rank?.provisional}<span
-										class="bg-secondary text-muted-foreground rounded-full px-2 py-1 text-[0.5625rem] font-bold uppercase"
-										>Provisional</span
-									>{/if}
-								{#if rank}<button
-										type="button"
-										onclick={() => (rankShareOpen = true)}
-										class="rank-share hover:text-foreground ml-1 size-[2.3125rem] rounded-md p-2 transition-colors focus-visible:ring-2 focus-visible:outline-none"
-										title="Share your rank"
-										aria-label="Share your rank"><ShareIcon class="size-[1.3125rem]" /></button
-									>{/if}
+									/></span
+								>{/if}
+							<span class="group-open:hidden">{formatGpa(gpas.unweighted)}</span>
+							<ChevronDownIcon class="size-4 transition-transform group-open:rotate-180" /></span
+						>
+					</summary>
+					<div class="border-border/70 grid grid-cols-2 border-t">
+						<div class="flex h-[6.375rem] items-center px-4 py-[0.875rem]">
+							<div>
+								<p class="metric-label">GPA · Unweighted</p>
+								<div class="mt-2 flex items-baseline gap-2.5">
+									<p class="text-grade-strong text-[1.625rem] leading-[1.5] font-bold">
+										{formatGpa(gpas.unweighted)}
+									</p>
+									<span class="text-tertiary-foreground font-mono text-xs leading-[1.5]"
+										>{gpas.graded.length} graded courses</span
+									>
+								</div>
 							</div>
 						</div>
-					</section>
+						<div
+							class="border-border/70 flex h-[6.375rem] items-center border-l px-4 py-[0.875rem]"
+						>
+							<div>
+								<p class="metric-label">GPA · Weighted</p>
+								<p class="mt-2 text-[1.625rem] leading-[1.5] font-bold">
+									{formatGpa(gpas.weighted)}
+								</p>
+							</div>
+						</div>
+						<div
+							class="rank-summary border-border/70 col-span-2 flex h-[5.90625rem] items-center border-t px-4 py-[0.875rem]"
+							style:--rank-color={rank?.current.color ?? 'transparent'}
+						>
+							<div>
+								<p class="metric-label">Rank</p>
+								<div class="mt-1.5 flex items-center gap-2">
+									{#if rank}<RankEmblem
+											color={rank.current.color}
+											rankName={rank.current.name}
+											size={34}
+											label={`${rank.current.name} GPA rank`}
+										/>{/if}
+									<strong
+										class="truncate text-[1.5625rem] leading-[1.5] tracking-[-0.02em]"
+										style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif; color: {rank
+											?.current.color};">{rank?.current.name ?? '—'}</strong
+									>
+									{#if rank?.provisional}<span
+											class="bg-secondary text-muted-foreground rounded-full px-2 py-1 text-[0.5625rem] font-bold uppercase"
+											>Provisional</span
+										>{/if}
+									{#if rank}<button
+											type="button"
+											onclick={() => (rankShareOpen = true)}
+											class="rank-share hover:text-foreground ml-1 size-[2.3125rem] rounded-[0.625rem] p-2 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+											title="Share your rank"
+											aria-label="Share your rank"><ShareIcon class="size-[1.0625rem]" /></button
+										>{/if}
+								</div>
+							</div>
+						</div>
+					</div>
+				</details>
 
+				<section
+					class="gradebook-panel academic-summary border-border bg-card mb-6 hidden h-28 grid-cols-[1.4fr_1fr_1fr] overflow-hidden border sm:grid"
+					aria-label="Grade summary"
+				>
+					<div class="flex flex-col px-5 py-[1.125rem]">
+						<p class="metric-label">GPA · Unweighted</p>
+						<div class="mt-2 flex items-baseline gap-[0.625rem]">
+							<strong
+								class="text-grade-strong text-[2rem] leading-[1.5]"
+								style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
+								>{formatGpa(gpas.unweighted)}</strong
+							><span class="text-tertiary-foreground font-mono text-xs leading-[1.5]"
+								>{gpas.graded.length} graded courses</span
+							>
+						</div>
+					</div>
+					<div class="border-border flex flex-col border-x px-5 py-[1.125rem]">
+						<p class="metric-label">GPA · Weighted</p>
+						<strong
+							class="mt-2 text-[2rem] leading-[1.5]"
+							style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
+							>{formatGpa(gpas.weighted)}</strong
+						>
+					</div>
+					<div
+						class="rank-summary flex flex-col px-5 py-[1.125rem]"
+						style:--rank-color={rank?.current.color ?? 'transparent'}
+					>
+						<p class="metric-label">Rank</p>
+						<div class="mt-1.5 flex items-center gap-2">
+							{#if rank}<RankEmblem
+									color={rank.current.color}
+									rankName={rank.current.name}
+									size={34}
+									label={`${rank.current.name} GPA rank`}
+								/>{/if}
+							<strong
+								class="truncate text-[1.5625rem] leading-[1.5] tracking-[-0.02em]"
+								style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif; color: {rank
+									?.current.color};">{rank?.current.name ?? '—'}</strong
+							>
+							{#if rank?.provisional}<span
+									class="bg-secondary text-muted-foreground rounded-full px-2 py-1 text-[0.5625rem] font-bold uppercase"
+									>Provisional</span
+								>{/if}
+							{#if rank}<button
+									type="button"
+									onclick={() => (rankShareOpen = true)}
+									class="rank-share hover:text-foreground ml-1 size-[2.3125rem] rounded-md p-2 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+									title="Share your rank"
+									aria-label="Share your rank"><ShareIcon class="size-[1.3125rem]" /></button
+								>{/if}
+						</div>
+					</div>
+				</section>
+
+				<section class="course-index" aria-labelledby="course-index-title">
 					<div class="course-index-heading">
 						<div>
 							<h2 id="course-index-title" class="font-heading text-lg font-bold tracking-[-0.02em]">
@@ -583,6 +585,11 @@
 		margin-top: 1.5rem;
 	}
 
+	.mobile-grade-summary,
+	.academic-summary {
+		margin-bottom: 0;
+	}
+
 	.course-index {
 		min-width: 0;
 	}
@@ -616,16 +623,22 @@
 	}
 
 	@media (min-width: 70rem) {
-		.course-index {
-			display: grid;
+		.gradebook-layout {
+			grid-template-areas:
+				'courses summary'
+				'courses details';
 			grid-template-columns: minmax(0, 1fr) 18rem;
 			align-items: start;
 			column-gap: 1.5rem;
+			row-gap: 1.5rem;
 		}
 
-		.course-index > .academic-summary {
-			grid-column: 2;
-			grid-row: 1 / span 3;
+		.course-index {
+			grid-area: courses;
+		}
+
+		.academic-summary {
+			grid-area: summary;
 			display: flex;
 			flex-direction: column;
 			height: auto;
@@ -645,19 +658,11 @@
 			border-bottom: 0;
 		}
 
-		.course-index-heading,
-		.course-index > ol {
-			grid-column: 1;
-		}
-
-		.course-index > :global([role='alert']) {
-			grid-column: 1;
-		}
-
 		.gradebook-aside {
-			grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-			align-items: stretch;
-			margin-top: 0.25rem;
+			grid-area: details;
+			display: grid;
+			grid-template-columns: minmax(0, 1fr);
+			align-items: start;
 		}
 	}
 
