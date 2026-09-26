@@ -339,18 +339,9 @@
 					</div>
 				</section>
 
-				<section class="course-index" aria-labelledby="course-index-title">
-					<div class="course-index-heading">
-						<div>
-							<h2 id="course-index-title" class="font-heading text-lg font-bold tracking-[-0.02em]">
-								Courses
-							</h2>
-							<p class="text-muted-foreground mt-1 text-xs">
-								{courses.length}
-								{courses.length === 1 ? 'class' : 'classes'} in this period
-							</p>
-						</div>
-						{#if courses.length > 0 && totalUnseenAssignments > 0}<Button
+				<section class="course-index" aria-label="Courses">
+					{#if courses.length > 0 && totalUnseenAssignments > 0}<div class="mb-4 flex justify-end">
+							<Button
 								variant="outline"
 								size="sm"
 								onclick={markAllAssignmentsSeen}
@@ -358,8 +349,8 @@
 								>Mark {totalUnseenAssignments} new assignment{totalUnseenAssignments === 1
 									? ''
 									: 's'} as seen</Button
-							>{/if}
-					</div>
+							>
+						</div>{/if}
 
 					{#if hasNoGrades}
 						<Alert.Root
@@ -594,16 +585,6 @@
 		min-width: 0;
 	}
 
-	.course-index-heading {
-		display: flex;
-		align-items: end;
-		justify-content: space-between;
-		gap: 1rem;
-		margin-bottom: 1rem;
-		padding-bottom: 1rem;
-		border-bottom: 1px solid var(--border);
-	}
-
 	.gradebook-panel {
 		border-radius: 0.75rem;
 		box-shadow: none;
@@ -690,11 +671,6 @@
 	@media (max-width: 22.5rem) {
 		.gradebook-controls {
 			grid-template-columns: minmax(0, 1fr);
-		}
-
-		.course-index-heading {
-			align-items: start;
-			flex-direction: column;
 		}
 	}
 </style>
