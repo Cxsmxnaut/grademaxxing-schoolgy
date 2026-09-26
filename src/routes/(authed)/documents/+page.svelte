@@ -1,13 +1,8 @@
 <script lang="ts">
-	import { bgColorVariants } from '$lib/components/ui/badge/colors';
 	import { brand } from '$lib/brand';
-	import AppPageHeader from '$lib/components/AppPageHeader.svelte';
 	import AppPageShell from '$lib/components/AppPageShell.svelte';
-	import DateBadge from '$lib/components/DateBadge.svelte';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
 	import RecordLoadFailure from '$lib/components/RecordLoadFailure.svelte';
-	import { Badge } from '$lib/components/ui/badge';
-	import { Button } from '$lib/components/ui/button';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import type { StudentDocumentData } from '$lib/contracts/studentvue/documents';
 	import ArrowUpRightIcon from '@lucide/svelte/icons/arrow-up-right';
@@ -17,26 +12,32 @@
 
 	loadDocuments();
 
-	function getDocumentColor(documentType: string) {
-		switch (documentType) {
-			case 'Report Card':
-				return 'yellow';
-			case 'Transcript':
-				return 'red';
-			case 'MAP Growth Family Report':
-				return 'blue';
-			default:
-				return 'green';
-		}
-	}
-
-	let documentDatas = $derived(
+	const documentDatas = $derived(
 		documentsState.data?.StudentDocumentDatas?.StudentDocumentData ?? []
 	);
+	const sortedDocuments = $derived(
+		[...documentDatas].toSorted((a, b) => {
+			const aDate = new Date(a._DocumentDate).getTime();
+			const bDate = new Date(b._DocumentDate).getTime();
+			return (Number.isNaN(bDate) ? 0 : bDate) - (Number.isNaN(aDate) ? 0 : aDate);
+		})
+	);
+	const dateFormatter = new Intl.DateTimeFormat('en-US', {
+		month: 'short',
+		day: 'numeric',
+		year: 'numeric'
+	});
+	function formatDocumentDate(value: string) {
+		const date = new Date(value);
+		return Number.isNaN(date.getTime()) ? 'Date unavailable' : dateFormatter.format(date);
+	}
+	function documentTitle(document: StudentDocumentData) {
+		return document._DocumentComment || document._DocumentFileName || document._DocumentType;
+	}
 
 	const sortPriority = ['Transcript', 'Report Card'];
 
-	let documentCategories = $derived(
+	const documentCategories = $derived(
 		new Set(
 			documentDatas
 				.map((documentData) => documentData._DocumentType)
@@ -56,15 +57,16 @@
 	<title>Documents - {brand}</title>
 </svelte:head>
 
-<AppPageShell>
-	<AppPageHeader
-		eyebrow="School record"
-		title="Documents"
-		description="Report cards, transcripts, and other files available through StudentVUE."
-	/>
+<AppPageShell class="documents-shell">
+	<header class="documents-heading">
+		<div>
+			<h1>Documents</h1>
+			<p>Files your school has shared through StudentVUE.</p>
+		</div>
+	</header>
 
 	{#if !documentsState.loaded}
-		<LoadingBanner>Loading documents. Filing cabinet mode.</LoadingBanner>
+		<LoadingBanner>Loading documents…</LoadingBanner>
 	{/if}
 
 	{#if documentsState.loaded && documentsState.error}
@@ -76,79 +78,274 @@
 		/>
 	{/if}
 
-	{#if documentsState.data && documentDatas.length > 0}
-		<Tabs.Root value="all" class="mx-auto mt-5 max-w-4xl gap-4">
-			<Tabs.List class="h-11 max-w-full justify-start overflow-x-auto rounded-xl">
+	{#if documentsState.data && sortedDocuments.length > 0}
+		<Tabs.Root value="all" class="document-tabs">
+			<Tabs.List
+				aria-label="Document category"
+				class="max-w-full justify-start overflow-x-auto rounded-none"
+			>
 				<Tabs.Trigger value="all">All</Tabs.Trigger>
 
 				{#each documentCategories as category (category)}
 					<Tabs.Trigger value={category}>
-						<div
-							class={[bgColorVariants[getDocumentColor(category)], 'h-2 w-2 rounded-full']}
-						></div>
 						{category}
 					</Tabs.Trigger>
 				{/each}
 			</Tabs.List>
 
 			<Tabs.Content value="all">
-				{@render documentsList(documentDatas)}
+				{@render documentsList(sortedDocuments, 'All files')}
 			</Tabs.Content>
 
 			{#each documentCategories as category (category)}
 				<Tabs.Content value={category}>
 					{@render documentsList(
-						documentDatas.filter((documentData) => documentData._DocumentType === category),
-						false
+						sortedDocuments.filter((documentData) => documentData._DocumentType === category),
+						category
 					)}
 				</Tabs.Content>
 			{/each}
 		</Tabs.Root>
 	{:else if documentsState.loaded && !documentsState.error}
-		<div class="py-16 text-center" role="status">
-			<FolderOpenIcon class="text-primary mx-auto size-9" />
-			<h2 class="mt-3 font-semibold">No documents yet. A rare moment of inbox peace.</h2>
-			<p class="text-muted-foreground mt-1 text-sm">
-				Report cards and other files will appear here when your school publishes them.
-			</p>
+		<div class="documents-empty" role="status">
+			<FolderOpenIcon class="size-7" />
+			<h2>No documents available yet</h2>
+			<p>Report cards and other files will appear here when your school publishes them.</p>
 		</div>
 	{/if}
 </AppPageShell>
 
-{#snippet documentsList(documents: StudentDocumentData[], showCategory = true)}
-	<ol
-		class="bg-card mx-auto max-w-4xl overflow-hidden rounded-xl shadow-sm"
-		aria-label="Student documents"
-	>
+{#snippet documentsList(documents: StudentDocumentData[], title: string)}
+	<div class="list-heading">
+		<h2>{title}</h2>
+		<span>{documents.length} {documents.length === 1 ? 'file' : 'files'}</span>
+	</div>
+	<ol class="documents-list" aria-label="Student documents">
 		{#each documents as documentData (documentData._DocumentGU)}
-			<li class="border-border/70 border-b last:border-b-0" data-testid="document-row">
-				<Button
+			<li data-testid="document-row">
+				<a
 					href="/documents/document?documentGU={documentData._DocumentGU}"
 					target="_blank"
-					variant="ghost"
-					class="group flex h-auto w-full items-center justify-start gap-4 rounded-none px-4 py-4 text-left sm:px-5"
+					rel="noopener noreferrer"
+					class="document-link"
 				>
-					<span
-						class="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-lg"
+					<span class="document-icon" aria-hidden="true"><FileTextIcon class="size-5" /></span>
+					<span class="document-main"
+						><strong>{documentTitle(documentData)}</strong><span
+							>{documentData._DocumentType || 'School file'}</span
+						></span
 					>
-						<FileTextIcon class="size-5" />
-					</span>
-					<div class="min-w-0 flex-1">
-						<h2 class="truncate font-semibold">{documentData._DocumentComment}</h2>
-						<div class="mt-1.5 flex flex-wrap gap-1.5">
-							{#if showCategory}
-								<Badge color={getDocumentColor(documentData._DocumentType)}>
-									{documentData._DocumentType}
-								</Badge>
-							{/if}
-							<DateBadge date={new Date(documentData._DocumentDate)} />
-						</div>
-					</div>
-					<ArrowUpRightIcon
-						class="text-muted-foreground size-4 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-					/>
-				</Button>
+					<time datetime={documentData._DocumentDate}
+						>{formatDocumentDate(documentData._DocumentDate)}</time
+					>
+					<span class="open-file"><span>Open file</span><ArrowUpRightIcon class="size-4" /></span>
+				</a>
 			</li>
 		{/each}
 	</ol>
 {/snippet}
+
+<style>
+	/* Hallmark · pre-emit critique: P5 H4 E4 S5 R5 V4 · genre: modern-minimal · macrostructure: document index · palette: Grademaxxing semantic tokens */
+	:global(.documents-shell) {
+		max-width: 82rem;
+	}
+	.documents-heading {
+		display: flex;
+		align-items: end;
+		justify-content: space-between;
+		gap: var(--space-md);
+		margin-bottom: var(--space-xl);
+	}
+	.documents-heading h1 {
+		min-width: 0;
+		margin: 0;
+		color: var(--foreground);
+		font-family: var(--font-heading);
+		font-size: clamp(1.8rem, 3vw, 2.35rem);
+		letter-spacing: -0.04em;
+		overflow-wrap: anywhere;
+	}
+	.documents-heading p {
+		margin: 0.25rem 0 0;
+		color: var(--muted-foreground);
+		font-size: 0.9rem;
+		line-height: 1.5;
+	}
+	:global(.document-tabs) {
+		display: block;
+		min-width: 0;
+	}
+	:global(.document-tabs [data-slot='tabs-list']) {
+		display: flex;
+		width: 100%;
+		height: auto;
+		gap: var(--space-lg);
+		border-bottom: 1px solid var(--border);
+		border-radius: 0;
+		background: transparent;
+		padding: 0;
+		scrollbar-width: thin;
+	}
+	:global(.document-tabs [data-slot='tabs-trigger']) {
+		height: 2.9rem;
+		flex: 0 0 auto;
+		gap: var(--space-xs);
+		border: 0;
+		border-bottom: 2px solid transparent;
+		border-radius: 0;
+		background: transparent;
+		color: var(--muted-foreground) !important;
+		padding: 0;
+		font-size: 0.82rem;
+		font-weight: 650;
+		box-shadow: none;
+		white-space: nowrap;
+	}
+	:global(.document-tabs [data-slot='tabs-trigger'][data-state='active']) {
+		border-bottom-color: var(--primary);
+		background: transparent;
+		color: var(--foreground) !important;
+		box-shadow: none;
+	}
+	:global(.document-tabs [data-slot='tabs-content']) {
+		margin-top: var(--space-lg);
+	}
+	.list-heading {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: var(--space-sm);
+		padding-bottom: var(--space-sm);
+	}
+	.list-heading h2 {
+		margin: 0;
+		color: var(--foreground);
+		font-family: var(--font-heading);
+		font-size: 1.2rem;
+		letter-spacing: -0.025em;
+	}
+	.list-heading span {
+		color: var(--muted-foreground);
+		font-family: var(--font-technical);
+		font-size: 0.72rem;
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+	}
+	.documents-list {
+		margin: 0;
+		padding: 0;
+		border-top: 1px solid var(--border);
+		list-style: none;
+	}
+	.documents-list li {
+		border-bottom: 1px solid var(--border);
+	}
+	.document-link {
+		display: grid;
+		grid-template-columns: 2.5rem minmax(0, 1fr) 8rem 5.5rem;
+		align-items: center;
+		gap: var(--space-md);
+		min-height: 5.3rem;
+		color: var(--foreground);
+		padding: var(--space-md) var(--space-xs);
+		text-decoration: none;
+	}
+	.document-link:focus-visible {
+		outline: 2px solid var(--focus);
+		outline-offset: -2px;
+	}
+	.document-icon {
+		display: grid;
+		width: 2.5rem;
+		height: 2.5rem;
+		place-items: center;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-md);
+		color: var(--primary);
+	}
+	.document-main {
+		display: grid;
+		min-width: 0;
+		gap: 0.25rem;
+	}
+	.document-main strong {
+		overflow-wrap: anywhere;
+		font-size: 0.9rem;
+		line-height: 1.35;
+	}
+	.document-main > span {
+		color: var(--muted-foreground);
+		font-size: 0.75rem;
+	}
+	.document-link time {
+		color: var(--muted-foreground);
+		font-family: var(--font-technical);
+		font-size: 0.73rem;
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+	}
+	.open-file {
+		display: inline-flex;
+		align-items: center;
+		justify-self: end;
+		gap: 0.3rem;
+		color: var(--primary);
+		font-size: 0.73rem;
+		font-weight: 700;
+		white-space: nowrap;
+	}
+	.documents-empty {
+		display: grid;
+		justify-items: start;
+		gap: var(--space-sm);
+		max-width: 36rem;
+		margin-top: var(--space-2xl);
+		border-top: 1px solid var(--border);
+		padding-top: var(--space-lg);
+		color: var(--muted-foreground);
+	}
+	.documents-empty h2 {
+		margin: 0;
+		color: var(--foreground);
+		font-family: var(--font-heading);
+		font-size: 1.2rem;
+	}
+	.documents-empty p {
+		margin: 0;
+		font-size: 0.875rem;
+		line-height: 1.6;
+	}
+	@media (max-width: 39rem) {
+		.documents-heading {
+			align-items: start;
+			flex-direction: column;
+			margin-bottom: var(--space-lg);
+		}
+		.document-link {
+			grid-template-columns: 2.4rem minmax(0, 1fr) 1.3rem;
+			gap: var(--space-sm);
+			min-height: 5.5rem;
+		}
+		.document-link time {
+			grid-column: 2;
+			grid-row: 2;
+			margin-top: -0.5rem;
+		}
+		.open-file {
+			grid-column: 3;
+			grid-row: 1 / span 2;
+		}
+		.open-file span {
+			display: none;
+		}
+	}
+	@media (hover: hover) {
+		.document-link:hover {
+			background: var(--secondary);
+		}
+		:global(.document-tabs [data-slot='tabs-trigger']:hover) {
+			color: var(--foreground);
+		}
+	}
+</style>

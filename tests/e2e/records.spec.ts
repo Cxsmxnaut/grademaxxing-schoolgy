@@ -161,8 +161,11 @@ test('published documents render, filter, and open through the real document flo
 	await page.goto('/documents');
 	const visibleRows = page.getByTestId('document-row').filter({ visible: true });
 	await expect(visibleRows).toHaveCount(2);
+	await expect(page.getByText('Loading documents…')).toBeHidden();
 	await expect(visibleRows.getByText('Quarter 4 Report Card', { exact: true })).toBeVisible();
 	await expect(visibleRows.getByText('Unofficial Transcript', { exact: true })).toBeVisible();
+	await page.evaluate(() => document.documentElement.classList.remove('dark'));
+	await expect(page.getByRole('tab', { name: 'All' })).toHaveCSS('color', 'rgb(15, 28, 46)');
 
 	await page.getByRole('tab', { name: 'Transcript', exact: true }).click();
 	await expect(page.getByTestId('document-row').filter({ visible: true })).toHaveCount(1);
@@ -223,6 +226,14 @@ test('record pages retain their layout and controls on a phone viewport', async 
 	await page.goto('/documents');
 	await expect(page.getByRole('navigation', { name: 'Mobile navigation' })).toBeVisible();
 	await expect(page.getByTestId('document-row').filter({ visible: true })).toHaveCount(2);
+	await expect(page.getByText('Loading documents…')).toBeHidden();
+	for (const width of [320, 375, 414, 768]) {
+		await page.setViewportSize({ width, height: 844 });
+		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+			width
+		);
+	}
+	await page.setViewportSize({ width: 390, height: 844 });
 	await page.getByRole('tab', { name: 'Report Card', exact: true }).click();
 	await expect(page.getByTestId('document-row').filter({ visible: true })).toHaveCount(1);
 

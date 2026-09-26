@@ -306,7 +306,7 @@ test('empty records, feedback state, mobile navigation, and dark theme are clear
 }) => {
 	await page.goto('/documents');
 	await expect(
-		page.getByRole('heading', { name: 'No documents yet. A rare moment of inbox peace.' })
+		page.getByRole('heading', { name: 'No documents available yet' })
 	).toBeVisible();
 	await page.goto('/mail');
 	await expect(

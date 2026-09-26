@@ -532,7 +532,7 @@ test('4 — a student reviews documents and opens an available document', async 
 	await documentsLink.click();
 	await expect(page).toHaveURL(/\/documents$/);
 	await expect(
-		page.getByText('Loading documents. Filing cabinet mode.', { exact: true })
+		page.getByText('Loading documents…', { exact: true })
 	).toBeHidden();
 	await expect(page.getByText('Something went wrong')).toHaveCount(0);
 	await expect(page.getByRole('tab', { name: 'All', exact: true })).toBeVisible();
@@ -547,7 +547,7 @@ test('4 — a student reviews documents and opens an available document', async 
 		expect(documentPage.url()).toContain('/documents/document?documentGU=');
 		await documentPage.close();
 	} else
-		await expect(page.getByRole('status')).toHaveText('No student documents are available yet.');
+		await expect(page.getByRole('heading', { name: 'No documents available yet' })).toBeVisible();
 
 	if (documentCount > 0) {
 		await page.route('**/api/studentvue/documents', async (route) => {
