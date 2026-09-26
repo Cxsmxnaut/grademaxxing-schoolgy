@@ -227,9 +227,12 @@ test('attendance agenda shows school records and fits a phone viewport', async (
 	await expect(page.getByText('Arrived late').first()).toBeVisible();
 	await page.getByRole('button', { name: /Arrived late/ }).click();
 	await expect(page.locator('.record-detail').getByText('Example Biology')).toBeVisible();
-	await page.getByRole('combobox', { name: 'Status' }).selectOption('Absent');
+	await expect(page.getByRole('combobox', { name: 'Course' })).toHaveCount(0);
+	await expect(page.getByRole('combobox', { name: 'Status' })).toHaveCount(0);
+	const tardy = page.getByRole('checkbox', { name: 'Tardy' });
+	await tardy.uncheck();
 	await expect(page.getByText('No attendance records for this day.')).toBeVisible();
-	await page.getByRole('combobox', { name: 'Status' }).selectOption('all');
+	await tardy.check();
 	await expect(page.getByText('Arrived late').first()).toBeVisible();
 	const otherRecords = page.getByRole('checkbox', { name: 'Other records' });
 	await otherRecords.uncheck();

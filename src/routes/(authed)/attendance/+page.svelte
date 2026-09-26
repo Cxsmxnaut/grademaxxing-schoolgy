@@ -50,8 +50,6 @@
 
 	let selectedDate = $state(new Date());
 	let view = $state<View>('day');
-	let courseFilter = $state('all');
-	let statusFilter = $state('all');
 	let visibleStatuses = $state<AttendanceType[]>([...statusOptions]);
 	let expandedRecord = $state<string | undefined>();
 
@@ -126,21 +124,7 @@
 		].toSorted((a, b) => (b.dateObject?.getTime() ?? 0) - (a.dateObject?.getTime() ?? 0));
 	});
 
-	const courses = $derived(
-		[
-			...new Set(
-				attendanceRows.flatMap((row) => row.periods.map((period) => period._Course).filter(Boolean))
-			)
-		].toSorted()
-	);
-	const filteredRows = $derived(
-		attendanceRows.filter(
-			(row) =>
-				visibleStatuses.includes(row.type) &&
-				(statusFilter === 'all' || row.type === statusFilter) &&
-				(courseFilter === 'all' || row.periods.some((period) => period._Course === courseFilter))
-		)
-	);
+	const filteredRows = $derived(attendanceRows.filter((row) => visibleStatuses.includes(row.type)));
 	const latestRecord = $derived(attendanceRows.find((row) => row.dateObject));
 	const selectedMonth = $derived(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
 	const weekStart = $derived(
@@ -263,23 +247,6 @@
 		/>{/if}
 
 	{#if attendanceState.data}
-		<div class="filter-bar" aria-label="Attendance filters">
-			<label
-				><span>Course</span><select bind:value={courseFilter}
-					><option value="all">All courses</option>{#each courses as course (course)}<option
-							value={course}>{course}</option
-						>{/each}</select
-				></label
-			>
-			<label
-				><span>Status</span><select bind:value={statusFilter}
-					><option value="all">All statuses</option>{#each statusOptions as status (status)}<option
-							value={status}>{status}</option
-						>{/each}</select
-				></label
-			>
-		</div>
-
 		<div class="calendar-toolbar">
 			<div class="date-actions">
 				<button
@@ -444,7 +411,6 @@
 		cursor: pointer;
 	}
 	button:focus-visible,
-	select:focus-visible,
 	input:focus-visible {
 		outline: 2px solid var(--focus);
 		outline-offset: 2px;
@@ -472,39 +438,6 @@
 		font-weight: 700;
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
-	}
-	.filter-bar {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: var(--space-sm);
-		margin-bottom: var(--space-md);
-	}
-	.filter-bar label {
-		position: relative;
-		min-width: 0;
-	}
-	.filter-bar label span {
-		position: absolute;
-		top: 0.48rem;
-		left: 0.9rem;
-		color: var(--muted-foreground);
-		font-family: var(--font-technical);
-		font-size: 0.62rem;
-		letter-spacing: 0.07em;
-		text-transform: uppercase;
-		pointer-events: none;
-	}
-	.filter-bar select {
-		width: 100%;
-		min-height: 3.6rem;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-md);
-		background: var(--card);
-		color: var(--foreground);
-		padding: 1.2rem 2.2rem 0.3rem 0.9rem;
-		font: inherit;
-		font-size: 0.9rem;
-		font-weight: 650;
 	}
 	.calendar-toolbar {
 		display: grid;
@@ -944,12 +877,6 @@
 		}
 		.source-note {
 			grid-column: auto;
-		}
-		.filter-bar {
-			gap: 0.5rem;
-		}
-		.filter-bar select {
-			font-size: 0.78rem;
 		}
 		.record-trigger {
 			gap: var(--space-sm);
