@@ -669,6 +669,13 @@
 	:global(.attendance-calendar [data-bits-calendar-header]) {
 		font-family: var(--font-heading);
 	}
+	:global(.attendance-calendar [data-bits-day][data-today]) {
+		background: transparent;
+		color: var(--foreground);
+	}
+	:global(.attendance-calendar [data-bits-day][data-today]:hover) {
+		background: var(--accent);
+	}
 	.date-dot {
 		position: absolute;
 		bottom: 0.12rem;
@@ -679,6 +686,9 @@
 	}
 	:global(.attendance-calendar [data-selected]) .date-dot {
 		color: var(--primary-foreground);
+	}
+	:global(.attendance-calendar [data-bits-day][data-today]) .date-dot {
+		color: var(--foreground);
 	}
 	.status-panel {
 		border-top: 1px solid var(--border);
