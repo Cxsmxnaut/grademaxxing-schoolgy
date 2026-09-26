@@ -169,7 +169,7 @@ test('gradebook calculator, course planner, and attendance views are interactive
 	await expect(page).toHaveURL(/\/grades$/);
 
 	await page.goto('/attendance');
-	await expect(page.getByRole('heading', { name: 'See the whole picture.' })).toBeVisible();
+	await expect(page.getByRole('heading', { level: 1, name: 'Attendance' })).toBeVisible();
 	const monthHeading = page.locator('#attendance-month');
 	const initialMonth = await monthHeading.textContent();
 	await page.getByRole('button', { name: 'Previous month' }).click();
@@ -323,9 +323,7 @@ test('Rankings shows the tougher tier ladder and gradebook achievements', async 
 	await expect(
 		page.getByRole('heading', { level: 1, name: 'Rankings & achievements' })
 	).toBeVisible();
-	await expect(
-		page.getByRole('heading', { level: 2, name: 'Champion', exact: true })
-	).toBeVisible();
+	await expect(page.getByRole('heading', { level: 2, name: 'Champion', exact: true })).toBeVisible();
 	await expect(page.getByText('Provisional', { exact: true }).first()).toBeVisible();
 	await expect(page.getByText('Add 3 more to confirm this tier.')).toBeVisible();
 	await expect(page.getByText('4.00–4.00 GPA')).toBeVisible();
@@ -364,13 +362,11 @@ test('legacy dashboard bookmarks resolve to the Gradebook home', async ({ page }
 	await expect(page.getByRole('heading', { level: 1, name: 'Gradebook' })).toBeVisible();
 });
 
-test('Gradebook exposes the GPA summary and recent work on desktop and mobile', async ({
-	page
-}) => {
+test('Gradebook exposes the GPA rank summary on desktop and mobile', async ({ page }) => {
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.goto('/grades');
 	const summary = page.getByRole('region', { name: 'Grade summary' });
-	await expect(summary.getByText('App GPA tier', { exact: true })).toBeVisible();
+	await expect(summary.getByText('Rank', { exact: true })).toBeVisible();
 	await expect(summary.getByText('Champion', { exact: true })).toBeVisible();
 	await expect(page.getByRole('progressbar', { name: 'Theme Preview grade' })).toHaveAttribute(
 		'aria-valuenow',
@@ -382,14 +378,12 @@ test('Gradebook exposes the GPA summary and recent work on desktop and mobile', 
 	await expect(page.getByText('0.01 GPA away')).toBeVisible();
 
 	await page.setViewportSize({ width: 390, height: 844 });
-	await expect(summary).toBeVisible();
-	await expect(summary.getByText('Unweighted', { exact: true })).toBeVisible();
-	await expect(summary.getByText('Weighted GPA', { exact: true })).toBeVisible();
-	await expect(summary.getByText('App GPA tier', { exact: true })).toBeVisible();
-	await expect(summary.getByRole('button', { name: 'Share your rank' })).toBeVisible();
-	const recentWork = page.getByRole('region', { name: 'Recently graded' });
-	await expect(recentWork).toBeVisible();
-	await expect(recentWork.getByText('Unit assessment')).toBeVisible();
+	await expect(page.getByText('GPA and rank', { exact: true })).toBeVisible();
+	await page.getByText('GPA and rank', { exact: true }).click();
+	const mobileSummary = page.locator('details');
+	await expect(mobileSummary.getByText('GPA · Unweighted', { exact: true })).toBeVisible();
+	await expect(mobileSummary.getByText('GPA · Weighted', { exact: true })).toBeVisible();
+	await expect(mobileSummary.getByRole('button', { name: 'Share your rank' })).toBeVisible();
 });
 
 test('Gradebook report period menu switches data and preserves native menu semantics', async ({
@@ -404,12 +398,9 @@ test('Gradebook report period menu switches data and preserves native menu seman
 	await expect(
 		page.getByRole('region', { name: 'Grade summary' }).getByText('3.00').first()
 	).toBeVisible();
-	const course = page.getByRole('region', { name: 'Classes' }).getByRole('link', {
-		name: /Theme Preview/
-	});
-	await expect(course).toBeVisible();
-	await expect(course).toContainText('B+');
-	await expect(course).toContainText('87%');
+	await expect(
+		page.locator('main ol').getByRole('link', { name: /B\+ Theme Preview/ })
+	).toBeVisible();
 });
 
 test('Gradebook class and rank controls perform their real actions', async ({ page }) => {
