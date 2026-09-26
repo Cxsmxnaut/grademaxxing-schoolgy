@@ -360,23 +360,10 @@ test('Rankings shows the tougher tier ladder and gradebook achievements', async 
 	await expect(page.getByText('not your school’s official class rank or awards')).toBeVisible();
 });
 
-test('Dashboard is a distinct academic overview', async ({ page }) => {
+test('legacy dashboard bookmarks resolve to the Gradebook home', async ({ page }) => {
 	await page.goto('/dashboard');
-	await expect(page).toHaveURL(/\/dashboard$/);
-	await expect(page.getByRole('heading', { level: 1, name: 'Know where you stand.' })).toBeVisible();
-	await expect(page.getByRole('link', { name: 'Open gradebook' })).toHaveAttribute('href', '/grades');
-	await expect(page.getByTestId('sidebar-nav-dashboard')).toHaveAttribute('aria-current', 'page');
-});
-
-test('Dashboard remains usable without horizontal overflow on phone and tablet widths', async ({ page }) => {
-	for (const width of [320, 375, 414, 768]) {
-		await page.setViewportSize({ width, height: 900 });
-		await page.goto('/dashboard');
-		await expect(page.getByRole('heading', { level: 1, name: 'Know where you stand.' })).toBeVisible();
-		expect(await page.locator('body').evaluate((body) => body.scrollWidth <= window.innerWidth)).toBe(
-			true
-		);
-	}
+	await expect(page).toHaveURL(/\/grades$/);
+	await expect(page.getByRole('heading', { level: 1, name: 'Gradebook' })).toBeVisible();
 });
 
 test('Gradebook exposes the GPA rank summary on desktop and mobile', async ({ page }) => {

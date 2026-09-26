@@ -30,7 +30,6 @@
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import MailIcon from '@lucide/svelte/icons/mail';
 	import TrophyIcon from '@lucide/svelte/icons/trophy';
-	import LayoutDashboardIcon from '@lucide/svelte/icons/layout-dashboard';
 	import AppSidebar from './AppSidebar.svelte';
 	import ReconnectStudentVue from './ReconnectStudentVue.svelte';
 	import { resetNonGradeRecords } from './resetNonGradeRecords.svelte';
@@ -47,7 +46,6 @@
 	let portalRetryTimer: number | undefined;
 
 	const mobileNavigation = [
-		{ title: 'Home', url: '/dashboard', icon: LayoutDashboardIcon },
 		{ title: 'Grades', url: '/grades', icon: BookOpenIcon },
 		{ title: 'Rankings', url: '/rankings', icon: TrophyIcon },
 		{ title: 'Attendance', url: '/attendance', icon: CalendarDaysIcon },
@@ -299,7 +297,7 @@
 			</div>
 
 			<nav
-				class="bg-card border-border fixed inset-x-0 bottom-0 z-40 grid h-[3.375rem] grid-cols-6 border-t md:hidden"
+				class="bg-card border-border fixed inset-x-0 bottom-0 z-40 grid h-[3.375rem] grid-cols-5 border-t md:hidden"
 				aria-label="Mobile navigation"
 			>
 				{#each mobileNavigation as item (item.url)}
