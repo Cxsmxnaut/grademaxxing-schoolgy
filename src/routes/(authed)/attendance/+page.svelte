@@ -846,7 +846,33 @@
 		cursor: pointer;
 	}
 	.status-option input {
-		accent-color: var(--primary);
+		appearance: none;
+		display: grid;
+		width: 1rem;
+		height: 1rem;
+		flex: 0 0 auto;
+		place-items: center;
+		margin: 0;
+		border: 1px solid var(--input);
+		border-radius: var(--radius-sm);
+		background: transparent;
+		cursor: pointer;
+	}
+	.status-option input:checked {
+		border-color: var(--primary);
+		background: var(--primary);
+	}
+	.status-option input::after {
+		width: 0.28rem;
+		height: 0.5rem;
+		border-right: 2px solid var(--primary-foreground);
+		border-bottom: 2px solid var(--primary-foreground);
+		content: '';
+		opacity: 0;
+		transform: translateY(-0.08rem) rotate(45deg);
+	}
+	.status-option input:checked::after {
+		opacity: 1;
 	}
 	.status-swatch {
 		width: 0.5rem;

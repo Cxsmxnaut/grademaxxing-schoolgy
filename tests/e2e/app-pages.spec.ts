@@ -231,9 +231,17 @@ test('attendance agenda shows school records and fits a phone viewport', async (
 	await expect(page.getByText('No attendance records for this day.')).toBeVisible();
 	await page.getByRole('combobox', { name: 'Status' }).selectOption('all');
 	await expect(page.getByText('Arrived late').first()).toBeVisible();
+	const otherRecords = page.getByRole('checkbox', { name: 'Other records' });
+	await otherRecords.uncheck();
+	await expect(otherRecords).not.toBeChecked();
+	expect(await otherRecords.evaluate((input) => getComputedStyle(input).backgroundColor)).toBe(
+		'rgba(0, 0, 0, 0)'
+	);
 	for (const width of [320, 375, 414, 768]) {
 		await page.setViewportSize({ width, height: 812 });
-		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+			width
+		);
 	}
 });
 
