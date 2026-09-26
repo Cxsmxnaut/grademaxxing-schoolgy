@@ -170,12 +170,17 @@ test('gradebook calculator, course planner, and attendance views are interactive
 
 	await page.goto('/attendance');
 	await expect(page.getByRole('heading', { level: 1, name: 'Attendance' })).toBeVisible();
+	if (process.env.ATTENDANCE_VISUAL_CAPTURE) {
+		await expect(page.getByText('Loading attendance records…')).toBeHidden();
+		await page.screenshot({ path: '/tmp/grademaxxing-attendance-calendar-desktop.png' });
+	}
 	const miniCalendar = page.getByRole('complementary', { name: 'Calendar and status filters' });
-	const monthHeading = miniCalendar.locator('.mini-heading strong');
+	const calendar = miniCalendar.getByRole('application', { name: /Attendance dates/ });
+	const monthHeading = calendar.getByRole('heading', { name: /Attendance dates/ });
 	const initialMonth = await monthHeading.textContent();
-	await page.getByRole('button', { name: 'Previous month' }).click();
+	await calendar.getByRole('button', { name: 'Previous', exact: true }).click();
 	await expect(monthHeading).not.toHaveText(initialMonth ?? '');
-	await page.getByRole('button', { name: 'Next month' }).click();
+	await calendar.getByRole('button', { name: 'Next', exact: true }).click();
 	await expect(monthHeading).toHaveText(initialMonth ?? '');
 	await page.getByRole('button', { name: 'Week', exact: true }).click();
 	await expect(page.getByRole('button', { name: 'Week', exact: true })).toHaveAttribute(
@@ -228,6 +233,22 @@ test('attendance agenda shows school records and fits a phone viewport', async (
 		today.toLocaleString('en-US', { month: 'long', year: 'numeric' })
 	);
 	await expect(page.getByText('Arrived late').first()).toBeVisible();
+	if (process.env.ATTENDANCE_VISUAL_CAPTURE) {
+		await expect(page.getByText('Loading attendance records…')).toBeHidden();
+		await page.screenshot({ path: '/tmp/grademaxxing-attendance-calendar-mobile.png', fullPage: true });
+	}
+	const attendanceCalendar = page.getByRole('application', { name: /Attendance dates/ });
+	await expect(attendanceCalendar.locator('.date-dot')).toHaveCount(1);
+	await attendanceCalendar
+		.getByRole('button', {
+			name: today.toLocaleDateString('en-US', {
+				weekday: 'long',
+				month: 'long',
+				day: 'numeric',
+				year: 'numeric'
+			})
+		})
+		.click();
 	await expect(page.locator('.record-trigger .type-badge')).toBeVisible();
 	await page.getByRole('button', { name: /Arrived late/ }).click();
 	await expect(page.locator('.record-detail').getByText('Example Biology')).toBeVisible();

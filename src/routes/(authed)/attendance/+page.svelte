@@ -3,7 +3,10 @@
 	import AppPageShell from '$lib/components/AppPageShell.svelte';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
 	import RecordLoadFailure from '$lib/components/RecordLoadFailure.svelte';
+	import { Calendar } from '$lib/components/ui/calendar';
+	import CalendarDay from '$lib/components/ui/calendar/calendar-day.svelte';
 	import type { Period } from '$lib/contracts/studentvue/attendance';
+	import { CalendarDate, type DateValue } from '@internationalized/date';
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
@@ -27,18 +30,11 @@
 		/Field Trip|School Pass|Excused|Medical\/Dent|Comp Ed\/Court-Religi|Illness or Sickness|SB14 Wellness\/Illnes|Med. all day\/period/i;
 	const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
 	const shortDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
-	const longDateFormatter = new Intl.DateTimeFormat('en-US', {
-		weekday: 'long',
-		month: 'long',
-		day: 'numeric',
-		year: 'numeric'
-	});
 	const weekdayFormatter = new Intl.DateTimeFormat('en-US', {
 		weekday: 'long',
 		month: 'short',
 		day: 'numeric'
 	});
-	const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 	const statusPriority: Record<AttendanceType, number> = {
 		Present: 0,
 		Excused: 1,
@@ -48,7 +44,10 @@
 	};
 	const statusOptions: AttendanceType[] = ['Absent', 'Tardy', 'Excused', 'Present', 'Unknown'];
 
-	let selectedDate = $state(new Date());
+	const initialDate = new Date();
+	let selectedDate = $state(initialDate);
+	let calendarPlaceholder = $state(toCalendarDate(initialDate));
+	const calendarValue = $derived(toCalendarDate(selectedDate));
 	let view = $state<View>('day');
 	let visibleStatuses = $state<AttendanceType[]>([...statusOptions]);
 	let expandedRecord = $state<string | undefined>();
@@ -85,6 +84,12 @@
 
 	function dateKey(date: Date) {
 		return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+	}
+	function toCalendarDate(date: Date) {
+		return new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+	}
+	function fromCalendarDate(date: DateValue) {
+		return new Date(date.year, date.month - 1, date.day);
 	}
 
 	function statusTone(type: AttendanceType) {
@@ -126,7 +131,6 @@
 
 	const filteredRows = $derived(attendanceRows.filter((row) => visibleStatuses.includes(row.type)));
 	const latestRecord = $derived(attendanceRows.find((row) => row.dateObject));
-	const selectedMonth = $derived(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
 	const weekStart = $derived(
 		new Date(
 			selectedDate.getFullYear(),
@@ -165,27 +169,7 @@
 	const visibleCount = $derived(
 		visibleDates.reduce((count, date) => count + recordsForDate(date).length, 0)
 	);
-	const calendarDays = $derived.by(() => {
-		const year = selectedMonth.getFullYear();
-		const month = selectedMonth.getMonth();
-		return [
-			...Array.from({ length: new Date(year, month, 1).getDay() }, (_, index) => ({
-				key: `blank-${index}`,
-				date: undefined
-			})),
-			...Array.from({ length: new Date(year, month + 1, 0).getDate() }, (_, index) => {
-				const date = new Date(year, month, index + 1);
-				return { key: dateKey(date), date };
-			})
-		];
-	});
-
 	function recordsForDate(date: Date) {
-		return filteredRows.filter(
-			(row) => row.dateObject && dateKey(row.dateObject) === dateKey(date)
-		);
-	}
-	function allRecordsForDate(date: Date) {
 		return filteredRows.filter(
 			(row) => row.dateObject && dateKey(row.dateObject) === dateKey(date)
 		);
@@ -199,16 +183,21 @@
 				selectedDate.getMonth(),
 				selectedDate.getDate() + offset * (view === 'week' ? 7 : 1)
 			);
-		expandedRecord = undefined;
-	}
-	function moveMonth(offset: number) {
-		selectedDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + offset, 1);
+		calendarPlaceholder = toCalendarDate(selectedDate);
 		expandedRecord = undefined;
 	}
 	function chooseDate(date: Date) {
 		selectedDate = date;
+		calendarPlaceholder = toCalendarDate(date);
 		view = 'day';
 		expandedRecord = undefined;
+	}
+	function showCalendarMonth(date: DateValue) {
+		calendarPlaceholder = new CalendarDate(date.year, date.month, date.day);
+		if (date.year !== selectedDate.getFullYear() || date.month !== selectedDate.getMonth() + 1) {
+			selectedDate = new Date(date.year, date.month - 1, 1);
+			expandedRecord = undefined;
+		}
 	}
 	function toggleStatus(status: AttendanceType) {
 		visibleStatuses = visibleStatuses.includes(status)
@@ -251,6 +240,7 @@
 					class="today-button"
 					onclick={() => {
 						selectedDate = new Date();
+						calendarPlaceholder = toCalendarDate(selectedDate);
 						expandedRecord = undefined;
 					}}>Today</button
 				><button type="button" aria-label="Previous {view}" onclick={() => move(-1)}
@@ -348,33 +338,35 @@
 
 			<aside class="calendar-sidebar" aria-label="Calendar and status filters">
 				<div class="mini-calendar">
-					<div class="mini-heading">
-						<button type="button" aria-label="Previous month" onclick={() => moveMonth(-1)}
-							><ChevronLeftIcon class="size-4" /></button
-						><strong>{monthFormatter.format(selectedMonth)}</strong><button
-							type="button"
-							aria-label="Next month"
-							onclick={() => moveMonth(1)}><ChevronRightIcon class="size-4" /></button
-						>
-					</div>
-					<div class="mini-weekdays" aria-hidden="true">
-						{#each weekdayNames as weekday (weekday)}<span>{weekday.slice(0, 1)}</span>{/each}
-					</div>
-					<div class="mini-grid">
-						{#each calendarDays as day (day.key)}{#if day.date}{@const records = allRecordsForDate(
-									day.date
-								)}<button
-									type="button"
-									class:selected={dateKey(day.date) === dateKey(selectedDate)}
-									class:has-record={records.length > 0}
-									aria-label={`${longDateFormatter.format(day.date)}${records.length ? `, ${records.length} attendance ${records.length === 1 ? 'record' : 'records'}` : ''}`}
-									aria-pressed={dateKey(day.date) === dateKey(selectedDate)}
-									onclick={() => chooseDate(day.date)}
-									>{day.date.getDate()}{#if records.length}<span
-											class="date-dot {statusTone(primaryType(records))}"
-										></span>{/if}</button
-								>{:else}<span></span>{/if}{/each}
-					</div>
+					<Calendar
+						type="single"
+						value={calendarValue}
+						placeholder={calendarPlaceholder}
+						onValueChange={(date) => {
+							if (date) chooseDate(fromCalendarDate(date));
+						}}
+						onPlaceholderChange={showCalendarMonth}
+						calendarLabel="Attendance dates"
+						weekdayFormat="short"
+						disableDaysOutsideMonth
+						class="attendance-calendar w-full bg-transparent p-0 [--cell-size:2rem]"
+					>
+						{#snippet day({ day, outsideMonth })}
+							{@const records = recordsForDate(fromCalendarDate(day))}
+							<CalendarDay
+								class="attendance-day relative"
+								title={records.length
+									? `${records.length} attendance ${records.length === 1 ? 'record' : 'records'}`
+									: undefined}
+							>
+								{day.day}
+								{#if !outsideMonth && records.length}<span
+										class="date-dot {statusTone(primaryType(records))}"
+										aria-hidden="true"
+									></span>{/if}
+							</CalendarDay>
+						{/snippet}
+					</Calendar>
 				</div>
 				<div class="status-panel">
 					<div class="status-title">
@@ -670,77 +662,22 @@
 	.mini-calendar {
 		padding: var(--space-md);
 	}
-	.mini-heading {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-xs);
-		margin-bottom: var(--space-sm);
+	:global(.attendance-calendar) {
+		margin-inline: auto;
+		max-width: 17rem;
 	}
-	.mini-heading strong {
-		min-width: 0;
+	:global(.attendance-calendar [data-bits-calendar-header]) {
 		font-family: var(--font-heading);
-		font-size: 0.88rem;
-		text-align: center;
-	}
-	.mini-heading button {
-		display: grid;
-		width: 1.9rem;
-		height: 1.9rem;
-		flex: 0 0 auto;
-		place-items: center;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-sm);
-		background: var(--secondary);
-		color: var(--foreground);
-	}
-	.mini-weekdays,
-	.mini-grid {
-		display: grid;
-		grid-template-columns: repeat(7, minmax(0, 1fr));
-		gap: 0.18rem;
-	}
-	.mini-weekdays {
-		margin-bottom: 0.25rem;
-	}
-	.mini-weekdays span {
-		color: var(--muted-foreground);
-		font-family: var(--font-technical);
-		font-size: 0.62rem;
-		text-align: center;
-	}
-	.mini-grid button,
-	.mini-grid > span {
-		font-variant-numeric: tabular-nums;
-		position: relative;
-		display: grid;
-		min-width: 0;
-		height: 2rem;
-		place-items: center;
-		border: 0;
-		border-radius: var(--radius-sm);
-		background: transparent;
-		color: var(--muted-foreground);
-		font-size: 0.77rem;
-	}
-	.mini-grid button.has-record {
-		background: var(--secondary);
-		color: var(--foreground);
-		font-weight: 700;
-	}
-	.mini-grid button.selected {
-		background: var(--primary);
-		color: var(--primary-foreground);
 	}
 	.date-dot {
 		position: absolute;
-		bottom: 0.13rem;
+		bottom: 0.12rem;
 		width: 0.2rem;
 		height: 0.2rem;
 		border-radius: 50%;
 		background: currentColor;
 	}
-	.mini-grid button.selected .date-dot {
+	:global(.attendance-calendar [data-selected]) .date-dot {
 		color: var(--primary-foreground);
 	}
 	.status-panel {
@@ -894,13 +831,9 @@
 	}
 	@media (hover: hover) {
 		.record-trigger:hover,
-		.mini-grid button:hover,
 		.date-actions button:not(.today-button):hover,
 		.view-switch button:hover {
 			background: var(--secondary);
-		}
-		.mini-grid button.selected:hover {
-			background: var(--primary);
 		}
 	}
 	@media (prefers-reduced-motion: reduce) {
