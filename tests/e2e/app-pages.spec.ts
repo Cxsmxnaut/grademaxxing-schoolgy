@@ -170,13 +170,71 @@ test('gradebook calculator, course planner, and attendance views are interactive
 
 	await page.goto('/attendance');
 	await expect(page.getByRole('heading', { level: 1, name: 'Attendance' })).toBeVisible();
-	const monthHeading = page.locator('#attendance-month');
+	const miniCalendar = page.getByRole('complementary', { name: 'Calendar and status filters' });
+	const monthHeading = miniCalendar.locator('.mini-heading strong');
 	const initialMonth = await monthHeading.textContent();
 	await page.getByRole('button', { name: 'Previous month' }).click();
 	await expect(monthHeading).not.toHaveText(initialMonth ?? '');
 	await page.getByRole('button', { name: 'Next month' }).click();
 	await expect(monthHeading).toHaveText(initialMonth ?? '');
-	await expect(page.getByRole('heading', { name: 'All recorded days' })).toBeVisible();
+	await page.getByRole('button', { name: 'Week', exact: true }).click();
+	await expect(page.getByRole('button', { name: 'Week', exact: true })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
+	await page.getByRole('button', { name: 'Month', exact: true }).click();
+	await expect(page.getByRole('button', { name: 'Month', exact: true })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
+	await expect(page.getByText('No records this month')).toBeVisible();
+});
+
+test('attendance agenda shows school records and fits a phone viewport', async ({ page }) => {
+	const today = new Date();
+	const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+	await page.route('**/api/studentvue/attendance', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				Absences: {
+					Absence: [
+						{
+							_AbsenceDate: date,
+							_Reason: 'Arrived late',
+							_Note: '',
+							Periods: {
+								Period: [
+									{
+										_Number: '2',
+										_Name: 'Tardy',
+										_Reason: 'Arrived late',
+										_Course: 'Example Biology',
+										_Staff: 'Teacher Example'
+									}
+								]
+							}
+						}
+					]
+				},
+				DailyRecords: []
+			})
+		})
+	);
+	await page.setViewportSize({ width: 375, height: 812 });
+	await page.goto('/attendance');
+	await expect(page.getByText('Arrived late').first()).toBeVisible();
+	await page.getByRole('button', { name: /Arrived late/ }).click();
+	await expect(page.locator('.record-detail').getByText('Example Biology')).toBeVisible();
+	await page.getByRole('combobox', { name: 'Status' }).selectOption('Absent');
+	await expect(page.getByText('No attendance records for this day.')).toBeVisible();
+	await page.getByRole('combobox', { name: 'Status' }).selectOption('all');
+	await expect(page.getByText('Arrived late').first()).toBeVisible();
+	for (const width of [320, 375, 414, 768]) {
+		await page.setViewportSize({ width, height: 812 });
+		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+	}
 });
 
 test('course what-if controls preserve compact mobile geometry and keyboard operation', async ({

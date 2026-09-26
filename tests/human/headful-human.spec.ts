@@ -483,9 +483,7 @@ test('3 — a student reviews attendance and refreshes it', async () => {
 	expect(await attendanceLink.count()).toBe(1);
 	await attendanceLink.click();
 	await expect(page).toHaveURL(/\/attendance$/);
-	await expect(
-		page.getByText('Loading attendance. Checking the ledger.', { exact: true })
-	).toBeHidden();
+	await expect(page.getByText('Loading attendance records...', { exact: true })).toBeHidden();
 	await expect(page.getByText('Something went wrong')).toHaveCount(0);
 
 	const refreshButton = page.getByRole('button', { name: 'Refresh', exact: true });
@@ -857,7 +855,7 @@ test('8 — a student can navigate the full app at phone width', async () => {
 			fullPage: true
 		});
 		await expect(
-			mobilePage.getByText('Loading attendance. Checking the ledger.', { exact: true })
+			mobilePage.getByText('Loading attendance records...', { exact: true })
 		).toBeHidden();
 		record('mobile-step', { step: 'attendance-loaded' });
 
