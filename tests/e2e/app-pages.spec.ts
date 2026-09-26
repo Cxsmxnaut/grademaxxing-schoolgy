@@ -309,9 +309,7 @@ test('empty records, feedback state, mobile navigation, and dark theme are clear
 		page.getByRole('heading', { name: 'No documents available yet' })
 	).toBeVisible();
 	await page.goto('/mail');
-	await expect(
-		page.getByRole('heading', { name: 'Your inbox is empty. Enjoy the silence.' })
-	).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'No messages yet' })).toBeVisible();
 	await page.goto('/feedback');
 	let submittedFeedback: { kind?: string; message?: string } = {};
 	const feedbackId = '0f143f0d-a034-48d6-8bb8-1d00c4a7e255';

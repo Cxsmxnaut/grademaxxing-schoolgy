@@ -588,7 +588,7 @@ test('5 — a student reads mail and opens an available attachment', async () =>
 	await mailLink.click();
 	await expect(page).toHaveURL(/\/mail$/);
 	await expect(
-		page.getByText('Loading mail. Checking the digital hallway.', { exact: true })
+		page.getByText('Loading mail…', { exact: true })
 	).toBeHidden();
 	await expect(page.getByText('Something went wrong')).toHaveCount(0);
 
@@ -637,7 +637,7 @@ test('5 — a student reads mail and opens an available attachment', async () =>
 		await page.unroute('**/api/studentvue/messages');
 		await page.getByRole('button', { name: 'Refresh', exact: true }).click();
 	} else
-		await expect(page.getByRole('status')).toContainText('Your inbox is empty. Enjoy the silence.');
+		await expect(page.getByRole('status')).toContainText('No messages yet');
 	expect(pageErrors).toEqual([]);
 });
 

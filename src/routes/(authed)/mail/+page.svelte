@@ -2,13 +2,11 @@
 	import { browser } from '$app/environment';
 	import { acc } from '$lib/account.svelte';
 	import { brand } from '$lib/brand';
-	import AppPageHeader from '$lib/components/AppPageHeader.svelte';
 	import AppPageShell from '$lib/components/AppPageShell.svelte';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
 	import RecordLoadFailure from '$lib/components/RecordLoadFailure.svelte';
 	import type { InboxItemListingsMessageXML } from '$lib/contracts/studentvue/mail';
-	import InboxIcon from '@lucide/svelte/icons/inbox';
-	import MailCheckIcon from '@lucide/svelte/icons/mail-check';
+	import MailOpenIcon from '@lucide/svelte/icons/mail-open';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { toast } from 'svelte-sonner';
 	import MessageButton from './MessageButton.svelte';
@@ -81,19 +79,18 @@
 	<title>Mail - {brand}</title>
 </svelte:head>
 
-<AppPageShell>
-	<AppPageHeader
-		eyebrow="StudentVUE inbox"
-		title="Mail"
-		description="Messages, links, and attachments sent through your school portal."
-	/>
+<AppPageShell class="mail-shell">
+	<header class="mail-heading">
+		<h1>Mail</h1>
+		<p>Messages your school has sent through StudentVUE.</p>
+	</header>
 
 	{#if !mailDataState.loaded && !mailDataState.data}
-		<LoadingBanner>Loading mail. Checking the digital hallway.</LoadingBanner>
+		<LoadingBanner>Loading mail…</LoadingBanner>
 	{/if}
 
 	{#if openingMessageId !== undefined}
-		<LoadingBanner>Opening message. It better be important.</LoadingBanner>
+		<LoadingBanner>Opening message…</LoadingBanner>
 	{/if}
 
 	{#if mailDataState.error}
@@ -107,32 +104,21 @@
 
 	{#if mailDataState.data}
 		{#if allMessages.length > 0}
-			<section
-				class="bg-card mx-auto mt-5 max-w-4xl overflow-hidden rounded-xl shadow-sm"
-				aria-labelledby="inbox-heading"
-			>
-				<header
-					class="border-border/70 flex items-center justify-between border-b px-4 py-3 sm:px-5"
-				>
-					<div class="flex items-center gap-2.5">
-						<InboxIcon class="text-primary size-4" />
-						<h2 id="inbox-heading" class="font-semibold">Inbox</h2>
-					</div>
-					<span class="text-muted-foreground text-xs tabular-nums">
+			<section class="mail-inbox" aria-labelledby="inbox-heading">
+				<header class="inbox-heading">
+					<h2 id="inbox-heading">Inbox</h2>
+					<span>
 						{#if unreadMessages > 0}
-							<strong class="text-primary font-semibold">{unreadMessages} unread</strong>
+							<strong>{unreadMessages} unread</strong>
 							<span aria-hidden="true"> · </span>
 						{/if}
 						{allMessages.length}
 						{allMessages.length === 1 ? 'message' : 'messages'}
 					</span>
 				</header>
-				<ol aria-label="Inbox messages">
+				<ol class="message-list" aria-label="Inbox messages">
 					{#each allMessages as message (message._SMMessageGU)}
-						<li
-							class="border-border/70 border-b last:border-b-0"
-							ontouchend={() => (touchscreen = true)}
-						>
+						<li ontouchend={() => (touchscreen = true)}>
 							<MessageButton
 								{message}
 								disabled={openingMessageId !== undefined}
@@ -143,12 +129,10 @@
 				</ol>
 			</section>
 		{:else}
-			<div class="py-16 text-center" role="status">
-				<MailCheckIcon class="text-success mx-auto size-9" />
-				<h2 class="mt-3 font-semibold">Your inbox is empty. Enjoy the silence.</h2>
-				<p class="text-muted-foreground mt-1 text-sm">
-					New school messages will show up here when they do.
-				</p>
+			<div class="mail-empty" role="status">
+				<MailOpenIcon class="size-7" />
+				<h2>No messages yet</h2>
+				<p>Messages from your school will appear here when they arrive.</p>
 			</div>
 		{/if}
 
@@ -163,3 +147,89 @@
 		{/if}
 	{/if}
 </AppPageShell>
+
+<style>
+	/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 · genre: modern-minimal · macrostructure: inbox index · palette: Grademaxxing semantic tokens */
+	:global(.mail-shell) {
+		max-width: 82rem;
+	}
+	.mail-heading {
+		margin-bottom: var(--space-xl);
+	}
+	.mail-heading h1 {
+		margin: 0;
+		color: var(--foreground);
+		font-family: var(--font-heading);
+		font-size: clamp(1.8rem, 3vw, 2.35rem);
+		letter-spacing: -0.04em;
+	}
+	.mail-heading p {
+		margin: 0.25rem 0 0;
+		color: var(--muted-foreground);
+		font-size: 0.9rem;
+		line-height: 1.5;
+	}
+	.mail-inbox {
+		max-width: 65rem;
+	}
+	.inbox-heading {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: var(--space-sm);
+		padding-bottom: var(--space-sm);
+	}
+	.inbox-heading h2 {
+		margin: 0;
+		color: var(--foreground);
+		font-family: var(--font-heading);
+		font-size: 1.2rem;
+		letter-spacing: -0.025em;
+	}
+	.inbox-heading span {
+		color: var(--muted-foreground);
+		font-family: var(--font-technical);
+		font-size: 0.72rem;
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+	}
+	.inbox-heading strong {
+		color: var(--primary);
+		font-weight: 700;
+	}
+	.message-list {
+		margin: 0;
+		border-top: 1px solid var(--border);
+		padding: 0;
+		list-style: none;
+	}
+	.message-list li {
+		border-bottom: 1px solid var(--border);
+	}
+	.mail-empty {
+		display: grid;
+		justify-items: start;
+		gap: var(--space-sm);
+		max-width: 36rem;
+		margin-top: var(--space-2xl);
+		border-top: 1px solid var(--border);
+		padding-top: var(--space-lg);
+		color: var(--muted-foreground);
+	}
+	.mail-empty h2 {
+		margin: 0;
+		color: var(--foreground);
+		font-family: var(--font-heading);
+		font-size: 1.2rem;
+	}
+	.mail-empty p {
+		margin: 0;
+		font-size: 0.875rem;
+		line-height: 1.6;
+	}
+	@media (max-width: 39rem) {
+		.mail-heading {
+			margin-bottom: var(--space-lg);
+		}
+	}
+</style>

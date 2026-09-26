@@ -4,7 +4,6 @@
 	import type { InboxItemListingsMessageXML } from '$lib/contracts/studentvue/mail';
 	import LinkIcon from '@lucide/svelte/icons/link';
 	import PaperclipIcon from '@lucide/svelte/icons/paperclip';
-	import UserIcon from '@lucide/svelte/icons/user';
 	import { srcdoc } from './message';
 
 	interface Props {
@@ -50,35 +49,27 @@
 	<Dialog.Content
 		class="flex h-[calc(100%-2rem)] w-[calc(100%-2rem)] flex-col overflow-hidden p-0 sm:max-w-4xl"
 	>
-		<Dialog.Header class="border-border border-b px-5 py-5 text-start sm:px-7">
-			<div class="text-primary mb-1 text-xs font-bold tracking-[0.14em] uppercase">
-				School message
-			</div>
-			<Dialog.Title class="pr-8 text-xl sm:text-2xl"
+		<Dialog.Header class="border-border border-b px-5 py-5 text-start sm:px-7 sm:py-6">
+			<Dialog.Title class="font-heading pr-8 text-xl tracking-tight sm:text-2xl"
 				>{message._Subject || '(No subject)'}</Dialog.Title
 			>
 
-			<Dialog.Description class="mt-4 flex items-start gap-3">
-				<span
-					class="bg-primary/12 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-				>
-					<UserIcon class="h-4 w-4" />
-				</span>
+			<Dialog.Description class="border-primary mt-4 border-l-2 pl-3">
 				<div class="min-w-0">
-					<p class="text-foreground font-semibold">{from._Details1}</p>
-					<p>{from._Details2} · {message._SendDateTimeFormattedLong}</p>
+					<p class="text-foreground text-sm font-semibold">{from._Details1}</p>
+					<p class="mt-0.5 text-xs">{from._Details2} · {message._SendDateTimeFormattedLong}</p>
 
 					{#if recipients}
 						{#if recipients.length > 1}
-							<p class="mt-1">To:</p>
+							<p class="mt-2 text-xs">To:</p>
 
-							<ul class="list-inside list-disc">
+							<ul class="list-inside list-disc text-xs">
 								{#each recipients as recipient (recipient._GU)}
 									<li>{recipient._Details1} ({recipient._Details2})</li>
 								{/each}
 							</ul>
 						{:else if recipients[0]}
-							<p class="mt-1">To: {recipients[0]._Details1} ({recipients[0]._Details2})</p>
+							<p class="mt-2 text-xs">To: {recipients[0]._Details1} ({recipients[0]._Details2})</p>
 						{/if}
 					{/if}
 				</div>
@@ -88,7 +79,7 @@
 		<iframe
 			srcdoc={srcdoc(content, openNewTabInstruction)}
 			sandbox=""
-			class="h-full min-h-0 bg-white sm:mx-7 sm:my-5 sm:rounded-lg sm:border"
+			class="h-full min-h-0 bg-white sm:mx-7 sm:my-5 sm:border"
 			title="Message Content"
 		></iframe>
 

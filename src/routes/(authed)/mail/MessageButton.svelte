@@ -1,10 +1,9 @@
 <script lang="ts">
-	import DateBadge from '$lib/components/DateBadge.svelte';
 	import type { InboxItemListingsMessageXML } from '$lib/contracts/studentvue/mail';
 	import LinkIcon from '@lucide/svelte/icons/link';
 	import PaperclipIcon from '@lucide/svelte/icons/paperclip';
-	import { Badge } from '$lib/components/ui/badge';
 	import { Button, type ButtonProps } from '$lib/components/ui/button';
+	import { fullDateFormatter, shortDateFormatter } from '$lib/format/date-time';
 
 	interface Props extends ButtonProps {
 		message: InboxItemListingsMessageXML;
@@ -13,9 +12,7 @@
 	let { message, onclick, ...props }: Props = $props();
 
 	const domParser = new DOMParser();
-
 	const doc = $derived(domParser.parseFromString(message._MessageText, 'text/html'));
-
 	const linkCount = $derived(
 		new Set(
 			[...doc.querySelectorAll('a')]
@@ -33,7 +30,8 @@
 	const preview = $derived((doc.body.textContent ?? '').replace(/\s+/g, ' ').trim());
 	const senderName = $derived(message.From.RecipientXML._Details1 || 'School message');
 	const unread = $derived(message._MailRead !== 'true');
-
+	const sentDate = $derived(new Date(message._SendDateTime));
+	const validDate = $derived(!Number.isNaN(sentDate.getTime()));
 	let attachments = $derived(
 		typeof message.Attachments !== 'string'
 			? message.Attachments.AttachmentXML instanceof Array
@@ -47,52 +45,154 @@
 	{...props}
 	{onclick}
 	variant="ghost"
-	class="group hover:bg-primary/[0.045] relative flex h-auto w-full items-start gap-3 overflow-hidden rounded-none px-4 py-4 text-left transition-colors sm:gap-4 sm:px-5 {unread
-		? 'bg-primary/[0.025]'
-		: ''}"
+	class="mail-row"
 	aria-label={`${unread ? 'Unread: ' : ''}${message._Subject || 'No subject'} from ${senderName}`}
 	data-testid="mail-message"
 >
-	{#if unread}<span
-			class="bg-primary absolute inset-y-3 left-0 w-0.5 rounded-r-full"
-			aria-hidden="true"
-		></span>{/if}
 	<span
-		class="bg-primary/10 text-primary ring-primary/10 flex size-10 shrink-0 items-center justify-center rounded-full font-bold ring-1"
-	>
-		{senderName.trim().charAt(0).toUpperCase() || 'S'}
-	</span>
-
-	<div class="min-w-0 flex-1">
-		<div class="flex items-start justify-between gap-3">
-			<p class="truncate text-sm {unread ? 'font-bold' : 'font-semibold'}">{senderName}</p>
-			<div class="flex shrink-0 items-center gap-2">
-				{#if unread}<span class="bg-primary size-1.5 rounded-full" aria-label="Unread"></span>{/if}
-				<DateBadge date={new Date(message._SendDateTime)} />
-			</div>
-		</div>
-		<h2 class="mt-1 truncate text-base {unread ? 'font-bold' : 'font-semibold'}">
-			{message._Subject || '(No subject)'}
-		</h2>
-		{#if preview}
-			<p class="text-muted-foreground mt-1 line-clamp-1 text-sm font-normal">{preview}</p>
+		class="message-marker"
+		class:unread
+		aria-label={unread ? 'Unread' : undefined}
+		aria-hidden={!unread}
+	></span>
+	<span class="message-body">
+		<span class="message-topline">
+			<span class="sender" class:unread>{senderName}</span>
+			<time
+				datetime={validDate ? sentDate.toISOString() : undefined}
+				title={validDate ? fullDateFormatter.format(sentDate) : 'Date unavailable'}
+				>{validDate ? shortDateFormatter.format(sentDate) : 'Date unavailable'}</time
+			>
+		</span>
+		<span class="subject" class:unread>{message._Subject || '(No subject)'}</span>
+		{#if preview}<span class="preview">{preview}</span>{/if}
+		{#if linkCount > 0 || attachments}
+			<span class="message-meta">
+				{#if linkCount > 0}
+					<span><LinkIcon class="size-3.5" /> {linkCount} {linkCount === 1 ? 'link' : 'links'}</span
+					>
+				{/if}
+				{#if attachments}
+					<span
+						><PaperclipIcon class="size-3.5" />
+						{attachments.length}
+						{attachments.length === 1 ? 'attachment' : 'attachments'}</span
+					>
+				{/if}
+			</span>
 		{/if}
-		<div class="mt-2 flex flex-row flex-wrap items-center gap-1.5">
-			{#if linkCount > 0}
-				<Badge variant="secondary">
-					<LinkIcon class="mr-1 h-3.5 w-3.5" />
-					{linkCount}
-					{linkCount === 1 ? 'link' : 'links'}
-				</Badge>
-			{/if}
-
-			{#if attachments}
-				<Badge variant="secondary">
-					<PaperclipIcon class="mr-1 h-3.5 w-3.5" />
-					{attachments.length}
-					{attachments.length === 1 ? 'attachment' : 'attachments'}
-				</Badge>
-			{/if}
-		</div>
-	</div>
+	</span>
 </Button>
+
+<style>
+	/* Hallmark · genre: modern-minimal · macrostructure: inbox index · palette: Grademaxxing semantic tokens */
+	:global(.mail-row) {
+		display: flex;
+		width: 100%;
+		height: auto;
+		min-height: 6.3rem;
+		align-items: flex-start;
+		gap: var(--space-sm);
+		border-radius: 0;
+		padding: var(--space-md) var(--space-xs);
+		text-align: left;
+		white-space: normal;
+	}
+	:global(.mail-row:hover) {
+		background: var(--accent);
+	}
+	:global(.mail-row:active) {
+		background: var(--accent);
+	}
+	:global(.mail-row:focus-visible) {
+		outline: 2px solid var(--focus);
+		outline-offset: -2px;
+	}
+	:global(.mail-row:disabled) {
+		cursor: not-allowed;
+	}
+	.message-marker {
+		width: 0.45rem;
+		height: 0.45rem;
+		flex: none;
+		margin-top: 0.45rem;
+		border-radius: 50%;
+	}
+	.message-marker.unread {
+		background: var(--primary);
+	}
+	.message-body {
+		display: grid;
+		min-width: 0;
+		flex: 1;
+		gap: 0.22rem;
+	}
+	.message-topline {
+		display: flex;
+		min-width: 0;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: var(--space-sm);
+	}
+	.sender {
+		overflow: hidden;
+		color: var(--foreground);
+		font-size: 0.8rem;
+		font-weight: 600;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.sender.unread {
+		font-weight: 800;
+	}
+	time {
+		flex: none;
+		color: var(--muted-foreground);
+		font-family: var(--font-technical);
+		font-size: 0.69rem;
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+	}
+	.subject {
+		overflow: hidden;
+		color: var(--foreground);
+		font-family: var(--font-heading);
+		font-size: 1rem;
+		font-weight: 550;
+		line-height: 1.35;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.subject.unread {
+		font-weight: 750;
+	}
+	.preview {
+		overflow: hidden;
+		color: var(--muted-foreground);
+		font-size: 0.78rem;
+		font-weight: 400;
+		line-height: 1.45;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.message-meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-md);
+		margin-top: 0.18rem;
+		color: var(--muted-foreground);
+		font-size: 0.7rem;
+		font-weight: 550;
+	}
+	.message-meta > span {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+	}
+	@media (max-width: 39rem) {
+		:global(.mail-row) {
+			min-height: 5.8rem;
+			gap: var(--space-xs);
+		}
+	}
+</style>

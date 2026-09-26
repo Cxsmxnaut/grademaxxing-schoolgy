@@ -245,4 +245,11 @@ test('record pages retain their layout and controls on a phone viewport', async 
 	await page.getByTestId('mail-message').click();
 	await expect(page.getByRole('dialog')).toBeVisible();
 	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+	await page.keyboard.press('Escape');
+	for (const width of [320, 375, 414, 768]) {
+		await page.setViewportSize({ width, height: 844 });
+		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+			width
+		);
+	}
 });
