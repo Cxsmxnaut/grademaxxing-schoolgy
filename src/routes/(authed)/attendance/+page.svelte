@@ -138,11 +138,9 @@
 		new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6)
 	);
 	const rangeLabel = $derived(
-		view === 'month'
+		view === 'month' || view === 'day'
 			? monthFormatter.format(selectedDate)
-			: view === 'week'
-				? `${shortDateFormatter.format(weekStart)} – ${shortDateFormatter.format(weekEnd)}, ${weekEnd.getFullYear()}`
-				: longDateFormatter.format(selectedDate)
+			: `${shortDateFormatter.format(weekStart)} – ${shortDateFormatter.format(weekEnd)}, ${weekEnd.getFullYear()}`
 	);
 	const visibleDates = $derived.by(() => {
 		if (view === 'day') return [selectedDate];
@@ -231,7 +229,6 @@
 <AppPageShell class="attendance-shell">
 	<header class="page-heading">
 		<div>
-			<p class="eyebrow">School record</p>
 			<h1>Attendance</h1>
 			<p>Explore the dates and details reported by your school.</p>
 		</div>
@@ -383,15 +380,17 @@
 					<div class="status-title">
 						<h3>Attendance types</h3>
 					</div>
-					{#each statusOptions as status (status)}<label class="status-option"
-							><input
-								type="checkbox"
-								checked={visibleStatuses.includes(status)}
-								onchange={() => toggleStatus(status)}
-							/><span class="status-swatch {statusTone(status)}"></span><span
-								>{status === 'Unknown' ? 'Other records' : status}</span
-							></label
-						>{/each}
+					<div class="status-options">
+						{#each statusOptions as status (status)}<label class="status-option"
+								><input
+									type="checkbox"
+									checked={visibleStatuses.includes(status)}
+									onchange={() => toggleStatus(status)}
+								/><span class="status-swatch {statusTone(status)}"></span><span
+									>{status === 'Unknown' ? 'Other records' : status}</span
+								></label
+							>{/each}
+					</div>
 				</div>
 				<p class="source-note">
 					Dates with dots have attendance records. Details come from your school’s StudentVUE
@@ -403,7 +402,7 @@
 </AppPageShell>
 
 <style>
-	/* Hallmark · pre-emit critique: P4 H4 E4 S5 R4 V4 · reference structure: agenda + calendar rail; Grademaxxing tokens */
+	/* Hallmark · pre-emit critique: P5 H4 E4 S5 R5 V4 · genre: modern-minimal · macrostructure: Agenda Workbench · palette: Grademaxxing semantic tokens */
 	:global(.attendance-shell) {
 		max-width: 90rem;
 	}
@@ -429,15 +428,6 @@
 		margin: 0.25rem 0 0;
 		color: var(--muted-foreground);
 		font-size: 0.9rem;
-	}
-	.eyebrow {
-		margin: 0 0 0.2rem;
-		color: var(--primary);
-		font-family: var(--font-technical);
-		font-size: 0.67rem;
-		font-weight: 700;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
 	}
 	.calendar-toolbar {
 		display: grid;
@@ -512,11 +502,10 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-sm);
-		min-height: 2.8rem;
-		margin-bottom: var(--space-xs);
-		border-radius: var(--radius-sm);
-		background: var(--secondary);
-		padding: 0.5rem var(--space-md);
+		min-height: 3rem;
+		margin-bottom: var(--space-sm);
+		border-bottom: 1px solid var(--border);
+		padding: 0.35rem 0 var(--space-sm);
 		color: var(--foreground);
 	}
 	.section-heading:not(:first-child) {
@@ -526,7 +515,7 @@
 		min-width: 0;
 		margin: 0;
 		font-family: var(--font-heading);
-		font-size: 1.05rem;
+		font-size: 1.125rem;
 		letter-spacing: -0.02em;
 	}
 	.section-heading span {
@@ -618,9 +607,8 @@
 		display: grid;
 		grid-template-columns: 5rem minmax(0, 1fr);
 		gap: 0.15rem var(--space-sm);
-		border-left: 2px solid var(--border);
-		background: var(--secondary);
-		padding: 0.65rem 0.8rem;
+		border-top: 1px solid var(--border);
+		padding: 0.7rem 0;
 	}
 	.record-detail span {
 		color: var(--muted-foreground);
@@ -767,16 +755,25 @@
 		font-family: var(--font-heading);
 		font-size: 0.95rem;
 	}
+	.status-options {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0 var(--space-xs);
+		padding: 0 var(--space-md) var(--space-sm);
+	}
 	.status-option {
 		display: flex;
 		align-items: center;
-		gap: var(--space-sm);
-		min-height: 2.7rem;
-		border-top: 1px solid var(--border);
-		padding: 0.4rem var(--space-md);
+		gap: 0.35rem;
+		min-height: 2.4rem;
+		padding: 0.25rem 0;
 		color: var(--foreground);
-		font-size: 0.81rem;
+		font-size: 0.73rem;
+		white-space: nowrap;
 		cursor: pointer;
+	}
+	.status-option:last-child {
+		grid-column: 1 / -1;
 	}
 	.status-option input {
 		appearance: none;
@@ -882,7 +879,8 @@
 			gap: var(--space-sm);
 		}
 		.type-badge {
-			display: none;
+			padding: 0.2rem 0.45rem;
+			font-size: 0.65rem;
 		}
 		.record-detail {
 			padding-left: var(--space-sm);

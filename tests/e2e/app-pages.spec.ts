@@ -224,7 +224,11 @@ test('attendance agenda shows school records and fits a phone viewport', async (
 	);
 	await page.setViewportSize({ width: 375, height: 812 });
 	await page.goto('/attendance');
+	await expect(page.locator('.calendar-toolbar h2')).toHaveText(
+		today.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+	);
 	await expect(page.getByText('Arrived late').first()).toBeVisible();
+	await expect(page.locator('.record-trigger .type-badge')).toBeVisible();
 	await page.getByRole('button', { name: /Arrived late/ }).click();
 	await expect(page.locator('.record-detail').getByText('Example Biology')).toBeVisible();
 	await expect(page.getByRole('combobox', { name: 'Course' })).toHaveCount(0);
