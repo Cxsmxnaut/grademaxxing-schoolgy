@@ -483,7 +483,7 @@ test('3 — a student reviews attendance and refreshes it', async () => {
 	expect(await attendanceLink.count()).toBe(1);
 	await attendanceLink.click();
 	await expect(page).toHaveURL(/\/attendance$/);
-	await expect(page.getByText('Loading attendance records...', { exact: true })).toBeHidden();
+	await expect(page.getByText('Loading attendance records…', { exact: true })).toBeHidden();
 	await expect(page.getByText('Something went wrong')).toHaveCount(0);
 
 	const refreshButton = page.getByRole('button', { name: 'Refresh', exact: true });
@@ -497,10 +497,10 @@ test('3 — a student reviews attendance and refreshes it', async () => {
 		await route.continue();
 	});
 	await refreshButton.click();
-	await expect(page.getByText('Refreshing attendance...', { exact: true })).toBeVisible();
+	await expect(page.getByText('Refreshing attendance…', { exact: true })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Refreshing…', exact: true })).toBeDisabled();
 	releaseAttendance();
-	await expect(page.getByText('Refreshing attendance...', { exact: true })).toBeHidden({
+	await expect(page.getByText('Refreshing attendance…', { exact: true })).toBeHidden({
 		timeout: 60_000
 	});
 	await page.unroute('**/api/studentvue/attendance');
@@ -854,9 +854,7 @@ test('8 — a student can navigate the full app at phone width', async () => {
 			path: `${diagnosticsDirectory}/mobile-attendance.png`,
 			fullPage: true
 		});
-		await expect(
-			mobilePage.getByText('Loading attendance records...', { exact: true })
-		).toBeHidden();
+		await expect(mobilePage.getByText('Loading attendance records…', { exact: true })).toBeHidden();
 		record('mobile-step', { step: 'attendance-loaded' });
 
 		const gradesLink = mobilePage

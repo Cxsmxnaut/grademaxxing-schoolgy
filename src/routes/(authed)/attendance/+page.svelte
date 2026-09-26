@@ -253,9 +253,8 @@
 		</div>
 	</header>
 
-	{#if !attendanceState.loaded}<LoadingBanner>Loading attendance records...</LoadingBanner
-		>{:else if attendanceState.refreshing}<LoadingBanner>Refreshing attendance...</LoadingBanner
-		>{/if}
+	{#if !attendanceState.loaded}<LoadingBanner>Loading attendance records…</LoadingBanner
+		>{:else if attendanceState.refreshing}<LoadingBanner>Refreshing attendance…</LoadingBanner>{/if}
 	{#if attendanceState.loaded && attendanceState.error}<RecordLoadFailure
 			label="attendance"
 			error={attendanceState.error}
@@ -415,7 +414,6 @@
 				</div>
 				<div class="status-panel">
 					<div class="status-title">
-						<span class="eyebrow">Show on calendar</span>
 						<h3>Attendance types</h3>
 					</div>
 					{#each statusOptions as status (status)}<label class="status-option"
@@ -792,6 +790,7 @@
 	}
 	.mini-grid button,
 	.mini-grid > span {
+		font-variant-numeric: tabular-nums;
 		position: relative;
 		display: grid;
 		min-width: 0;
