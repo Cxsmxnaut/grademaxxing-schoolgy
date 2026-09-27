@@ -197,10 +197,21 @@ test('mail behaves like an inbox and safely opens message links and attachments'
 	await expect(row.getByLabel('Unread')).toBeVisible();
 	await expect(row).toContainText('1 link');
 	await expect(row).toContainText('1 attachment');
+	await expect(row.locator('[data-slot="item-description"]')).toContainText(
+		'night. Reserve a seat online. Unsafe link'
+	);
+	if (process.env.MAIL_VISUAL_CAPTURE) {
+		await expect(page.getByText('Loading mail…')).toBeHidden();
+		await page.screenshot({ path: '/tmp/grademaxxing-mail-dark.png' });
+	}
 
 	await row.click();
 	const dialog = page.getByRole('dialog');
 	await expect(dialog).toBeVisible();
+	if (process.env.MAIL_VISUAL_CAPTURE) {
+		await page.waitForTimeout(350);
+		await page.screenshot({ path: '/tmp/grademaxxing-mail-reader.png' });
+	}
 	await expect(
 		dialog.getByRole('heading', { name: 'College information night — September 3' })
 	).toBeVisible();
@@ -247,6 +258,10 @@ test('record pages retain their layout and controls on a phone viewport', async 
 	await expect(page).toHaveURL(/\/mail$/);
 	await page.getByTestId('mail-message').click();
 	await expect(page.getByRole('dialog')).toBeVisible();
+	if (process.env.MAIL_VISUAL_CAPTURE) {
+		await page.waitForTimeout(350);
+		await page.screenshot({ path: '/tmp/grademaxxing-mail-phone.png' });
+	}
 	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 	await page.keyboard.press('Escape');
 	for (const width of [320, 375, 414, 768]) {

@@ -47,50 +47,53 @@
 
 <Dialog.Root bind:open>
 	<Dialog.Content
-		class="flex h-[calc(100%-2rem)] w-[calc(100%-2rem)] flex-col overflow-hidden p-0 sm:max-w-4xl"
+		class="border-border flex h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] flex-col gap-0 overflow-hidden p-0 sm:h-[min(46rem,calc(100dvh-2rem))] sm:max-w-4xl"
 	>
-		<Dialog.Header class="border-border border-b px-5 py-5 text-start sm:px-7 sm:py-6">
-			<Dialog.Title class="font-heading pr-8 text-xl tracking-tight sm:text-2xl"
+		<Dialog.Header class="border-border border-b px-5 py-4 text-start sm:px-7 sm:py-5">
+			<Dialog.Title class="font-heading pr-8 text-xl leading-tight tracking-tight sm:text-2xl"
 				>{message._Subject || '(No subject)'}</Dialog.Title
 			>
+			<Dialog.Description class="sr-only"
+				>Message from {from._Details1}, sent {message._SendDateTimeFormattedLong}</Dialog.Description
+			>
+			<div class="text-muted-foreground mt-3 min-w-0 text-xs leading-relaxed">
+				<p class="text-foreground text-sm font-semibold">{from._Details1}</p>
+				<p>{from._Details2} · {message._SendDateTimeFormattedLong}</p>
 
-			<Dialog.Description class="border-primary mt-4 border-l-2 pl-3">
-				<div class="min-w-0">
-					<p class="text-foreground text-sm font-semibold">{from._Details1}</p>
-					<p class="mt-0.5 text-xs">{from._Details2} · {message._SendDateTimeFormattedLong}</p>
-
-					{#if recipients}
-						{#if recipients.length > 1}
-							<p class="mt-2 text-xs">To:</p>
-
-							<ul class="list-inside list-disc text-xs">
-								{#each recipients as recipient (recipient._GU)}
-									<li>{recipient._Details1} ({recipient._Details2})</li>
-								{/each}
-							</ul>
-						{:else if recipients[0]}
-							<p class="mt-2 text-xs">To: {recipients[0]._Details1} ({recipients[0]._Details2})</p>
-						{/if}
+				{#if recipients}
+					{#if recipients.length > 1}
+						<p class="mt-2">To:</p>
+						<ul class="list-inside list-disc">
+							{#each recipients as recipient (recipient._GU)}
+								<li>{recipient._Details1} ({recipient._Details2})</li>
+							{/each}
+						</ul>
+					{:else if recipients[0]}
+						<p class="mt-2">To: {recipients[0]._Details1} ({recipients[0]._Details2})</p>
 					{/if}
-				</div>
-			</Dialog.Description>
+				{/if}
+			</div>
 		</Dialog.Header>
 
 		<iframe
 			srcdoc={srcdoc(content, openNewTabInstruction)}
 			sandbox=""
-			class="h-full min-h-0 bg-white sm:mx-7 sm:my-5 sm:border"
+			class="min-h-0 flex-1 bg-white sm:mx-7 sm:my-5 sm:rounded-sm"
 			title="Message Content"
 		></iframe>
 
 		{#if attachments || links.size > 0}
-			<Dialog.Footer class="border-border flex-wrap border-t px-5 py-4 sm:justify-start sm:px-7">
+			<Dialog.Footer
+				class="border-border max-h-36 flex-wrap gap-2 overflow-y-auto border-t px-5 py-3 sm:justify-start sm:px-7"
+			>
 				{#each links as link (link)}
 					<Button
 						href={link}
 						target="_blank"
 						rel="noopener noreferrer"
-						variant="outline"
+						variant="secondary"
+						size="sm"
+						class="max-w-full"
 						title="Link"
 					>
 						<LinkIcon class="h-5 w-5 shrink-0" />
@@ -103,7 +106,9 @@
 						href="/mail/attachment?attachmentGU={attachment._SmAttachmentGU}"
 						target="_blank"
 						rel="noopener noreferrer"
-						variant="outline"
+						variant="secondary"
+						size="sm"
+						class="max-w-full"
 						title="Attachment"
 					>
 						<PaperclipIcon class="h-5 w-5 shrink-0" />

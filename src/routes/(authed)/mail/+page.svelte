@@ -149,42 +149,47 @@
 </AppPageShell>
 
 <style>
-	/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 · genre: modern-minimal · macrostructure: inbox index · palette: Grademaxxing semantic tokens */
+	/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · genre: modern-minimal · macrostructure: inbox index · palette: Grademaxxing semantic tokens */
 	:global(.mail-shell) {
-		max-width: 82rem;
+		max-width: 80rem;
+		margin-inline: auto;
 	}
 	.mail-heading {
-		margin-bottom: var(--space-xl);
+		margin-bottom: 1.5rem;
 	}
 	.mail-heading h1 {
 		margin: 0;
 		color: var(--foreground);
 		font-family: var(--font-heading);
-		font-size: clamp(1.8rem, 3vw, 2.35rem);
-		letter-spacing: -0.04em;
+		font-size: clamp(1.5rem, 3vw, 1.875rem);
+		font-weight: 700;
+		line-height: 1.2;
+		letter-spacing: -0.035em;
 	}
 	.mail-heading p {
 		margin: 0.25rem 0 0;
 		color: var(--muted-foreground);
-		font-size: 0.9rem;
+		font-size: 0.875rem;
 		line-height: 1.5;
 	}
 	.mail-inbox {
-		max-width: 65rem;
+		min-width: 0;
 	}
 	.inbox-heading {
 		display: flex;
 		align-items: baseline;
 		justify-content: space-between;
 		gap: var(--space-sm);
-		padding-bottom: var(--space-sm);
+		padding-bottom: 0.5rem;
 	}
 	.inbox-heading h2 {
 		margin: 0;
-		color: var(--foreground);
-		font-family: var(--font-heading);
-		font-size: 1.2rem;
-		letter-spacing: -0.025em;
+		color: var(--tertiary-foreground);
+		font-family: var(--font-technical);
+		font-size: 0.625rem;
+		font-weight: 600;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
 	}
 	.inbox-heading span {
 		color: var(--muted-foreground);
@@ -194,17 +199,15 @@
 		white-space: nowrap;
 	}
 	.inbox-heading strong {
-		color: var(--primary);
+		color: var(--sidebar-accent-foreground);
 		font-weight: 700;
 	}
 	.message-list {
+		display: grid;
+		gap: 0.25rem;
 		margin: 0;
-		border-top: 1px solid var(--border);
 		padding: 0;
 		list-style: none;
-	}
-	.message-list li {
-		border-bottom: 1px solid var(--border);
 	}
 	.mail-empty {
 		display: grid;
