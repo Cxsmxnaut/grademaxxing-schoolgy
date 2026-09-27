@@ -200,6 +200,11 @@ test('gradebook calculator, course planner, and attendance views are interactive
 	await expect(
 		page.getByRole('region', { name: 'Class schedule' }).getByText('Example Biology')
 	).toBeVisible();
+	const scheduleBounds = await page.getByRole('region', { name: 'Class schedule' }).boundingBox();
+	const calendarBounds = await page
+		.getByRole('complementary', { name: 'Calendar and status filters' })
+		.boundingBox();
+	expect(scheduleBounds!.y).toBeLessThan(calendarBounds!.y + calendarBounds!.height);
 	if (process.env.ATTENDANCE_VISUAL_CAPTURE) {
 		await expect(page.getByText('Loading attendance records…')).toBeHidden();
 		await page.screenshot({
@@ -275,6 +280,13 @@ test('attendance agenda shows school records and fits a phone viewport', async (
 	await expect(schedule.getByText('Example Biology')).toBeVisible();
 	await expect(schedule.getByText('8:30 AM – 9:20 AM')).toBeVisible();
 	await expect(schedule.getByText('Room 101')).toBeVisible();
+	const mobileScheduleBounds = await schedule.boundingBox();
+	const mobileCalendarBounds = await page
+		.getByRole('complementary', { name: 'Calendar and status filters' })
+		.boundingBox();
+	expect(mobileScheduleBounds!.y).toBeGreaterThanOrEqual(
+		mobileCalendarBounds!.y + mobileCalendarBounds!.height
+	);
 	if (process.env.ATTENDANCE_VISUAL_CAPTURE) {
 		await expect(page.getByText('Loading attendance records…')).toBeHidden();
 		await page.screenshot({
