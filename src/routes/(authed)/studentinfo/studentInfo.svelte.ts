@@ -41,10 +41,28 @@ export const loadStudentInfo = async (forceRefresh = false) => {
 	);
 };
 
+/**
+ * District profile fields are rendered as text, so every value is coerced to a
+ * string at the data boundary. Portal parsers and older caches can hand back
+ * numbers or nulls, and a non-string would crash text presentation code.
+ */
+export const normalizeProfileFields = (value: unknown): StudentProfileFields => {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+	const fields: StudentProfileFields = {};
+	for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+		if (entry === null || entry === undefined) continue;
+		const text = typeof entry === 'string' ? entry : String(entry);
+		if (text.trim()) fields[key] = text;
+	}
+	return fields;
+};
+
 // PXP2_Student.aspx exposes district-specific profile fields in addition to the
 // universal name/ID/grade set. The response omits `fields` when a district
 // provides none, and the fallback response is an empty object, so failures here
-// must never surface as a page error.
+// must never surface as a page error. The fields cache uses its own storage key:
+// the student-info cache stores PermID and Grade as JSON numbers, which are not
+// valid profile-field values.
 export const loadStudentProfileFields = async (forceRefresh = false) => {
 	const { studentAccount } = acc;
 	if (!studentAccount) return;
@@ -53,9 +71,9 @@ export const loadStudentProfileFields = async (forceRefresh = false) => {
 		studentProfileFieldsState,
 		async () => {
 			const profile = await studentAccount.studentProfile();
-			return profile.fields ?? {};
+			return normalizeProfileFields(profile.fields);
 		},
-		LocalStorageKey.studentInfo,
+		LocalStorageKey.studentProfile,
 		1000 * 60 * 60 * 24 * 30,
 		forceRefresh
 	);

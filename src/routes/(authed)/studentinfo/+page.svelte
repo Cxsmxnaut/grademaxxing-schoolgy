@@ -58,7 +58,8 @@
 		nowMinutes >= schoolDayStart && nowMinutes <= schoolDayEnd && new Date(now).getDay() >= 1
 	);
 
-	function toMinutes(time: string) {
+	function toMinutes(time: unknown) {
+		if (typeof time !== 'string') return null;
 		const match = time.match(/^(\d{1,2}):(\d{2})/);
 		return match ? Number(match[1]) * 60 + Number(match[2]) : null;
 	}
@@ -103,22 +104,21 @@
 	);
 
 	const schoolWebsiteUrl = $derived.by(() => {
-		const raw = schoolInfoState.data?.website.trim();
-		if (!raw) return undefined;
+		const raw = schoolInfoState.data?.website;
+		if (typeof raw !== 'string' || !raw.trim()) return undefined;
 		return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
 	});
 
 	const schoolMapsUrl = $derived.by(() => {
-		const address = schoolInfoState.data?.address.trim();
-		return address
-			? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
-			: undefined;
+		const address = schoolInfoState.data?.address;
+		if (typeof address !== 'string' || !address.trim()) return undefined;
+		return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 	});
 
-	function formatClassTime(start: string, end: string) {
-		const format = (time: string) => {
+	function formatClassTime(start: unknown, end: unknown) {
+		const format = (time: unknown) => {
 			const minutes = toMinutes(time);
-			if (minutes === null) return time;
+			if (minutes === null) return typeof time === 'string' ? time : '';
 			const date = new Date();
 			date.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
 			return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
