@@ -9,9 +9,11 @@
 	import * as Message from '$lib/components/ui/message';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { LocalStorageKey } from '$lib/storage/keys';
+	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
 	import BugIcon from '@lucide/svelte/icons/bug';
 	import LightbulbIcon from '@lucide/svelte/icons/lightbulb';
 	import MessageCircleIcon from '@lucide/svelte/icons/message-circle';
+	import PlusIcon from '@lucide/svelte/icons/plus';
 	import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
 	import { onMount } from 'svelte';
 
@@ -25,6 +27,13 @@
 		adminReply: string;
 		repliedAt: string | null;
 		createdAt: string;
+		updatedAt: string;
+		messages: Array<{
+			id: string;
+			sender: 'student' | 'admin';
+			message: string;
+			createdAt: string;
+		}>;
 	};
 
 	const feedbackKinds: {
@@ -60,24 +69,32 @@
 	let sendError = $state<string>();
 	let feedbackHistory = $state<FeedbackHistoryItem[]>([]);
 	let loadingHistory = $state(false);
+	let selectedConversationId = $state('new');
 
 	const canReport = $derived(message.trim().length >= 3);
-	const chronologicalHistory = $derived(
-		[...feedbackHistory].sort((first, second) => first.createdAt.localeCompare(second.createdAt))
+	const sortedHistory = $derived(
+		[...feedbackHistory].sort((first, second) => second.updatedAt.localeCompare(first.updatedAt))
+	);
+	const selectedConversation = $derived(
+		feedbackHistory.find((item) => item.id === selectedConversationId)
 	);
 
 	async function submitFeedback() {
 		if (!canReport || sending) return;
 		sending = true;
 		sendError = undefined;
-		const response = await fetch('/api/feedback', {
+		const receipt = savedReceipts().find((item) => item.id === selectedConversationId);
+		const endpoint = receipt
+			? `/api/feedback/${encodeURIComponent(receipt.id)}/messages?token=${encodeURIComponent(receipt.replyToken)}`
+			: '/api/feedback';
+		const response = await fetch(endpoint, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				kind: feedbackKind,
-				message: message.trim(),
-				pagePath: page.url.pathname
-			})
+			body: JSON.stringify(
+				receipt
+					? { message: message.trim() }
+					: { kind: feedbackKind, message: message.trim(), pagePath: page.url.pathname }
+			)
 		}).catch(() => undefined);
 		if (!response?.ok) {
 			sendError = response
@@ -87,8 +104,11 @@
 			sending = false;
 			return;
 		}
-		const receipt = (await response.json()) as Partial<FeedbackReceipt>;
-		if (receipt.id && receipt.replyToken) saveReceipt(receipt as FeedbackReceipt);
+		const result = (await response.json()) as Partial<FeedbackReceipt>;
+		if (!receipt && result.id && result.replyToken) {
+			saveReceipt(result as FeedbackReceipt);
+			selectedConversationId = result.id;
+		}
 		sent = true;
 		sending = false;
 		message = '';
@@ -141,6 +161,13 @@
 		loadingHistory = false;
 	}
 
+	function startNewConversation() {
+		selectedConversationId = 'new';
+		message = '';
+		sent = false;
+		sendError = undefined;
+	}
+
 	function statusLabel(status: FeedbackHistoryItem['status']) {
 		return {
 			new: 'Received',
@@ -161,160 +188,230 @@
 		}).format(new Date(value));
 	}
 
-	onMount(loadFeedbackHistory);
+	onMount(() => {
+		void loadFeedbackHistory().then(() => {
+			if (sortedHistory[0] && window.matchMedia('(min-width: 1024px)').matches)
+				selectedConversationId = sortedHistory[0].id;
+			else if (feedbackHistory.length) selectedConversationId = 'inbox';
+		});
+		const timer = window.setInterval(() => void loadFeedbackHistory(), 45_000);
+		return () => window.clearInterval(timer);
+	});
 </script>
 
 <svelte:head><title>Feedback - {brand}</title></svelte:head>
 
-<AppPageShell class="max-w-[67.5rem]">
-	<div class="max-w-3xl">
-		<p class="text-primary text-[0.68rem] font-bold tracking-[0.2em] uppercase">Feedback</p>
-		<h1
-			class="font-heading mt-2 text-2xl leading-tight font-bold tracking-[-0.035em] sm:text-[1.875rem]"
-		>
-			Talk to the Grademaxxing team
-		</h1>
-		<p class="text-muted-foreground mt-2 text-sm leading-6">
-			Send a private note and check here for a reply. StudentVUE remains the official school record.
+<AppPageShell class="max-w-[75rem]">
+	<div>
+		<h1 class="font-heading text-2xl font-bold tracking-[-0.035em] sm:text-[1.875rem]">Feedback</h1>
+		<p class="text-muted-foreground mt-1 text-sm">
+			Your private conversations with the Grademaxxing team.
 		</p>
 	</div>
 
-	<!-- HALLMARK: The real Message and Bubble components frame submitted feedback and actual replies; the empty state makes no promise of a live agent. -->
-	<section
-		class="border-border/70 bg-card mt-6 flex flex-col overflow-hidden rounded-2xl border lg:h-[calc(100dvh-11rem)] lg:max-h-[44rem] lg:min-h-[32rem]"
-		aria-labelledby="feedback-history-heading"
+	<!-- HALLMARK: Inbox and selected conversation share a single workspace; messages are only records returned by the feedback API. -->
+	<div
+		class="border-border/70 bg-card mt-5 grid overflow-hidden rounded-2xl border lg:h-[calc(100dvh-10rem)] lg:max-h-[50rem] lg:min-h-[34rem] lg:grid-cols-[17rem_minmax(0,1fr)]"
 	>
-		<div
-			class="border-border/70 flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 sm:px-6"
+		<aside
+			class="border-border/70 border-r {selectedConversationId === 'inbox'
+				? 'block'
+				: 'hidden lg:block'}"
+			aria-labelledby="feedback-chats-heading"
 		>
-			<div>
-				<h2 id="feedback-history-heading" class="font-heading text-lg font-semibold">
-					Your feedback
-				</h2>
-				<p class="text-muted-foreground mt-0.5 text-xs">
-					Private messages and replies from the team
-				</p>
-			</div>
-			<Button variant="outline" size="sm" onclick={loadFeedbackHistory} disabled={loadingHistory}
-				>{loadingHistory ? 'Checking…' : 'Check for replies'}</Button
-			>
-		</div>
-
-		<div
-			class="max-h-[42vh] min-h-24 flex-1 overflow-y-auto px-5 py-5 sm:px-6 lg:max-h-none"
-			aria-label="Feedback conversation"
-		>
-			{#if loadingHistory && !feedbackHistory.length}
-				<p class="text-muted-foreground text-sm" role="status">Checking for your messages…</p>
-			{:else if !feedbackHistory.length}
-				<div class="flex min-h-24 flex-col items-center justify-center text-center lg:min-h-full">
-					<MessageCircleIcon class="text-muted-foreground/60 size-7" aria-hidden="true" />
-					<p class="mt-3 text-sm font-semibold">No messages yet</p>
-					<p class="text-muted-foreground mt-1 max-w-xs text-xs leading-5">
-						Choose a topic and write your first note below. Replies will show up here after the team
-						responds.
-					</p>
+			<div class="border-border/70 flex items-center justify-between gap-2 border-b p-4">
+				<div>
+					<h2 id="feedback-chats-heading" class="font-heading font-semibold">Chats</h2>
+					<p class="text-muted-foreground text-xs">Saved in this browser</p>
 				</div>
-			{:else}
-				<div class="space-y-7">
-					{#each chronologicalHistory as item (item.id)}
-						<div class="space-y-4">
-							<Message.Root align="end">
+				<Button size="sm" onclick={startNewConversation}
+					><PlusIcon class="size-4" aria-hidden="true" />New chat</Button
+				>
+			</div>
+			<div class="max-h-[65vh] min-h-44 overflow-y-auto lg:max-h-[calc(100%-8rem)]">
+				{#each sortedHistory as item (item.id)}
+					<button
+						type="button"
+						onclick={() => {
+							selectedConversationId = item.id;
+							sent = false;
+							sendError = undefined;
+							message = '';
+						}}
+						aria-pressed={selectedConversationId === item.id}
+						class="border-border/50 hover:bg-accent/40 focus-visible:ring-ring flex w-full flex-col gap-1 border-b px-4 py-3 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none {selectedConversationId ===
+						item.id
+							? 'bg-primary/10'
+							: ''}"
+					>
+						<span class="flex w-full items-center justify-between gap-2"
+							><strong class="truncate text-sm">{item.kind}</strong><span
+								class="text-muted-foreground shrink-0 text-[0.68rem]"
+								>{dateTime(item.updatedAt)}</span
+							></span
+						>
+						<span class="text-muted-foreground w-full truncate text-xs"
+							>{item.messages.at(-1)?.message ?? item.message}</span
+						>
+						<span class="text-primary text-[0.68rem] font-medium">{statusLabel(item.status)}</span>
+					</button>
+				{:else}
+					<div class="px-4 py-8 text-center">
+						<MessageCircleIcon class="text-muted-foreground/60 mx-auto size-6" aria-hidden="true" />
+						<p class="mt-2 text-sm font-semibold">No chats yet</p>
+						<p class="text-muted-foreground mt-1 text-xs">Start one with the New button.</p>
+					</div>
+				{/each}
+			</div>
+			<div class="border-border/70 border-t p-3">
+				<Button variant="ghost" size="sm" onclick={loadFeedbackHistory} disabled={loadingHistory}
+					>{loadingHistory ? 'Checking…' : 'Check for replies'}</Button
+				>
+			</div>
+		</aside>
+
+		<section
+			class="min-w-0 flex-col {selectedConversationId === 'inbox' ? 'hidden lg:flex' : 'flex'}"
+			aria-label="Selected feedback chat"
+		>
+			<header
+				class="border-border/70 flex items-center justify-between gap-3 border-b px-4 py-3 sm:px-5"
+			>
+				<div class="flex min-w-0 items-center gap-2">
+					{#if feedbackHistory.length}<Button
+							variant="ghost"
+							size="icon"
+							class="lg:hidden"
+							aria-label="Back to chats"
+							onclick={() => (selectedConversationId = 'inbox')}
+							><ArrowLeftIcon class="size-4" aria-hidden="true" /></Button
+						>{/if}
+					<div class="min-w-0">
+						<h2 class="font-heading truncate font-semibold">
+							{selectedConversation?.kind ??
+								(selectedConversationId === 'new' ? 'New chat' : 'Select a chat')}
+						</h2>
+						<p class="text-muted-foreground text-xs">
+							{selectedConversation ? statusLabel(selectedConversation.status) : 'Private feedback'}
+						</p>
+					</div>
+				</div>
+				{#if selectedConversation}<Button
+						variant="outline"
+						size="sm"
+						onclick={loadFeedbackHistory}
+						disabled={loadingHistory}>{loadingHistory ? 'Checking…' : 'Check replies'}</Button
+					>{/if}
+			</header>
+
+			<div
+				class="max-h-[48vh] min-h-48 flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:max-h-none"
+				aria-label="Feedback conversation"
+			>
+				{#if selectedConversation}
+					<div class="space-y-5">
+						{#each selectedConversation.messages as entry (entry.id)}
+							<Message.Root align={entry.sender === 'student' ? 'end' : 'start'}>
 								<Message.Content>
-									<Message.Header class="justify-end">You · {item.kind}</Message.Header>
-									<Bubble.Root class="max-w-[88%] sm:max-w-[72%]">
-										<Bubble.Content class="whitespace-pre-wrap">{item.message}</Bubble.Content>
-									</Bubble.Root>
-									<Message.Footer
-										>{dateTime(item.createdAt)} · {statusLabel(item.status)}</Message.Footer
+									<Message.Header class={entry.sender === 'student' ? 'justify-end' : ''}
+										>{entry.sender === 'student' ? 'You' : 'Grademaxxing team'}</Message.Header
 									>
+									<Bubble.Root
+										variant={entry.sender === 'student' ? 'default' : 'secondary'}
+										class="max-w-[88%] sm:max-w-[70%]"
+										><Bubble.Content class="whitespace-pre-wrap">{entry.message}</Bubble.Content
+										></Bubble.Root
+									>
+									<Message.Footer>{dateTime(entry.createdAt)}</Message.Footer>
 								</Message.Content>
 							</Message.Root>
-							{#if item.adminReply}
-								<Message.Root>
-									<Message.Content>
-										<Message.Header>Grademaxxing team</Message.Header>
-										<Bubble.Root variant="secondary" class="max-w-[88%] sm:max-w-[72%]">
-											<Bubble.Content class="whitespace-pre-wrap">{item.adminReply}</Bubble.Content>
-										</Bubble.Root>
-										{#if item.repliedAt}<Message.Footer>{dateTime(item.repliedAt)}</Message.Footer
-											>{/if}
-									</Message.Content>
-								</Message.Root>
-							{/if}
-						</div>
-					{/each}
-				</div>
-			{/if}
-		</div>
-
-		<form
-			class="border-border/70 space-y-3 border-t p-4 sm:p-5"
-			onsubmit={(event) => {
-				event.preventDefault();
-				submitFeedback();
-			}}
-		>
-			{#if sent}
-				<div class="text-primary text-xs" role="status">
-					<h2 class="font-semibold">Feedback sent</h2>
-					<p>Your message was delivered privately.</p>
-				</div>
-			{/if}
-			<Field.Set>
-				<legend class="sr-only">What is this about?</legend>
-				<div class="flex flex-wrap gap-2" role="group" aria-label="Feedback type">
-					{#each feedbackKinds as kind (kind.value)}
-						{@const Icon = kind.icon}
-						<button
-							type="button"
-							aria-pressed={feedbackKind === kind.value}
-							title={kind.description}
-							onclick={() => (feedbackKind = kind.value)}
-							class="border-border/70 hover:bg-accent/50 focus-visible:ring-ring flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none {feedbackKind ===
-							kind.value
-								? 'border-primary/60 bg-primary/10 text-primary'
-								: 'bg-background/30'}"
-						>
-							<Icon class="size-3.5" aria-hidden="true" />{kind.label}
-						</button>
-					{/each}
-				</div>
-			</Field.Set>
-			<Field.Field>
-				<Field.Label for="feedback-message" class="sr-only">Your message</Field.Label>
-				<Textarea
-					id="feedback-message"
-					bind:value={message}
-					oninput={() => (sent = false)}
-					autocomplete="off"
-					aria-describedby="feedback-safety feedback-destination"
-					placeholder="Write a message to the team…"
-					maxlength={2000}
-					rows={3}
-					class="bg-background/40 min-h-20 resize-y rounded-xl px-4 py-3 text-sm"
-				/>
-			</Field.Field>
-			<p id="feedback-destination" class="sr-only">
-				Your message is stored anonymously and is visible only in the private admin dashboard.
-			</p>
-			{#if sendError}<Field.Error>{sendError}</Field.Error>{/if}
-			<div class="flex flex-wrap items-center justify-between gap-3">
-				<p
-					id="feedback-safety"
-					class="text-muted-foreground flex max-w-xl items-start gap-1.5 text-xs leading-5"
-				>
-					<ShieldCheckIcon class="text-primary mt-0.5 size-3.5 shrink-0" aria-hidden="true" />Leave
-					out passwords, names, student IDs, grades, screenshots, and school records.
-					<span class="shrink-0 tabular-nums">{message.length}/2,000</span>
-				</p>
-				<Button type="submit" disabled={!canReport || sending}
-					>{sending ? 'Sending…' : 'Send feedback'}</Button
-				>
+						{/each}
+					</div>
+				{:else if selectedConversationId === 'new'}
+					<div class="flex min-h-36 flex-col items-center justify-center text-center">
+						<MessageCircleIcon class="text-muted-foreground/60 size-7" aria-hidden="true" />
+						<p class="mt-3 text-sm font-semibold">Start a conversation</p>
+						<p class="text-muted-foreground mt-1 max-w-xs text-xs leading-5">
+							Choose a topic, write a note, and return here to read the team's reply.
+						</p>
+					</div>
+				{:else}
+					<div class="flex min-h-36 items-center justify-center text-center">
+						<p class="text-muted-foreground text-sm">Select a chat or start a new one.</p>
+					</div>
+				{/if}
 			</div>
-		</form>
-	</section>
+
+			{#if selectedConversation || selectedConversationId === 'new'}
+				<form
+					class="border-border/70 space-y-3 border-t p-4 sm:p-5"
+					onsubmit={(event) => {
+						event.preventDefault();
+						submitFeedback();
+					}}
+				>
+					{#if sent}<div class="text-primary text-xs" role="status">
+							<h2 class="font-semibold">Feedback sent</h2>
+							<p>Your message was delivered privately.</p>
+						</div>{/if}
+					{#if !selectedConversation}
+						<Field.Set
+							><legend class="sr-only">What is this about?</legend>
+							<div class="flex flex-wrap gap-2" role="group" aria-label="Feedback type">
+								{#each feedbackKinds as kind (kind.value)}{@const Icon = kind.icon}<button
+										type="button"
+										aria-pressed={feedbackKind === kind.value}
+										title={kind.description}
+										onclick={() => (feedbackKind = kind.value)}
+										class="border-border/70 hover:bg-accent/50 focus-visible:ring-ring flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none {feedbackKind ===
+										kind.value
+											? 'border-primary/60 bg-primary/10 text-primary'
+											: 'bg-background/30'}"
+										><Icon class="size-3.5" aria-hidden="true" />{kind.label}</button
+									>{/each}
+							</div></Field.Set
+						>
+					{/if}
+					<Field.Field
+						><Field.Label for="feedback-message" class="sr-only">Your message</Field.Label><Textarea
+							id="feedback-message"
+							bind:value={message}
+							oninput={() => (sent = false)}
+							autocomplete="off"
+							aria-describedby="feedback-safety feedback-destination"
+							placeholder={selectedConversation
+								? 'Reply in this chat…'
+								: 'Write a message to the team…'}
+							maxlength={2000}
+							rows={3}
+							class="bg-background/40 min-h-20 resize-y rounded-xl px-4 py-3 text-sm"
+						/></Field.Field
+					>
+					<p id="feedback-destination" class="sr-only">
+						Your message is stored anonymously and is visible only in the private admin dashboard.
+					</p>
+					{#if sendError}<Field.Error>{sendError}</Field.Error>{/if}
+					<div class="flex flex-wrap items-center justify-between gap-3">
+						<p
+							id="feedback-safety"
+							class="text-muted-foreground flex max-w-xl items-start gap-1.5 text-xs leading-5"
+						>
+							<ShieldCheckIcon
+								class="text-primary mt-0.5 size-3.5 shrink-0"
+								aria-hidden="true"
+							/>Leave out passwords, names, student IDs, grades, screenshots, and school records.
+							<span class="shrink-0 tabular-nums">{message.length}/2,000</span>
+						</p>
+						<Button type="submit" class="ml-auto" disabled={!canReport || sending}
+							>{sending ? 'Sending…' : 'Send feedback'}</Button
+						>
+					</div>
+				</form>
+			{/if}
+		</section>
+	</div>
 	<p class="text-muted-foreground mt-3 text-xs leading-5">
-		Reply receipts stay in this browser and are removed when you sign out or clear site data.
+		Your chat receipts are saved only in this browser and are removed when you sign out or clear
+		site data.
 	</p>
 </AppPageShell>

@@ -62,6 +62,12 @@
 		repliedAt: string | null;
 		createdAt: string;
 		updatedAt: string;
+		messages: Array<{
+			id: string;
+			sender: 'student' | 'admin';
+			message: string;
+			createdAt: string;
+		}>;
 	};
 	type ReferralPartner = {
 		id: string;
@@ -117,6 +123,7 @@
 				(feedbackFilter === 'all' || item.status === feedbackFilter) &&
 				(!query ||
 					item.message.toLowerCase().includes(query) ||
+					item.messages.some((entry) => entry.message.toLowerCase().includes(query)) ||
 					item.kind.toLowerCase().includes(query) ||
 					item.pagePath.toLowerCase().includes(query))
 			);
@@ -157,7 +164,9 @@
 		} else message = await responseMessage(usageResponse, 'Unable to load usage analytics.');
 		if (feedbackResponse.ok) {
 			feedback = ((await feedbackResponse.json()) as { items: FeedbackItem[] }).items;
-			replyDrafts = Object.fromEntries(feedback.map((item) => [item.id, item.adminReply]));
+			replyDrafts = Object.fromEntries(
+				feedback.map((item) => [item.id, replyDrafts[item.id] ?? ''])
+			);
 			if (!selectedFeedbackId && feedback[0]) selectedFeedbackId = feedback[0].id;
 		} else message = await responseMessage(feedbackResponse, 'Unable to load feedback.');
 		loading = false;
@@ -261,11 +270,9 @@
 		}
 	}
 
-	async function saveFeedback(item: FeedbackItem, nextStatus = item.status, publishReply = false) {
+	async function saveFeedback(item: FeedbackItem, nextStatus = item.status) {
 		savingId = item.id;
 		message = undefined;
-		const normalizedReply = publishReply ? (replyDrafts[item.id] ?? '').trim() : item.adminReply;
-		const replyChanged = item.adminReply !== normalizedReply;
 		const response = await fetch('/api/admin/feedback', {
 			method: 'PATCH',
 			headers: { 'Content-Type': 'application/json' },
@@ -273,14 +280,11 @@
 				id: item.id,
 				status: nextStatus,
 				adminNote: item.adminNote,
-				adminReply: normalizedReply
+				adminReply: item.adminReply
 			})
 		}).catch(() => undefined);
 		if (response?.ok) {
 			item.status = nextStatus;
-			item.adminReply = normalizedReply;
-			if (replyChanged) item.repliedAt = normalizedReply ? new Date().toISOString() : null;
-			if (publishReply) replyDrafts[item.id] = normalizedReply;
 			item.updatedAt = new Date().toISOString();
 			feedback = [...feedback];
 		} else {
@@ -288,6 +292,31 @@
 				? await responseMessage(response, 'Unable to save feedback.')
 				: 'You appear to be offline. Reconnect and try again.';
 			feedback = [...feedback];
+		}
+		savingId = undefined;
+	}
+
+	async function sendReply(item: FeedbackItem) {
+		const reply = (replyDrafts[item.id] ?? '').trim();
+		if (!reply || savingId) return;
+		savingId = item.id;
+		message = undefined;
+		const response = await fetch(`/api/admin/feedback/${encodeURIComponent(item.id)}/messages`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ message: reply })
+		}).catch(() => undefined);
+		if (response?.ok) {
+			const sent = (await response.json()) as FeedbackItem['messages'][number];
+			item.messages = [...item.messages, sent];
+			item.repliedAt = sent.createdAt;
+			item.updatedAt = sent.createdAt;
+			if ((replyDrafts[item.id] ?? '').trim() === reply) replyDrafts[item.id] = '';
+			feedback = [...feedback];
+		} else {
+			message = response
+				? await responseMessage(response, 'Unable to send reply.')
+				: 'You appear to be offline. Reconnect and try again.';
 		}
 		savingId = undefined;
 	}
@@ -657,8 +686,9 @@
 							>
 								<span class="conversation-avatar"><MessageSquareIcon size={16} /></span>
 								<span class="conversation-copy">
-									<span><strong>{item.kind}</strong><time>{dateTime(item.createdAt)}</time></span>
-									<small>{item.adminReply || item.message}</small>
+									<span><strong>{item.kind}</strong><time>{dateTime(item.updatedAt)}</time></span>
+									<small>{item.messages.at(-1)?.message ?? (item.adminReply || item.message)}</small
+									>
 									<i class={`status-dot ${item.status}`}></i><em
 										>{statuses.find((status) => status.value === item.status)?.label}</em
 									>
@@ -697,21 +727,25 @@
 							</header>
 
 							<div class="conversation-messages">
-								<div class="message-group incoming">
-									<span class="conversation-avatar"><MessageSquareIcon size={15} /></span>
-									<div>
-										<p class="message-bubble">{item.message}</p>
-										<small>Sender · {dateTime(item.createdAt)}</small>
-									</div>
-								</div>
-								{#if item.adminReply}
-									<div class="message-group outgoing">
+								{#each item.messages as entry (entry.id)}
+									<div
+										class:outgoing={entry.sender === 'admin'}
+										class:incoming={entry.sender === 'student'}
+										class="message-group"
+									>
+										{#if entry.sender === 'student'}<span class="conversation-avatar"
+												><MessageSquareIcon size={15} /></span
+											>{/if}
 										<div>
-											<p class="message-bubble">{item.adminReply}</p>
-											<small>You · {dateTime(item.repliedAt)}</small>
+											<p class="message-bubble">{entry.message}</p>
+											<small
+												>{entry.sender === 'admin' ? 'You' : 'Sender'} · {dateTime(
+													entry.createdAt
+												)}</small
+											>
 										</div>
 									</div>
-								{/if}
+								{/each}
 							</div>
 
 							<div class="conversation-composer">
@@ -726,15 +760,11 @@
 								></textarea>
 								<button
 									class="primary-button send-button"
-									aria-label={item.repliedAt ? 'Update reply' : 'Send reply'}
-									onclick={() => saveFeedback(item, item.status, true)}
+									aria-label="Send reply"
+									onclick={() => sendReply(item)}
 									disabled={savingId === item.id || !(replyDrafts[item.id] ?? '').trim()}
 								>
-									<ReplyIcon size={16} />{savingId === item.id
-										? 'Sending…'
-										: item.repliedAt
-											? 'Update'
-											: 'Send'}
+									<ReplyIcon size={16} />{savingId === item.id ? 'Sending…' : 'Send'}
 								</button>
 								<span
 									>{item.repliedAt

@@ -68,7 +68,27 @@ test('the private dashboard presents a responsive aggregate analytics workspace'
 		});
 	});
 	let savedFeedback: { status?: string; adminReply?: string; adminNote?: string } = {};
+	let sentReply = '';
+	let sentReplyCount = 0;
 	let failNextFeedbackSave = false;
+	await page.route(/\/api\/admin\/feedback\/[0-9a-f-]+\/messages$/, async (route) => {
+		if (!signedIn) return route.fulfill({ status: 401 });
+		if (failNextFeedbackSave) {
+			failNextFeedbackSave = false;
+			return route.abort('failed');
+		}
+		sentReply = ((await route.request().postDataJSON()) as { message: string }).message;
+		return route.fulfill({
+			status: 201,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				id: `reply-${++sentReplyCount}`,
+				sender: 'admin',
+				message: sentReply,
+				createdAt: '2026-09-19T09:00:00.000Z'
+			})
+		});
+	});
 	await page.route('**/api/admin/feedback', async (route) => {
 		if (!signedIn) return route.fulfill({ status: 401 });
 		if (route.request().method() === 'PATCH') {
@@ -95,7 +115,15 @@ test('the private dashboard presents a responsive aggregate analytics workspace'
 						adminReply: '',
 						repliedAt: null,
 						createdAt: '2026-09-19T08:00:00.000Z',
-						updatedAt: '2026-09-19T08:00:00.000Z'
+						updatedAt: '2026-09-19T08:00:00.000Z',
+						messages: [
+							{
+								id: 'original',
+								sender: 'student',
+								message: 'Add a weekly grade summary',
+								createdAt: '2026-09-19T08:00:00.000Z'
+							}
+						]
 					}
 				]
 			})
@@ -183,10 +211,10 @@ test('the private dashboard presents a responsive aggregate analytics workspace'
 	await expect.poll(() => savedFeedback.adminNote).toBe('Include in the next product pass.');
 	expect(savedFeedback.adminReply).toBe('');
 	await page.getByRole('button', { name: 'Send reply' }).click();
-	await expect
-		.poll(() => savedFeedback.adminReply)
-		.toBe('Great idea — this is now on the roadmap.');
-
+	await expect.poll(() => sentReply).toBe('Great idea — this is now on the roadmap.');
+	await expect(
+		page.locator('.message-bubble').getByText('Great idea — this is now on the roadmap.')
+	).toBeVisible();
 	if (process.env.ADMIN_VISUAL_CAPTURE)
 		await page.screenshot({
 			path: '/tmp/grademaxxing-admin-reference-desktop.png',
@@ -201,16 +229,22 @@ test('the private dashboard presents a responsive aggregate analytics workspace'
 		await page.setViewportSize({ width: 1280, height: 720 });
 	}
 	await page.getByLabel('Reply to Feature idea').fill('This should remain an unsent draft.');
+	await expect(page.getByRole('button', { name: 'Send reply' })).toBeEnabled();
 	failNextFeedbackSave = true;
-	await page.getByRole('button', { name: 'Update reply' }).click();
+	await page.getByRole('button', { name: 'Send reply' }).click();
 	await expect(page.getByRole('alert')).toContainText('offline');
-	await expect(page.getByRole('button', { name: 'Update reply' })).toBeEnabled();
+	await expect(page.getByRole('button', { name: 'Send reply' })).toBeEnabled();
 	await expect(
 		page.locator('.message-bubble').getByText('This should remain an unsent draft.')
 	).toHaveCount(0);
 	await expect(
 		page.locator('.message-bubble').getByText('Great idea — this is now on the roadmap.')
 	).toBeVisible();
+	await page.getByRole('button', { name: 'Send reply' }).click();
+	await expect(
+		page.locator('.message-bubble').getByText('This should remain an unsent draft.')
+	).toBeVisible();
+	await expect(page.locator('.message-bubble')).toHaveCount(3);
 	await page.getByRole('button', { name: 'Overview' }).click();
 	await page.getByRole('button', { name: 'Referrals' }).click();
 	await expect(page.getByRole('heading', { name: 'Referral leaderboard' })).toBeVisible();

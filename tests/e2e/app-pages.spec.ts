@@ -110,7 +110,7 @@ const pages = [
 	['/documents', 'Documents'],
 	['/mail', 'Mail'],
 	['/studentinfo', 'Student information'],
-	['/feedback', 'What can we make better?']
+	['/feedback', 'Feedback']
 ] as const;
 
 for (const [path, heading] of pages) {
@@ -445,6 +445,88 @@ test('course what-if controls preserve compact mobile geometry and keyboard oper
 	);
 });
 
+test('feedback keeps previous chats separate and opens replies inside the selected chat', async ({
+	page
+}) => {
+	const olderId = '0f143f0d-a034-48d6-8bb8-1d00c4a7e255';
+	const newerId = '5bb61304-159a-4a6a-bc22-061c74d8c852';
+	await page.addInitScript(
+		({ olderId, newerId }) => {
+			localStorage.setItem(
+				'feedbackReceipts',
+				JSON.stringify([
+					{ id: newerId, replyToken: 'b'.repeat(43) },
+					{ id: olderId, replyToken: 'a'.repeat(43) }
+				])
+			);
+		},
+		{ olderId, newerId }
+	);
+	await page.route(/\/api\/feedback\/[0-9a-f-]+\?token=/, (route) => {
+		const older = route.request().url().includes(olderId);
+		const createdAt = older ? '2026-09-19T08:00:00.000Z' : '2026-09-20T08:00:00.000Z';
+		return route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				id: older ? olderId : newerId,
+				kind: older ? 'Bug report' : 'Feature idea',
+				message: older ? 'Calendar dates are wrong' : 'Add a weekly summary',
+				status: older ? 'reviewing' : 'new',
+				adminReply: older ? 'We fixed the date display.' : '',
+				repliedAt: older ? '2026-09-21T08:00:00.000Z' : null,
+				createdAt,
+				updatedAt: older ? '2026-09-21T08:00:00.000Z' : createdAt,
+				messages: older
+					? [
+							{
+								id: 'older-original',
+								sender: 'student',
+								message: 'Calendar dates are wrong',
+								createdAt
+							},
+							{
+								id: 'older-reply',
+								sender: 'admin',
+								message: 'We fixed the date display.',
+								createdAt: '2026-09-21T08:00:00.000Z'
+							}
+						]
+					: [
+							{
+								id: 'newer-original',
+								sender: 'student',
+								message: 'Add a weekly summary',
+								createdAt
+							}
+						]
+			})
+		});
+	});
+	await page.goto('/feedback');
+	await expect(page.getByRole('button', { name: /Bug report/ })).toBeVisible();
+	await expect(
+		page.getByLabel('Feedback conversation').getByText('We fixed the date display.')
+	).toBeVisible();
+	await page
+		.getByRole('button', { name: /Feature idea/ })
+		.first()
+		.click();
+	await expect(
+		page.getByLabel('Feedback conversation').getByText('Add a weekly summary')
+	).toBeVisible();
+	await expect(
+		page.getByLabel('Feedback conversation').getByText('We fixed the date display.')
+	).toHaveCount(0);
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.getByRole('button', { name: 'Back to chats' }).click();
+	await expect(page.getByRole('heading', { name: 'Chats' })).toBeVisible();
+	await page.getByRole('button', { name: /Bug report/ }).click();
+	await expect(
+		page.getByLabel('Feedback conversation').getByText('We fixed the date display.')
+	).toBeVisible();
+});
+
 test('empty records, feedback state, mobile navigation, and dark theme are clear', async ({
 	page
 }) => {
@@ -456,6 +538,20 @@ test('empty records, feedback state, mobile navigation, and dark theme are clear
 	let submittedFeedback: { kind?: string; message?: string } = {};
 	const feedbackId = '0f143f0d-a034-48d6-8bb8-1d00c4a7e255';
 	const replyToken = 'a'.repeat(43);
+	const messages = [
+		{
+			id: 'original',
+			sender: 'student',
+			message: 'The latest assignment is missing',
+			createdAt: '2026-09-20T16:00:00.000Z'
+		},
+		{
+			id: 'reply',
+			sender: 'admin',
+			message: 'Thanks — we found the issue and are working on it.',
+			createdAt: '2026-09-20T16:30:00.000Z'
+		}
+	];
 	await page.route(/\/api\/feedback$/, async (route) => {
 		submittedFeedback = (await route.request().postDataJSON()) as typeof submittedFeedback;
 		await route.fulfill({
@@ -475,13 +571,30 @@ test('empty records, feedback state, mobile navigation, and dark theme are clear
 				status: 'reviewing',
 				adminReply: 'Thanks — we found the issue and are working on it.',
 				repliedAt: '2026-09-20T16:30:00.000Z',
-				createdAt: '2026-09-20T16:00:00.000Z'
+				createdAt: '2026-09-20T16:00:00.000Z',
+				updatedAt: '2026-09-20T16:30:00.000Z',
+				messages
 			})
+		});
+	});
+	await page.route(/\/api\/feedback\/[0-9a-f-]+\/messages\?token=/, async (route) => {
+		const body = (await route.request().postDataJSON()) as { message: string };
+		const sent = {
+			id: 'followup',
+			sender: 'student',
+			message: body.message,
+			createdAt: '2026-09-20T17:00:00.000Z'
+		};
+		messages.push(sent);
+		await route.fulfill({
+			status: 201,
+			contentType: 'application/json',
+			body: JSON.stringify(sent)
 		});
 	});
 	const report = page.getByRole('button', { name: 'Send feedback' });
 	await expect(report).toBeDisabled();
-	await expect(page.getByText('No messages yet')).toBeVisible();
+	await expect(page.getByText('Start a conversation')).toBeVisible();
 	if (process.env.FEEDBACK_VISUAL_CAPTURE)
 		await page.screenshot({ path: '/tmp/grademaxxing-feedback-chat-desktop.png', fullPage: true });
 	await page.setViewportSize({ width: 390, height: 844 });
@@ -501,11 +614,23 @@ test('empty records, feedback state, mobile navigation, and dark theme are clear
 		kind: 'Feature idea',
 		message: 'The latest assignment is missing'
 	});
-	await expect(page.getByRole('heading', { name: 'Your feedback' })).toBeVisible();
-	await expect(page.getByText('Thanks — we found the issue and are working on it.')).toBeVisible();
-	await expect(page.getByText('The latest assignment is missing')).toHaveCount(1);
+	await expect(page.getByRole('heading', { name: 'Chats' })).toBeVisible();
+	await expect(
+		page
+			.getByLabel('Feedback conversation')
+			.getByText('Thanks — we found the issue and are working on it.')
+	).toBeVisible();
+	await expect(
+		page.getByLabel('Feedback conversation').getByText('The latest assignment is missing')
+	).toBeVisible();
 	await expect(page.locator('[data-slot="message"]')).toHaveCount(2);
 	await expect(page.locator('[data-slot="bubble"]')).toHaveCount(2);
+	await page.getByLabel('Your message').fill('Can I send a follow-up?');
+	await page.getByRole('button', { name: 'Send feedback' }).click();
+	await expect(
+		page.getByLabel('Feedback conversation').getByText('Can I send a follow-up?')
+	).toBeVisible();
+	await expect(page.locator('[data-slot="message"]')).toHaveCount(3);
 	if (process.env.FEEDBACK_VISUAL_CAPTURE)
 		await page.screenshot({ path: '/tmp/grademaxxing-feedback-sent-desktop.png', fullPage: true });
 	await page.setViewportSize({ width: 390, height: 844 });
