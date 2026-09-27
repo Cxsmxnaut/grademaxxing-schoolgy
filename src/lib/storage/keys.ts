@@ -9,5 +9,6 @@ export enum LocalStorageKey {
 	documents = 'documents',
 	mailData = 'mailData',
 	studentInfo = 'studentInfo2',
+	schoolInfo = 'schoolInfo1',
 	feedbackReceipts = 'feedbackReceipts'
 }

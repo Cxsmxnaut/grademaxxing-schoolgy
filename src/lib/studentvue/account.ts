@@ -4,7 +4,11 @@ import type { DocumentsResult } from '$lib/contracts/studentvue/documents';
 import type { MailResult } from '$lib/contracts/studentvue/mail';
 import type { ReportCardResult } from '$lib/contracts/studentvue/report-card';
 import type { Schedule } from '$lib/contracts/studentvue/schedule';
-import type { StudentInfoResult } from '$lib/contracts/studentvue/student-info';
+import type { SchoolInfo } from '$lib/contracts/studentvue/school-info';
+import type {
+	StudentInfoResult,
+	StudentProfileResult
+} from '$lib/contracts/studentvue/student-info';
 import type { TranscriptImport } from '$lib/grades/transcript';
 import { markPortalConnected, markPortalReconnect } from '$lib/session.svelte';
 import {
@@ -97,6 +101,14 @@ export class StudentAccount {
 
 	async studentInfo() {
 		return this.request<StudentInfoResult['StudentInfo']>('/api/studentvue/student-info');
+	}
+
+	async studentProfile() {
+		return this.request<StudentProfileResult>('/api/studentvue/student-profile');
+	}
+
+	async schoolInfo() {
+		return this.request<SchoolInfo>('/api/studentvue/school-info');
 	}
 
 	async documents() {

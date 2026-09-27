@@ -91,6 +91,16 @@ test.beforeEach(async ({ page }) => {
 				Grade: 10,
 				Photo: ''
 			},
+			'student-profile': { fields: { Counselor: 'Counselor Example' } },
+			'school-info': {
+				name: 'Example School',
+				principal: 'Principal Example',
+				address: '123 Example Way, Example City, CA 90210',
+				phone: '(555) 555-0100',
+				fax: '',
+				website: 'https://example.edu',
+				fields: {}
+			},
 			calendar: { events: [] }
 		};
 		route.fulfill({
