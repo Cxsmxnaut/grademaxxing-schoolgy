@@ -128,14 +128,14 @@
 	>
 	{#if !editing && selectedDistrict}
 		<div
-			class="flex h-12 items-center gap-2.5 rounded-[0.625rem] border border-[#6ea8dc] bg-[#202d38] px-3.5 py-3 text-[0.90625rem] leading-[1.5] font-bold text-[#6ea8dc]"
+			class="border-input bg-secondary text-foreground flex h-12 items-center gap-2.5 rounded-[0.625rem] border px-4 py-3 text-[0.90625rem] leading-[1.5] font-semibold"
 		>
 			<span class="min-w-0 flex-1 truncate">
 				{selectedDistrict.name}
 			</span>
 			<button
 				type="button"
-				class="shrink-0 text-[0.78125rem] leading-normal font-semibold text-[#aab7c5] underline underline-offset-2 hover:text-[#f1f5f7]"
+				class="text-primary hover:text-foreground shrink-0 text-[0.78125rem] leading-normal font-semibold underline underline-offset-2"
 				{disabled}
 				onclick={async () => {
 					editing = true;
@@ -150,7 +150,7 @@
 		</div>
 	{:else}
 		<div
-			class="border-input bg-background focus-within:border-primary focus-within:outline-primary flex h-12 items-center overflow-hidden rounded-lg border focus-within:outline-2 focus-within:outline-offset-2"
+			class="border-input bg-secondary focus-within:border-primary focus-within:outline-primary flex h-12 items-center overflow-hidden rounded-[0.625rem] border focus-within:outline-2 focus-within:outline-offset-2"
 		>
 			<input
 				id="district-search"
@@ -187,7 +187,7 @@
 						open = true;
 						activeIndex = 0;
 					}}
-					class="grid h-full w-9 shrink-0 place-items-center text-[#91aac2] hover:text-white"
+					class="text-muted-foreground hover:text-foreground grid h-full w-9 shrink-0 place-items-center"
 				>
 					<XIcon class="size-4" />
 				</button>
@@ -211,7 +211,7 @@
 						void moveActive(selectedIndex < 0 ? 0 : selectedIndex);
 					}
 				}}
-				class="grid h-full w-10 shrink-0 place-items-center border-l border-[#294258] text-[#b4c6d7] hover:bg-white/5 hover:text-white"
+				class="border-input text-muted-foreground hover:bg-accent hover:text-foreground grid h-full w-10 shrink-0 place-items-center border-l"
 			>
 				<ChevronDownIcon class={`size-5 transition-transform ${open ? 'rotate-180' : ''}`} />
 			</button>
@@ -223,7 +223,7 @@
 			id="district-listbox"
 			role="listbox"
 			aria-label="Matching school districts"
-			class="absolute top-[calc(100%+0.5rem)] right-0 left-0 z-30 max-h-72 overflow-y-auto rounded-xl border border-[#294258] bg-[#0a1c2c] p-1.5 shadow-2xl shadow-black/40"
+			class="border-border bg-popover absolute top-[calc(100%+0.5rem)] right-0 left-0 z-30 max-h-72 overflow-y-auto rounded-xl border p-1.5 shadow-2xl shadow-black/40"
 		>
 			{#if matches.length}
 				{#each matches as district, index (`${district.domain}-${district.name}`)}
@@ -236,21 +236,21 @@
 						onmouseenter={() => (activeIndex = index)}
 						onclick={() => choose(district)}
 						class={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
-							index === activeIndex ? 'bg-[#183650]' : 'hover:bg-white/5'
+							index === activeIndex ? 'bg-accent' : 'hover:bg-accent/70'
 						}`}
 					>
 						<span class="min-w-0 flex-1">
 							<span class="text-foreground block truncate font-medium">{district.name}</span>
-							<span class="block truncate text-xs text-[#7893ab]">{district.domain}</span>
+							<span class="text-muted-foreground block truncate text-xs">{district.domain}</span>
 						</span>
-						<span class="shrink-0 text-xs text-[#91aac2]">{district.state}</span>
+						<span class="text-muted-foreground shrink-0 text-xs">{district.state}</span>
 						{#if district.domain === normalizedTarget(value)}
-							<CheckIcon class="size-4 shrink-0 text-[#55baf3]" />
+							<CheckIcon class="text-primary size-4 shrink-0" />
 						{/if}
 					</button>
 				{/each}
 			{:else}
-				<p class="px-3 py-4 text-sm text-[#91aac2]">No matching school districts</p>
+				<p class="text-muted-foreground px-3 py-4 text-sm">No matching school districts</p>
 			{/if}
 		</div>
 	{/if}

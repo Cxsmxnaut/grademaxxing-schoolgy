@@ -9,6 +9,11 @@ test('the sign-in and district-password setup flow matches the current product',
 	await page.goto('/login');
 
 	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing' })).toBeVisible();
+	await expect(
+		page.getByRole('complementary', { name: 'Grademaxxing introduction' })
+	).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Log in' })).toBeVisible();
+	await expect(page.getByRole('button', { name: /create account|google|apple/i })).toHaveCount(0);
 	await expect(page.getByLabel('StudentVUE email')).toBeVisible();
 	await expect(page.getByLabel('StudentVUE email')).toBeEnabled();
 	await expect(page.getByLabel('StudentVUE Password')).toBeVisible();
@@ -46,6 +51,7 @@ test('the sign-in flow fits a phone without horizontal overflow', async ({ page 
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.goto('/login');
 	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing' })).toBeVisible();
+	await expect(page.getByRole('complementary', { name: 'Grademaxxing introduction' })).toBeHidden();
 	const widths = await page.evaluate(() => ({
 		viewport: window.innerWidth,
 		document: document.documentElement.scrollWidth,
@@ -79,12 +85,14 @@ test('the desktop sign-in form stays centered and readable', async ({ page }) =>
 
 	const form = await page.locator('form').boundingBox();
 	expect(form).not.toBeNull();
-	expect(form!.width).toBeGreaterThanOrEqual(350);
-	expect(form!.width).toBeLessThanOrEqual(410);
+	expect(form!.width).toBeGreaterThanOrEqual(380);
+	expect(form!.width).toBeLessThanOrEqual(460);
 	const main = await page.locator('main').boundingBox();
 	expect(main).not.toBeNull();
 	expect(Math.abs(form!.x + form!.width / 2 - (main!.x + main!.width / 2))).toBeLessThanOrEqual(2);
-	expect(Math.abs(form!.y + form!.height / 2 - 805 / 2)).toBeLessThanOrEqual(2);
+	expect(Math.abs(form!.y + form!.height / 2 - (main!.y + main!.height / 2))).toBeLessThanOrEqual(
+		2
+	);
 	expect(form!.y + form!.height).toBeLessThanOrEqual(805);
 });
 

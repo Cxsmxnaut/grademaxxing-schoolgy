@@ -11,7 +11,6 @@
 	} from '$lib/auth/credential-vault';
 	import { brand } from '$lib/brand';
 	import AuthPanelHeader from '$lib/components/auth/AuthPanelHeader.svelte';
-	import AuthShell from '$lib/components/auth/AuthShell.svelte';
 	import DistrictCombobox from '$lib/components/auth/DistrictCombobox.svelte';
 	import PostLoginLoadingScreen from '$lib/components/auth/PostLoginLoadingScreen.svelte';
 	import * as Alert from '$lib/components/ui/alert';
@@ -22,6 +21,7 @@
 	import { seenAssignmentIDs } from '$lib/grades/seenAssignments.svelte';
 	import { StudentAccount } from '$lib/synergy';
 	import AlertCircleIcon from '@lucide/svelte/icons/alert-circle';
+	import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
 	import InfoIcon from '@lucide/svelte/icons/info';
 	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
@@ -213,109 +213,128 @@
 		</div>
 	{/if}
 
-	<AuthShell promo>
-		<form
-			onsubmit={login}
-			class="border-border bg-card min-h-[41.375rem] w-full max-w-[25rem] rounded-2xl border px-5 pt-[1.5625rem] pb-[0.9375rem] shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)] sm:min-h-[42.57rem] sm:p-9"
-		>
-			<AuthPanelHeader />
-
-			<h1
-				class="text-foreground text-[1.4375rem] leading-[2.15625rem] font-bold tracking-[-0.01em]"
-				style="font-family: 'Outfit', sans-serif"
-			>
-				Sign in to {brand}
-			</h1>
-
-			<div class="mt-[1.359375rem] space-y-[1.125rem]">
-				<DistrictCombobox
-					value={domain}
-					onselect={(district) => (domain = `https://${district.domain}`)}
-					onvalueinput={(value) => (domain = value)}
-					disabled={!interactive}
-				/>
-
-				<div>
-					<label
-						for="username"
-						class="text-muted-foreground mb-1.5 block text-[0.78125rem] leading-[1.172rem] font-semibold"
-					>
-						StudentVUE email
-					</label>
-					<Input
-						id="username"
-						type="text"
-						bind:value={username}
-						autocomplete="username"
-						class="border-input bg-background text-foreground focus-visible:border-primary focus-visible:outline-primary h-[2.625rem] rounded-[0.5rem] px-3 py-[0.6875rem] text-sm shadow-none focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2"
-						disabled={!interactive}
-						required
-					/>
+	<div class="login-stage">
+		<div class="login-frame">
+			<aside class="login-story" aria-label="Grademaxxing introduction">
+				<img src="/login-dunes.jpg" alt="" />
+				<div class="story-shade" aria-hidden="true"></div>
+				<div class="story-top">
+					<div class="story-brand">
+						<img src="/grademaxxing-growth-mark.png" alt="" />
+						<span>{brand}</span>
+					</div>
+					<a href="/">Back to website <ArrowRightIcon class="size-4" aria-hidden="true" /></a>
 				</div>
+				<div class="story-bottom">
+					<h2>Your grades are complicated enough.</h2>
+					<p>See the school day more clearly.</p>
+				</div>
+			</aside>
+			<main class="login-pane">
+				<form onsubmit={login} class="login-form">
+					<div class="mobile-auth-header"><AuthPanelHeader /></div>
+					<p class="login-eyebrow">STUDENTVUE SIGN IN</p>
 
-				<div>
-					<label
-						for="password"
-						class="text-muted-foreground mb-1.5 block text-[0.78125rem] leading-[1.172rem] font-semibold"
+					<h1
+						class="font-heading text-foreground text-[clamp(1.85rem,3vw,2.75rem)] leading-[1.12] font-semibold tracking-[-0.04em]"
 					>
-						StudentVUE password
-					</label>
-					<Input
-						id="password"
-						type="password"
-						bind:value={password}
-						autocomplete="current-password"
-						class="border-input bg-background text-foreground focus-visible:border-primary focus-visible:outline-primary h-[2.625rem] rounded-[0.5rem] px-3 py-[0.6875rem] text-sm shadow-none focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2"
-						disabled={!interactive}
-						required
-					/>
-					{#if studentVueForgotPasswordUrl}
-						<button
-							type="button"
-							onclick={() => (passwordResetOpen = true)}
+						Sign in to {brand}
+					</h1>
+					<p class="login-lede">Continue with your school’s StudentVUE account.</p>
+
+					<div class="login-fields mt-8 space-y-5">
+						<DistrictCombobox
+							value={domain}
+							onselect={(district) => (domain = `https://${district.domain}`)}
+							onvalueinput={(value) => (domain = value)}
 							disabled={!interactive}
-							class="text-link mt-2 inline-block text-[0.78125rem] font-medium hover:underline hover:brightness-110"
+						/>
+
+						<div>
+							<label
+								for="username"
+								class="text-muted-foreground mb-1.5 block text-[0.78125rem] leading-[1.172rem] font-semibold"
+							>
+								StudentVUE email
+							</label>
+							<Input
+								id="username"
+								type="text"
+								bind:value={username}
+								autocomplete="username"
+								class="border-input bg-secondary text-foreground focus-visible:border-primary focus-visible:outline-primary h-12 rounded-[0.625rem] px-4 text-sm shadow-none focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2"
+								disabled={!interactive}
+								required
+							/>
+						</div>
+
+						<div>
+							<label
+								for="password"
+								class="text-muted-foreground mb-1.5 block text-[0.78125rem] leading-[1.172rem] font-semibold"
+							>
+								StudentVUE password
+							</label>
+							<Input
+								id="password"
+								type="password"
+								bind:value={password}
+								autocomplete="current-password"
+								class="border-input bg-secondary text-foreground focus-visible:border-primary focus-visible:outline-primary h-12 rounded-[0.625rem] px-4 text-sm shadow-none focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2"
+								disabled={!interactive}
+								required
+							/>
+							{#if studentVueForgotPasswordUrl}
+								<button
+									type="button"
+									onclick={() => (passwordResetOpen = true)}
+									disabled={!interactive}
+									class="text-link mt-2 inline-block text-[0.78125rem] font-medium hover:underline hover:brightness-110"
+								>
+									Forgot password?
+								</button>
+							{/if}
+						</div>
+
+						<label
+							class="text-muted-foreground flex items-start gap-2 text-[0.78125rem] leading-[1.172rem]"
 						>
-							Forgot password?
-						</button>
-					{/if}
-				</div>
+							<input
+								type="checkbox"
+								bind:checked={rememberMe}
+								class="accent-primary mt-0.5 size-4"
+							/>
+							<span>
+								Keep me signed in on this device
+								<span class="text-tertiary-foreground block text-xs"
+									>Your password is encrypted locally and sent only over HTTPS when reconnecting.</span
+								>
+							</span>
+						</label>
 
-				<label
-					class="text-muted-foreground flex items-start gap-2 text-[0.78125rem] leading-[1.172rem]"
-				>
-					<input type="checkbox" bind:checked={rememberMe} class="accent-primary mt-0.5 size-4" />
-					<span>
-						Keep me signed in on this device
-						<span class="text-tertiary-foreground block text-xs"
-							>Your password is encrypted locally and sent only over HTTPS when reconnecting.</span
+						<Button
+							type="submit"
+							class="border-primary bg-primary text-primary-foreground mt-2 h-12 w-full rounded-[0.625rem] border text-[0.90625rem] font-semibold shadow-none transition-none hover:brightness-[1.08]"
+							disabled={!interactive || loggingIn}
 						>
-					</span>
-				</label>
+							{loggingIn ? 'Logging in…' : 'Log in'}
+						</Button>
+					</div>
 
-				<Button
-					type="submit"
-					class="border-primary bg-primary text-primary-foreground mt-1.5 h-[2.6875rem] w-full rounded-[0.5rem] border text-[0.90625rem] font-semibold shadow-none transition-none hover:brightness-[1.08]"
-					disabled={!interactive || loggingIn}
-				>
-					{loggingIn ? 'Logging in…' : 'Log in'}
-				</Button>
-			</div>
-
-			<div
-				class="text-muted-foreground mt-[1.125rem] text-center text-[0.8125rem] leading-[1.259375rem]"
-			>
-				<p>
-					Your password is encrypted on this device and passed directly to your district when {brand}
-					reconnects. We never store it on our servers.
-				</p>
-				<p class="mt-2.5">{brand} is independent and is not affiliated with Edupoint.</p>
-				<p class="text-tertiary-foreground mt-[0.875rem] text-xs leading-[1.125rem]">
-					<a href="/privacy" class="text-link hover:brightness-110">Privacy</a>
-				</p>
-			</div>
-		</form>
-	</AuthShell>
+					<div class="login-legal text-muted-foreground mt-7 text-center text-xs leading-relaxed">
+						<p>
+							Your password is encrypted on this device and passed directly to your district when {brand}
+							reconnects. We never store it on our servers.
+						</p>
+						<p class="mt-2.5">{brand} is independent and is not affiliated with Edupoint.</p>
+						<p class="text-tertiary-foreground mt-[0.875rem] text-xs leading-[1.125rem]">
+							<a href="/privacy" class="text-link hover:brightness-110">Privacy</a>
+						</p>
+					</div>
+				</form>
+			</main>
+		</div>
+	</div>
 
 	{#if studentVueForgotPasswordUrl}
 		<Dialog.Root bind:open={passwordResetOpen}>
@@ -349,3 +368,198 @@
 		</Dialog.Root>
 	{/if}
 {/if}
+
+<style>
+	/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · macrostructure: framed split sign-in · palette: Grademaxxing blue */
+	.login-stage {
+		display: grid;
+		min-height: 100dvh;
+		place-items: center;
+		background: color-mix(in srgb, var(--background) 76%, var(--primary));
+		padding: clamp(1rem, 3.5vw, 3.5rem);
+	}
+	.login-frame {
+		display: grid;
+		grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
+		gap: clamp(1rem, 2vw, 1.5rem);
+		width: min(100%, 78rem);
+		min-height: 43rem;
+		border: 1px solid var(--border);
+		border-radius: 1.5rem;
+		background: var(--card);
+		padding: 1rem;
+		box-shadow: 0 2rem 4.5rem color-mix(in srgb, var(--surface-sunken) 46%, transparent);
+	}
+	.login-story {
+		position: relative;
+		min-width: 0;
+		min-height: 41rem;
+		overflow: hidden;
+		border-radius: 1rem;
+		color: var(--foreground);
+	}
+	.login-story > img {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		object-position: center 56%;
+	}
+	.story-shade {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--surface-sunken) 38%, transparent),
+			transparent 35%,
+			color-mix(in srgb, var(--surface-sunken) 78%, transparent)
+		);
+	}
+	.story-top,
+	.story-bottom {
+		position: absolute;
+		right: clamp(1.5rem, 3vw, 2.5rem);
+		left: clamp(1.5rem, 3vw, 2.5rem);
+	}
+	.story-top {
+		top: 1.5rem;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+	.story-brand {
+		display: flex;
+		align-items: center;
+		gap: 0.625rem;
+		font-family: var(--font-heading);
+		font-size: 1.25rem;
+		font-weight: 700;
+		white-space: nowrap;
+	}
+	.story-brand img {
+		width: 2rem;
+		height: 2rem;
+	}
+	.story-top a {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.375rem;
+		border: 1px solid color-mix(in srgb, var(--foreground) 28%, transparent);
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--surface-sunken) 48%, transparent);
+		padding: 0.45rem 0.75rem;
+		font-size: 0.75rem;
+		font-weight: 600;
+		white-space: nowrap;
+		backdrop-filter: blur(10px);
+	}
+	.story-top a:hover {
+		background: color-mix(in srgb, var(--surface-sunken) 72%, transparent);
+	}
+	.story-top a:focus-visible {
+		outline: 2px solid var(--primary);
+		outline-offset: 3px;
+	}
+	.story-bottom {
+		bottom: 2.5rem;
+	}
+	.story-bottom h2 {
+		max-width: 24rem;
+		margin: 0;
+		font-family: var(--font-heading);
+		font-size: clamp(1.85rem, 3vw, 2.65rem);
+		font-weight: 600;
+		line-height: 1.13;
+		letter-spacing: -0.04em;
+		text-wrap: balance;
+	}
+	.story-bottom p {
+		margin: 0.75rem 0 0;
+		color: var(--muted-foreground);
+		font-size: 0.875rem;
+	}
+	.login-pane {
+		display: grid;
+		min-width: 0;
+		place-items: center;
+		padding: clamp(1.5rem, 4.25vw, 4rem);
+	}
+	.login-form {
+		width: min(100%, 28.5rem);
+	}
+	.mobile-auth-header {
+		display: none;
+	}
+	.login-eyebrow {
+		margin: 0 0 1rem;
+		color: var(--primary);
+		font-family: var(--font-technical);
+		font-size: 0.6875rem;
+		font-weight: 600;
+		letter-spacing: 0.17em;
+	}
+	.login-lede {
+		margin: 0.75rem 0 0;
+		color: var(--muted-foreground);
+		font-size: 0.875rem;
+		line-height: 1.5;
+	}
+	.login-legal p {
+		margin: 0;
+	}
+	@media (max-height: 53.125rem) and (min-width: 64.0625rem) {
+		.login-stage {
+			padding-block: 1rem;
+		}
+		.login-frame,
+		.login-story {
+			min-height: 0;
+		}
+		.login-pane {
+			padding-block: 1.5rem;
+		}
+		.login-fields {
+			margin-top: 1.5rem;
+			row-gap: 1rem;
+		}
+		.login-legal {
+			margin-top: 1rem;
+		}
+	}
+	@media (max-width: 64rem) {
+		.login-frame {
+			grid-template-columns: minmax(0, 1fr);
+			width: min(100%, 34rem);
+			min-height: 0;
+			gap: 0;
+			padding: 0;
+		}
+		.login-story {
+			display: none;
+		}
+		.login-pane {
+			padding: 2.5rem;
+		}
+		.mobile-auth-header {
+			display: block;
+		}
+	}
+	@media (max-width: 40rem) {
+		.login-stage {
+			place-items: start center;
+			background: var(--background);
+			padding: 0;
+		}
+		.login-frame {
+			border: 0;
+			border-radius: 0;
+			background: transparent;
+			box-shadow: none;
+		}
+		.login-pane {
+			padding: 1.5rem 1rem 2rem;
+		}
+	}
+</style>
