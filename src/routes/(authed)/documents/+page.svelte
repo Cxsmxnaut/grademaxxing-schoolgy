@@ -147,7 +147,7 @@
 {/snippet}
 
 <style>
-	/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · genre: modern-minimal · macrostructure: document index · palette: Grademaxxing semantic tokens */
+	/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · genre: modern-minimal · macrostructure: document index · palette: Grademaxxing sidebar tokens */
 	:global(.documents-shell) {
 		max-width: 80rem;
 		margin-inline: auto;
@@ -185,11 +185,11 @@
 		width: fit-content;
 		max-width: 100%;
 		height: auto;
-		gap: 0.125rem;
-		border: 1px solid var(--border);
-		border-radius: 0.625rem;
-		background: var(--card);
-		padding: 0.2rem;
+		gap: 0.25rem;
+		border: 0;
+		border-radius: 0;
+		background: transparent;
+		padding: 0;
 		scrollbar-width: thin;
 	}
 	:global(.document-tabs [data-slot='tabs-trigger']) {
@@ -197,18 +197,19 @@
 		flex: 0 0 auto;
 		gap: var(--space-xs);
 		border: 0;
-		border-radius: 0.5rem;
+		border-radius: var(--radius-sm);
 		background: transparent;
 		color: var(--muted-foreground);
 		padding: 0 0.75rem;
-		font-size: 0.8125rem;
-		font-weight: 600;
+		font-size: 0.875rem;
+		font-weight: 500;
 		box-shadow: none;
 		white-space: nowrap;
 	}
 	:global(.document-tabs [data-slot='tabs-trigger'][data-state='active']) {
-		background: var(--secondary);
-		color: var(--foreground);
+		background: transparent;
+		color: var(--sidebar-accent-foreground);
+		font-weight: 600;
 		box-shadow: none;
 	}
 	:global(.document-tabs [data-slot='tabs-content']) {
@@ -219,15 +220,16 @@
 		align-items: baseline;
 		justify-content: space-between;
 		gap: var(--space-sm);
-		margin-bottom: 0.75rem;
+		margin-bottom: 0.5rem;
 	}
 	.list-heading h2 {
 		margin: 0;
-		color: var(--foreground);
-		font-family: var(--font-heading);
-		font-size: 1.25rem;
-		font-weight: 700;
-		letter-spacing: -0.02em;
+		color: var(--tertiary-foreground);
+		font-family: var(--font-technical);
+		font-size: 0.625rem;
+		font-weight: 600;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
 	}
 	.list-heading span {
 		color: var(--muted-foreground);
@@ -238,7 +240,7 @@
 	}
 	.documents-list {
 		display: grid;
-		gap: 0.75rem;
+		gap: 0.25rem;
 		margin: 0;
 		padding: 0;
 		list-style: none;
@@ -248,14 +250,15 @@
 		grid-template-columns: 3rem minmax(0, 1fr) auto;
 		align-items: center;
 		gap: 1rem;
-		min-height: 5.75rem;
-		border: 1px solid var(--border);
-		border-radius: 0.75rem;
-		background: var(--card);
-		color: var(--foreground);
-		padding: 1rem 1.25rem;
+		min-height: 4.75rem;
+		border: 0;
+		border-left: 2px solid transparent;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		color: var(--sidebar-foreground);
+		padding: 0.75rem 1rem;
 		text-decoration: none;
-		transition: border-color 150ms ease-out;
+		transition: background-color 150ms ease-out;
 	}
 	.document-link:focus-visible {
 		outline: 2px solid var(--focus);
@@ -266,9 +269,7 @@
 		width: 3rem;
 		height: 3rem;
 		place-items: center;
-		border-radius: 0.75rem;
-		background: var(--secondary);
-		color: var(--primary);
+		color: var(--sidebar-primary);
 	}
 	.document-main {
 		display: grid;
@@ -277,7 +278,7 @@
 	}
 	.document-main strong {
 		overflow-wrap: anywhere;
-		font-size: 1.03125rem;
+		font-size: 0.9375rem;
 		font-weight: 600;
 		line-height: 1.3;
 	}
@@ -289,14 +290,11 @@
 	}
 	.document-chip {
 		display: inline-flex;
-		min-height: 1.3125rem;
 		align-items: center;
 		gap: 0.3125rem;
-		border-radius: 999px;
-		background: var(--secondary);
+		background: transparent;
 		color: var(--muted-foreground);
-		padding: 0.1rem 0.5625rem;
-		font-size: 0.71875rem;
+		font-size: 0.75rem;
 		font-weight: 500;
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
@@ -316,10 +314,8 @@
 		justify-items: start;
 		gap: var(--space-sm);
 		max-width: 36rem;
-		border: 1px solid var(--border);
-		border-radius: 0.75rem;
-		background: var(--card);
-		padding: 1.5rem;
+		border-top: 1px solid var(--sidebar-border);
+		padding-top: 1.5rem;
 		color: var(--muted-foreground);
 	}
 	.documents-empty h2 {
@@ -342,7 +338,7 @@
 		.document-link {
 			grid-template-columns: 2.5rem minmax(0, 1fr) 1rem;
 			gap: 0.75rem;
-			padding: 0.875rem;
+			padding: 0.75rem 0.5rem;
 		}
 		.document-icon {
 			width: 2.5rem;
@@ -357,13 +353,14 @@
 	}
 	@media (hover: hover) {
 		.document-link:hover {
-			border-color: var(--primary);
+			background: var(--sidebar-accent);
 		}
 		.document-link:hover .open-file {
-			color: var(--primary);
+			color: var(--sidebar-accent-foreground);
 		}
 		:global(.document-tabs [data-slot='tabs-trigger']:hover) {
-			color: var(--foreground);
+			background: var(--sidebar-accent);
+			color: var(--sidebar-accent-foreground);
 		}
 	}
 	@media (prefers-reduced-motion: reduce) {

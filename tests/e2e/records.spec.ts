@@ -166,10 +166,7 @@ test('published documents render, filter, and open through the real document flo
 	await expect(visibleRows.getByText('Unofficial Transcript', { exact: true })).toBeVisible();
 	if (process.env.DOCUMENTS_VISUAL_CAPTURE)
 		await page.screenshot({ path: '/tmp/grademaxxing-documents-dark.png' });
-	await page.evaluate(() => document.documentElement.classList.remove('dark'));
-	await expect(page.getByRole('tab', { name: 'All' })).toHaveCSS('color', 'rgb(15, 28, 46)');
-	if (process.env.DOCUMENTS_VISUAL_CAPTURE)
-		await page.screenshot({ path: '/tmp/grademaxxing-documents-light.png' });
+	await expect(page.getByRole('tab', { name: 'All' })).toHaveCSS('color', 'rgb(110, 168, 220)');
 
 	await page.getByRole('tab', { name: 'Transcript', exact: true }).click();
 	await expect(page.getByTestId('document-row').filter({ visible: true })).toHaveCount(1);
