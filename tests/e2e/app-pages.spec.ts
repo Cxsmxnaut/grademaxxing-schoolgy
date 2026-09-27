@@ -450,6 +450,7 @@ test('feedback keeps previous chats separate and opens replies inside the select
 }) => {
 	const olderId = '0f143f0d-a034-48d6-8bb8-1d00c4a7e255';
 	const newerId = '5bb61304-159a-4a6a-bc22-061c74d8c852';
+	let followUpArrived = false;
 	await page.addInitScript(
 		({ olderId, newerId }) => {
 			localStorage.setItem(
@@ -476,7 +477,11 @@ test('feedback keeps previous chats separate and opens replies inside the select
 				adminReply: older ? 'We fixed the date display.' : '',
 				repliedAt: older ? '2026-09-21T08:00:00.000Z' : null,
 				createdAt,
-				updatedAt: older ? '2026-09-21T08:00:00.000Z' : createdAt,
+				updatedAt: older
+					? followUpArrived
+						? '2026-09-22T08:00:00.000Z'
+						: '2026-09-21T08:00:00.000Z'
+					: createdAt,
 				messages: older
 					? [
 							{
@@ -490,7 +495,17 @@ test('feedback keeps previous chats separate and opens replies inside the select
 								sender: 'admin',
 								message: 'We fixed the date display.',
 								createdAt: '2026-09-21T08:00:00.000Z'
-							}
+							},
+							...(followUpArrived
+								? [
+										{
+											id: 'older-follow-up',
+											sender: 'admin',
+											message: 'The calendar fix is now available.',
+											createdAt: '2026-09-22T08:00:00.000Z'
+										}
+									]
+								: [])
 						]
 					: [
 							{
@@ -507,6 +522,12 @@ test('feedback keeps previous chats separate and opens replies inside the select
 	await expect(page.getByRole('button', { name: /Bug report/ })).toBeVisible();
 	await expect(
 		page.getByLabel('Feedback conversation').getByText('We fixed the date display.')
+	).toBeVisible();
+	await expect(page.getByRole('button', { name: /Check (for )?replies/i })).toHaveCount(0);
+	followUpArrived = true;
+	await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+	await expect(
+		page.getByLabel('Feedback conversation').getByText('The calendar fix is now available.')
 	).toBeVisible();
 	await page
 		.getByRole('button', { name: /Feature idea/ })

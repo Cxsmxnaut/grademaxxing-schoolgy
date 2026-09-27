@@ -153,8 +153,10 @@
 					{ cache: 'no-store' }
 				).catch(() => undefined);
 				return response?.ok
-					? await response.json().catch(() => undefined as FeedbackHistoryItem | undefined)
-					: undefined;
+					? await response
+							.json()
+							.catch(() => feedbackHistory.find((item) => item.id === receipt.id))
+					: feedbackHistory.find((item) => item.id === receipt.id);
 			})
 		);
 		feedbackHistory = results.filter((item): item is FeedbackHistoryItem => Boolean(item));
@@ -194,8 +196,17 @@
 				selectedConversationId = sortedHistory[0].id;
 			else if (feedbackHistory.length) selectedConversationId = 'inbox';
 		});
-		const timer = window.setInterval(() => void loadFeedbackHistory(), 45_000);
-		return () => window.clearInterval(timer);
+		const refreshWhenVisible = () => {
+			if (document.visibilityState === 'visible' && !loadingHistory) void loadFeedbackHistory();
+		};
+		const timer = window.setInterval(refreshWhenVisible, 30_000);
+		window.addEventListener('focus', refreshWhenVisible);
+		document.addEventListener('visibilitychange', refreshWhenVisible);
+		return () => {
+			window.clearInterval(timer);
+			window.removeEventListener('focus', refreshWhenVisible);
+			document.removeEventListener('visibilitychange', refreshWhenVisible);
+		};
 	});
 </script>
 
@@ -228,7 +239,7 @@
 					><PlusIcon class="size-4" aria-hidden="true" />New chat</Button
 				>
 			</div>
-			<div class="max-h-[65vh] min-h-44 overflow-y-auto lg:max-h-[calc(100%-8rem)]">
+			<div class="max-h-[65vh] min-h-44 overflow-y-auto lg:max-h-[calc(100%-4.5rem)]">
 				{#each sortedHistory as item (item.id)}
 					<button
 						type="button"
@@ -263,11 +274,6 @@
 					</div>
 				{/each}
 			</div>
-			<div class="border-border/70 border-t p-3">
-				<Button variant="ghost" size="sm" onclick={loadFeedbackHistory} disabled={loadingHistory}
-					>{loadingHistory ? 'Checking…' : 'Check for replies'}</Button
-				>
-			</div>
 		</aside>
 
 		<section
@@ -296,12 +302,6 @@
 						</p>
 					</div>
 				</div>
-				{#if selectedConversation}<Button
-						variant="outline"
-						size="sm"
-						onclick={loadFeedbackHistory}
-						disabled={loadingHistory}>{loadingHistory ? 'Checking…' : 'Check replies'}</Button
-					>{/if}
 			</header>
 
 			<div
