@@ -481,6 +481,13 @@ test('empty records, feedback state, mobile navigation, and dark theme are clear
 	});
 	const report = page.getByRole('button', { name: 'Send feedback' });
 	await expect(report).toBeDisabled();
+	if (process.env.FEEDBACK_VISUAL_CAPTURE)
+		await page.screenshot({ path: '/tmp/grademaxxing-feedback-form-desktop.png', fullPage: true });
+	await page.setViewportSize({ width: 390, height: 844 });
+	await expect(page.getByLabel('Your message')).toBeVisible();
+	if (process.env.FEEDBACK_VISUAL_CAPTURE)
+		await page.screenshot({ path: '/tmp/grademaxxing-feedback-form-mobile.png', fullPage: true });
+	await page.setViewportSize({ width: 1280, height: 900 });
 	await page.getByRole('button', { name: /Feature idea/ }).click();
 	await expect(page.getByRole('button', { name: /Feature idea/ })).toHaveAttribute(
 		'aria-pressed',
@@ -497,10 +504,10 @@ test('empty records, feedback state, mobile navigation, and dark theme are clear
 	await expect(page.getByText('Thanks — we found the issue and are working on it.')).toBeVisible();
 	await expect(page.getByText('The latest assignment is missing')).toHaveCount(1);
 	if (process.env.FEEDBACK_VISUAL_CAPTURE)
-		await page.screenshot({ path: '/tmp/grademaxxing-feedback-chat-desktop.png', fullPage: true });
+		await page.screenshot({ path: '/tmp/grademaxxing-feedback-sent-desktop.png', fullPage: true });
 	await page.setViewportSize({ width: 390, height: 844 });
 	if (process.env.FEEDBACK_VISUAL_CAPTURE)
-		await page.screenshot({ path: '/tmp/grademaxxing-feedback-chat-mobile.png', fullPage: true });
+		await page.screenshot({ path: '/tmp/grademaxxing-feedback-sent-mobile.png', fullPage: true });
 	await page.setViewportSize({ width: 1280, height: 900 });
 
 	await expect(page.locator('html')).toHaveClass(/dark/);
