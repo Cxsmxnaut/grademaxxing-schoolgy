@@ -6,6 +6,7 @@
 	import * as Tabs from '$lib/components/ui/tabs';
 	import type { StudentDocumentData } from '$lib/contracts/studentvue/documents';
 	import ArrowUpRightIcon from '@lucide/svelte/icons/arrow-up-right';
+	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
 	import FileTextIcon from '@lucide/svelte/icons/file-text';
 	import FolderOpenIcon from '@lucide/svelte/icons/folder-open';
 	import { documentsState, loadDocuments } from './documents.svelte';
@@ -80,10 +81,7 @@
 
 	{#if documentsState.data && sortedDocuments.length > 0}
 		<Tabs.Root value="all" class="document-tabs">
-			<Tabs.List
-				aria-label="Document category"
-				class="max-w-full justify-start overflow-x-auto rounded-none"
-			>
+			<Tabs.List aria-label="Document category" class="max-w-full justify-start overflow-x-auto">
 				<Tabs.Trigger value="all">All</Tabs.Trigger>
 
 				{#each documentCategories as category (category)}
@@ -130,14 +128,17 @@
 					class="document-link"
 				>
 					<span class="document-icon" aria-hidden="true"><FileTextIcon class="size-5" /></span>
-					<span class="document-main"
-						><strong>{documentTitle(documentData)}</strong><span
-							>{documentData._DocumentType || 'School file'}</span
-						></span
-					>
-					<time datetime={documentData._DocumentDate}
-						>{formatDocumentDate(documentData._DocumentDate)}</time
-					>
+					<span class="document-main">
+						<strong>{documentTitle(documentData)}</strong>
+						<span class="document-meta">
+							<span class="document-chip">{documentData._DocumentType || 'School file'}</span>
+							<time class="document-chip" datetime={documentData._DocumentDate}
+								><CalendarDaysIcon class="size-3" />{formatDocumentDate(
+									documentData._DocumentDate
+								)}</time
+							>
+						</span>
+					</span>
 					<span class="open-file"><span>Open file</span><ArrowUpRightIcon class="size-4" /></span>
 				</a>
 			</li>
@@ -146,30 +147,33 @@
 {/snippet}
 
 <style>
-	/* Hallmark · pre-emit critique: P5 H4 E4 S5 R5 V4 · genre: modern-minimal · macrostructure: document index · palette: Grademaxxing semantic tokens */
+	/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · genre: modern-minimal · macrostructure: document index · palette: Grademaxxing semantic tokens */
 	:global(.documents-shell) {
-		max-width: 82rem;
+		max-width: 80rem;
+		margin-inline: auto;
 	}
 	.documents-heading {
 		display: flex;
 		align-items: end;
 		justify-content: space-between;
 		gap: var(--space-md);
-		margin-bottom: var(--space-xl);
+		margin-bottom: 1.5rem;
 	}
 	.documents-heading h1 {
 		min-width: 0;
 		margin: 0;
 		color: var(--foreground);
 		font-family: var(--font-heading);
-		font-size: clamp(1.8rem, 3vw, 2.35rem);
-		letter-spacing: -0.04em;
+		font-size: clamp(1.5rem, 3vw, 1.875rem);
+		font-weight: 700;
+		line-height: 1.2;
+		letter-spacing: -0.035em;
 		overflow-wrap: anywhere;
 	}
 	.documents-heading p {
 		margin: 0.25rem 0 0;
 		color: var(--muted-foreground);
-		font-size: 0.9rem;
+		font-size: 0.875rem;
 		line-height: 1.5;
 	}
 	:global(.document-tabs) {
@@ -178,52 +182,52 @@
 	}
 	:global(.document-tabs [data-slot='tabs-list']) {
 		display: flex;
-		width: 100%;
+		width: fit-content;
+		max-width: 100%;
 		height: auto;
-		gap: var(--space-lg);
-		border-bottom: 1px solid var(--border);
-		border-radius: 0;
-		background: transparent;
-		padding: 0;
+		gap: 0.125rem;
+		border: 1px solid var(--border);
+		border-radius: 0.625rem;
+		background: var(--card);
+		padding: 0.2rem;
 		scrollbar-width: thin;
 	}
 	:global(.document-tabs [data-slot='tabs-trigger']) {
-		height: 2.9rem;
+		height: 2.25rem;
 		flex: 0 0 auto;
 		gap: var(--space-xs);
 		border: 0;
-		border-bottom: 2px solid transparent;
-		border-radius: 0;
+		border-radius: 0.5rem;
 		background: transparent;
-		color: var(--muted-foreground) !important;
-		padding: 0;
-		font-size: 0.82rem;
-		font-weight: 650;
+		color: var(--muted-foreground);
+		padding: 0 0.75rem;
+		font-size: 0.8125rem;
+		font-weight: 600;
 		box-shadow: none;
 		white-space: nowrap;
 	}
 	:global(.document-tabs [data-slot='tabs-trigger'][data-state='active']) {
-		border-bottom-color: var(--primary);
-		background: transparent;
-		color: var(--foreground) !important;
+		background: var(--secondary);
+		color: var(--foreground);
 		box-shadow: none;
 	}
 	:global(.document-tabs [data-slot='tabs-content']) {
-		margin-top: var(--space-lg);
+		margin-top: 1.5rem;
 	}
 	.list-heading {
 		display: flex;
 		align-items: baseline;
 		justify-content: space-between;
 		gap: var(--space-sm);
-		padding-bottom: var(--space-sm);
+		margin-bottom: 0.75rem;
 	}
 	.list-heading h2 {
 		margin: 0;
 		color: var(--foreground);
 		font-family: var(--font-heading);
-		font-size: 1.2rem;
-		letter-spacing: -0.025em;
+		font-size: 1.25rem;
+		font-weight: 700;
+		letter-spacing: -0.02em;
 	}
 	.list-heading span {
 		color: var(--muted-foreground);
@@ -233,35 +237,37 @@
 		white-space: nowrap;
 	}
 	.documents-list {
+		display: grid;
+		gap: 0.75rem;
 		margin: 0;
 		padding: 0;
-		border-top: 1px solid var(--border);
 		list-style: none;
-	}
-	.documents-list li {
-		border-bottom: 1px solid var(--border);
 	}
 	.document-link {
 		display: grid;
-		grid-template-columns: 2.5rem minmax(0, 1fr) 8rem 5.5rem;
+		grid-template-columns: 3rem minmax(0, 1fr) auto;
 		align-items: center;
-		gap: var(--space-md);
-		min-height: 5.3rem;
+		gap: 1rem;
+		min-height: 5.75rem;
+		border: 1px solid var(--border);
+		border-radius: 0.75rem;
+		background: var(--card);
 		color: var(--foreground);
-		padding: var(--space-md) var(--space-xs);
+		padding: 1rem 1.25rem;
 		text-decoration: none;
+		transition: border-color 150ms ease-out;
 	}
 	.document-link:focus-visible {
 		outline: 2px solid var(--focus);
-		outline-offset: -2px;
+		outline-offset: 2px;
 	}
 	.document-icon {
 		display: grid;
-		width: 2.5rem;
-		height: 2.5rem;
+		width: 3rem;
+		height: 3rem;
 		place-items: center;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-md);
+		border-radius: 0.75rem;
+		background: var(--secondary);
 		color: var(--primary);
 	}
 	.document-main {
@@ -271,17 +277,27 @@
 	}
 	.document-main strong {
 		overflow-wrap: anywhere;
-		font-size: 0.9rem;
-		line-height: 1.35;
+		font-size: 1.03125rem;
+		font-weight: 600;
+		line-height: 1.3;
 	}
-	.document-main > span {
-		color: var(--muted-foreground);
-		font-size: 0.75rem;
+	.document-meta {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.375rem;
 	}
-	.document-link time {
+	.document-chip {
+		display: inline-flex;
+		min-height: 1.3125rem;
+		align-items: center;
+		gap: 0.3125rem;
+		border-radius: 999px;
+		background: var(--secondary);
 		color: var(--muted-foreground);
-		font-family: var(--font-technical);
-		font-size: 0.73rem;
+		padding: 0.1rem 0.5625rem;
+		font-size: 0.71875rem;
+		font-weight: 500;
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
 	}
@@ -290,9 +306,9 @@
 		align-items: center;
 		justify-self: end;
 		gap: 0.3rem;
-		color: var(--primary);
-		font-size: 0.73rem;
-		font-weight: 700;
+		color: var(--muted-foreground);
+		font-size: 0.8125rem;
+		font-weight: 600;
 		white-space: nowrap;
 	}
 	.documents-empty {
@@ -300,9 +316,10 @@
 		justify-items: start;
 		gap: var(--space-sm);
 		max-width: 36rem;
-		margin-top: var(--space-2xl);
-		border-top: 1px solid var(--border);
-		padding-top: var(--space-lg);
+		border: 1px solid var(--border);
+		border-radius: 0.75rem;
+		background: var(--card);
+		padding: 1.5rem;
 		color: var(--muted-foreground);
 	}
 	.documents-empty h2 {
@@ -320,21 +337,19 @@
 		.documents-heading {
 			align-items: start;
 			flex-direction: column;
-			margin-bottom: var(--space-lg);
+			margin-bottom: 1.25rem;
 		}
 		.document-link {
-			grid-template-columns: 2.4rem minmax(0, 1fr) 1.3rem;
-			gap: var(--space-sm);
-			min-height: 5.5rem;
+			grid-template-columns: 2.5rem minmax(0, 1fr) 1rem;
+			gap: 0.75rem;
+			padding: 0.875rem;
 		}
-		.document-link time {
-			grid-column: 2;
-			grid-row: 2;
-			margin-top: -0.5rem;
+		.document-icon {
+			width: 2.5rem;
+			height: 2.5rem;
 		}
 		.open-file {
 			grid-column: 3;
-			grid-row: 1 / span 2;
 		}
 		.open-file span {
 			display: none;
@@ -342,10 +357,18 @@
 	}
 	@media (hover: hover) {
 		.document-link:hover {
-			background: var(--secondary);
+			border-color: var(--primary);
+		}
+		.document-link:hover .open-file {
+			color: var(--primary);
 		}
 		:global(.document-tabs [data-slot='tabs-trigger']:hover) {
 			color: var(--foreground);
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.document-link {
+			transition: none;
 		}
 	}
 </style>
