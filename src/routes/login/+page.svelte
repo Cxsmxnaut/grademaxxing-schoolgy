@@ -106,6 +106,7 @@
 				LocalStorageKey.gradebook,
 				LocalStorageKey.seenAssignmentIDs,
 				LocalStorageKey.attendance,
+				LocalStorageKey.schedule,
 				LocalStorageKey.documents,
 				LocalStorageKey.mailData,
 				LocalStorageKey.studentInfo

@@ -11,9 +11,15 @@
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
-	import { attendanceState, loadAttendance } from './attendance.svelte';
+	import {
+		attendanceState,
+		loadAttendance,
+		loadSchedule,
+		scheduleState
+	} from './attendance.svelte';
 
 	loadAttendance();
+	loadSchedule();
 
 	type AttendanceType = 'Absent' | 'Tardy' | 'Excused' | 'Present' | 'Unknown';
 	type View = 'day' | 'week' | 'month';
@@ -34,6 +40,12 @@
 		weekday: 'long',
 		month: 'short',
 		day: 'numeric'
+	});
+	const scheduleDateFormatter = new Intl.DateTimeFormat('en-US', {
+		weekday: 'long',
+		month: 'short',
+		day: 'numeric',
+		year: 'numeric'
 	});
 	const statusPriority: Record<AttendanceType, number> = {
 		Present: 0,
@@ -131,6 +143,10 @@
 
 	const filteredRows = $derived(attendanceRows.filter((row) => visibleStatuses.includes(row.type)));
 	const latestRecord = $derived(attendanceRows.find((row) => row.dateObject));
+	const scheduleClasses = $derived(scheduleState.data?.classes ?? []);
+	const scheduleDate = $derived(
+		parseAttendanceDate(scheduleState.data?.date || scheduleClasses[0]?.date || '')
+	);
 	const weekStart = $derived(
 		new Date(
 			selectedDate.getFullYear(),
@@ -391,6 +407,53 @@
 			</aside>
 		</div>
 	{/if}
+
+	<section class="class-schedule" aria-labelledby="class-schedule-heading">
+		<div class="schedule-heading">
+			<div>
+				<p class="schedule-eyebrow">From StudentVUE</p>
+				<h2 id="class-schedule-heading">Class schedule</h2>
+			</div>
+			{#if scheduleDate}<p class="schedule-date">
+					{scheduleDateFormatter.format(scheduleDate)}
+				</p>{/if}
+		</div>
+		{#if scheduleClasses.length}
+			<ol class="schedule-list">
+				{#each scheduleClasses as course, index (`${course.period}-${course.courseTitle}-${index}`)}
+					<li class="schedule-row">
+						<div class="schedule-period">
+							<small>Period</small><strong>{course.period || '—'}</strong>
+						</div>
+						<div class="schedule-course">
+							<strong>{course.courseTitle || 'Unnamed class'}</strong>
+							{#if course.startTime || course.endTime}<span
+									>{[course.startTime, course.endTime].filter(Boolean).join(' – ')}</span
+								>{/if}
+						</div>
+						{#if course.teacher || course.room}<div class="schedule-details">
+								{#if course.teacher}<span>{course.teacher}</span>{/if}
+								{#if course.room}<span>Room {course.room}</span>{/if}
+							</div>{/if}
+					</li>
+				{/each}
+			</ol>
+			{#if scheduleState.error}<p class="schedule-note">
+					Showing the last saved schedule. The latest update could not be loaded.
+				</p>{/if}
+		{:else if !scheduleState.loaded}
+			<p class="schedule-empty" role="status">Loading class schedule…</p>
+		{:else if scheduleState.error}
+			<RecordLoadFailure
+				label="class schedule"
+				error={scheduleState.error}
+				refreshing={scheduleState.refreshing}
+				retry={() => loadSchedule(true)}
+			/>
+		{:else}
+			<p class="schedule-empty">No classes were returned for this schedule.</p>
+		{/if}
+	</section>
 </AppPageShell>
 
 <style>
@@ -753,6 +816,101 @@
 		font-size: 0.72rem;
 		line-height: 1.5;
 	}
+	.class-schedule {
+		margin-top: var(--space-xl);
+		border-top: 1px solid var(--border);
+		padding-top: var(--space-lg);
+	}
+	.schedule-heading {
+		display: flex;
+		align-items: end;
+		justify-content: space-between;
+		gap: var(--space-md);
+		margin-bottom: var(--space-md);
+	}
+	.schedule-eyebrow {
+		margin: 0 0 0.3rem;
+		color: var(--muted-foreground);
+		font-family: var(--font-technical);
+		font-size: 0.66rem;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+	.schedule-heading h2 {
+		margin: 0;
+		color: var(--foreground);
+		font-family: var(--font-heading);
+		font-size: clamp(1.35rem, 2.3vw, 1.7rem);
+		letter-spacing: -0.03em;
+	}
+	.schedule-date {
+		margin: 0;
+		color: var(--muted-foreground);
+		font-family: var(--font-technical);
+		font-size: 0.74rem;
+		text-align: right;
+	}
+	.schedule-list {
+		margin: 0;
+		border-top: 1px solid var(--border);
+		padding: 0;
+		list-style: none;
+	}
+	.schedule-row {
+		display: grid;
+		grid-template-columns: 3.5rem minmax(0, 1fr) minmax(9rem, 15rem);
+		align-items: center;
+		gap: var(--space-md);
+		min-height: 5.25rem;
+		border-bottom: 1px solid var(--border);
+		padding: var(--space-sm) 0;
+	}
+	.schedule-period {
+		display: grid;
+		gap: 0.2rem;
+		color: var(--foreground);
+	}
+	.schedule-period small {
+		color: var(--muted-foreground);
+		font-family: var(--font-technical);
+		font-size: 0.6rem;
+		text-transform: uppercase;
+	}
+	.schedule-period strong {
+		font-family: var(--font-heading);
+		font-size: 1.2rem;
+		line-height: 1;
+	}
+	.schedule-course,
+	.schedule-details {
+		display: grid;
+		min-width: 0;
+		gap: 0.25rem;
+	}
+	.schedule-course strong {
+		color: var(--foreground);
+		font-size: 0.9rem;
+		font-weight: 700;
+		overflow-wrap: anywhere;
+	}
+	.schedule-course span,
+	.schedule-details {
+		color: var(--muted-foreground);
+		font-size: 0.78rem;
+	}
+	.schedule-course span {
+		font-family: var(--font-technical);
+	}
+	.schedule-details span {
+		overflow-wrap: anywhere;
+	}
+	.schedule-empty,
+	.schedule-note {
+		margin: 0;
+		padding: var(--space-md) 0;
+		color: var(--muted-foreground);
+		font-size: 0.85rem;
+	}
 	.risk {
 		color: var(--grade-risk);
 	}
@@ -785,6 +943,22 @@
 		}
 	}
 	@media (max-width: 39rem) {
+		.schedule-heading {
+			align-items: start;
+			flex-direction: column;
+			gap: var(--space-xs);
+		}
+		.schedule-date {
+			text-align: left;
+		}
+		.schedule-row {
+			grid-template-columns: 3.5rem minmax(0, 1fr);
+			gap: 0.2rem var(--space-sm);
+		}
+		.schedule-details {
+			grid-column: 2;
+			gap: 0.15rem;
+		}
 		.calendar-toolbar {
 			grid-template-columns: 1fr auto;
 		}

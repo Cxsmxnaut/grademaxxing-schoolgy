@@ -55,6 +55,33 @@ test.beforeEach(async ({ page }) => {
 				TotalActivities: {},
 				TotalUnexcusedTardies: {}
 			},
+			schedule: {
+				date: '2026-09-28',
+				classes: [
+					{
+						period: '1',
+						courseTitle: 'Example Biology',
+						teacher: 'Teacher Example',
+						teacherEmail: '',
+						room: '101',
+						startTime: '8:30 AM',
+						endTime: '9:20 AM',
+						schoolName: 'Example School',
+						date: '2026-09-28'
+					},
+					{
+						period: '2',
+						courseTitle: 'Example History',
+						teacher: 'Another Teacher',
+						teacherEmail: '',
+						room: '202',
+						startTime: '9:25 AM',
+						endTime: '10:15 AM',
+						schoolName: 'Example School',
+						date: '2026-09-28'
+					}
+				]
+			},
 			documents: { StudentDocumentDatas: {} },
 			messages: { InboxItemListings: { MessageXML: [] } },
 			'student-info': {
@@ -170,9 +197,18 @@ test('gradebook calculator, course planner, and attendance views are interactive
 
 	await page.goto('/attendance');
 	await expect(page.getByRole('heading', { level: 1, name: 'Attendance' })).toBeVisible();
+	await expect(
+		page.getByRole('region', { name: 'Class schedule' }).getByText('Example Biology')
+	).toBeVisible();
 	if (process.env.ATTENDANCE_VISUAL_CAPTURE) {
 		await expect(page.getByText('Loading attendance records…')).toBeHidden();
-		await page.screenshot({ path: '/tmp/grademaxxing-attendance-calendar-desktop.png' });
+		await page.screenshot({
+			path: '/tmp/grademaxxing-attendance-calendar-desktop.png',
+			fullPage: true
+		});
+		await page
+			.getByRole('region', { name: 'Class schedule' })
+			.screenshot({ path: '/tmp/grademaxxing-attendance-schedule-desktop.png' });
 	}
 	const miniCalendar = page.getByRole('complementary', { name: 'Calendar and status filters' });
 	const calendar = miniCalendar.getByRole('application', { name: /Attendance dates/ });
@@ -233,9 +269,18 @@ test('attendance agenda shows school records and fits a phone viewport', async (
 		today.toLocaleString('en-US', { month: 'long', year: 'numeric' })
 	);
 	await expect(page.getByText('Arrived late').first()).toBeVisible();
+	const schedule = page.getByRole('region', { name: 'Class schedule' });
+	await expect(schedule.getByText('Monday, Sep 28, 2026')).toBeVisible();
+	await expect(schedule.getByRole('listitem')).toHaveCount(2);
+	await expect(schedule.getByText('Example Biology')).toBeVisible();
+	await expect(schedule.getByText('8:30 AM – 9:20 AM')).toBeVisible();
+	await expect(schedule.getByText('Room 101')).toBeVisible();
 	if (process.env.ATTENDANCE_VISUAL_CAPTURE) {
 		await expect(page.getByText('Loading attendance records…')).toBeHidden();
-		await page.screenshot({ path: '/tmp/grademaxxing-attendance-calendar-mobile.png', fullPage: true });
+		await page.screenshot({
+			path: '/tmp/grademaxxing-attendance-calendar-mobile.png',
+			fullPage: true
+		});
 	}
 	const attendanceCalendar = page.getByRole('application', { name: /Attendance dates/ });
 	await expect(attendanceCalendar.locator('.date-dot')).toHaveCount(1);
@@ -326,9 +371,7 @@ test('empty records, feedback state, mobile navigation, and dark theme are clear
 	page
 }) => {
 	await page.goto('/documents');
-	await expect(
-		page.getByRole('heading', { name: 'No documents available yet' })
-	).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'No documents available yet' })).toBeVisible();
 	await page.goto('/mail');
 	await expect(page.getByRole('heading', { name: 'No messages yet' })).toBeVisible();
 	await page.goto('/feedback');
@@ -415,7 +458,9 @@ test('Rankings shows the tougher tier ladder and gradebook achievements', async 
 	await expect(
 		page.getByRole('heading', { level: 1, name: 'Rankings & achievements' })
 	).toBeVisible();
-	await expect(page.getByRole('heading', { level: 2, name: 'Champion', exact: true })).toBeVisible();
+	await expect(
+		page.getByRole('heading', { level: 2, name: 'Champion', exact: true })
+	).toBeVisible();
 	await expect(page.getByText('Provisional', { exact: true }).first()).toBeVisible();
 	await expect(page.getByText('Add 3 more to confirm this tier.')).toBeVisible();
 	await expect(page.getByText('4.00–4.00 GPA')).toBeVisible();

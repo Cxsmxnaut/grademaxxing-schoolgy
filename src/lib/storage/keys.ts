@@ -5,6 +5,7 @@ export enum LocalStorageKey {
 	seenAssignmentIDs = 'seenAssignmentIDs',
 	gradeScaleObservations = 'gradeScaleObservations',
 	attendance = 'attendance5',
+	schedule = 'schedule1',
 	documents = 'documents',
 	mailData = 'mailData',
 	studentInfo = 'studentInfo2',
