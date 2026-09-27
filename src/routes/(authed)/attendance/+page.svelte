@@ -487,7 +487,6 @@
 	}
 	.page-heading {
 		margin-bottom: var(--space-md);
-		border-bottom: 1px solid var(--border);
 		padding-bottom: 0.9rem;
 	}
 	.page-heading h1 {
