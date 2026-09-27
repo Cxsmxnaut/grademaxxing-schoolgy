@@ -10,7 +10,9 @@ test('the sign-in and district-password setup flow matches the current product',
 
 	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing' })).toBeVisible();
 	await expect(page.getByLabel('StudentVUE email')).toBeVisible();
+	await expect(page.getByLabel('StudentVUE email')).toBeEnabled();
 	await expect(page.getByLabel('StudentVUE Password')).toBeVisible();
+	await expect(page.getByLabel('StudentVUE Password')).toBeEnabled();
 	await expect(page.getByLabel('Keep me signed in on this device')).toBeChecked();
 	await expect(page.getByText('Pleasanton Unified School District', { exact: true })).toBeVisible();
 	await expect(
