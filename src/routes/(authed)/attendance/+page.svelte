@@ -6,11 +6,15 @@
 	import { Calendar } from '$lib/components/ui/calendar';
 	import CalendarDay from '$lib/components/ui/calendar/calendar-day.svelte';
 	import type { Period } from '$lib/contracts/studentvue/attendance';
+	import { removeCourseType } from '$lib/grades/course-name';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
+	import Clock3Icon from '@lucide/svelte/icons/clock-3';
+	import MapPinIcon from '@lucide/svelte/icons/map-pin';
+	import UserRoundIcon from '@lucide/svelte/icons/user-round';
 	import {
 		attendanceState,
 		loadAttendance,
@@ -114,6 +118,11 @@
 					: type === 'Present'
 						? 'success'
 						: 'neutral';
+	}
+
+	function scheduleCourseName(title: string) {
+		const match = /^\d{5,}\s+(.+?)(?:\s+-\s+\d{5,}-\d+)?$/.exec(title.trim());
+		return removeCourseType(match?.[1] ?? title.trim());
 	}
 
 	const attendanceRows = $derived.by((): AttendanceRow[] => {
@@ -421,18 +430,26 @@
 					{#each scheduleClasses as course, index (`${course.period}-${course.courseTitle}-${index}`)}
 						<li class="schedule-row">
 							<div class="schedule-period">
-								<small>Period</small><strong>{course.period || '—'}</strong>
+								<span class="sr-only">Period </span>{course.period || '—'}
 							</div>
 							<div class="schedule-course">
-								<strong>{course.courseTitle || 'Unnamed class'}</strong>
-								{#if course.startTime || course.endTime}<span
-										>{[course.startTime, course.endTime].filter(Boolean).join(' – ')}</span
-									>{/if}
+								<strong title={course.courseTitle}
+									>{scheduleCourseName(course.courseTitle) || 'Unnamed class'}</strong
+								>
+								<div class="schedule-details">
+									{#if course.startTime || course.endTime}<span class="schedule-chip"
+											><Clock3Icon class="size-3" />{[course.startTime, course.endTime]
+												.filter(Boolean)
+												.join(' – ')}</span
+										>{/if}
+									{#if course.room}<span class="schedule-chip"
+											><MapPinIcon class="size-3" />Room {course.room}</span
+										>{/if}
+									{#if course.teacher}<span class="schedule-chip"
+											><UserRoundIcon class="size-3" />{course.teacher}</span
+										>{/if}
+								</div>
 							</div>
-							{#if course.teacher || course.room}<div class="schedule-details">
-									{#if course.teacher}<span>{course.teacher}</span>{/if}
-									{#if course.room}<span>Room {course.room}</span>{/if}
-								</div>{/if}
 						</li>
 					{/each}
 				</ol>
@@ -839,26 +856,21 @@
 	.class-schedule {
 		grid-column: 1;
 		grid-row: 2;
-		overflow: hidden;
-		border: 1px solid var(--border);
-		border-radius: 0.75rem;
-		background: var(--card);
 	}
 	.schedule-heading {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: var(--space-md);
-		min-height: 3rem;
-		border-bottom: 1px solid var(--border);
-		padding: 0.65rem 1rem;
+		min-height: 2.5rem;
+		margin-bottom: 0.5rem;
 	}
 	.schedule-heading h2 {
 		margin: 0;
 		color: var(--foreground);
 		font-family: var(--font-heading);
-		font-size: 1rem;
-		font-weight: 600;
+		font-size: 1.25rem;
+		font-weight: 700;
 		letter-spacing: -0.02em;
 	}
 	.schedule-date {
@@ -875,54 +887,61 @@
 	}
 	.schedule-row {
 		display: grid;
-		grid-template-columns: 3.5rem minmax(0, 1fr) minmax(9rem, 15rem);
+		grid-template-columns: 3rem minmax(0, 1fr);
 		align-items: center;
-		gap: var(--space-md);
+		gap: 0.75rem;
 		min-height: 5.25rem;
-		border-bottom: 1px solid var(--border);
-		padding: var(--space-sm) 1rem;
-	}
-	.schedule-row:last-child {
-		border-bottom: 0;
+		margin-bottom: 0.75rem;
+		border: 1px solid var(--border);
+		border-radius: 0.75rem;
+		background: var(--card);
+		padding: 0.75rem 0.875rem;
 	}
 	.schedule-period {
-		display: grid;
-		gap: 0.2rem;
-		color: var(--foreground);
-	}
-	.schedule-period small {
 		color: var(--muted-foreground);
-		font-family: var(--font-technical);
-		font-size: 0.6rem;
-		text-transform: uppercase;
-	}
-	.schedule-period strong {
 		font-family: var(--font-heading);
-		font-size: 1.2rem;
+		font-size: 1.5rem;
+		font-weight: 700;
 		line-height: 1;
+		text-align: center;
 	}
-	.schedule-course,
-	.schedule-details {
+	.schedule-course {
 		display: grid;
 		min-width: 0;
-		gap: 0.25rem;
+		gap: 0.4rem;
 	}
 	.schedule-course strong {
 		color: var(--foreground);
-		font-size: 0.9rem;
-		font-weight: 700;
+		font-size: 0.9375rem;
+		font-weight: 600;
+		line-height: 1.3;
 		overflow-wrap: anywhere;
 	}
-	.schedule-course span,
 	.schedule-details {
+		display: flex;
+		min-width: 0;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.3rem;
 		color: var(--muted-foreground);
-		font-size: 0.78rem;
+		font-size: 0.71875rem;
+		font-weight: 500;
 	}
-	.schedule-course span {
-		font-family: var(--font-technical);
+	.schedule-chip {
+		display: inline-flex;
+		max-width: 100%;
+		min-height: 1.3125rem;
+		align-items: center;
+		gap: 0.3125rem;
+		overflow: hidden;
+		border-radius: 999px;
+		background: var(--secondary);
+		padding: 0.1rem 0.5625rem;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
-	.schedule-details span {
-		overflow-wrap: anywhere;
+	.schedule-chip :global(svg) {
+		flex: 0 0 auto;
 	}
 	.schedule-empty,
 	.schedule-note {
@@ -949,35 +968,10 @@
 	@media (min-width: 75rem) {
 		.schedule-list {
 			columns: 2;
-			column-gap: 0;
-			column-rule: 1px solid var(--border);
+			column-gap: 0.75rem;
 		}
 		.schedule-row {
-			grid-template-columns: 2.5rem minmax(0, 1fr);
-			gap: 0.2rem var(--space-sm);
-			min-height: 5.15rem;
 			break-inside: avoid;
-			padding: 0.65rem 1rem;
-		}
-		.schedule-period {
-			align-self: start;
-		}
-		.schedule-course {
-			gap: 0.1rem;
-		}
-		.schedule-course strong {
-			font-size: 0.875rem;
-			line-height: 1.25;
-		}
-		.schedule-course span,
-		.schedule-details {
-			font-size: 0.75rem;
-		}
-		.schedule-details {
-			grid-column: 2;
-			display: flex;
-			flex-wrap: wrap;
-			gap: 0.1rem 0.5rem;
 		}
 	}
 	@media (max-width: 56rem) {
@@ -1013,12 +1007,7 @@
 			text-align: left;
 		}
 		.schedule-row {
-			grid-template-columns: 3.5rem minmax(0, 1fr);
-			gap: 0.2rem var(--space-sm);
-		}
-		.schedule-details {
-			grid-column: 2;
-			gap: 0.15rem;
+			grid-template-columns: 2.75rem minmax(0, 1fr);
 		}
 		.calendar-toolbar {
 			grid-template-columns: 1fr auto;
