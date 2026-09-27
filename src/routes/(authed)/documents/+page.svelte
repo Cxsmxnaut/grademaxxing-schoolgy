@@ -3,6 +3,7 @@
 	import AppPageShell from '$lib/components/AppPageShell.svelte';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
 	import RecordLoadFailure from '$lib/components/RecordLoadFailure.svelte';
+	import * as Item from '$lib/components/ui/item';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import type { StudentDocumentData } from '$lib/contracts/studentvue/documents';
 	import ArrowUpRightIcon from '@lucide/svelte/icons/arrow-up-right';
@@ -121,26 +122,34 @@
 	<ol class="documents-list" aria-label="Student documents">
 		{#each documents as documentData (documentData._DocumentGU)}
 			<li data-testid="document-row">
-				<a
-					href="/documents/document?documentGU={documentData._DocumentGU}"
-					target="_blank"
-					rel="noopener noreferrer"
-					class="document-link"
-				>
-					<span class="document-icon" aria-hidden="true"><FileTextIcon class="size-5" /></span>
-					<span class="document-main">
-						<strong>{documentTitle(documentData)}</strong>
-						<span class="document-meta">
-							<span class="document-chip">{documentData._DocumentType || 'School file'}</span>
-							<time class="document-chip" datetime={documentData._DocumentDate}
-								><CalendarDaysIcon class="size-3" />{formatDocumentDate(
-									documentData._DocumentDate
-								)}</time
-							>
-						</span>
-					</span>
-					<span class="open-file"><span>Open file</span><ArrowUpRightIcon class="size-4" /></span>
-				</a>
+				<Item.Root size="sm" class="document-link">
+					{#snippet child({ props })}
+						<a
+							href="/documents/document?documentGU={documentData._DocumentGU}"
+							target="_blank"
+							rel="noopener noreferrer"
+							{...props}
+						>
+							<Item.Media class="document-icon" aria-hidden="true">
+								<FileTextIcon class="size-5" />
+							</Item.Media>
+							<Item.Content class="document-main">
+								<Item.Title class="document-title">{documentTitle(documentData)}</Item.Title>
+								<Item.Description class="document-meta">
+									<span class="document-chip">{documentData._DocumentType || 'School file'}</span>
+									<time class="document-chip" datetime={documentData._DocumentDate}
+										><CalendarDaysIcon class="size-3" />{formatDocumentDate(
+											documentData._DocumentDate
+										)}</time
+									>
+								</Item.Description>
+							</Item.Content>
+							<Item.Actions class="open-file">
+								<span class="open-file-label">Open file</span><ArrowUpRightIcon class="size-4" />
+							</Item.Actions>
+						</a>
+					{/snippet}
+				</Item.Root>
 			</li>
 		{/each}
 	</ol>
@@ -260,6 +269,9 @@
 		text-decoration: none;
 		transition: background-color 150ms ease-out;
 	}
+	.document-link :global([data-slot='item-media']) {
+		align-self: center;
+	}
 	.document-link:focus-visible {
 		outline: 2px solid var(--focus);
 		outline-offset: 2px;
@@ -276,7 +288,7 @@
 		min-width: 0;
 		gap: 0.25rem;
 	}
-	.document-main strong {
+	:global(.document-title) {
 		overflow-wrap: anywhere;
 		font-size: 0.9375rem;
 		font-weight: 600;
@@ -287,6 +299,8 @@
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 0.375rem;
+		margin: 0;
+		text-wrap: wrap;
 	}
 	.document-chip {
 		display: inline-flex;
@@ -347,7 +361,7 @@
 		.open-file {
 			grid-column: 3;
 		}
-		.open-file span {
+		.open-file-label {
 			display: none;
 		}
 	}
@@ -355,7 +369,7 @@
 		.document-link:hover {
 			background: var(--sidebar-accent);
 		}
-		.document-link:hover .open-file {
+		.document-link:hover :global(.open-file) {
 			color: var(--sidebar-accent-foreground);
 		}
 		:global(.document-tabs [data-slot='tabs-trigger']:hover) {
