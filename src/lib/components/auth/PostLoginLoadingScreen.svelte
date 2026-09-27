@@ -7,11 +7,9 @@
 
 <div class="post-login-loading" data-testid="post-login-loading">
 	<div class="loading-content" role="status" aria-live="polite" aria-atomic="true">
-		<div class="logo-glow" aria-hidden="true">
-			<img src="/grademaxxing-growth-mark.png" width="100" height="100" alt="" />
-		</div>
-		<div class="loading-dots" aria-hidden="true">
-			<span></span><span></span><span></span>
+		<div class="thinking-orb" aria-hidden="true">
+			<span class="orb-core"></span>
+			<span class="orb-shine"></span>
 		</div>
 		<p class="loading-message">{message}</p>
 		<p class="loading-detail">
@@ -33,6 +31,7 @@
 </div>
 
 <style>
+	/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · component: thinking orb · palette: Grademaxxing semantic tokens */
 	.post-login-loading {
 		position: fixed;
 		z-index: 100;
@@ -41,39 +40,20 @@
 		min-height: 100dvh;
 		place-items: center;
 		overflow: hidden;
-		background:
-			radial-gradient(720px 460px at 50% 48%, rgba(110, 168, 220, 0.04), transparent 70%),
-			radial-gradient(980px 620px at 82% -18%, rgba(39, 86, 136, 0.3), transparent 65%),
-			linear-gradient(145deg, #0d1319, #151e28 58%, #0b1117);
-		color: #f1f5f7;
-		font-family: 'Manrope', system-ui, sans-serif;
-	}
-	.post-login-loading::before,
-	.post-login-loading::after {
-		position: absolute;
-		inset: -35%;
-		content: '';
-		pointer-events: none;
+		background: var(--background);
+		color: var(--foreground);
+		font-family: var(--font-body);
 	}
 	.post-login-loading::before {
-		background: repeating-radial-gradient(
-			ellipse at 52% 48%,
-			transparent 0 92px,
-			rgba(110, 168, 220, 0.032) 112px 142px,
-			transparent 166px 230px
-		);
-		filter: blur(12px);
-		animation: wave-drift 13s ease-in-out infinite alternate;
-	}
-	.post-login-loading::after {
-		background: repeating-radial-gradient(
-			ellipse at 20% 70%,
-			transparent 0 130px,
-			rgba(20, 72, 111, 0.052) 158px 202px,
-			transparent 230px 310px
-		);
-		filter: blur(18px);
-		animation: wave-drift-reverse 17s ease-in-out infinite alternate;
+		position: absolute;
+		width: min(26rem, 90vw);
+		aspect-ratio: 1;
+		border-radius: 50%;
+		background: var(--primary);
+		content: '';
+		filter: blur(110px);
+		opacity: 0.08;
+		pointer-events: none;
 	}
 	.loading-content {
 		position: relative;
@@ -81,61 +61,73 @@
 		display: flex;
 		align-items: center;
 		flex-direction: column;
-		padding: 24px;
+		max-width: 32rem;
+		padding: var(--space-lg);
 		text-align: center;
 	}
-	.logo-glow {
-		display: grid;
-		place-items: center;
-		animation: logo-float 2.3s ease-in-out infinite;
+	.thinking-orb {
+		position: relative;
+		width: 7rem;
+		aspect-ratio: 1;
+		overflow: hidden;
+		border: 1px solid color-mix(in srgb, var(--primary) 38%, transparent);
+		border-radius: 50%;
+		background: radial-gradient(
+			circle at 31% 26%,
+			color-mix(in srgb, var(--foreground) 72%, var(--primary)) 0%,
+			color-mix(in srgb, var(--primary) 58%, var(--card)) 21%,
+			color-mix(in srgb, var(--primary) 24%, var(--surface-sunken)) 55%,
+			var(--surface-sunken) 82%
+		);
+		box-shadow:
+			inset -0.75rem -1rem 1.5rem color-mix(in srgb, var(--surface-sunken) 75%, transparent),
+			0 0 2.5rem color-mix(in srgb, var(--primary) 22%, transparent);
+		animation: orb-breathe 3.6s ease-in-out infinite;
 	}
-	.logo-glow img {
-		filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.32))
-			drop-shadow(0 0 28px rgba(14, 159, 110, 0.12));
+	.orb-core {
+		position: absolute;
+		inset: 24% 14% 10% 24%;
+		border-radius: 50%;
+		background: color-mix(in srgb, var(--success) 52%, var(--primary));
+		filter: blur(1.15rem);
+		opacity: 0.58;
+		animation: orb-drift 4.5s ease-in-out infinite alternate;
 	}
-	.loading-dots {
-		display: flex;
-		gap: 7px;
-		margin-top: 10px;
-	}
-	.loading-dots span {
-		width: 10px;
-		height: 10px;
-		border-radius: 999px;
-		background: #6ea8dc;
-		box-shadow: 0 0 12px rgba(110, 168, 220, 0.2);
-		animation: loading-pulse 1.15s ease-in-out infinite;
-	}
-	.loading-dots span:nth-child(2) {
-		animation-delay: 0.15s;
-		opacity: 0.7;
-	}
-	.loading-dots span:nth-child(3) {
-		animation-delay: 0.3s;
-		opacity: 0.45;
+	.orb-shine {
+		position: absolute;
+		top: 13%;
+		left: 18%;
+		width: 39%;
+		height: 24%;
+		border-radius: 50%;
+		background: var(--foreground);
+		filter: blur(0.7rem);
+		opacity: 0.48;
 	}
 	.loading-content p {
 		margin: 0;
-		color: #aab7c5;
+		color: var(--muted-foreground);
 		letter-spacing: -0.01em;
 	}
 	.loading-message {
-		margin-top: 17px !important;
-		color: #f1f5f7 !important;
-		font-size: 18px;
+		margin-top: var(--space-xl) !important;
+		color: var(--foreground) !important;
+		font-family: var(--font-heading);
+		font-size: 1.25rem;
 		font-weight: 700;
 	}
 	.loading-detail {
-		margin-top: 7px !important;
-		font-size: 13px;
+		margin-top: var(--space-xs) !important;
+		font-size: 0.8125rem;
+		line-height: 1.5;
 	}
 	.loading-steps {
 		display: flex;
-		gap: 18px;
-		margin: 28px 0 0;
+		gap: var(--space-lg);
+		margin: var(--space-xl) 0 0;
 		padding: 0;
-		color: #8195ab;
-		font-size: 12px;
+		color: var(--tertiary-foreground);
+		font-size: 0.75rem;
 		font-weight: 650;
 		list-style: none;
 	}
@@ -145,27 +137,27 @@
 		gap: 7px;
 	}
 	.loading-steps li.active {
-		color: #c7d3d9;
+		color: var(--foreground);
 	}
 	.loading-steps li.complete {
-		color: #04dfa7;
+		color: var(--success);
 	}
 	.loading-steps li span {
 		display: grid;
 		width: 20px;
 		height: 20px;
 		place-items: center;
-		border: 1px solid rgba(127, 146, 158, 0.55);
+		border: 1px solid var(--border);
 		border-radius: 999px;
-		font-family: 'JetBrains Mono', monospace;
-		font-size: 10px;
+		font-family: var(--font-technical);
+		font-size: 0.625rem;
 	}
 	.loading-steps li.active span {
-		border-color: #6ea8dc;
-		color: #6ea8dc;
+		border-color: var(--primary);
+		color: var(--primary);
 	}
 	.loading-steps li.complete span {
-		border-color: #04dfa7;
+		border-color: var(--success);
 	}
 	.sr-only {
 		position: absolute;
@@ -176,51 +168,27 @@
 		white-space: nowrap;
 		clip-path: inset(50%);
 	}
-	@keyframes loading-pulse {
+	@keyframes orb-breathe {
 		0%,
 		100% {
-			transform: translateY(0) scale(0.82);
-			opacity: 0.38;
+			transform: translateY(0) scale(0.97);
 		}
 		50% {
-			transform: translateY(-6px) scale(1);
-			opacity: 1;
+			transform: translateY(-0.25rem) scale(1.03);
 		}
 	}
-	@keyframes logo-float {
-		0%,
-		100% {
-			transform: translateY(0);
-		}
-		50% {
-			transform: translateY(-7px);
-		}
-	}
-	@keyframes wave-drift {
+	@keyframes orb-drift {
 		from {
-			transform: translate3d(-2%, -1%, 0) rotate(-8deg) scale(1.05);
+			transform: translate(-10%, 8%) scale(0.86);
 		}
 		to {
-			transform: translate3d(3%, 2%, 0) rotate(-4deg) scale(1.11);
-		}
-	}
-	@keyframes wave-drift-reverse {
-		from {
-			transform: translate3d(2%, -2%, 0) rotate(5deg) scale(1.08);
-		}
-		to {
-			transform: translate3d(-3%, 2%, 0) rotate(1deg) scale(1.14);
+			transform: translate(8%, -5%) scale(1.08);
 		}
 	}
 	@media (prefers-reduced-motion: reduce) {
-		.loading-dots span,
-		.logo-glow,
-		.post-login-loading::before,
-		.post-login-loading::after {
+		.thinking-orb,
+		.orb-core {
 			animation: none;
-		}
-		.loading-dots span {
-			opacity: 0.8;
 		}
 	}
 	@media (max-width: 480px) {

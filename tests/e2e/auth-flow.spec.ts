@@ -182,9 +182,21 @@ test('sign-in keeps the app hidden until the gradebook is ready', async ({ page 
 	const loadingScreen = page.getByTestId('post-login-loading');
 	await expect(loadingScreen).toBeVisible();
 	await expect(loadingScreen).toContainText('Connecting to StudentVUE…');
+	await expect(loadingScreen.locator('.thinking-orb')).toBeVisible();
+	await expect(loadingScreen.locator('img, .loading-dots')).toHaveCount(0);
+	await expect(loadingScreen).toHaveCSS('background-image', 'none');
 	await expect(page.locator('form')).toHaveCount(0);
 	await expect(page).toHaveURL(/\/login$/);
 	await page.screenshot({ path: 'test-results/auth-flow/loading.png', fullPage: true });
+	for (const width of [320, 375, 414, 768]) {
+		await page.setViewportSize({ width, height: 844 });
+		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+			width
+		);
+		if (width === 375)
+			await page.screenshot({ path: 'test-results/auth-flow/loading-phone.png', fullPage: true });
+	}
+	await page.setViewportSize({ width: 1280, height: 720 });
 	await expect(loadingScreen).toContainText('Connect to StudentVUE');
 	await expect(loadingScreen).toContainText('Load your grades');
 
