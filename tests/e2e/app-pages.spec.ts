@@ -330,6 +330,72 @@ test('attendance agenda shows school records and fits a phone viewport', async (
 	}
 });
 
+test('six scheduled classes fit in a laptop attendance view', async ({ page }) => {
+	const earlierDate = new Date();
+	earlierDate.setDate(earlierDate.getDate() - 1);
+	const recordDate = `${earlierDate.getFullYear()}-${String(earlierDate.getMonth() + 1).padStart(2, '0')}-${String(earlierDate.getDate()).padStart(2, '0')}`;
+	await page.route('**/api/studentvue/attendance', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				Absences: {
+					Absence: [
+						{
+							_AbsenceDate: recordDate,
+							_Reason: 'Example record',
+							_Note: '',
+							Periods: { Period: [] }
+						}
+					]
+				},
+				DailyRecords: []
+			})
+		})
+	);
+	await page.route('**/api/studentvue/schedule', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				date: '2026-09-28',
+				classes: [
+					'Example English Language Arts',
+					'Example World History',
+					'Example Precalculus',
+					'Example Biology Lab',
+					'Example Physical Education',
+					'Example Spanish II'
+				].map((courseTitle, index) => ({
+					period: String(index + 1).padStart(2, '0'),
+					courseTitle: `90010${index + 1} ${courseTitle} (P) - 90010${index + 1}-${index + 1}`,
+					teacher: `Example Teacher ${index + 1}`,
+					teacherEmail: '',
+					room: `B-${index + 1}`,
+					startTime: '8:30 AM',
+					endTime: '9:25 AM',
+					schoolName: 'Example School',
+					date: '2026-09-28'
+				}))
+			})
+		})
+	);
+	await page.setViewportSize({ width: 1366, height: 768 });
+	await page.goto('/attendance');
+	await expect(page.getByRole('button', { name: 'Go to latest record' })).toBeVisible();
+	const schedule = page.getByRole('region', { name: 'Class schedule' });
+	await expect(schedule.getByRole('listitem')).toHaveCount(6);
+	await expect(page.getByText('Loading attendance records…')).toBeHidden();
+	const lastPeriod = await schedule.getByRole('listitem').last().boundingBox();
+	expect(lastPeriod!.y + lastPeriod!.height).toBeLessThanOrEqual(768);
+	expect(
+		await page.evaluate(() => document.scrollingElement?.scrollHeight ?? 0)
+	).toBeLessThanOrEqual(768);
+	if (process.env.ATTENDANCE_VISUAL_CAPTURE) {
+		await page.screenshot({ path: '/tmp/grademaxxing-attendance-laptop.png' });
+	}
+});
+
 test('course what-if controls preserve compact mobile geometry and keyboard operation', async ({
 	page
 }) => {

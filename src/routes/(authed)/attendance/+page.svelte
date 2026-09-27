@@ -472,7 +472,7 @@
 		outline-offset: 2px;
 	}
 	.page-heading {
-		margin-bottom: var(--space-lg);
+		margin-bottom: var(--space-md);
 	}
 	.page-heading h1 {
 		margin: 0;
@@ -491,7 +491,7 @@
 		grid-template-columns: 1fr auto 1fr;
 		align-items: center;
 		gap: var(--space-md);
-		margin: 0 0 var(--space-lg);
+		margin: 0 0 var(--space-md);
 	}
 	.calendar-toolbar h2 {
 		min-width: 0;
@@ -547,9 +547,10 @@
 	.workspace {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) minmax(15.5rem, 18rem);
-		grid-template-rows: min-content auto;
+		grid-template-rows: max-content minmax(0, 1fr);
 		align-items: start;
-		gap: var(--space-lg);
+		column-gap: var(--space-lg);
+		row-gap: var(--space-sm);
 	}
 	.workspace.schedule-only {
 		display: block;
@@ -688,7 +689,7 @@
 	}
 	.day-empty {
 		margin: 0;
-		padding: var(--space-xl) var(--space-md);
+		padding: var(--space-md) var(--space-sm);
 		color: var(--muted-foreground);
 		font-size: 0.9rem;
 	}
@@ -703,6 +704,10 @@
 		color: var(--primary);
 		font-size: 0.83rem;
 		font-weight: 700;
+	}
+	.latest-link {
+		margin-top: 0;
+		margin-bottom: var(--space-xs);
 	}
 	.empty-month {
 		display: grid;
@@ -830,14 +835,14 @@
 		grid-column: 1;
 		grid-row: 2;
 		border-top: 1px solid var(--border);
-		padding-top: var(--space-lg);
+		padding-top: var(--space-md);
 	}
 	.schedule-heading {
 		display: flex;
 		align-items: end;
 		justify-content: space-between;
 		gap: var(--space-md);
-		margin-bottom: var(--space-md);
+		margin-bottom: var(--space-sm);
 	}
 	.schedule-eyebrow {
 		margin: 0 0 0.3rem;
@@ -936,6 +941,39 @@
 	}
 	.neutral {
 		color: var(--muted-foreground);
+	}
+	@media (min-width: 75rem) {
+		.schedule-list {
+			columns: 2;
+			column-gap: var(--space-lg);
+		}
+		.schedule-row {
+			grid-template-columns: 2.75rem minmax(0, 1fr);
+			gap: 0.15rem var(--space-sm);
+			min-height: 4.4rem;
+			break-inside: avoid;
+			padding: 0.5rem 0;
+		}
+		.schedule-period {
+			align-self: start;
+		}
+		.schedule-course {
+			gap: 0.1rem;
+		}
+		.schedule-course strong {
+			font-size: 0.82rem;
+			line-height: 1.2;
+		}
+		.schedule-course span,
+		.schedule-details {
+			font-size: 0.68rem;
+		}
+		.schedule-details {
+			grid-column: 2;
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.1rem 0.5rem;
+		}
 	}
 	@media (max-width: 56rem) {
 		.workspace {
