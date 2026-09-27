@@ -411,10 +411,7 @@
 
 		<section class="class-schedule" aria-labelledby="class-schedule-heading">
 			<div class="schedule-heading">
-				<div>
-					<p class="schedule-eyebrow">From StudentVUE</p>
-					<h2 id="class-schedule-heading">Class schedule</h2>
-				</div>
+				<h2 id="class-schedule-heading">Class schedule</h2>
 				{#if scheduleDate}<p class="schedule-date">
 						{scheduleDateFormatter.format(scheduleDate)}
 					</p>{/if}
@@ -459,7 +456,7 @@
 </AppPageShell>
 
 <style>
-	/* Hallmark · pre-emit critique: P5 H4 E4 S5 R5 V4 · genre: modern-minimal · macrostructure: Agenda Workbench · palette: Grademaxxing semantic tokens */
+	/* Hallmark · pre-emit critique: P5 H4 E5 S5 R5 V4 · genre: modern-minimal · macrostructure: Agenda Workbench · palette: Grademaxxing semantic tokens */
 	:global(.attendance-shell) {
 		max-width: 90rem;
 	}
@@ -842,29 +839,27 @@
 	.class-schedule {
 		grid-column: 1;
 		grid-row: 2;
-		padding-top: 0.4rem;
+		overflow: hidden;
+		border: 1px solid var(--border);
+		border-radius: 0.75rem;
+		background: var(--card);
 	}
 	.schedule-heading {
 		display: flex;
-		align-items: end;
+		align-items: center;
 		justify-content: space-between;
 		gap: var(--space-md);
-		margin-bottom: var(--space-sm);
-	}
-	.schedule-eyebrow {
-		margin: 0 0 0.3rem;
-		color: var(--muted-foreground);
-		font-family: var(--font-technical);
-		font-size: 0.66rem;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
+		min-height: 3rem;
+		border-bottom: 1px solid var(--border);
+		padding: 0.65rem 1rem;
 	}
 	.schedule-heading h2 {
 		margin: 0;
 		color: var(--foreground);
 		font-family: var(--font-heading);
-		font-size: clamp(1.35rem, 2.3vw, 1.7rem);
-		letter-spacing: -0.03em;
+		font-size: 1rem;
+		font-weight: 600;
+		letter-spacing: -0.02em;
 	}
 	.schedule-date {
 		margin: 0;
@@ -884,11 +879,11 @@
 		align-items: center;
 		gap: var(--space-md);
 		min-height: 5.25rem;
-		margin-bottom: 0.5rem;
-		border: 1px solid var(--border);
-		border-radius: 0.75rem;
-		background: var(--card);
-		padding: var(--space-sm) 0.85rem;
+		border-bottom: 1px solid var(--border);
+		padding: var(--space-sm) 1rem;
+	}
+	.schedule-row:last-child {
+		border-bottom: 0;
 	}
 	.schedule-period {
 		display: grid;
@@ -927,12 +922,6 @@
 		font-family: var(--font-technical);
 	}
 	.schedule-details span {
-		width: fit-content;
-		border-radius: 999px;
-		background: var(--secondary);
-		padding: 0.15rem 0.45rem;
-	}
-	.schedule-details span {
 		overflow-wrap: anywhere;
 	}
 	.schedule-empty,
@@ -960,14 +949,15 @@
 	@media (min-width: 75rem) {
 		.schedule-list {
 			columns: 2;
-			column-gap: var(--space-lg);
+			column-gap: 0;
+			column-rule: 1px solid var(--border);
 		}
 		.schedule-row {
-			grid-template-columns: 2.75rem minmax(0, 1fr);
-			gap: 0.15rem var(--space-sm);
-			min-height: 4.25rem;
+			grid-template-columns: 2.5rem minmax(0, 1fr);
+			gap: 0.2rem var(--space-sm);
+			min-height: 5.15rem;
 			break-inside: avoid;
-			padding: 0.45rem 0.7rem;
+			padding: 0.65rem 1rem;
 		}
 		.schedule-period {
 			align-self: start;
@@ -976,12 +966,12 @@
 			gap: 0.1rem;
 		}
 		.schedule-course strong {
-			font-size: 0.82rem;
-			line-height: 1.2;
+			font-size: 0.875rem;
+			line-height: 1.25;
 		}
 		.schedule-course span,
 		.schedule-details {
-			font-size: 0.68rem;
+			font-size: 0.75rem;
 		}
 		.schedule-details {
 			grid-column: 2;
