@@ -190,9 +190,15 @@ test('sign-in keeps the app hidden until the gradebook is ready', async ({ page 
 	const loadingScreen = page.getByTestId('post-login-loading');
 	await expect(loadingScreen).toBeVisible();
 	await expect(loadingScreen).toContainText('Connecting to StudentVUE…');
-	await expect(loadingScreen.locator('.thinking-orb')).toBeVisible();
+	const orb = loadingScreen.getByTestId('thinking-orb');
+	await expect(orb).toBeVisible();
+	await expect(orb).toHaveAttribute('data-state', 'connecting');
+	await expect(orb).toHaveCSS('width', '64px');
 	await expect(loadingScreen.locator('img, .loading-dots')).toHaveCount(0);
 	await expect(loadingScreen).toHaveCSS('background-image', 'none');
+	expect(
+		await loadingScreen.evaluate((element) => getComputedStyle(element, '::before').content)
+	).toBe('none');
 	await expect(page.locator('form')).toHaveCount(0);
 	await expect(page).toHaveURL(/\/login$/);
 	await page.screenshot({ path: 'test-results/auth-flow/loading.png', fullPage: true });
@@ -211,6 +217,7 @@ test('sign-in keeps the app hidden until the gradebook is ready', async ({ page 
 	releaseSession();
 	await gradebookRequested;
 	await expect(loadingScreen).toContainText('Loading your grades…');
+	await expect(loadingScreen.getByTestId('thinking-orb')).toHaveAttribute('data-state', 'working');
 	await expect(page.locator('form')).toHaveCount(0);
 	await expect(page).toHaveURL(/\/login$/);
 

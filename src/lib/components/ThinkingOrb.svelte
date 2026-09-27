@@ -2,12 +2,11 @@
 	import { MODE_FRAMES, paintFrame, resolvePreset, type OrbState } from 'thinking-orbs/engine';
 	import { onMount } from 'svelte';
 
-	let { state = 'breathing' }: { state?: OrbState } = $props();
+	let { state = 'breathing', size = 36 }: { state?: OrbState; size?: 36 | 64 } = $props();
 	let canvas: HTMLCanvasElement;
 
 	onMount(() => {
-		const size = 36;
-		const presetSize = 32;
+		const presetSize = size === 64 ? 64 : 32;
 		const dpr = Math.min(2, window.devicePixelRatio || 1);
 		const context = canvas.getContext('2d')!;
 
@@ -68,7 +67,9 @@
 
 <canvas
 	bind:this={canvas}
-	class="size-9 shrink-0"
+	class="shrink-0"
+	style:width={`${size}px`}
+	style:height={`${size}px`}
 	aria-hidden="true"
 	data-state={state}
 	data-testid="thinking-orb"

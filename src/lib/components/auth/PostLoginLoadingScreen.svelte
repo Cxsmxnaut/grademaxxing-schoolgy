@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { brand } from '$lib/brand';
+	import ThinkingOrb from '$lib/components/ThinkingOrb.svelte';
 
 	let { message = 'Loading your grades…' }: { message?: string } = $props();
 	const currentStep = $derived(/connect|restor/i.test(message) ? 1 : 2);
@@ -7,10 +8,9 @@
 
 <div class="post-login-loading" data-testid="post-login-loading">
 	<div class="loading-content" role="status" aria-live="polite" aria-atomic="true">
-		<div class="thinking-orb" aria-hidden="true">
-			<span class="orb-core"></span>
-			<span class="orb-shine"></span>
-		</div>
+		{#key currentStep}
+			<ThinkingOrb state={currentStep === 1 ? 'connecting' : 'working'} size={64} />
+		{/key}
 		<p class="loading-message">{message}</p>
 		<p class="loading-detail">
 			StudentVUE is retrieving your latest gradebook. This is the part where the portal does the
@@ -31,7 +31,7 @@
 </div>
 
 <style>
-	/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · component: thinking orb · palette: Grademaxxing semantic tokens */
+	/* Hallmark · loading state: flat canvas and the project's Thinking Orbs component */
 	.post-login-loading {
 		position: fixed;
 		z-index: 100;
@@ -44,17 +44,6 @@
 		color: var(--foreground);
 		font-family: var(--font-body);
 	}
-	.post-login-loading::before {
-		position: absolute;
-		width: min(26rem, 90vw);
-		aspect-ratio: 1;
-		border-radius: 50%;
-		background: var(--primary);
-		content: '';
-		filter: blur(110px);
-		opacity: 0.08;
-		pointer-events: none;
-	}
 	.loading-content {
 		position: relative;
 		z-index: 1;
@@ -64,45 +53,6 @@
 		max-width: 32rem;
 		padding: var(--space-lg);
 		text-align: center;
-	}
-	.thinking-orb {
-		position: relative;
-		width: 7rem;
-		aspect-ratio: 1;
-		overflow: hidden;
-		border: 1px solid color-mix(in srgb, var(--primary) 38%, transparent);
-		border-radius: 50%;
-		background: radial-gradient(
-			circle at 31% 26%,
-			color-mix(in srgb, var(--foreground) 72%, var(--primary)) 0%,
-			color-mix(in srgb, var(--primary) 58%, var(--card)) 21%,
-			color-mix(in srgb, var(--primary) 24%, var(--surface-sunken)) 55%,
-			var(--surface-sunken) 82%
-		);
-		box-shadow:
-			inset -0.75rem -1rem 1.5rem color-mix(in srgb, var(--surface-sunken) 75%, transparent),
-			0 0 2.5rem color-mix(in srgb, var(--primary) 22%, transparent);
-		animation: orb-breathe 3.6s ease-in-out infinite;
-	}
-	.orb-core {
-		position: absolute;
-		inset: 24% 14% 10% 24%;
-		border-radius: 50%;
-		background: color-mix(in srgb, var(--success) 52%, var(--primary));
-		filter: blur(1.15rem);
-		opacity: 0.58;
-		animation: orb-drift 4.5s ease-in-out infinite alternate;
-	}
-	.orb-shine {
-		position: absolute;
-		top: 13%;
-		left: 18%;
-		width: 39%;
-		height: 24%;
-		border-radius: 50%;
-		background: var(--foreground);
-		filter: blur(0.7rem);
-		opacity: 0.48;
 	}
 	.loading-content p {
 		margin: 0;
@@ -167,29 +117,6 @@
 		clip: rect(0, 0, 0, 0);
 		white-space: nowrap;
 		clip-path: inset(50%);
-	}
-	@keyframes orb-breathe {
-		0%,
-		100% {
-			transform: translateY(0) scale(0.97);
-		}
-		50% {
-			transform: translateY(-0.25rem) scale(1.03);
-		}
-	}
-	@keyframes orb-drift {
-		from {
-			transform: translate(-10%, 8%) scale(0.86);
-		}
-		to {
-			transform: translate(8%, -5%) scale(1.08);
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.thinking-orb,
-		.orb-core {
-			animation: none;
-		}
 	}
 	@media (max-width: 480px) {
 		.loading-steps {
