@@ -197,37 +197,42 @@ test('mail behaves like an inbox and safely opens message links and attachments'
 	await expect(row.getByLabel('Unread')).toBeVisible();
 	await expect(row).toContainText('1 link');
 	await expect(row).toContainText('1 attachment');
-	await expect(row.locator('[data-slot="item-description"]')).toContainText(
-		'night. Reserve a seat online. Unsafe link'
-	);
+	await expect(row.locator('.preview')).toContainText('night. Reserve a seat online. Unsafe link');
+	await page.getByRole('button', { name: 'Unread', exact: true }).click();
+	await expect(row).toHaveCount(1);
+	await page.getByRole('searchbox', { name: 'Search messages' }).fill('no matching subject');
+	await expect(row).toHaveCount(0);
+	await expect(page.getByText('No messages match this view.')).toBeVisible();
+	await page.getByRole('searchbox', { name: 'Search messages' }).fill('college');
+	await expect(row).toHaveCount(1);
 	if (process.env.MAIL_VISUAL_CAPTURE) {
 		await expect(page.getByText('Loading mail…')).toBeHidden();
 		await page.screenshot({ path: '/tmp/grademaxxing-mail-dark.png' });
 	}
 
 	await row.click();
-	const dialog = page.getByRole('dialog');
-	await expect(dialog).toBeVisible();
+	const reader = page.getByRole('region', { name: 'Message preview' });
+	await expect(
+		reader.getByRole('heading', { name: 'College information night — September 3' })
+	).toBeVisible();
+	await expect(page.getByRole('dialog')).toHaveCount(0);
 	if (process.env.MAIL_VISUAL_CAPTURE) {
 		await page.waitForTimeout(350);
 		await page.screenshot({ path: '/tmp/grademaxxing-mail-reader.png' });
 	}
-	await expect(
-		dialog.getByRole('heading', { name: 'College information night — September 3' })
-	).toBeVisible();
-	await expect(dialog).toContainText('College & Career Center');
+	await expect(reader).toContainText('College & Career Center');
 	await expect(
 		page.frameLocator('iframe').getByText('Students and families are invited')
 	).toBeVisible();
 	await expect(page.frameLocator('iframe').getByText('Unsafe link')).toBeVisible();
 	await expect(page.frameLocator('iframe').getByText('Unsafe link')).not.toHaveAttribute('href');
-	await expect(dialog.getByRole('link', { name: 'example.edu' })).toHaveAttribute(
+	await expect(reader.getByRole('link', { name: 'example.edu' })).toHaveAttribute(
 		'rel',
 		'noopener noreferrer'
 	);
 
 	const attachmentPagePromise = context.waitForEvent('page');
-	await dialog.getByRole('link', { name: /College Night.pdf/ }).click();
+	await reader.getByRole('link', { name: /College Night.pdf/ }).click();
 	const attachmentPage = await attachmentPagePromise;
 	await expectPassiveFileOpen(attachmentPage);
 	await attachmentPage.close();
@@ -256,6 +261,11 @@ test('record pages retain their layout and controls on a phone viewport', async 
 		.getByRole('link', { name: 'Mail' })
 		.click();
 	await expect(page).toHaveURL(/\/mail$/);
+	await expect(page.getByRole('searchbox', { name: 'Search messages' })).toBeVisible();
+	if (process.env.MAIL_VISUAL_CAPTURE) {
+		await expect(page.getByText('Loading mail…')).toBeHidden();
+		await page.screenshot({ path: '/tmp/grademaxxing-mail-phone-inbox.png' });
+	}
 	await page.getByTestId('mail-message').click();
 	await expect(page.getByRole('dialog')).toBeVisible();
 	if (process.env.MAIL_VISUAL_CAPTURE) {
