@@ -81,29 +81,43 @@
 	{/if}
 
 	{#if documentsState.data && sortedDocuments.length > 0}
-		<Tabs.Root value="all" class="document-tabs">
-			<Tabs.List aria-label="Document category" class="max-w-full justify-start overflow-x-auto">
-				<Tabs.Trigger value="all">All</Tabs.Trigger>
+		<Tabs.Root value="all" class="document-workspace">
+			<aside class="document-navigation" aria-label="Document library">
+				<div class="navigation-heading">
+					<h2>Library</h2>
+				</div>
+				<Tabs.List aria-label="Document category">
+					<Tabs.Trigger value="all" aria-label="All">
+						<span>All files</span><span class="category-count" aria-hidden="true"
+							>{sortedDocuments.length}</span
+						>
+					</Tabs.Trigger>
+
+					{#each documentCategories as category (category)}
+						<Tabs.Trigger value={category} aria-label={category}>
+							<span>{category}</span><span class="category-count" aria-hidden="true"
+								>{sortedDocuments.filter((document) => document._DocumentType === category)
+									.length}</span
+							>
+						</Tabs.Trigger>
+					{/each}
+				</Tabs.List>
+			</aside>
+
+			<section class="document-library" aria-label="Files">
+				<Tabs.Content value="all">
+					{@render documentsList(sortedDocuments, 'All files')}
+				</Tabs.Content>
 
 				{#each documentCategories as category (category)}
-					<Tabs.Trigger value={category}>
-						{category}
-					</Tabs.Trigger>
+					<Tabs.Content value={category}>
+						{@render documentsList(
+							sortedDocuments.filter((documentData) => documentData._DocumentType === category),
+							category
+						)}
+					</Tabs.Content>
 				{/each}
-			</Tabs.List>
-
-			<Tabs.Content value="all">
-				{@render documentsList(sortedDocuments, 'All files')}
-			</Tabs.Content>
-
-			{#each documentCategories as category (category)}
-				<Tabs.Content value={category}>
-					{@render documentsList(
-						sortedDocuments.filter((documentData) => documentData._DocumentType === category),
-						category
-					)}
-				</Tabs.Content>
-			{/each}
+			</section>
 		</Tabs.Root>
 	{:else if documentsState.loaded && !documentsState.error}
 		<div class="documents-empty" role="status">
@@ -156,7 +170,7 @@
 {/snippet}
 
 <style>
-	/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · genre: modern-minimal · macrostructure: document index · palette: Grademaxxing sidebar tokens */
+	/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · genre: modern-minimal · macrostructure: library rail + file workspace · palette: Grademaxxing sidebar tokens */
 	:global(.documents-shell) {
 		max-width: 80rem;
 		margin-inline: auto;
@@ -185,26 +199,53 @@
 		font-size: 0.875rem;
 		line-height: 1.5;
 	}
-	:global(.document-tabs) {
-		display: block;
+	:global(.document-workspace) {
+		display: grid;
+		grid-template-columns: 13.5rem minmax(0, 1fr);
 		min-width: 0;
+		min-height: 18rem;
+		overflow: hidden;
+		border: 1px solid var(--sidebar-border);
+		border-radius: var(--radius-lg);
 	}
-	:global(.document-tabs [data-slot='tabs-list']) {
+	.document-navigation {
+		min-width: 0;
+		border-right: 1px solid var(--sidebar-border);
+		background: var(--sidebar);
+		padding: 1.25rem 0.75rem;
+	}
+	.navigation-heading {
+		display: grid;
+		gap: 0.2rem;
+		padding: 0 0.75rem 1rem;
+	}
+	.navigation-heading h2 {
+		margin: 0;
+		color: var(--foreground);
+		font-family: var(--font-heading);
+		font-size: 1.125rem;
+		font-weight: 700;
+		letter-spacing: -0.025em;
+	}
+	:global(.document-navigation [data-slot='tabs-list']) {
 		display: flex;
-		width: fit-content;
-		max-width: 100%;
+		width: 100%;
 		height: auto;
+		flex-direction: column;
+		align-items: stretch;
 		gap: 0.25rem;
 		border: 0;
 		border-radius: 0;
 		background: transparent;
 		padding: 0;
-		scrollbar-width: thin;
 	}
-	:global(.document-tabs [data-slot='tabs-trigger']) {
-		height: 2.25rem;
-		flex: 0 0 auto;
-		gap: var(--space-xs);
+	:global(.document-navigation [data-slot='tabs-trigger']) {
+		display: flex;
+		min-width: 0;
+		height: 2.5rem;
+		flex: none;
+		justify-content: space-between;
+		gap: 0.5rem;
 		border: 0;
 		border-radius: var(--radius-sm);
 		background: transparent;
@@ -215,30 +256,43 @@
 		box-shadow: none;
 		white-space: nowrap;
 	}
-	:global(.document-tabs [data-slot='tabs-trigger'][data-state='active']) {
-		background: transparent;
+	:global(.document-navigation [data-slot='tabs-trigger'] > span:first-child) {
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	:global(.document-navigation [data-slot='tabs-trigger'][data-state='active']) {
+		background: var(--sidebar-accent);
 		color: var(--sidebar-accent-foreground);
 		font-weight: 600;
 		box-shadow: none;
 	}
-	:global(.document-tabs [data-slot='tabs-content']) {
-		margin-top: 1.5rem;
+	:global(.document-navigation .category-count) {
+		color: var(--muted-foreground);
+		font-family: var(--font-technical);
+		font-size: 0.72rem;
+		font-variant-numeric: tabular-nums;
+	}
+	.document-library {
+		min-width: 0;
+	}
+	:global(.document-library [data-slot='tabs-content']) {
+		margin: 0;
 	}
 	.list-heading {
 		display: flex;
 		align-items: baseline;
 		justify-content: space-between;
 		gap: var(--space-sm);
-		margin-bottom: 0.5rem;
+		border-bottom: 1px solid var(--sidebar-border);
+		padding: 1.25rem 1.5rem;
 	}
 	.list-heading h2 {
 		margin: 0;
-		color: var(--tertiary-foreground);
-		font-family: var(--font-technical);
-		font-size: 0.625rem;
-		font-weight: 600;
-		letter-spacing: 0.18em;
-		text-transform: uppercase;
+		color: var(--foreground);
+		font-family: var(--font-heading);
+		font-size: 1.125rem;
+		font-weight: 700;
+		letter-spacing: -0.025em;
 	}
 	.list-heading span {
 		color: var(--muted-foreground);
@@ -249,10 +303,13 @@
 	}
 	.documents-list {
 		display: grid;
-		gap: 0.25rem;
+		gap: 0;
 		margin: 0;
 		padding: 0;
 		list-style: none;
+	}
+	.documents-list li + li {
+		border-top: 1px solid var(--sidebar-border);
 	}
 	.document-link {
 		display: grid;
@@ -261,11 +318,10 @@
 		gap: 1rem;
 		min-height: 4.75rem;
 		border: 0;
-		border-left: 2px solid transparent;
-		border-radius: var(--radius-sm);
+		border-radius: 0;
 		background: transparent;
 		color: var(--sidebar-foreground);
-		padding: 0.75rem 1rem;
+		padding: 0.75rem 1.5rem;
 		text-decoration: none;
 		transition: background-color 150ms ease-out;
 	}
@@ -311,7 +367,7 @@
 		font-size: 0.75rem;
 		font-weight: 500;
 		font-variant-numeric: tabular-nums;
-		white-space: nowrap;
+		overflow-wrap: anywhere;
 	}
 	.open-file {
 		display: inline-flex;
@@ -325,12 +381,15 @@
 	}
 	.documents-empty {
 		display: grid;
-		justify-items: start;
+		min-height: 20rem;
+		align-content: center;
+		justify-items: center;
 		gap: var(--space-sm);
-		max-width: 36rem;
-		border-top: 1px solid var(--sidebar-border);
-		padding-top: 1.5rem;
+		border: 1px solid var(--sidebar-border);
+		border-radius: var(--radius-lg);
+		padding: 2rem;
 		color: var(--muted-foreground);
+		text-align: center;
 	}
 	.documents-empty h2 {
 		margin: 0;
@@ -340,10 +399,36 @@
 	}
 	.documents-empty p {
 		margin: 0;
+		max-width: 25rem;
 		font-size: 0.875rem;
 		line-height: 1.6;
 	}
+	@media (max-width: 58rem) {
+		:global(.document-workspace) {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.document-navigation {
+			border-right: 0;
+			border-bottom: 1px solid var(--sidebar-border);
+			padding: 0.875rem 1rem;
+		}
+		.navigation-heading {
+			padding: 0 0 0.75rem;
+		}
+		:global(.document-navigation [data-slot='tabs-list']) {
+			width: 100%;
+			flex-direction: row;
+			overflow-x: auto;
+			scrollbar-width: thin;
+		}
+		:global(.document-navigation [data-slot='tabs-trigger']) {
+			flex: 0 0 auto;
+		}
+	}
 	@media (max-width: 39rem) {
+		.navigation-heading {
+			display: none;
+		}
 		.documents-heading {
 			align-items: start;
 			flex-direction: column;
@@ -352,7 +437,10 @@
 		.document-link {
 			grid-template-columns: 2.5rem minmax(0, 1fr) 1rem;
 			gap: 0.75rem;
-			padding: 0.75rem 0.5rem;
+			padding: 0.75rem 1rem;
+		}
+		.list-heading {
+			padding: 1rem;
 		}
 		.document-icon {
 			width: 2.5rem;
@@ -372,7 +460,7 @@
 		.document-link:hover :global(.open-file) {
 			color: var(--sidebar-accent-foreground);
 		}
-		:global(.document-tabs [data-slot='tabs-trigger']:hover) {
+		:global(.document-navigation [data-slot='tabs-trigger']:hover) {
 			background: var(--sidebar-accent);
 			color: var(--sidebar-accent-foreground);
 		}

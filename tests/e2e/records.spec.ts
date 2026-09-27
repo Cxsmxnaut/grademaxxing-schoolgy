@@ -164,6 +164,11 @@ test('published documents render, filter, and open through the real document flo
 	await expect(page.getByText('Loading documents…')).toBeHidden();
 	await expect(visibleRows.getByText('Quarter 4 Report Card', { exact: true })).toBeVisible();
 	await expect(visibleRows.getByText('Unofficial Transcript', { exact: true })).toBeVisible();
+	const libraryRail = page.getByLabel('Document library');
+	await expect(libraryRail).toBeVisible();
+	const railBox = await libraryRail.boundingBox();
+	const filesBox = await page.getByLabel('Files', { exact: true }).boundingBox();
+	expect(railBox && filesBox && railBox.x + railBox.width <= filesBox.x).toBeTruthy();
 	if (process.env.DOCUMENTS_VISUAL_CAPTURE)
 		await page.screenshot({ path: '/tmp/grademaxxing-documents-dark.png' });
 	await expect(page.getByRole('tab', { name: 'All' })).toHaveCSS('color', 'rgb(110, 168, 220)');
@@ -244,6 +249,11 @@ test('record pages retain their layout and controls on a phone viewport', async 
 	await expect(page.getByRole('navigation', { name: 'Mobile navigation' })).toBeVisible();
 	await expect(page.getByTestId('document-row').filter({ visible: true })).toHaveCount(2);
 	await expect(page.getByText('Loading documents…')).toBeHidden();
+	const libraryRail = await page.getByLabel('Document library').boundingBox();
+	const filesPane = await page.getByLabel('Files', { exact: true }).boundingBox();
+	expect(
+		libraryRail && filesPane && libraryRail.y + libraryRail.height <= filesPane.y
+	).toBeTruthy();
 	if (process.env.DOCUMENTS_VISUAL_CAPTURE)
 		await page.screenshot({ path: '/tmp/grademaxxing-documents-phone.png' });
 	for (const width of [320, 375, 414, 768]) {
