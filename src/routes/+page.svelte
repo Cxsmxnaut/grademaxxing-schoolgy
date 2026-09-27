@@ -98,7 +98,7 @@
 						src="/demo_dark.png"
 						width="1440"
 						height="900"
-						alt={`${brand} gradebook home with GPA summary, courses, rank, and recent assignments`}
+						alt={`${brand} gradebook home with GPA summary, courses, and recent assignments`}
 					/>
 				</div>
 			</div>

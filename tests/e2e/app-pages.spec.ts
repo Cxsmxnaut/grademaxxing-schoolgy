@@ -113,7 +113,6 @@ test.beforeEach(async ({ page }) => {
 
 const pages = [
 	['/grades', 'Gradebook'],
-	['/rankings', 'Rankings & achievements'],
 	['/gpa-calculator', 'GPA calculator'],
 	['/grades/preview', 'Theme Preview'],
 	['/attendance', 'Attendance'],
@@ -665,12 +664,11 @@ test('empty records, feedback state, mobile navigation, and dark theme are clear
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.goto('/grades');
 	await expect(page.getByRole('button', { name: 'Use light theme' })).toHaveCount(0);
-	for (const label of ['Grades', 'Rankings', 'Attendance', 'Documents', 'Mail'])
+	for (const label of ['Grades', 'Attendance', 'Documents', 'Mail'])
 		await expect(
 			page.getByRole('navigation', { name: 'Mobile navigation' }).getByText(label, { exact: true })
 		).toBeVisible();
 	for (const [label, path] of [
-		['Rankings', '/rankings'],
 		['Attendance', '/attendance'],
 		['Documents', '/documents'],
 		['Mail', '/mail'],
@@ -687,74 +685,29 @@ test('empty records, feedback state, mobile navigation, and dark theme are clear
 	}
 });
 
-test('Rankings shows the tougher tier ladder and gradebook achievements', async ({ page }) => {
-	await page.goto('/rankings');
-	await expect(
-		page.getByRole('heading', { level: 1, name: 'Rankings & achievements' })
-	).toBeVisible();
-	await expect(
-		page.getByRole('heading', { level: 2, name: 'Champion', exact: true })
-	).toBeVisible();
-	await expect(page.getByText('Provisional', { exact: true }).first()).toBeVisible();
-	await expect(page.getByText('Add 3 more to confirm this tier.')).toBeVisible();
-	await expect(page.getByText('4.00–4.00 GPA')).toBeVisible();
-	await expect(page.getByTestId('completed-ranks')).not.toHaveAttribute('open', '');
-	await expect(page.getByTestId('completed-ranks-toggle')).toContainText('Completed tiers');
-	await page.getByTestId('completed-ranks-toggle').click();
-	await expect(page.getByTestId('completed-ranks')).toHaveAttribute('open', '');
-	await expect(page.getByRole('heading', { level: 3, name: 'Bronze', exact: true })).toHaveCount(0);
-	await expect(page.getByRole('heading', { level: 3, name: 'Summit', exact: true })).toBeVisible();
-	await expect(page.locator('img[src="/ranks/bronze.png"]')).toHaveCount(3);
-	await expect(page.locator('img[src="/ranks/champion.png"]')).toHaveCount(2);
-	await expect(page.getByRole('progressbar', { name: 'Achievements unlocked' })).toHaveAttribute(
-		'aria-valuenow',
-		'1'
-	);
-	await expect(page.getByRole('progressbar', { name: 'Achievements unlocked' })).toHaveAttribute(
-		'aria-valuemax',
-		'10'
-	);
-	await expect(page.getByRole('progressbar', { name: 'First ace progress' })).toHaveAttribute(
-		'aria-valuenow',
-		'100'
-	);
-	await expect(page.getByText('Your next move')).toHaveCount(0);
-	const firstAchievement = page
-		.getByRole('listitem')
-		.filter({ has: page.getByRole('heading', { name: 'First ace' }) });
-	await expect(firstAchievement).toBeVisible();
-	await expect(firstAchievement.getByText('Unlocked', { exact: true })).toBeVisible();
-	await expect(page.getByText('not your school’s official class rank or awards')).toBeVisible();
-});
-
 test('legacy dashboard bookmarks resolve to the Gradebook home', async ({ page }) => {
 	await page.goto('/dashboard');
 	await expect(page).toHaveURL(/\/grades$/);
 	await expect(page.getByRole('heading', { level: 1, name: 'Gradebook' })).toBeVisible();
 });
 
-test('Gradebook exposes the GPA rank summary on desktop and mobile', async ({ page }) => {
+test('Gradebook exposes the GPA summary on desktop and mobile', async ({ page }) => {
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.goto('/grades');
 	const summary = page.getByRole('region', { name: 'Grade summary' });
-	await expect(summary.getByText('Rank', { exact: true })).toBeVisible();
-	await expect(summary.getByText('Champion', { exact: true })).toBeVisible();
+	await expect(summary.getByText('GPA · Unweighted', { exact: true })).toBeVisible();
+	await expect(summary.getByText('GPA · Weighted', { exact: true })).toBeVisible();
 	await expect(page.getByRole('progressbar', { name: 'Theme Preview grade' })).toHaveAttribute(
 		'aria-valuenow',
 		'95'
 	);
-	await expect(page.getByRole('button', { name: 'Share your rank' })).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'Next rank' })).toBeVisible();
-	await expect(page.getByText('Unreal', { exact: true })).toBeVisible();
-	await expect(page.getByText('0.01 GPA away')).toBeVisible();
 
 	await page.setViewportSize({ width: 390, height: 844 });
-	await expect(page.getByText('GPA and rank', { exact: true })).toBeVisible();
-	await page.getByText('GPA and rank', { exact: true }).click();
+	await expect(page.getByText('GPA summary', { exact: true })).toBeVisible();
+	await page.getByText('GPA summary', { exact: true }).click();
 	const mobileSummary = page.locator('details');
 	await expect(mobileSummary.getByText('GPA · Unweighted', { exact: true })).toBeVisible();
 	await expect(mobileSummary.getByText('GPA · Weighted', { exact: true })).toBeVisible();
-	await expect(mobileSummary.getByRole('button', { name: 'Share your rank' })).toBeVisible();
 });
 
 test('Gradebook report period menu switches data and preserves native menu semantics', async ({
@@ -774,33 +727,8 @@ test('Gradebook report period menu switches data and preserves native menu seman
 	).toBeVisible();
 });
 
-test('Gradebook class and rank controls perform their real actions', async ({ page }) => {
-	await page.addInitScript(() => {
-		Object.defineProperty(navigator, 'share', {
-			configurable: true,
-			value: async (payload: ShareData) =>
-				sessionStorage.setItem('shared-rank', JSON.stringify(payload))
-		});
-	});
+test('Gradebook class controls perform their real actions', async ({ page }) => {
 	await page.goto('/grades');
-	await page.getByRole('button', { name: 'Share your rank' }).click();
-	await expect(page.getByRole('dialog', { name: 'Your rank card' })).toBeVisible();
-	await expect(page.getByText('No GPA or grades on the card.')).toBeVisible();
-	await page.getByRole('button', { name: 'Cancel', exact: true }).click();
-	await expect(page.getByRole('dialog', { name: 'Your rank card' })).toHaveCount(0);
-
-	await page.getByRole('button', { name: 'Share your rank' }).click();
-	const downloadPromise = page.waitForEvent('download');
-	await page.getByRole('button', { name: 'Save image', exact: true }).click();
-	const download = await downloadPromise;
-	expect(download.suggestedFilename()).toMatch(/-rank\.svg$/);
-
-	await page.getByRole('button', { name: 'Close', exact: true }).click();
-	await page.getByRole('button', { name: 'Share your rank' }).click();
-	await page.getByRole('button', { name: 'Share', exact: true }).click();
-	await expect
-		.poll(() => page.evaluate(() => sessionStorage.getItem('shared-rank')))
-		.toContain('GPA rank');
 
 	await page
 		.locator('main ol')

@@ -7,7 +7,6 @@
 	import * as Command from '$lib/components/ui/command';
 	import BookIcon from '@lucide/svelte/icons/book';
 	import CalendarCheck2Icon from '@lucide/svelte/icons/calendar-check-2';
-	import ChartNoAxesColumnIncreasingIcon from '@lucide/svelte/icons/chart-no-axes-column-increasing';
 	import FilesIcon from '@lucide/svelte/icons/files';
 	import MailOpenIcon from '@lucide/svelte/icons/mail-open';
 	import MessageSquareQuoteIcon from '@lucide/svelte/icons/message-square-quote';
@@ -21,12 +20,6 @@
 			url: '/grades',
 			icon: BookIcon,
 			keywords: 'grades classes assignments marks'
-		},
-		{
-			title: 'Rankings',
-			url: '/rankings',
-			icon: ChartNoAxesColumnIncreasingIcon,
-			keywords: 'ladder tier achievements gpa'
 		},
 		{
 			title: 'Attendance',

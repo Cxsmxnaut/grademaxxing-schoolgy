@@ -25,7 +25,6 @@
 	import BookIcon from '@lucide/svelte/icons/book';
 	import CommandIcon from '@lucide/svelte/icons/command';
 	import CalendarCheck2Icon from '@lucide/svelte/icons/calendar-check-2';
-	import ChartNoAxesColumnIncreasingIcon from '@lucide/svelte/icons/chart-no-axes-column-increasing';
 	import FilesIcon from '@lucide/svelte/icons/files';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import MailOpenIcon from '@lucide/svelte/icons/mail-open';
@@ -145,12 +144,6 @@
 		section: 'Overview' | 'School';
 	}[] = [
 		{ title: 'Gradebook', url: '/grades', icon: BookIcon, section: 'Overview' },
-		{
-			title: 'Rankings',
-			url: '/rankings',
-			icon: ChartNoAxesColumnIncreasingIcon,
-			section: 'Overview'
-		},
 		{ title: 'Attendance', url: '/attendance', icon: CalendarCheck2Icon, section: 'School' },
 		{ title: 'Documents', url: '/documents', icon: FilesIcon, section: 'School' },
 		{ title: 'Mail', url: '/mail', icon: MailOpenIcon, section: 'School' },

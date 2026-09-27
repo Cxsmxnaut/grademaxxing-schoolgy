@@ -30,7 +30,6 @@
 	import FileTextIcon from '@lucide/svelte/icons/file-text';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import MailIcon from '@lucide/svelte/icons/mail';
-	import TrophyIcon from '@lucide/svelte/icons/trophy';
 	import AppSidebar from './AppSidebar.svelte';
 	import QuickJump from './QuickJump.svelte';
 	import ReconnectStudentVue from './ReconnectStudentVue.svelte';
@@ -51,7 +50,6 @@
 
 	const mobileNavigation = [
 		{ title: 'Grades', url: '/grades', icon: BookOpenIcon },
-		{ title: 'Rankings', url: '/rankings', icon: TrophyIcon },
 		{ title: 'Attendance', url: '/attendance', icon: CalendarDaysIcon },
 		{ title: 'Documents', url: '/documents', icon: FileTextIcon },
 		{ title: 'Mail', url: '/mail', icon: MailIcon }
