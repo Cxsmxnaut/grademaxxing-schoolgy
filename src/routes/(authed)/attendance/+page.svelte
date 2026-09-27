@@ -234,7 +234,19 @@
 
 	{#if attendanceState.data}
 		<div class="calendar-toolbar">
-			<div class="date-actions">
+			<div class="date-navigation">
+				<button
+					type="button"
+					class="date-step"
+					aria-label="Previous {view}"
+					onclick={() => move(-1)}><ChevronLeftIcon class="size-4" /></button
+				>
+				<h2>{rangeLabel}</h2>
+				<button type="button" class="date-step" aria-label="Next {view}" onclick={() => move(1)}
+					><ChevronRightIcon class="size-4" /></button
+				>
+			</div>
+			<div class="toolbar-options">
 				<button
 					type="button"
 					class="today-button"
@@ -242,24 +254,19 @@
 						selectedDate = new Date();
 						calendarPlaceholder = toCalendarDate(selectedDate);
 						expandedRecord = undefined;
-					}}>Today</button
-				><button type="button" aria-label="Previous {view}" onclick={() => move(-1)}
-					><ChevronLeftIcon class="size-4" /></button
-				><button type="button" aria-label="Next {view}" onclick={() => move(1)}
-					><ChevronRightIcon class="size-4" /></button
+					}}><CalendarDaysIcon class="size-4" /><span>Today</span></button
 				>
-			</div>
-			<h2>{rangeLabel}</h2>
-			<div class="view-switch" aria-label="Calendar view">
-				{#each ['month', 'week', 'day'] as option (option)}<button
-						type="button"
-						class:active={view === option}
-						aria-pressed={view === option}
-						onclick={() => {
-							view = option as View;
-							expandedRecord = undefined;
-						}}>{(option[0] ?? '').toUpperCase() + option.slice(1)}</button
-					>{/each}
+				<div class="view-switch" aria-label="Calendar view">
+					{#each ['month', 'week', 'day'] as option (option)}<button
+							type="button"
+							class:active={view === option}
+							aria-pressed={view === option}
+							onclick={() => {
+								view = option as View;
+								expandedRecord = undefined;
+							}}>{(option[0] ?? '').toUpperCase() + option.slice(1)}</button
+						>{/each}
+				</div>
 			</div>
 		</div>
 
@@ -422,11 +429,17 @@
 		font-size: 0.9rem;
 	}
 	.calendar-toolbar {
-		display: grid;
-		grid-template-columns: 1fr auto 1fr;
+		display: flex;
 		align-items: center;
+		justify-content: space-between;
 		gap: var(--space-md);
 		margin: 0 0 var(--space-lg);
+	}
+	.date-navigation {
+		display: inline-flex;
+		min-width: 0;
+		align-items: center;
+		gap: var(--space-sm);
 	}
 	.calendar-toolbar h2 {
 		min-width: 0;
@@ -435,10 +448,13 @@
 		font-family: var(--font-heading);
 		font-size: clamp(1.05rem, 2vw, 1.4rem);
 		letter-spacing: -0.025em;
-		text-align: center;
 		overflow-wrap: anywhere;
 	}
-	.date-actions,
+	.toolbar-options {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-sm);
+	}
 	.view-switch {
 		display: inline-flex;
 		align-items: stretch;
@@ -448,7 +464,6 @@
 		border-radius: var(--radius-md);
 		background: var(--card);
 	}
-	.date-actions button,
 	.view-switch button {
 		display: grid;
 		min-width: 2.5rem;
@@ -461,13 +476,35 @@
 		font-size: 0.8rem;
 		white-space: nowrap;
 	}
-	.date-actions button:last-child,
 	.view-switch button:last-child {
 		border-right: 0;
 	}
-	.date-actions .today-button {
-		padding-inline: 0.9rem;
+	.today-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.45rem;
+		min-height: 2.5rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-md);
+		padding-inline: 0.8rem;
+		background: transparent;
+		color: var(--foreground);
+		font-size: 0.8rem;
 		font-weight: 700;
+	}
+	.today-button :global(svg) {
+		color: var(--muted-foreground);
+	}
+	.date-step {
+		display: grid;
+		width: 2.5rem;
+		height: 2.5rem;
+		place-items: center;
+		border: 1px solid var(--border);
+		border-radius: 50%;
+		background: var(--card);
+		color: var(--foreground);
 	}
 	.view-switch {
 		justify-self: end;
@@ -786,16 +823,14 @@
 	}
 	@media (max-width: 39rem) {
 		.calendar-toolbar {
-			grid-template-columns: 1fr auto;
+			display: grid;
+			grid-template-columns: minmax(0, 1fr);
 		}
-		.calendar-toolbar h2 {
-			grid-column: 1 / -1;
-			grid-row: 1;
-			text-align: left;
+		.date-navigation {
+			justify-content: space-between;
 		}
-		.date-actions,
-		.view-switch {
-			grid-row: 2;
+		.toolbar-options {
+			justify-content: space-between;
 		}
 		.view-switch button {
 			padding-inline: 0.55rem;
@@ -829,7 +864,8 @@
 	}
 	@media (hover: hover) {
 		.record-trigger:hover,
-		.date-actions button:hover,
+		.date-step:hover,
+		.today-button:hover,
 		.view-switch button:hover {
 			background: var(--secondary);
 		}
