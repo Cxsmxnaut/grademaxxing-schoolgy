@@ -5,6 +5,7 @@
 	import { acc } from '$lib/account.svelte';
 	import { brandName } from '$lib/brand';
 	import ThinkingOrb from '$lib/components/ThinkingOrb.svelte';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Spinner } from '$lib/components/ui/spinner';
 	import {
@@ -22,6 +23,7 @@
 	import { StudentVueSessionExpiredError } from '$lib/synergy';
 	import AppWindowMacIcon from '@lucide/svelte/icons/app-window-mac';
 	import BookIcon from '@lucide/svelte/icons/book';
+	import CommandIcon from '@lucide/svelte/icons/command';
 	import CalendarCheck2Icon from '@lucide/svelte/icons/calendar-check-2';
 	import ChartNoAxesColumnIncreasingIcon from '@lucide/svelte/icons/chart-no-axes-column-increasing';
 	import FilesIcon from '@lucide/svelte/icons/files';
@@ -29,6 +31,7 @@
 	import MailOpenIcon from '@lucide/svelte/icons/mail-open';
 	import MessageSquareQuoteIcon from '@lucide/svelte/icons/message-square-quote';
 	import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
+	import * as Avatar from '$lib/components/ui/avatar';
 	import { toast } from 'svelte-sonner';
 	import { onMount, type Component } from 'svelte';
 	import { installPrompt } from '../../hooks.client';
@@ -36,6 +39,7 @@
 	import { documentsState, loadDocuments } from './documents/documents.svelte';
 	import { loadMailData, mailDataState } from './mail/mailData.svelte';
 	import { resetNonGradeRecords } from './resetNonGradeRecords.svelte';
+	import { quickJumpState } from './quickJumpState.svelte';
 	import { loadStudentInfo, studentInfoState } from './studentinfo/studentInfo.svelte';
 
 	const sidebar = Sidebar.useSidebar();
@@ -127,6 +131,8 @@
 	function installWebApp() {
 		$installPrompt.prompt?.();
 	}
+
+	let confirmLogOut = $state(false);
 
 	function isRouteActive(url: string) {
 		return page.url.pathname === url || page.url.pathname.startsWith(`${url}/`);
@@ -248,6 +254,21 @@
 			>
 				Classes
 			</h2>
+			<button
+				type="button"
+				onclick={() => (quickJumpState.open = true)}
+				class="text-muted-foreground hover:bg-sidebar-accent hover:text-foreground active:bg-sidebar-accent focus-visible:ring-sidebar-ring mb-1 -ml-1 flex h-7 w-full items-center gap-2 rounded-sm px-2 text-[0.78125rem] font-medium transition-colors outline-none focus-visible:ring-2"
+				title="Quick jump (⌘K)"
+				aria-label="Open quick jump"
+				data-testid="quick-jump-trigger"
+			>
+				<CommandIcon class="size-3.5" strokeWidth={1.75} />
+				<span>Jump to…</span>
+				<span
+					class="bg-sidebar-accent text-muted-foreground ml-auto rounded px-1 font-mono text-[0.625rem]"
+					aria-hidden="true">⌘K</span
+				>
+			</button>
 
 			<svelte:boundary>
 				{#if courses}
@@ -369,20 +390,20 @@
 				title={studentInfoState.data?.FormattedName ?? 'Student profile'}
 				data-testid="sidebar-profile"
 			>
-				{#if studentInfoState.data?.Photo}
-					<img
-						src="data:{studentInfoState.data.PhotoMimeType || 'image/png'};base64,{studentInfoState
-							.data.Photo}"
-						class="size-8 shrink-0 rounded-md object-cover"
-						alt=""
-					/>
-				{:else}
-					<span
-						class="bg-sidebar-accent text-sidebar-accent-foreground flex size-8 shrink-0 items-center justify-center rounded-md font-bold"
+				<Avatar.Root class="size-8 shrink-0 rounded-md after:rounded-md">
+					{#if studentInfoState.data?.Photo}
+						<Avatar.Image
+							src="data:{studentInfoState.data.PhotoMimeType ||
+								'image/png'};base64,{studentInfoState.data.Photo}"
+							alt=""
+						/>
+					{/if}
+					<Avatar.Fallback
+						class="bg-sidebar-accent text-sidebar-accent-foreground rounded-md font-bold"
 					>
 						{profileName.charAt(0) || 'S'}
-					</span>
-				{/if}
+					</Avatar.Fallback>
+				</Avatar.Root>
 				<span class="min-w-0 group-data-[collapsible=icon]:hidden">
 					<span class="block truncate text-sm font-bold">
 						{profileName}
@@ -407,15 +428,35 @@
 				</button>
 			{/if}
 
-			<button
-				type="button"
-				onclick={logOut}
-				class="text-muted-foreground hover:bg-destructive-soft hover:text-destructive active:bg-destructive-soft active:text-destructive focus-visible:ring-sidebar-ring flex size-8 shrink-0 items-center justify-center rounded-md transition-colors outline-none group-data-[collapsible=icon]:hidden focus-visible:ring-2"
-				title="Log out"
-				aria-label="Log out"
-			>
-				<LogOutIcon class="size-4" strokeWidth={1.5} />
-			</button>
+			<AlertDialog.Root bind:open={confirmLogOut}>
+				<AlertDialog.Trigger
+					class="text-muted-foreground hover:bg-destructive-soft hover:text-destructive active:bg-destructive-soft active:text-destructive focus-visible:ring-sidebar-ring flex size-8 shrink-0 items-center justify-center rounded-md transition-colors outline-none group-data-[collapsible=icon]:hidden focus-visible:ring-2"
+					title="Log out"
+					aria-label="Log out"
+					data-testid="sidebar-log-out"
+				>
+					<LogOutIcon class="size-4" strokeWidth={1.5} />
+				</AlertDialog.Trigger>
+				<AlertDialog.Content>
+					<AlertDialog.Header>
+						<AlertDialog.Title>Log out of Grademaxxing?</AlertDialog.Title>
+						<AlertDialog.Description>
+							This clears your saved grades and records on this device, and returns you to the
+							sign-in page. Your StudentVUE account is untouched.
+						</AlertDialog.Description>
+					</AlertDialog.Header>
+					<AlertDialog.Footer>
+						<AlertDialog.Cancel>Stay signed in</AlertDialog.Cancel>
+						<AlertDialog.Action
+							class="bg-destructive hover:bg-destructive/90 text-white"
+							onclick={logOut}
+							data-testid="confirm-log-out"
+						>
+							Log out
+						</AlertDialog.Action>
+					</AlertDialog.Footer>
+				</AlertDialog.Content>
+			</AlertDialog.Root>
 		</div>
 	</Sidebar.Footer>
 </Sidebar.Root>

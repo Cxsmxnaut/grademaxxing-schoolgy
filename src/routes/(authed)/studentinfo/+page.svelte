@@ -5,6 +5,7 @@
 	import AppPageShell from '$lib/components/AppPageShell.svelte';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
 	import RecordLoadFailure from '$lib/components/RecordLoadFailure.svelte';
+	import * as Avatar from '$lib/components/ui/avatar';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
@@ -231,21 +232,19 @@
 					<div
 						class="from-primary/8 flex flex-col gap-5 bg-gradient-to-br to-transparent px-5 py-6 sm:flex-row sm:items-center sm:px-7"
 					>
-						{#if studentInfoState.data.Photo}
-							<img
-								src="data:{studentInfoState.data.PhotoMimeType ||
-									'image/png'};base64,{studentInfoState.data.Photo}"
-								class="bg-background ring-card size-24 shrink-0 rounded-full object-cover p-0.5 ring-4"
-								alt="Student Portrait"
-							/>
-						{:else}
-							<div
-								class="bg-primary/10 text-primary ring-card flex size-24 shrink-0 items-center justify-center rounded-full text-3xl font-bold ring-4"
-								aria-label="Student portrait unavailable"
-							>
+						<Avatar.Root class="ring-card bg-background size-24 shrink-0 rounded-full p-0.5 ring-4">
+							{#if studentInfoState.data.Photo}
+								<Avatar.Image
+									src="data:{studentInfoState.data.PhotoMimeType ||
+										'image/png'};base64,{studentInfoState.data.Photo}"
+									class="rounded-full"
+									alt="Student Portrait"
+								/>
+							{/if}
+							<Avatar.Fallback class="bg-primary/10 text-primary rounded-full text-3xl font-bold">
 								{studentInfoState.data.FormattedName.trim().charAt(0) || '?'}
-							</div>
-						{/if}
+							</Avatar.Fallback>
+						</Avatar.Root>
 						<div class="min-w-0">
 							<div class="flex flex-wrap items-center gap-2">
 								<h2

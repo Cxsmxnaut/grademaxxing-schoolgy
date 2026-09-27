@@ -7,6 +7,7 @@
 	import { clearStoredCredentials, loadStoredCredentials } from '$lib/auth/credential-vault';
 	import { brandName } from '$lib/brand';
 	import BoundaryFailure from '$lib/components/BoundaryFailure.svelte';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Spinner } from '$lib/components/ui/spinner';
 	import {
@@ -31,11 +32,14 @@
 	import MailIcon from '@lucide/svelte/icons/mail';
 	import TrophyIcon from '@lucide/svelte/icons/trophy';
 	import AppSidebar from './AppSidebar.svelte';
+	import QuickJump from './QuickJump.svelte';
 	import ReconnectStudentVue from './ReconnectStudentVue.svelte';
 	import { resetNonGradeRecords } from './resetNonGradeRecords.svelte';
 	import { onMount } from 'svelte';
 
 	let { children } = $props();
+
+	let confirmMobileLogOut = $state(false);
 	const KEEPALIVE_INTERVAL_MS = 8 * 60 * 1000;
 	const BACKGROUND_GRADE_REFRESH_MS = 5 * 60 * 1000;
 	const RESUME_DEBOUNCE_MS = 30 * 1000;
@@ -254,6 +258,7 @@
 <svelte:boundary>
 	<Sidebar.Provider class="md:h-svh md:overflow-hidden">
 		<AppSidebar />
+		<QuickJump />
 
 		<Sidebar.Inset
 			class="min-w-0 pb-[3.75rem] md:h-svh md:overflow-y-auto md:pb-0"
@@ -270,14 +275,32 @@
 					<img src="/grademaxxing-growth-mark.png" class="size-7" alt="" />
 					<span>{brandName}</span>
 				</a>
-				<button
-					type="button"
-					onclick={() => void logOut()}
-					class="text-muted-foreground hover:text-foreground flex size-9 items-center justify-center rounded-lg"
-					aria-label="Log out"
-				>
-					<LogOutIcon class="size-4" />
-				</button>
+				<AlertDialog.Root bind:open={confirmMobileLogOut}>
+					<AlertDialog.Trigger
+						class="text-muted-foreground hover:text-foreground flex size-9 items-center justify-center rounded-lg"
+						aria-label="Log out"
+					>
+						<LogOutIcon class="size-4" />
+					</AlertDialog.Trigger>
+					<AlertDialog.Content>
+						<AlertDialog.Header>
+							<AlertDialog.Title>Log out of Grademaxxing?</AlertDialog.Title>
+							<AlertDialog.Description>
+								This clears your saved grades and records on this device, and returns you to the
+								sign-in page. Your StudentVUE account is untouched.
+							</AlertDialog.Description>
+						</AlertDialog.Header>
+						<AlertDialog.Footer>
+							<AlertDialog.Cancel>Stay signed in</AlertDialog.Cancel>
+							<AlertDialog.Action
+								class="bg-destructive hover:bg-destructive/90 text-white"
+								onclick={() => void logOut()}
+							>
+								Log out
+							</AlertDialog.Action>
+						</AlertDialog.Footer>
+					</AlertDialog.Content>
+				</AlertDialog.Root>
 			</header>
 
 			<div class="flex flex-1 flex-col">

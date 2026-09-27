@@ -4,6 +4,7 @@
 	import { removeCourseType } from '$lib/grades/course-name';
 	import { brand } from '$lib/brand';
 	import * as Alert from '$lib/components/ui/alert';
+	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
 	import { Button } from '$lib/components/ui/button';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Label } from '$lib/components/ui/label';
@@ -130,7 +131,6 @@
 			: calculateCourseGradePercentageFromTotals(calculable);
 
 		hypotheticalGrade = calculatedGrade;
-
 	}
 
 	// Initialize reactive assignments and re-initialize them when assignments change
@@ -260,12 +260,26 @@
 	<main
 		class="min-h-[calc(100vh-3.09375rem)] w-full max-w-[67.5rem] overflow-x-clip px-4 pt-[0.84375rem] pb-[5.25rem] sm:px-6 md:min-h-screen lg:px-11 lg:pt-9 lg:pb-16"
 	>
-		<a
-			href="/grades"
-			class="text-primary mb-[0.875rem] inline-flex items-center gap-2 text-[0.90625rem] leading-[1.5] font-semibold hover:underline sm:mb-4 sm:text-sm sm:leading-5"
-		>
-			<ArrowLeftIcon class="size-4" /> All courses
-		</a>
+		<Breadcrumb.Root class="mb-[0.875rem] sm:mb-4">
+			<Breadcrumb.List>
+				<Breadcrumb.Item>
+					<Breadcrumb.Link
+						href="/grades"
+						class="text-primary text-[0.90625rem] leading-[1.5] font-semibold hover:underline sm:text-sm sm:leading-5"
+					>
+						<ArrowLeftIcon class="size-4" /> All courses
+					</Breadcrumb.Link>
+				</Breadcrumb.Item>
+				<Breadcrumb.Separator />
+				<Breadcrumb.Item>
+					<Breadcrumb.Page
+						class="text-muted-foreground text-[0.90625rem] leading-[1.5] sm:text-sm sm:leading-5"
+					>
+						{courseName}
+					</Breadcrumb.Page>
+				</Breadcrumb.Item>
+			</Breadcrumb.List>
+		</Breadcrumb.Root>
 
 		<header class="mb-[1.125rem] flex items-start justify-between gap-4">
 			<div class="min-w-0 flex-1">

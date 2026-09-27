@@ -122,16 +122,16 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 	await expect(logo).toHaveCSS('width', '32px');
 	await expect(logo).toHaveCSS('height', '32px');
 	const wordmark = page.getByTestId('sidebar-brand').locator(':scope > span.flex-1');
-	await expect(wordmark).toHaveCSS('font-family', /^"Space Grotesk"/);
+	await expect(wordmark).toHaveCSS('font-family', /^Outfit/);
 	await expect(wordmark).toHaveCSS('font-size', '20px');
 	await expect(wordmark).toHaveCSS('font-weight', '700');
 	const logoBox = await logo.boundingBox();
 	const wordmarkBox = await wordmark.boundingBox();
 	expect(logoBox).not.toBeNull();
 	expect(wordmarkBox).not.toBeNull();
-	expect(Math.abs(logoBox!.y + logoBox!.height / 2 - (wordmarkBox!.y + wordmarkBox!.height / 2))).toBeLessThanOrEqual(
-		1
-	);
+	expect(
+		Math.abs(logoBox!.y + logoBox!.height / 2 - (wordmarkBox!.y + wordmarkBox!.height / 2))
+	).toBeLessThanOrEqual(1);
 	await expect(page.getByTestId('sidebar-brand')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 	await expect(page.getByTestId('sidebar-brand').locator('svg')).toHaveCount(0);
 
@@ -260,7 +260,42 @@ test('every sidebar action works and preserves a single active destination', asy
 	await page.getByTestId('sidebar-profile').click();
 	await expect(page).toHaveURL(/\/studentinfo$/);
 	await page.getByRole('button', { name: 'Log out', exact: true }).click();
+	await expect(page.getByText('Log out of Grademaxxing?')).toBeVisible();
+	await page.getByRole('button', { name: 'Stay signed in' }).click();
+	await expect(page).not.toHaveURL(/\/login$/);
+	await page.getByRole('button', { name: 'Log out', exact: true }).click();
+	await page.getByTestId('confirm-log-out').click();
 	await expect(page).toHaveURL(/\/login$/);
+});
+
+test('quick jump opens from the sidebar and keyboard and navigates to pages and classes', async ({
+	page
+}) => {
+	await page.goto('/grades');
+
+	// The palette only exists in the DOM while open, so a click lost to the
+	// hydration window must be retried until the dialog actually appears. The
+	// inner wait stays short on purpose: a long one would consume the whole
+	// toPass budget on the first lost click and never reach the retry.
+	await expect(async () => {
+		if ((await page.locator('[data-slot="command"]').count()) === 0)
+			await page.getByTestId('quick-jump-trigger').click();
+		await expect(page.locator('[data-slot="command"]')).toBeVisible({ timeout: 500 });
+	}).toPass({ timeout: 20_000 });
+	await expect(page.getByPlaceholder('Search pages and classes…')).toBeVisible();
+	await page.getByPlaceholder('Search pages and classes…').fill('attendance');
+	await page.keyboard.press('Enter');
+	await expect(page).toHaveURL(/\/attendance$/);
+
+	await page.keyboard.press('ControlOrMeta+k');
+	await expect(page.getByPlaceholder('Search pages and classes…')).toBeVisible();
+	await page.getByPlaceholder('Search pages and classes…').fill('calculus');
+	await page.keyboard.press('Enter');
+	await expect(page).toHaveURL(/\/grades\/calculus$/);
+
+	await page.keyboard.press('ControlOrMeta+k');
+	await page.keyboard.press('Escape');
+	await expect(page.getByPlaceholder('Search pages and classes…')).toBeHidden();
 });
 
 test('hover, keyboard focus, and active-course states remain legible in dark mode', async ({
