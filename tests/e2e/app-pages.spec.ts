@@ -125,7 +125,7 @@ for (const [path, heading] of pages) {
 	});
 }
 
-test('gradebook calculator, course planner, and attendance views are interactive', async ({
+test('gradebook calculator, course details, and attendance views are interactive', async ({
 	page
 }) => {
 	await page.goto('/grades');
@@ -144,17 +144,7 @@ test('gradebook calculator, course planner, and attendance views are interactive
 	await expect(
 		page.getByRole('progressbar', { name: 'Unit assessment score progress' })
 	).toHaveAttribute('aria-valuenow', '95');
-	const finalsPlanner = page.getByRole('button', { name: /Finals Planner/ });
-	await finalsPlanner.click();
-	const plannerRegion = page.getByRole('region', { name: 'Finals Planner' });
-	await expect(plannerRegion).toBeVisible();
-	await expect(plannerRegion.getByLabel('Target grade')).toHaveValue('93');
-	const initialRequirement = await plannerRegion.getByText(/You need/).textContent();
-	await plannerRegion.getByLabel('Target grade').selectOption('90');
-	await plannerRegion.getByLabel('Final points possible').fill('50');
-	await expect(plannerRegion.getByText(/You need/)).not.toHaveText(initialRequirement ?? '');
-	await finalsPlanner.click();
-	await expect(plannerRegion).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Finals Planner' })).toHaveCount(0);
 
 	await page.getByTitle('Assignment description').filter({ visible: true }).click();
 	await expect(

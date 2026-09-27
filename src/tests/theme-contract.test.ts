@@ -93,8 +93,7 @@ test('named badge colors are not collapsed into the brand palette', () => {
 test('grade UI uses semantic outcomes instead of hard-coded utility colors', () => {
 	const gradeFiles = [
 		'../routes/(authed)/grades/CourseButton.svelte',
-		'../routes/(authed)/grades/[index]/AssignmentCard.svelte',
-		'../routes/(authed)/grades/[index]/TargetGradeCalculator.svelte'
+		'../routes/(authed)/grades/[index]/AssignmentCard.svelte'
 	];
 	const source = gradeFiles
 		.map((path) => readFileSync(new URL(path, import.meta.url), 'utf8'))

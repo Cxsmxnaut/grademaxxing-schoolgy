@@ -46,7 +46,6 @@
 	import CalculationError from './CalculationError.svelte';
 	import GradeCategoryTable from './GradeCategoryTable.svelte';
 	import GradeChart from './GradeChart.svelte';
-	import TargetGradeCalculator from './TargetGradeCalculator.svelte';
 
 	const synergyCourse = $derived.by(() => {
 		gradebookState.version;
@@ -132,7 +131,6 @@
 
 		hypotheticalGrade = calculatedGrade;
 
-		showTargetGradeCalculator = false;
 	}
 
 	// Initialize reactive assignments and re-initialize them when assignments change
@@ -221,16 +219,6 @@
 	);
 	const unseenAssignments = $derived(
 		realAssignments.filter(({ id, notForGrade }) => !notForGrade && !seenAssignmentIDs.has(id))
-	);
-
-	let showTargetGradeCalculator = $state(false);
-	function toggleTargetGradeCalculator() {
-		showTargetGradeCalculator = !showTargetGradeCalculator;
-	}
-	const gradeCategoryWeightProportions: Map<string, number> | undefined = $derived(
-		gradeCategories
-			? new Map(gradeCategories.map(({ name, weightPercentage }) => [name, weightPercentage / 100]))
-			: undefined
 	);
 
 	const roundedGradePercentage = $derived(
@@ -339,35 +327,6 @@
 				</p>
 			</div>
 		</header>
-
-		<section
-			class="border-border/80 bg-card mb-4 overflow-hidden rounded-[0.75rem] border shadow-[0_1px_2px_rgba(15,28,46,0.06),0_8px_24px_rgba(11,125,194,0.08)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)]"
-		>
-			<button
-				type="button"
-				onclick={toggleTargetGradeCalculator}
-				aria-expanded={showTargetGradeCalculator}
-				style="font-family: 'Outfit', 'Manrope', system-ui, sans-serif; line-height: normal;"
-				class="hover:bg-accent/30 flex h-[3.3125rem] w-full items-center justify-between px-5 text-left text-base font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
-			>
-				<span>Finals Planner</span><span class="text-muted-foreground flex items-center text-xs"
-					><span class="hidden sm:inline">what do I need on the final?</span><span
-						class="ml-2 transition-transform {showTargetGradeCalculator ? 'rotate-180' : ''}"
-						>⌄</span
-					></span
-				>
-			</button>
-
-			{#if showTargetGradeCalculator}
-				<div transition:fade={{ duration: 160 }}>
-					<TargetGradeCalculator
-						initialGradePercentage={roundedGradePercentage}
-						assignments={reactiveAssignments}
-						{gradeCategoryWeightProportions}
-					/>
-				</div>
-			{/if}
-		</section>
 
 		{#if !rawGradeCalcMatches}
 			<div class="my-3 flex justify-center" in:fade>

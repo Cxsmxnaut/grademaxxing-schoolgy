@@ -440,9 +440,6 @@ test('2 — a student opens a course and uses the grade-planning controls', asyn
 
 	await page.getByLabel('Hypothetical Mode').check();
 	await expect(page.getByText('Simulation · not official', { exact: true })).toBeVisible();
-	await expect(
-		page.getByRole('button', { name: 'Target Grade Calculator', exact: true })
-	).toBeVisible();
 	const whatIfForm = page.getByRole('form', { name: 'Add what-if assignment', exact: true });
 	await expect(whatIfForm).toBeVisible();
 
@@ -459,18 +456,6 @@ test('2 — a student opens a course and uses the grade-planning controls', asyn
 	expect(await possibleInputs.count()).toBeGreaterThan(0);
 	await earnedInputs.nth(0).fill('8');
 	await possibleInputs.nth(0).fill('10');
-
-	await page.getByRole('button', { name: 'Target Grade Calculator', exact: true }).click();
-	await expect(
-		page.getByRole('region', { name: 'Target Grade Calculator', exact: true })
-	).toBeVisible();
-	await page.getByRole('button', { name: 'Select', exact: true }).click();
-	await expect(page.getByRole('dialog')).toBeVisible();
-	const assignmentChoices = page.getByRole('radio');
-	expect(await assignmentChoices.count()).toBeGreaterThan(0);
-	await assignmentChoices.nth(0).check();
-	await page.keyboard.press('Escape');
-	await expect(page.getByRole('dialog')).toBeHidden();
 
 	await page.getByRole('button', { name: 'Reset', exact: true }).click();
 	await page.getByLabel('Hypothetical Mode').uncheck();

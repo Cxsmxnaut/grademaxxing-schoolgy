@@ -1,8 +1,6 @@
 /**
- * Stable facade for assignment-domain contracts, parsing, grade-flow math, and
- * target-grade calculations.
+ * Stable facade for assignment-domain contracts, parsing, and grade-flow math.
  */
 export * from './assignments/calculations';
 export * from './assignments/parsing';
-export * from './assignments/target-grade';
 export type * from './assignments/types';
