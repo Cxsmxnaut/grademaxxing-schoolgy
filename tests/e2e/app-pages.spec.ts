@@ -691,29 +691,37 @@ test('legacy dashboard bookmarks resolve to the Gradebook home', async ({ page }
 	await expect(page.getByRole('heading', { level: 1, name: 'Gradebook' })).toBeVisible();
 });
 
-test('Gradebook exposes the GPA summary on desktop and mobile', async ({ page }) => {
+test('Gradebook shows the GPA dashboard and keeps upcoming work out of Recently graded', async ({
+	page
+}) => {
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.goto('/grades');
-	const summary = page.getByRole('region', { name: 'Grade summary' });
-	await expect(summary.getByText('GPA · Unweighted', { exact: true })).toBeVisible();
-	await expect(summary.getByText('GPA · Weighted', { exact: true })).toBeVisible();
+	const summary = page.getByRole('region', { name: 'GPA summary' });
+	await expect(
+		summary.getByRole('img', { name: /Unweighted GPA 4\.00 out of 4\.00/ })
+	).toBeVisible();
+	await expect(summary.getByText('Unweighted', { exact: true })).toBeVisible();
+	await expect(summary.getByText('Weighted', { exact: true })).toBeVisible();
 	await expect(page.getByRole('progressbar', { name: 'Theme Preview grade' })).toHaveAttribute(
 		'aria-valuenow',
 		'95'
 	);
+	await expect(page.getByRole('heading', { name: 'Your classes' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Recently graded' })).toBeVisible();
 
 	// Only genuinely graded work may appear here; posted-but-ungraded assignments
 	// (points possible known, no score entered) must stay out.
-	const recentlyGraded = page.getByRole('complementary', { name: 'Gradebook details' });
+	const recentlyGraded = page.getByRole('region', { name: 'Recently graded assignments' });
+	await expect(recentlyGraded.getByText('1 assignment', { exact: true })).toBeVisible();
 	await expect(recentlyGraded.getByText('Unit assessment')).toBeVisible();
 	await expect(recentlyGraded.getByText('Upcoming quiz')).toHaveCount(0);
 
 	await page.setViewportSize({ width: 390, height: 844 });
-	await expect(page.getByText('GPA summary', { exact: true })).toBeVisible();
-	await page.getByText('GPA summary', { exact: true }).click();
-	const mobileSummary = page.locator('details');
-	await expect(mobileSummary.getByText('GPA · Unweighted', { exact: true })).toBeVisible();
-	await expect(mobileSummary.getByText('GPA · Weighted', { exact: true })).toBeVisible();
+	await expect(page.getByRole('region', { name: 'GPA summary' })).toBeVisible();
+	await expect(page.getByRole('link', { name: /Theme Preview/ })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Your classes' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Recently graded' })).toBeVisible();
+	await expect(page.getByText('GPA · Unweighted', { exact: true })).toHaveCount(0);
 });
 
 test('Gradebook report period menu switches data and preserves native menu semantics', async ({
@@ -726,11 +734,12 @@ test('Gradebook report period menu switches data and preserves native menu seman
 	await reportPeriod.selectOption('1');
 	await expect(reportPeriod).toHaveValue('1');
 	await expect(
-		page.getByRole('region', { name: 'Grade summary' }).getByText('3.00').first()
+		page.getByRole('region', { name: 'GPA summary' }).getByText('3.00').first()
 	).toBeVisible();
-	await expect(
-		page.locator('main ol').getByRole('link', { name: /B\+ Theme Preview/ })
-	).toBeVisible();
+	const previewCourse = page.locator('a[href="/grades/preview"]');
+	await expect(previewCourse.getByRole('heading', { name: 'Theme Preview' })).toBeVisible();
+	await expect(previewCourse.getByText('87%')).toBeVisible();
+	await expect(previewCourse.getByText('B+ grade')).toBeVisible();
 });
 
 test('Gradebook class controls perform their real actions', async ({ page }) => {
