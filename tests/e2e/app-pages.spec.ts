@@ -691,7 +691,7 @@ test('legacy dashboard bookmarks resolve to the Gradebook home', async ({ page }
 	await expect(page.getByRole('heading', { level: 1, name: 'Gradebook' })).toBeVisible();
 });
 
-test('Gradebook keeps its original summary and recent grades with simple GPA circles', async ({
+test('Gradebook keeps its original summary and recent grades without circle treatments', async ({
 	page
 }) => {
 	await page.setViewportSize({ width: 1440, height: 900 });
@@ -699,8 +699,8 @@ test('Gradebook keeps its original summary and recent grades with simple GPA cir
 	const summary = page.getByRole('region', { name: 'Grade summary' });
 	await expect(summary.getByText('GPA · Unweighted', { exact: true })).toBeVisible();
 	await expect(summary.getByText('GPA · Weighted', { exact: true })).toBeVisible();
-	await expect(summary.getByRole('img', { name: 'Unweighted GPA 4.00 out of 4.00' })).toBeVisible();
-	await expect(page.locator('.course-grade-circle')).toHaveText('A');
+	await expect(summary.getByText('4.00', { exact: true }).first()).toBeVisible();
+	await expect(page.locator('.course-grade-circle, .gpa-circle')).toHaveCount(0);
 	await expect(page.getByRole('progressbar', { name: 'Theme Preview grade' })).toHaveAttribute(
 		'aria-valuenow',
 		'95'
@@ -714,7 +714,8 @@ test('Gradebook keeps its original summary and recent grades with simple GPA cir
 
 	await page.setViewportSize({ width: 390, height: 844 });
 	await expect(page.getByText('GPA summary', { exact: true })).toBeVisible();
-	await expect(page.getByRole('img', { name: 'Unweighted GPA 4.00' })).toBeVisible();
+	await expect(page.getByText('4.00', { exact: true }).first()).toBeVisible();
+	await expect(page.locator('.course-grade-circle, .gpa-circle')).toHaveCount(0);
 	await page.getByText('GPA summary', { exact: true }).click();
 	const mobileSummary = page.locator('details');
 	await expect(mobileSummary.getByText('GPA · Unweighted', { exact: true })).toBeVisible();

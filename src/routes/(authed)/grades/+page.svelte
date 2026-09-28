@@ -173,12 +173,7 @@
 					>
 						<span>GPA summary</span>
 						<span class="text-muted-foreground flex items-center gap-[0.4375rem] font-mono">
-							<span
-								class="gpa-circle border-grade-strong text-grade-strong inline-grid size-8 place-items-center rounded-full border text-xs group-open:hidden"
-								role="img"
-								aria-label="Unweighted GPA {formatGpa(gpas.unweighted)}"
-								>{formatGpa(gpas.unweighted)}</span
-							>
+							<span class="group-open:hidden">{formatGpa(gpas.unweighted)}</span>
 							<ChevronDownIcon class="size-4 transition-transform group-open:rotate-180" /></span
 						>
 					</summary>
@@ -186,16 +181,10 @@
 						<div class="flex h-[6.375rem] items-center px-4 py-[0.625rem]">
 							<div>
 								<p class="metric-label">GPA · Unweighted</p>
-								<div class="mt-2 flex items-center gap-2.5">
-									<div
-										class="gpa-circle border-grade-strong text-grade-strong grid size-12 shrink-0 place-items-center rounded-full border-2"
-										role="img"
-										aria-label="Unweighted GPA {formatGpa(gpas.unweighted)} out of 4.00"
-									>
-										<p class="text-xl leading-[1.5] font-bold">
-											{formatGpa(gpas.unweighted)}
-										</p>
-									</div>
+								<div class="mt-2 flex items-baseline gap-2.5">
+									<p class="text-grade-strong text-[1.625rem] leading-[1.5] font-bold">
+										{formatGpa(gpas.unweighted)}
+									</p>
 									<span class="text-tertiary-foreground font-mono text-xs leading-[1.5]"
 										>{gpas.graded.length} graded courses</span
 									>
@@ -221,19 +210,12 @@
 				>
 					<div class="unweighted-summary flex flex-col px-5 py-[1.125rem]">
 						<p class="metric-label">GPA · Unweighted</p>
-						<div class="mt-2 flex items-center gap-[0.625rem]">
-							<div
-								class="gpa-circle border-grade-strong text-grade-strong grid size-12 shrink-0 place-items-center rounded-full border-2"
-								role="img"
-								aria-label="Unweighted GPA {formatGpa(gpas.unweighted)} out of 4.00"
-							>
-								<strong
-									class="text-xl leading-[1.5]"
-									style="font-family: 'Outfit', 'Manrope', system-ui, sans-serif;"
-									>{formatGpa(gpas.unweighted)}</strong
-								>
-							</div>
-							<span class="text-tertiary-foreground font-mono text-xs leading-[1.5]"
+						<div class="mt-2 flex items-baseline gap-[0.625rem]">
+							<strong
+								class="text-grade-strong text-[2rem] leading-[1.5]"
+								style="font-family: 'Outfit', 'Manrope', system-ui, sans-serif;"
+								>{formatGpa(gpas.unweighted)}</strong
+							><span class="text-tertiary-foreground font-mono text-xs leading-[1.5]"
 								>{gpas.graded.length} graded courses</span
 							>
 						</div>

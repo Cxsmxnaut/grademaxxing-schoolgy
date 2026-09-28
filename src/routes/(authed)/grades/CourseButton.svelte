@@ -36,7 +36,7 @@
 >
 	<div
 		style="font-family: 'Outfit', 'Manrope', system-ui, sans-serif;"
-		class="course-grade-circle grid size-10 place-items-center rounded-full border border-current text-center text-[1.375rem] leading-[normal] font-bold tracking-[-0.03em] sm:size-12 sm:text-[1.6875rem] {grade
+		class="text-center text-[1.375rem] leading-[normal] font-bold tracking-[-0.03em] sm:text-[1.6875rem] {grade
 			? gradeTone(grade.percentage)
 			: 'text-muted-foreground'}"
 	>
