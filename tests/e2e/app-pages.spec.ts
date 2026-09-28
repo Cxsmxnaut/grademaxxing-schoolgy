@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 function gradebookXml(index: number, name: string, score: string, letter: string) {
-	return `<Gradebook><ReportingPeriod Index="${index}" GradePeriod="${name}"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Semester 1"/><ReportPeriod Index="1" GradePeriod="Semester 2"/></ReportingPeriods><Courses><Course CourseID="preview" CourseName="Theme Preview" Period="1" Staff="Teacher Example" StaffEMail="teacher@example.edu" Room="101"><Marks><Mark MarkName="${name}" CalculatedScoreRaw="${score}" CalculatedScoreString="${letter}"><GradeCalculationSummary><AssignmentGradeCalc Type="Assessments" Weight="100%" Points="${score}" PointsPossible="100" WeightedPct="${score}%" CalculatedMark="${letter}"/></GradeCalculationSummary><Assignments><Assignment GradebookID="preview-assessment" Measure="Unit assessment" Type="Assessments" Date="8/20/2026" DueDate="8/20/2026" Score="${score}" DisplayScore="${score} out of 100" ScoreCalValue="${score}" ScoreMaxValue="100" ScoreType="Raw Score" Points="${score} / 100" Point="${score}" PointPossible="100" Notes="Strong reasoning. Review question 4." MeasureDescription="Cumulative unit assessment covering the first four lessons." HasDropBox="false"/></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
+	return `<Gradebook><ReportingPeriod Index="${index}" GradePeriod="${name}"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Semester 1"/><ReportPeriod Index="1" GradePeriod="Semester 2"/></ReportingPeriods><Courses><Course CourseID="preview" CourseName="Theme Preview" Period="1" Staff="Teacher Example" StaffEMail="teacher@example.edu" Room="101"><Marks><Mark MarkName="${name}" CalculatedScoreRaw="${score}" CalculatedScoreString="${letter}"><GradeCalculationSummary><AssignmentGradeCalc Type="Assessments" Weight="100%" Points="${score}" PointsPossible="100" WeightedPct="${score}%" CalculatedMark="${letter}"/></GradeCalculationSummary>							<Assignments><Assignment GradebookID="preview-assessment" Measure="Unit assessment" Type="Assessments" Date="8/20/2026" DueDate="8/20/2026" Score="${score}" DisplayScore="${score} out of 100" ScoreCalValue="${score}" ScoreMaxValue="100" ScoreType="Raw Score" Points="${score} / 100" Point="${score}" PointPossible="100" Notes="Strong reasoning. Review question 4." MeasureDescription="Cumulative unit assessment covering the first four lessons." HasDropBox="false"/><Assignment GradebookID="preview-upcoming" Measure="Upcoming quiz" Type="Quizzes" Date="9/25/2026" DueDate="9/28/2026" DisplayScore="Not Graded" ScoreType="Raw Score" Points="10 Points Possible" Notes="" MeasureDescription="" HasDropBox="false"/></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
 }
 
 test.beforeEach(async ({ page }) => {
@@ -701,6 +701,12 @@ test('Gradebook exposes the GPA summary on desktop and mobile', async ({ page })
 		'aria-valuenow',
 		'95'
 	);
+
+	// Only genuinely graded work may appear here; posted-but-ungraded assignments
+	// (points possible known, no score entered) must stay out.
+	const recentlyGraded = page.getByRole('complementary', { name: 'Gradebook details' });
+	await expect(recentlyGraded.getByText('Unit assessment')).toBeVisible();
+	await expect(recentlyGraded.getByText('Upcoming quiz')).toHaveCount(0);
 
 	await page.setViewportSize({ width: 390, height: 844 });
 	await expect(page.getByText('GPA summary', { exact: true })).toBeVisible();

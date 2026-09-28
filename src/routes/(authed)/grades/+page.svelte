@@ -14,7 +14,8 @@
 	import {
 		clearCourseUnseenAssignments,
 		getCourseGrade,
-		getCourseUnseenAssignmentsCount
+		getCourseUnseenAssignmentsCount,
+		isGradedAssignment
 	} from '$lib/grades/course';
 	import { saveSeenAssignmentsToLocalStorage } from '$lib/grades/seenAssignments';
 	import { seenAssignmentIDs } from '$lib/grades/seenAssignments.svelte';
@@ -91,9 +92,7 @@
 					date: assignmentDate(assignment)
 				}))
 			)
-			.filter(
-				(item) => item.assignment._Score !== undefined || item.assignment._Point !== undefined
-			)
+			.filter((item) => isGradedAssignment(item.assignment))
 			.toSorted((a, b) => b.date.getTime() - a.date.getTime())
 			.slice(0, 8)
 	);

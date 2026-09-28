@@ -1,4 +1,4 @@
-import type { Course } from '$lib/contracts/studentvue/gradebook';
+import type { AssignmentEntity, Course } from '$lib/contracts/studentvue/gradebook';
 import type { Category } from './assignments';
 import { seenAssignmentIDs } from './seenAssignments.svelte';
 
@@ -40,3 +40,17 @@ export function clearCourseUnseenAssignments(course: Course) {
 /** StudentVUE marks non-calculating work in the assignment-note prefix. */
 export const isNotForGrade = (notes: string | undefined) =>
 	/^\s*\(\s*not\s+for\s+grading\s*\)/i.test(notes ?? '');
+
+/**
+ * Posted without a score entry: points possible is known up front, but nothing
+ * has been graded yet. A defined score field (even an empty points-earned value,
+ * i.e. a zero) is the only signal that a teacher actually graded it.
+ */
+export function isGradedAssignment(assignment: AssignmentEntity) {
+	if (isNotForGrade(assignment._Notes)) return false;
+	return (
+		assignment._Score !== undefined ||
+		assignment._ScoreCalValue !== undefined ||
+		assignment._Point !== undefined
+	);
+}
