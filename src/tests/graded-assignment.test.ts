@@ -48,7 +48,7 @@ describe('isGradedAssignment', () => {
 		).toBe(true);
 	});
 
-	test('treats an empty points-earned value as graded (scored zero)', () => {
+	test('treats a zero in a score field as graded even with an empty points value', () => {
 		expect(
 			isGradedAssignment(
 				assignment({
@@ -62,6 +62,29 @@ describe('isGradedAssignment', () => {
 				})
 			)
 		).toBe(true);
+	});
+
+	test('rejects district posts where score fields exist but are empty strings', () => {
+		expect(
+			isGradedAssignment(
+				assignment({
+					_Score: '',
+					_ScoreCalValue: '',
+					_Point: '',
+					_PointPossible: '10'
+				})
+			)
+		).toBe(false);
+	});
+
+	test('rejects non-numeric score strings', () => {
+		expect(isGradedAssignment(assignment({ _Score: '—', _Point: 'TBD' }))).toBe(false);
+	});
+
+	test('rejects assignments the portal displays as Not Graded', () => {
+		expect(isGradedAssignment(assignment({ _DisplayScore: 'Not Graded', _Score: '10' }))).toBe(
+			false
+		);
 	});
 
 	test('excludes work marked not for grading even when a score exists', () => {
