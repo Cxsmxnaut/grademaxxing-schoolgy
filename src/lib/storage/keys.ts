@@ -11,5 +11,6 @@ export enum LocalStorageKey {
 	studentInfo = 'studentInfo3',
 	studentProfile = 'studentProfile1',
 	schoolInfo = 'schoolInfo1',
-	feedbackReceipts = 'feedbackReceipts'
+	feedbackReceipts = 'feedbackReceipts',
+	quickJumpRecents = 'quickJumpRecents'
 }

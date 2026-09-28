@@ -258,11 +258,13 @@ test('every sidebar action works and preserves a single active destination', asy
 
 	await page.getByTestId('sidebar-profile').click();
 	await expect(page).toHaveURL(/\/studentinfo$/);
-	await page.getByRole('button', { name: 'Log out', exact: true }).click();
+	// Address the logout controls by test id: the closed dialog keeps its
+	// "Log out" action mounted, so role lookups match two buttons.
+	await page.getByTestId('sidebar-log-out').click();
 	await expect(page.getByText('Log out of Grademaxxing?')).toBeVisible();
 	await page.getByRole('button', { name: 'Stay signed in' }).click();
 	await expect(page).not.toHaveURL(/\/login$/);
-	await page.getByRole('button', { name: 'Log out', exact: true }).click();
+	await page.getByTestId('sidebar-log-out').click();
 	await page.getByTestId('confirm-log-out').click();
 	await expect(page).toHaveURL(/\/login$/);
 });
@@ -295,6 +297,125 @@ test('quick jump opens from the sidebar and keyboard and navigates to pages and 
 	await page.keyboard.press('ControlOrMeta+k');
 	await page.keyboard.press('Escape');
 	await expect(page.getByPlaceholder('Search pages and classes…')).toBeHidden();
+});
+
+test('quick jump ranks the best match first and searches documents and mail', async ({ page }) => {
+	// Narrower routes registered after the shared handler win for these two
+	// resources, giving the palette documents and mail to search.
+	await page.route('**/api/studentvue/documents', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				StudentDocumentDatas: {
+					StudentDocumentData: [
+						{
+							_DocumentGU: 'field-trip-gu',
+							_DocumentFileName: 'Field Trip Form.pdf',
+							_DocumentDate: '2026-09-15',
+							_DocumentType: 'Permission Slip',
+							_StudentGU: 'student-gu',
+							_DocumentComment: 'Bring the signed form'
+						}
+					]
+				}
+			})
+		})
+	);
+	await page.route('**/api/studentvue/messages', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				InboxItemListings: {
+					MessageXML: [
+						{
+							From: {
+								RecipientXML: {
+									_RecipientType: 'From',
+									_RecipientList: 'Teachers',
+									_GroupUserTypes: '',
+									_ReadCount: '0',
+									_PersonCount: '0',
+									_Details1: 'Teacher 1'
+								}
+							},
+							To: '',
+							CC: '',
+							BCC: '',
+							Attachments: '',
+							_SMMessageGU: 'quiz-message-gu',
+							_SMMsgPersonGU: 'quiz-message-person-gu',
+							_SendDateTime: '2026-09-20',
+							_Subject: 'Quiz moved to Friday',
+							_MessageText: '<p>The calculus quiz is moved.</p>',
+							_FolderType: 'Inbox',
+							_Priority: 'None',
+							_IsItDraft: 'false',
+							_MailRead: 'false',
+							_OriginalLanguageCode: 'en',
+							_Translated: 'false',
+							_SendDateTimeFormattedLong: 'September 20, 2026',
+							_SendDateTimeFormattedShort: '9/20/26',
+							_ReadCount: '0',
+							_PersonCount: '0',
+							_UpdateContactLog: 'false',
+							_TranslationComplete: 'false',
+							_ContactCategory: 'SM',
+							_AssociatedStudentGU: '',
+							_IsMeeting: 'false',
+							_VidConfGU: '',
+							_MeetingStartDate: '',
+							_Deleted: 'false',
+							_NoReply: 'false',
+							_EnforceSecurity: 'false',
+							_MessageStatus: 'Sent',
+							_MeetingEndDate: '',
+							_CanJoinMeeting: 'false',
+							_MeetingDateString: '',
+							_MeetingHost: '',
+							_Recurrence: '',
+							_RecurrenceText: ''
+						}
+					]
+				}
+			})
+		})
+	);
+
+	await page.goto('/grades');
+	// The first open must survive the hydration window (see the test above).
+	await expect(async () => {
+		if ((await page.locator('[data-slot="command"]').count()) === 0)
+			await page.getByTestId('quick-jump-trigger').click();
+		await expect(page.locator('[data-slot="command"]')).toBeVisible({ timeout: 500 });
+	}).toPass({ timeout: 20_000 });
+
+	// "calc" fuzzily matches several rows; the class must still win the ranking
+	// and arrive preselected so Enter opens it.
+	await page.getByPlaceholder('Search pages and classes…').fill('calc');
+	await expect(page.locator('[data-slot="command-item"][data-selected]')).toContainText(
+		'AP Calculus BC'
+	);
+	await page.keyboard.press('Enter');
+	await expect(page).toHaveURL(/\/grades\/calculus$/);
+
+	// Reopening starts from an empty query and offers the recent jump first.
+	await page.keyboard.press('ControlOrMeta+k');
+	await expect(page.getByPlaceholder('Search pages and classes…')).toHaveValue('');
+	await expect(page.locator('[data-slot="command-group"]').first()).toContainText('Recent');
+	await expect(page.locator('[data-slot="command-group"]').first()).toContainText('AP Calculus BC');
+
+	// Documents and mail are searchable from the palette and open in place.
+	await page.getByPlaceholder('Search pages and classes…').fill('field trip');
+	await page.keyboard.press('Enter');
+	await expect(page).toHaveURL(/\/documents\/document\?documentGU=field-trip-gu$/);
+
+	await page.keyboard.press('ControlOrMeta+k');
+	await page.getByPlaceholder('Search pages and classes…').fill('quiz');
+	await page.keyboard.press('Enter');
+	await expect(page).toHaveURL(/\/mail\?messageGU=quiz-message-person-gu$/);
+	await expect(page.locator('.message-reader h2')).toHaveText('Quiz moved to Friday');
 });
 
 test('hover, keyboard focus, and active-course states remain legible in dark mode', async ({

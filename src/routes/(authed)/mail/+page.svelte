@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { page } from '$app/state';
 	import { acc } from '$lib/account.svelte';
 	import { brand } from '$lib/brand';
 	import AppPageShell from '$lib/components/AppPageShell.svelte';
@@ -91,6 +92,19 @@
 		openedMessageContent = doc.body.innerHTML;
 		messageOpen = compactMail.current;
 	}
+
+	// Deep link from quick jump: open the requested message once it is loaded.
+	let deepLinkHandled = false;
+	$effect(() => {
+		const messageGU = page.url.searchParams.get('messageGU');
+		if (!messageGU || deepLinkHandled) return;
+		const summary = allMessages.find(
+			(message) => (message._SMMsgPersonGU || message._SMMessageGU) === messageGU
+		);
+		if (!summary) return;
+		deepLinkHandled = true;
+		void openMessage(summary);
+	});
 </script>
 
 <svelte:head>
