@@ -254,10 +254,11 @@
 					{/if}
 
 					<ol class="space-y-3">
-						{#each courses as course (course._CourseID)}
+						{#each courses as course, index (course._CourseID)}
 							<li>
 								<CourseButton
 									courseId={course._CourseID}
+									position={index + 1}
 									name={removeCourseType(course._CourseName)}
 									period={course._Period}
 									room={course._Room}
