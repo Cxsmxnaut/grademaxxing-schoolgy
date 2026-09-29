@@ -8,14 +8,21 @@ test('the sign-in and district-password setup flow matches the current product',
 	await page.setViewportSize({ width: 1440, height: 1000 });
 	await page.goto('/login');
 
-	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing (Beta)' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing' })).toBeVisible();
+	await expect(
+		page.getByRole('complementary', { name: 'Grademaxxing introduction' })
+	).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Log in' })).toBeVisible();
+	await expect(page.getByRole('button', { name: /create account|google|apple/i })).toHaveCount(0);
 	await expect(page.getByLabel('StudentVUE email')).toBeVisible();
+	await expect(page.getByLabel('StudentVUE email')).toBeEnabled();
 	await expect(page.getByLabel('StudentVUE Password')).toBeVisible();
+	await expect(page.getByLabel('StudentVUE Password')).toBeEnabled();
 	await expect(page.getByLabel('Keep me signed in on this device')).toBeChecked();
 	await expect(page.getByText('Pleasanton Unified School District', { exact: true })).toBeVisible();
 	await expect(
 		page.getByText(
-			'Your password is encrypted on this device and passed directly to your district when Grademaxxing (Beta) reconnects. We never store it on our servers.',
+			'Your password is encrypted on this device and passed directly to your district when Grademaxxing reconnects. We never store it on our servers.',
 			{ exact: true }
 		)
 	).toBeVisible();
@@ -43,7 +50,8 @@ test('the sign-in and district-password setup flow matches the current product',
 test('the sign-in flow fits a phone without horizontal overflow', async ({ page }) => {
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.goto('/login');
-	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing (Beta)' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Sign in to Grademaxxing' })).toBeVisible();
+	await expect(page.getByRole('complementary', { name: 'Grademaxxing introduction' })).toBeHidden();
 	const widths = await page.evaluate(() => ({
 		viewport: window.innerWidth,
 		document: document.documentElement.scrollWidth,
@@ -77,12 +85,14 @@ test('the desktop sign-in form stays centered and readable', async ({ page }) =>
 
 	const form = await page.locator('form').boundingBox();
 	expect(form).not.toBeNull();
-	expect(form!.width).toBeGreaterThanOrEqual(350);
-	expect(form!.width).toBeLessThanOrEqual(410);
+	expect(form!.width).toBeGreaterThanOrEqual(380);
+	expect(form!.width).toBeLessThanOrEqual(460);
 	const main = await page.locator('main').boundingBox();
 	expect(main).not.toBeNull();
 	expect(Math.abs(form!.x + form!.width / 2 - (main!.x + main!.width / 2))).toBeLessThanOrEqual(2);
-	expect(Math.abs(form!.y + form!.height / 2 - 805 / 2)).toBeLessThanOrEqual(2);
+	expect(Math.abs(form!.y + form!.height / 2 - (main!.y + main!.height / 2))).toBeLessThanOrEqual(
+		2
+	);
 	expect(form!.y + form!.height).toBeLessThanOrEqual(805);
 });
 
@@ -180,15 +190,34 @@ test('sign-in keeps the app hidden until the gradebook is ready', async ({ page 
 	const loadingScreen = page.getByTestId('post-login-loading');
 	await expect(loadingScreen).toBeVisible();
 	await expect(loadingScreen).toContainText('Connecting to StudentVUE…');
+	const orb = loadingScreen.getByTestId('thinking-orb');
+	await expect(orb).toBeVisible();
+	await expect(orb).toHaveAttribute('data-state', 'connecting');
+	await expect(orb).toHaveCSS('width', '64px');
+	await expect(loadingScreen.locator('img, .loading-dots')).toHaveCount(0);
+	await expect(loadingScreen).toHaveCSS('background-image', 'none');
+	expect(
+		await loadingScreen.evaluate((element) => getComputedStyle(element, '::before').content)
+	).toBe('none');
 	await expect(page.locator('form')).toHaveCount(0);
 	await expect(page).toHaveURL(/\/login$/);
 	await page.screenshot({ path: 'test-results/auth-flow/loading.png', fullPage: true });
+	for (const width of [320, 375, 414, 768]) {
+		await page.setViewportSize({ width, height: 844 });
+		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+			width
+		);
+		if (width === 375)
+			await page.screenshot({ path: 'test-results/auth-flow/loading-phone.png', fullPage: true });
+	}
+	await page.setViewportSize({ width: 1280, height: 720 });
 	await expect(loadingScreen).toContainText('Connect to StudentVUE');
 	await expect(loadingScreen).toContainText('Load your grades');
 
 	releaseSession();
 	await gradebookRequested;
 	await expect(loadingScreen).toContainText('Loading your grades…');
+	await expect(loadingScreen.getByTestId('thinking-orb')).toHaveAttribute('data-state', 'working');
 	await expect(page.locator('form')).toHaveCount(0);
 	await expect(page).toHaveURL(/\/login$/);
 

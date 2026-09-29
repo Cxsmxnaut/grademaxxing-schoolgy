@@ -21,7 +21,7 @@ let requestCounts: Record<string, number>;
 test.beforeEach(async ({ page }) => {
 	requestCounts = {};
 	await page.addInitScript(() => {
-		localStorage.setItem('mode-watcher-mode', 'dark');
+		localStorage.setItem('mode-watcher-mode', 'light');
 		localStorage.setItem(
 			'token',
 			JSON.stringify({
@@ -92,7 +92,9 @@ async function boundingBox(page: Page, testId: string) {
 	return box!;
 }
 
-test('desktop sidebar matches the 240px reference geometry and visual tokens', async ({ page }) => {
+test('desktop sidebar matches the redesigned workspace geometry and visual tokens', async ({
+	page
+}) => {
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.goto('/documents');
 	await expect(page.locator('html')).toHaveClass(/dark/);
@@ -103,65 +105,98 @@ test('desktop sidebar matches the 240px reference geometry and visual tokens', a
 	expect(sidebar.y).toBe(0);
 	expect(sidebar.width).toBe(240);
 	expect(sidebar.height).toBe(900);
+	await expect(page.getByTestId('app-sidebar')).toHaveCSS('position', 'fixed');
+	await expect(page.getByTestId('app-sidebar')).toHaveCSS('overscroll-behavior-y', 'none');
+	const spacer = await boundingBox(page, 'sidebar-layout-spacer');
+	expect(spacer.x).toBe(0);
+	expect(spacer.width).toBe(240);
+	await expect(page.locator('[data-slot="sidebar-content"]')).toHaveCSS('overflow-y', 'hidden');
 
 	const brand = await boundingBox(page, 'sidebar-brand');
-	expect(brand.x).toBe(14);
+	expect(brand.x).toBe(16);
 	expect(brand.y).toBe(20);
-	expect(brand.width).toBe(211);
-	expect(brand.height).toBeCloseTo(48.5, 0);
+	expect(brand.width).toBe(207);
+	expect(brand.height).toBe(48);
 
 	const logo = page.getByTestId('sidebar-brand').locator('img');
 	await expect(logo).toHaveCSS('width', '32px');
 	await expect(logo).toHaveCSS('height', '32px');
-	const wordmark = page.getByTestId('sidebar-brand').locator(':scope > span');
-	await expect(wordmark).toHaveCSS('font-family', /^"Space Grotesk"/);
-	await expect(wordmark).toHaveCSS('font-size', '19px');
+	const wordmark = page.getByTestId('sidebar-brand').locator(':scope > span.flex-1');
+	await expect(wordmark).toHaveCSS('font-family', /^Outfit/);
+	await expect(wordmark).toHaveCSS('font-size', '20px');
 	await expect(wordmark).toHaveCSS('font-weight', '700');
+	const logoBox = await logo.boundingBox();
+	const wordmarkBox = await wordmark.boundingBox();
+	expect(logoBox).not.toBeNull();
+	expect(wordmarkBox).not.toBeNull();
+	expect(
+		Math.abs(logoBox!.y + logoBox!.height / 2 - (wordmarkBox!.y + wordmarkBox!.height / 2))
+	).toBeLessThanOrEqual(1);
+	await expect(page.getByTestId('sidebar-brand')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+	await expect(page.getByTestId('sidebar-brand').locator('svg')).toHaveCount(0);
 
 	const nav = await boundingBox(page, 'sidebar-primary-nav');
-	expect(nav.x).toBe(14);
-	expect(nav.y).toBeCloseTo(96.5, 0);
-	expect(nav.width).toBe(211);
+	expect(nav.x).toBe(16);
+	expect(nav.y).toBe(brand.y + brand.height);
+	expect(nav.width).toBe(207);
 	const navItems = page.getByTestId('sidebar-primary-nav').locator('a');
 	await expect(navItems).toHaveCount(5);
+	for (const [testId, iconClass] of [
+		['sidebar-nav-grades', 'lucide-book'],
+		['sidebar-nav-attendance', 'lucide-calendar-check-2'],
+		['sidebar-nav-documents', 'lucide-files'],
+		['sidebar-nav-mail', 'lucide-mail-open'],
+		['sidebar-nav-feedback', 'lucide-message-square-quote']
+	] as const)
+		await expect(page.getByTestId(testId).locator(`svg.${iconClass}`)).toHaveCount(1);
 	for (const item of await navItems.all()) {
 		const box = await item.boundingBox();
-		expect(box?.width).toBe(211);
-		expect(box?.height).toBe(37);
+		expect(box?.width).toBe(207);
+		expect(box?.height).toBe(36);
 		await expect(item).toHaveCSS('font-size', '14px');
-		await expect(item).toHaveCSS('font-weight', '600');
-		await expect(item).toHaveCSS('border-radius', '8px');
+		await expect(item).toHaveCSS('border-radius', '6px');
 	}
 
 	const active = page.getByTestId('sidebar-nav-documents');
 	await expect(active).toHaveAttribute('aria-current', 'page');
-	await expect(active).toHaveCSS('color', 'rgb(77, 182, 245)');
-	await expect(active).toHaveCSS('background-color', 'rgba(77, 182, 245, 0.13)');
-	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS('color', 'rgb(143, 169, 194)');
+	await expect(active).toHaveCSS('color', 'rgb(110, 168, 220)');
+	await expect(active).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+	await expect(active).toHaveCSS('border-left-color', 'rgba(0, 0, 0, 0)');
+	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS('color', 'rgb(170, 183, 197)');
 
 	const classes = await boundingBox(page, 'sidebar-classes');
-	expect(classes.x).toBe(14);
-	expect(classes.y).toBeCloseTo(315.25, 0);
-	expect(classes.width).toBe(211);
+	expect(classes.x).toBe(16);
+	expect(classes.y).toBeGreaterThan(nav.y + nav.height);
+	expect(classes.width).toBe(207);
 	const classHeading = page.getByRole('heading', { name: 'Classes' });
-	await expect(classHeading).toHaveCSS('font-size', '11px');
+	await expect(classHeading).toHaveCSS('font-size', '9px');
 	await expect(classHeading).toHaveCSS('font-weight', '600');
-	await expect(classHeading).toHaveCSS('letter-spacing', '1.1px');
+	await expect(classHeading).toHaveCSS('letter-spacing', '1.62px');
 
 	const classRows = page.getByTestId('sidebar-course');
 	for (const row of await classRows.all()) {
 		const box = await row.boundingBox();
-		expect(box?.width).toBe(211);
-		expect(box?.height).toBe(29);
-		await expect(row).toHaveCSS('border-radius', '7px');
+		expect(box?.width).toBe(207);
+		expect(box?.height).toBe(28);
+		await expect(row).toHaveCSS('border-radius', '6px');
 	}
 
 	const privacy = await boundingBox(page, 'sidebar-privacy');
+	const refresh = await boundingBox(page, 'sidebar-refresh');
 	const utilities = await boundingBox(page, 'sidebar-utilities');
 	const footer = await boundingBox(page, 'sidebar-profile-footer');
-	expect(privacy.x).toBe(14);
-	expect(privacy.width).toBe(211);
-	expect(utilities.y).toBeGreaterThan(classes.y + classes.height);
+	expect(privacy.x).toBe(16);
+	expect(privacy.width).toBe(207);
+	expect(refresh.width).toBe(207);
+	expect(refresh.height).toBe(48);
+	await expect(page.getByTestId('sidebar-refresh')).toContainText('Refresh');
+	await expect(page.getByTestId('sidebar-refresh')).toContainText('Updated');
+	await expect(page.getByTestId('sidebar-refresh').locator('svg.lucide-check')).toHaveCount(0);
+	await expect(page.getByTestId('thinking-orb')).toBeVisible();
+	await expect(page.getByTestId('thinking-orb')).toHaveAttribute('data-state', 'weaving');
+	await expect(page.getByTestId('thinking-orb')).toHaveCSS('width', '36px');
+	await expect(page.getByTestId('thinking-orb')).toHaveCSS('height', '36px');
+	expect(utilities.y).toBeGreaterThanOrEqual(classes.y + classes.height);
 	expect(utilities.y + utilities.height).toBeLessThanOrEqual(footer.y);
 	expect(footer.x).toBe(0);
 	expect(footer.width).toBe(239);
@@ -176,6 +211,7 @@ test('every sidebar action works and preserves a single active destination', asy
 		['sidebar-nav-attendance', '/attendance'],
 		['sidebar-nav-documents', '/documents'],
 		['sidebar-nav-mail', '/mail'],
+		['sidebar-nav-feedback', '/feedback'],
 		['sidebar-nav-grades', '/grades']
 	] as const) {
 		await page.getByTestId(testId).click();
@@ -192,18 +228,26 @@ test('every sidebar action works and preserves a single active destination', asy
 		page.getByTestId('sidebar-course').filter({ hasText: 'AP Calculus BC' })
 	).toHaveAttribute('aria-current', 'page');
 
-	await page.getByRole('button', { name: 'Light', exact: true }).click();
-	await expect(page.locator('html')).not.toHaveClass(/dark/);
-	await expect(page.getByRole('button', { name: 'Light', exact: true })).toHaveAttribute(
-		'aria-pressed',
-		'true'
-	);
-	await page.getByRole('button', { name: 'Dark', exact: true }).click();
 	await expect(page.locator('html')).toHaveClass(/dark/);
+	await expect(page.getByTestId('sidebar-theme')).toHaveCount(0);
 
 	const beforeRefresh = { ...requestCounts };
+	await page.route('**/api/session/keepalive', async (route) => {
+		await new Promise((resolve) => setTimeout(resolve, 200));
+		await route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({ signedIn: true, updatedAt: Date.now() })
+		});
+	});
 	await page.getByTestId('sidebar-refresh').click();
+	await expect(page.getByTestId('thinking-orb')).toBeVisible();
+	await expect(page.getByTestId('thinking-orb')).toHaveAttribute('data-state', 'searching');
+	await expect(page.getByTestId('sidebar-refresh')).toContainText('Checking grades and records…');
 	await expect(page.getByTestId('sidebar-refresh')).toBeEnabled();
+	await expect(page.getByTestId('thinking-orb')).toBeVisible();
+	await expect(page.getByTestId('thinking-orb')).toHaveAttribute('data-state', 'weaving');
+	await expect(page.getByTestId('sidebar-refresh')).toContainText('Refresh');
 	await expect(page.getByTestId('sidebar-refresh')).toContainText('Updated');
 	for (const resource of ['gradebook', 'attendance', 'documents', 'messages', 'student-info'])
 		await expect
@@ -214,23 +258,179 @@ test('every sidebar action works and preserves a single active destination', asy
 
 	await page.getByTestId('sidebar-profile').click();
 	await expect(page).toHaveURL(/\/studentinfo$/);
-	await page.getByRole('button', { name: 'Log out', exact: true }).click();
+	// Address the logout controls by test id: the closed dialog keeps its
+	// "Log out" action mounted, so role lookups match two buttons.
+	await page.getByTestId('sidebar-log-out').click();
+	await expect(page.getByText('Log out of Grademaxxing?')).toBeVisible();
+	await page.getByRole('button', { name: 'Stay signed in' }).click();
+	await expect(page).not.toHaveURL(/\/login$/);
+	await page.getByTestId('sidebar-log-out').click();
+	await page.getByTestId('confirm-log-out').click();
 	await expect(page).toHaveURL(/\/login$/);
 });
 
-test('hover, keyboard focus, active-course, and light-mode states remain legible', async ({
+test('quick jump opens from the sidebar and keyboard and navigates to pages and classes', async ({
+	page
+}) => {
+	await page.goto('/grades');
+
+	// The palette only exists in the DOM while open, so a click lost to the
+	// hydration window must be retried until the dialog actually appears. The
+	// inner wait stays short on purpose: a long one would consume the whole
+	// toPass budget on the first lost click and never reach the retry.
+	await expect(async () => {
+		if ((await page.locator('[data-slot="command"]').count()) === 0)
+			await page.getByTestId('quick-jump-trigger').click();
+		await expect(page.locator('[data-slot="command"]')).toBeVisible({ timeout: 500 });
+	}).toPass({ timeout: 20_000 });
+	await expect(page.getByPlaceholder('Search pages and classes…')).toBeVisible();
+	await page.getByPlaceholder('Search pages and classes…').fill('attendance');
+	await page.keyboard.press('Enter');
+	await expect(page).toHaveURL(/\/attendance$/);
+
+	await page.keyboard.press('ControlOrMeta+k');
+	await expect(page.getByPlaceholder('Search pages and classes…')).toBeVisible();
+	await page.getByPlaceholder('Search pages and classes…').fill('calculus');
+	await page.keyboard.press('Enter');
+	await expect(page).toHaveURL(/\/grades\/calculus$/);
+
+	await page.keyboard.press('ControlOrMeta+k');
+	await page.keyboard.press('Escape');
+	await expect(page.getByPlaceholder('Search pages and classes…')).toBeHidden();
+});
+
+test('quick jump ranks the best match first and searches documents and mail', async ({ page }) => {
+	// Narrower routes registered after the shared handler win for these two
+	// resources, giving the palette documents and mail to search.
+	await page.route('**/api/studentvue/documents', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				StudentDocumentDatas: {
+					StudentDocumentData: [
+						{
+							_DocumentGU: 'field-trip-gu',
+							_DocumentFileName: 'Field Trip Form.pdf',
+							_DocumentDate: '2026-09-15',
+							_DocumentType: 'Permission Slip',
+							_StudentGU: 'student-gu',
+							_DocumentComment: 'Bring the signed form'
+						}
+					]
+				}
+			})
+		})
+	);
+	await page.route('**/api/studentvue/messages', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				InboxItemListings: {
+					MessageXML: [
+						{
+							From: {
+								RecipientXML: {
+									_RecipientType: 'From',
+									_RecipientList: 'Teachers',
+									_GroupUserTypes: '',
+									_ReadCount: '0',
+									_PersonCount: '0',
+									_Details1: 'Teacher 1'
+								}
+							},
+							To: '',
+							CC: '',
+							BCC: '',
+							Attachments: '',
+							_SMMessageGU: 'quiz-message-gu',
+							_SMMsgPersonGU: 'quiz-message-person-gu',
+							_SendDateTime: '2026-09-20',
+							_Subject: 'Quiz moved to Friday',
+							_MessageText: '<p>The calculus quiz is moved.</p>',
+							_FolderType: 'Inbox',
+							_Priority: 'None',
+							_IsItDraft: 'false',
+							_MailRead: 'false',
+							_OriginalLanguageCode: 'en',
+							_Translated: 'false',
+							_SendDateTimeFormattedLong: 'September 20, 2026',
+							_SendDateTimeFormattedShort: '9/20/26',
+							_ReadCount: '0',
+							_PersonCount: '0',
+							_UpdateContactLog: 'false',
+							_TranslationComplete: 'false',
+							_ContactCategory: 'SM',
+							_AssociatedStudentGU: '',
+							_IsMeeting: 'false',
+							_VidConfGU: '',
+							_MeetingStartDate: '',
+							_Deleted: 'false',
+							_NoReply: 'false',
+							_EnforceSecurity: 'false',
+							_MessageStatus: 'Sent',
+							_MeetingEndDate: '',
+							_CanJoinMeeting: 'false',
+							_MeetingDateString: '',
+							_MeetingHost: '',
+							_Recurrence: '',
+							_RecurrenceText: ''
+						}
+					]
+				}
+			})
+		})
+	);
+
+	await page.goto('/grades');
+	// The first open must survive the hydration window (see the test above).
+	await expect(async () => {
+		if ((await page.locator('[data-slot="command"]').count()) === 0)
+			await page.getByTestId('quick-jump-trigger').click();
+		await expect(page.locator('[data-slot="command"]')).toBeVisible({ timeout: 500 });
+	}).toPass({ timeout: 20_000 });
+
+	// "calc" fuzzily matches several rows; the class must still win the ranking
+	// and arrive preselected so Enter opens it.
+	await page.getByPlaceholder('Search pages and classes…').fill('calc');
+	await expect(page.locator('[data-slot="command-item"][data-selected]')).toContainText(
+		'AP Calculus BC'
+	);
+	await page.keyboard.press('Enter');
+	await expect(page).toHaveURL(/\/grades\/calculus$/);
+
+	// Reopening starts from an empty query and offers the recent jump first.
+	await page.keyboard.press('ControlOrMeta+k');
+	await expect(page.getByPlaceholder('Search pages and classes…')).toHaveValue('');
+	await expect(page.locator('[data-slot="command-group"]').first()).toContainText('Recent');
+	await expect(page.locator('[data-slot="command-group"]').first()).toContainText('AP Calculus BC');
+
+	// Documents and mail are searchable from the palette and open in place.
+	await page.getByPlaceholder('Search pages and classes…').fill('field trip');
+	await page.keyboard.press('Enter');
+	await expect(page).toHaveURL(/\/documents\/document\?documentGU=field-trip-gu$/);
+
+	await page.keyboard.press('ControlOrMeta+k');
+	await page.getByPlaceholder('Search pages and classes…').fill('quiz');
+	await page.keyboard.press('Enter');
+	await expect(page).toHaveURL(/\/mail\?messageGU=quiz-message-person-gu$/);
+	await expect(page.locator('.message-reader h2')).toHaveText('Quiz moved to Friday');
+});
+
+test('hover, keyboard focus, and active-course states remain legible in dark mode', async ({
 	page
 }) => {
 	await page.goto('/documents');
 	const gradebook = page.getByTestId('sidebar-nav-grades');
 	await expect(gradebook).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 	await gradebook.hover();
-	await expect(gradebook).toHaveCSS('background-color', 'rgba(77, 182, 245, 0.13)');
-	await expect(gradebook).toHaveCSS('color', 'rgb(77, 182, 245)');
+	await expect
+		.poll(() => gradebook.evaluate((element) => getComputedStyle(element).backgroundColor))
+		.not.toBe('rgba(0, 0, 0, 0)');
+	await expect(gradebook).toHaveCSS('color', 'rgb(241, 245, 247)');
 
 	await page.mouse.move(800, 500);
-	await page.keyboard.press('Tab');
-	await expect(page.getByTestId('sidebar-brand')).toBeFocused();
 	await page.keyboard.press('Tab');
 	await expect(gradebook).toBeFocused();
 	await expect
@@ -243,23 +443,23 @@ test('hover, keyboard focus, active-course, and light-mode states remain legible
 	await expect(page.getByTestId('sidebar-nav-grades')).not.toHaveAttribute('aria-current', 'page');
 	await expect(page.getByTestId('sidebar-nav-grades')).toHaveCSS(
 		'background-color',
-		'rgba(77, 182, 245, 0.13)'
+		'rgba(0, 0, 0, 0)'
 	);
-	await expect(activeCourse).toHaveCSS('background-color', 'rgba(77, 182, 245, 0.13)');
-	await expect(activeCourse).toHaveCSS('color', 'rgb(77, 182, 245)');
+	await expect(activeCourse).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+	await expect(activeCourse).toHaveCSS('color', 'rgb(110, 168, 220)');
+	await expect(activeCourse).toHaveCSS('border-left-color', 'rgba(0, 0, 0, 0)');
 
-	await page.getByRole('button', { name: 'Light', exact: true }).click();
-	await expect(page.locator('html')).not.toHaveClass(/dark/);
-	await expect(activeCourse).toHaveCSS('background-color', 'rgba(10, 115, 178, 0.1)');
-	await expect(activeCourse).toHaveCSS('color', 'rgb(10, 115, 178)');
-	await expect(page.locator('[data-slot="sidebar-inner"]')).toHaveCSS(
-		'background-color',
-		'rgb(245, 249, 253)'
-	);
-	await expect(page.getByTestId('sidebar-privacy')).toHaveCSS(
-		'border-color',
-		'rgba(15, 28, 46, 0.09)'
-	);
+	await expect(page.locator('html')).toHaveClass(/dark/);
+	await expect(activeCourse).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+	await expect(activeCourse).toHaveCSS('color', 'rgb(110, 168, 220)');
+	await expect(page.getByTestId('app-sidebar')).toHaveCSS('background-color', 'rgb(21, 30, 40)');
+	await expect(page.getByTestId('sidebar-privacy')).toHaveCSS('border-top-width', '0px');
+	const privacyLink = page.getByTestId('sidebar-privacy-link');
+	await expect(privacyLink).toHaveCSS('white-space', 'nowrap');
+	await privacyLink.focus();
+	await expect
+		.poll(() => privacyLink.evaluate((element) => getComputedStyle(element).boxShadow))
+		.not.toBe('none');
 });
 
 test('sidebar remains usable at short desktop heights and switches cleanly at the breakpoint', async ({
@@ -277,11 +477,17 @@ test('sidebar remains usable at short desktop heights and switches cleanly at th
 		clientWidth: element.clientWidth,
 		scrollWidth: element.scrollWidth
 	}));
-	expect(overflow.scrollHeight).toBeGreaterThanOrEqual(overflow.clientHeight);
+	expect(overflow.scrollHeight).toBeLessThanOrEqual(overflow.clientHeight);
 	expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth);
-	await page.getByTestId('sidebar-refresh').scrollIntoViewIfNeeded();
+	await expect(content).toHaveCSS('overflow-y', 'hidden');
+	await expect(content).toHaveCSS('overscroll-behavior-y', 'none');
 	await expect(page.getByTestId('sidebar-refresh')).toBeVisible();
 	await expect(page.getByTestId('sidebar-brand')).toBeVisible();
+
+	await expect(page.getByRole('button', { name: 'Toggle Sidebar' })).toHaveCount(0);
+	await expect(page.getByTestId('sidebar-primary-nav')).toBeVisible();
+	await expect(page.getByTestId('sidebar-classes')).toBeVisible();
+	await expect(page.getByTestId('sidebar-utilities')).toBeVisible();
 
 	await page.setViewportSize({ width: 767, height: 640 });
 	await expect(page.getByTestId('app-sidebar')).toBeHidden();
@@ -290,4 +496,45 @@ test('sidebar remains usable at short desktop heights and switches cleanly at th
 	await page.setViewportSize({ width: 768, height: 640 });
 	await expect(page.getByTestId('app-sidebar')).toBeVisible();
 	await expect(page.getByRole('navigation', { name: 'Mobile navigation' })).toBeHidden();
+});
+
+test('desktop sidebar persists while the main content pane scrolls', async ({ page }) => {
+	await page.setViewportSize({ width: 1024, height: 640 });
+	await page.goto('/grades');
+	await expect(page.getByTestId('sidebar-course')).toHaveCount(6);
+
+	const sidebarBefore = await boundingBox(page, 'app-sidebar');
+	const brandBefore = await boundingBox(page, 'sidebar-brand');
+	const content = page.getByTestId('app-content-scroll');
+	const contentBefore = await boundingBox(page, 'app-content-scroll');
+	expect(contentBefore.x).toBe(240);
+	await expect(content).toHaveCSS('overflow-y', 'auto');
+	await expect(content).toHaveCSS('overscroll-behavior-y', 'auto');
+	await expect(page.locator('html')).toHaveCSS('overscroll-behavior-y', 'auto');
+	await expect(page.locator('body')).toHaveCSS('overscroll-behavior-y', 'auto');
+
+	const scrollState = await content.evaluate((element) => {
+		element.scrollTop = Math.min(500, element.scrollHeight - element.clientHeight);
+		return {
+			scrollTop: element.scrollTop,
+			clientHeight: element.clientHeight,
+			scrollHeight: element.scrollHeight
+		};
+	});
+	expect(scrollState.scrollHeight).toBeGreaterThan(scrollState.clientHeight);
+	expect(scrollState.scrollTop).toBeGreaterThan(0);
+
+	const sidebarContent = page.locator('[data-slot="sidebar-content"]');
+	const sidebarScrollTopBefore = await sidebarContent.evaluate((element) => element.scrollTop);
+	await page.mouse.move(120, 320);
+	await page.mouse.wheel(0, 500);
+	await expect
+		.poll(() => sidebarContent.evaluate((element) => element.scrollTop))
+		.toBe(sidebarScrollTopBefore);
+
+	const sidebarAfter = await boundingBox(page, 'app-sidebar');
+	const brandAfter = await boundingBox(page, 'sidebar-brand');
+	expect(sidebarAfter).toEqual(sidebarBefore);
+	expect(brandAfter).toEqual(brandBefore);
+	expect(sidebarAfter.y).toBe(0);
 });

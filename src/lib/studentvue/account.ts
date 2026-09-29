@@ -3,7 +3,12 @@ import type { AttendanceResult } from '$lib/contracts/studentvue/attendance';
 import type { DocumentsResult } from '$lib/contracts/studentvue/documents';
 import type { MailResult } from '$lib/contracts/studentvue/mail';
 import type { ReportCardResult } from '$lib/contracts/studentvue/report-card';
-import type { StudentInfoResult } from '$lib/contracts/studentvue/student-info';
+import type { Schedule } from '$lib/contracts/studentvue/schedule';
+import type { SchoolInfo } from '$lib/contracts/studentvue/school-info';
+import type {
+	StudentInfoResult,
+	StudentProfileResult
+} from '$lib/contracts/studentvue/student-info';
 import type { TranscriptImport } from '$lib/grades/transcript';
 import { markPortalConnected, markPortalReconnect } from '$lib/session.svelte';
 import {
@@ -90,8 +95,20 @@ export class StudentAccount {
 		return this.request<AttendanceResult['Attendance']>('/api/studentvue/attendance');
 	}
 
+	async schedule() {
+		return this.request<Schedule>('/api/studentvue/schedule');
+	}
+
 	async studentInfo() {
 		return this.request<StudentInfoResult['StudentInfo']>('/api/studentvue/student-info');
+	}
+
+	async studentProfile() {
+		return this.request<StudentProfileResult>('/api/studentvue/student-profile');
+	}
+
+	async schoolInfo() {
+		return this.request<SchoolInfo>('/api/studentvue/school-info');
 	}
 
 	async documents() {

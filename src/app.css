@@ -5,6 +5,19 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+	--font-body: 'Manrope', system-ui, sans-serif;
+	--font-heading: 'Outfit', 'Manrope', system-ui, sans-serif;
+	--font-technical: 'JetBrains Mono', ui-monospace, monospace;
+	--space-3xs: 0.125rem;
+	--space-2xs: 0.25rem;
+	--space-xs: 0.5rem;
+	--space-sm: 0.75rem;
+	--space-md: 1rem;
+	--space-lg: 1.5rem;
+	--space-xl: 2.5rem;
+	--space-2xl: 4rem;
+	--space-3xl: 6rem;
+	--space-4xl: 9rem;
 	--radius: 0.625rem;
 	--background: #f5f9fd;
 	--foreground: #0f1c2e;
@@ -69,72 +82,76 @@
 	--chart-error: #b0483a;
 	--chart-bg: #acd9f3;
 	--chart-bg-error: #e39b95;
+	--canvas-background: none;
 }
 
 .dark {
-	--background: #081522;
-	--foreground: #e4eef8;
-	--card: #0d2033;
-	--card-foreground: #e4eef8;
-	--popover: #0d2033;
-	--popover-foreground: #e4eef8;
-	--primary: #4db6f5;
-	--primary-foreground: #06131f;
-	--secondary: #132a41;
-	--secondary-foreground: #e4eef8;
-	--muted: #132a41;
-	--muted-foreground: #8fa9c2;
-	--accent: rgb(77 182 245 / 13%);
-	--accent-foreground: #4db6f5;
-	--destructive: #e57373;
-	--destructive-soft: rgb(229 115 115 / 12%);
-	--success: #5fc98e;
-	--success-soft: rgb(95 201 142 / 12%);
-	--warning: #e0b95c;
-	--warning-soft: rgb(224 185 92 / 12%);
-	--caution: #e57373;
-	--caution-soft: rgb(229 115 115 / 12%);
-	--border: rgb(228 238 248 / 8%);
-	--input: rgb(228 238 248 / 16%);
-	--ring: #4db6f5;
-	--chart-1: #4db6f5;
-	--chart-2: #5fc98e;
-	--chart-3: #e0b95c;
-	--chart-4: #54c4d0;
-	--chart-5: #e57373;
-	--sidebar: #081522;
-	--sidebar-foreground: #e4eef8;
-	--sidebar-primary: #4db6f5;
-	--sidebar-primary-foreground: #06131f;
-	--sidebar-accent: rgb(77 182 245 / 13%);
-	--sidebar-accent-foreground: #4db6f5;
-	--sidebar-border: rgb(228 238 248 / 8%);
-	--sidebar-ring: #4db6f5;
-	--tertiary-foreground: #7d98b1;
-	--surface-raised: #0d2033;
-	--surface-sunken: #06131f;
-	--link: #4db6f5;
-	--focus: #4db6f5;
-	--disabled: #7d98b1;
-	--skeleton: #132a41;
+	--background: #151e28;
+	--foreground: #f1f5f7;
+	--card: #1a2737;
+	--card-foreground: #f1f5f7;
+	--popover: #1a2737;
+	--popover-foreground: #f1f5f7;
+	--primary: #6ea8dc;
+	--primary-foreground: #151e28;
+	--secondary: #202d38;
+	--secondary-foreground: #f1f5f7;
+	--muted: #202d38;
+	--muted-foreground: #aab7c5;
+	--accent: rgb(39 86 136 / 24%);
+	--accent-foreground: #6ea8dc;
+	--destructive: #f08078;
+	--destructive-soft: rgb(240 128 120 / 12%);
+	--success: #04dfa7;
+	--success-soft: rgb(4 223 167 / 12%);
+	--warning: #e7bd62;
+	--warning-soft: rgb(231 189 98 / 12%);
+	--caution: #f08078;
+	--caution-soft: rgb(240 128 120 / 12%);
+	--border: rgb(241 245 247 / 9%);
+	--input: rgb(241 245 247 / 16%);
+	--ring: #6ea8dc;
+	--chart-1: #6ea8dc;
+	--chart-2: #04dfa7;
+	--chart-3: #e7bd62;
+	--chart-4: #65cbd2;
+	--chart-5: #f08078;
+	--sidebar: #151e28;
+	--sidebar-foreground: #f1f5f7;
+	--sidebar-primary: #6ea8dc;
+	--sidebar-primary-foreground: #151e28;
+	--sidebar-accent: rgb(39 86 136 / 24%);
+	--sidebar-accent-foreground: #6ea8dc;
+	--sidebar-border: rgb(241 245 247 / 9%);
+	--sidebar-ring: #6ea8dc;
+	--tertiary-foreground: #8195ab;
+	--surface-raised: #1a2737;
+	--surface-sunken: #0a0f13;
+	--link: #6ea8dc;
+	--focus: #6ea8dc;
+	--disabled: #8195ab;
+	--skeleton: #202d38;
 	--overlay: rgb(0 0 0 / 58%);
-	--stale: #e0b95c;
-	--simulation: #b7a0d6;
-	--official: #e4eef8;
-	--grade-strong: #5fc98e;
-	--grade-strong-soft: rgb(95 201 142 / 12%);
-	--grade-watch: #e0b95c;
-	--grade-watch-soft: rgb(224 185 92 / 12%);
-	--grade-risk: #e57373;
-	--grade-risk-soft: rgb(229 115 115 / 12%);
-	--grade-neutral: #8fa9c2;
-	--grade-neutral-soft: #132a41;
-	--grade-extra: #b7a0d6;
-	--grade-extra-soft: rgb(183 160 214 / 14%);
-	--chart: #4db6f5;
-	--chart-error: #e57373;
-	--chart-bg: #174b6a;
-	--chart-bg-error: #743e3a;
+	--stale: #e7bd62;
+	--simulation: #c2a7e8;
+	--official: #f1f5f7;
+	--grade-strong: #04dfa7;
+	--grade-strong-soft: rgb(4 223 167 / 12%);
+	--grade-watch: #e7bd62;
+	--grade-watch-soft: rgb(231 189 98 / 12%);
+	--grade-risk: #f08078;
+	--grade-risk-soft: rgb(240 128 120 / 12%);
+	--grade-neutral: #aab7c5;
+	--grade-neutral-soft: #202d38;
+	--grade-extra: #c2a7e8;
+	--grade-extra-soft: rgb(194 167 232 / 14%);
+	--chart: #6ea8dc;
+	--chart-error: #f08078;
+	--chart-bg: #315f90;
+	--chart-bg-error: #6f3b39;
+	--canvas-background:
+		radial-gradient(880px 540px at 94% -14%, rgb(39 86 136 / 11%), transparent 68%),
+		radial-gradient(720px 520px at 5% 100%, rgb(110 168 220 / 4%), transparent 70%);
 }
 
 @theme inline {
@@ -218,9 +235,57 @@
 }
 
 html {
-	font-family: 'Instrument Sans', system-ui, sans-serif;
+	font-family: var(--font-body);
 	font-size: 1rem;
 	line-height: 1.5;
+}
+
+.app-canvas {
+	background-color: var(--background);
+	background-image: var(--canvas-background);
+	background-repeat: no-repeat;
+}
+
+@media (min-width: 768px) and (max-height: 700px) {
+	.sidebar-header {
+		padding-top: 0.625rem;
+	}
+
+	.sidebar-brand {
+		height: 2.5rem;
+		padding-top: 0;
+	}
+
+	.sidebar-nav-section.mt-4 {
+		margin-top: 0.5rem;
+	}
+
+	.sidebar-section-heading {
+		margin-bottom: 0.125rem;
+		height: 0.875rem;
+		line-height: 0.875rem;
+	}
+
+	.sidebar-nav-row {
+		height: 2rem;
+	}
+
+	.sidebar-classes-region {
+		margin-top: 0.625rem;
+	}
+
+	.sidebar-course-row {
+		height: 1.5rem;
+	}
+
+	.sidebar-utilities {
+		gap: 0.25rem;
+		padding-top: 0.25rem;
+	}
+
+	.sidebar-footer {
+		padding-block: 0.25rem;
+	}
 }
 
 h1,
@@ -229,7 +294,7 @@ h3,
 h4,
 h5,
 h6 {
-	font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;
+	font-family: var(--font-heading);
 }
 
 code,
@@ -237,7 +302,11 @@ kbd,
 samp,
 pre,
 .font-mono {
-	font-family: 'IBM Plex Mono', ui-monospace, monospace;
+	font-family: var(--font-technical);
+}
+
+@utility font-heading {
+	font-family: var(--font-heading);
 }
 
 @theme {

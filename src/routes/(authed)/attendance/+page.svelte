@@ -1,21 +1,32 @@
 <script lang="ts">
-	import { removeCourseType } from '$lib/grades/course-name';
 	import { brand } from '$lib/brand';
 	import AppPageShell from '$lib/components/AppPageShell.svelte';
 	import LoadingBanner from '$lib/components/LoadingBanner.svelte';
 	import RecordLoadFailure from '$lib/components/RecordLoadFailure.svelte';
-	import { gradebookState } from '$lib/grades/catalog.svelte';
-	import { getActiveGradebook } from '$lib/grades/gradebook';
+	import { Calendar } from '$lib/components/ui/calendar';
+	import CalendarDay from '$lib/components/ui/calendar/calendar-day.svelte';
 	import type { Period } from '$lib/contracts/studentvue/attendance';
+	import { removeCourseType } from '$lib/grades/course-name';
+	import { CalendarDate, type DateValue } from '@internationalized/date';
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
+	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
-	import ListIcon from '@lucide/svelte/icons/list';
-	import { attendanceState, loadAttendance } from './attendance.svelte';
+	import Clock3Icon from '@lucide/svelte/icons/clock-3';
+	import MapPinIcon from '@lucide/svelte/icons/map-pin';
+	import UserRoundIcon from '@lucide/svelte/icons/user-round';
+	import {
+		attendanceState,
+		loadAttendance,
+		loadSchedule,
+		scheduleState
+	} from './attendance.svelte';
 
 	loadAttendance();
+	loadSchedule();
 
 	type AttendanceType = 'Absent' | 'Tardy' | 'Excused' | 'Present' | 'Unknown';
+	type View = 'day' | 'week' | 'month';
 	type AttendanceRow = {
 		date: string;
 		dateObject?: Date;
@@ -26,21 +37,41 @@
 	};
 
 	const excusedReasonRegex =
-		/Field Trip|School Pass|Excused|Medical\/Dent|Comp Ed\/Court-Religi|Illness or Sickness|SB14 Wellness\/Illnes|Med. all day\/period/;
+		/Field Trip|School Pass|Excused|Medical\/Dent|Comp Ed\/Court-Religi|Illness or Sickness|SB14 Wellness\/Illnes|Med. all day\/period/i;
 	const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
-	const dateFormatter = new Intl.DateTimeFormat('en-US', {
-		month: 'numeric',
+	const shortDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+	const weekdayFormatter = new Intl.DateTimeFormat('en-US', {
+		weekday: 'long',
+		month: 'short',
+		day: 'numeric'
+	});
+	const scheduleDateFormatter = new Intl.DateTimeFormat('en-US', {
+		weekday: 'long',
+		month: 'short',
 		day: 'numeric',
 		year: 'numeric'
 	});
-	const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-	let view = $state<'overview' | 'calendar'>('overview');
-	let currentMonth = $state(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+	const statusPriority: Record<AttendanceType, number> = {
+		Present: 0,
+		Excused: 1,
+		Tardy: 2,
+		Absent: 3,
+		Unknown: 0
+	};
+	const statusOptions: AttendanceType[] = ['Absent', 'Tardy', 'Excused', 'Present', 'Unknown'];
+
+	const initialDate = new Date();
+	let selectedDate = $state(initialDate);
+	let calendarPlaceholder = $state(toCalendarDate(initialDate));
+	const calendarValue = $derived(toCalendarDate(selectedDate));
+	let view = $state<View>('day');
+	let visibleStatuses = $state<AttendanceType[]>([...statusOptions]);
+	let expandedRecord = $state<string | undefined>();
 
 	function getAbsenceType(periods: Period[]): AttendanceType {
 		const reasons = periods.map((period) => period._Name);
 		if (reasons.some((reason) => reason === 'Absent' || reason === 'Non ADA')) return 'Absent';
-		if (reasons.some((reason) => /Tardy/.test(reason))) return 'Tardy';
+		if (reasons.some((reason) => /Tardy/i.test(reason))) return 'Tardy';
 		if (reasons.some((reason) => excusedReasonRegex.test(reason))) return 'Excused';
 		if (reasons.some((reason) => reason === 'Present')) return 'Present';
 		return 'Unknown';
@@ -56,11 +87,11 @@
 	}
 
 	function parseAttendanceDate(value: string) {
+		const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+		if (isoMatch)
+			return new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]));
 		const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(value);
-		if (match) {
-			const date = new Date(Number(match[3]), Number(match[1]) - 1, Number(match[2]));
-			if (!Number.isNaN(date.getTime())) return date;
-		}
+		if (match) return new Date(Number(match[3]), Number(match[1]) - 1, Number(match[2]));
 		const date = new Date(value);
 		return value && !Number.isNaN(date.getTime())
 			? new Date(date.getFullYear(), date.getMonth(), date.getDate())
@@ -70,35 +101,28 @@
 	function dateKey(date: Date) {
 		return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 	}
-
-	function statusClasses(type: AttendanceType) {
-		switch (type) {
-			case 'Absent':
-				return 'bg-destructive-soft text-destructive';
-			case 'Tardy':
-				return 'bg-warning-soft text-warning';
-			case 'Excused':
-				return 'bg-destructive-soft text-destructive';
-			case 'Present':
-				return 'bg-success-soft text-success';
-			default:
-				return 'bg-muted text-muted-foreground';
-		}
+	function toCalendarDate(date: Date) {
+		return new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+	}
+	function fromCalendarDate(date: DateValue) {
+		return new Date(date.year, date.month - 1, date.day);
 	}
 
-	function dotClasses(type: AttendanceType) {
-		switch (type) {
-			case 'Absent':
-				return 'bg-destructive';
-			case 'Tardy':
-				return 'bg-warning';
-			case 'Excused':
-				return 'bg-destructive';
-			case 'Present':
-				return 'bg-success';
-			default:
-				return 'bg-muted-foreground';
-		}
+	function statusTone(type: AttendanceType) {
+		return type === 'Absent'
+			? 'risk'
+			: type === 'Tardy'
+				? 'watch'
+				: type === 'Excused'
+					? 'accent'
+					: type === 'Present'
+						? 'success'
+						: 'neutral';
+	}
+
+	function scheduleCourseName(title: string) {
+		const match = /^\d{5,}\s+(.+?)(?:\s+-\s+\d{5,}-\d+)?$/.exec(title.trim());
+		return removeCourseType(match?.[1] ?? title.trim());
 	}
 
 	const attendanceRows = $derived.by((): AttendanceRow[] => {
@@ -126,138 +150,106 @@
 		].toSorted((a, b) => (b.dateObject?.getTime() ?? 0) - (a.dateObject?.getTime() ?? 0));
 	});
 
-	const absences = $derived(
-		attendanceRows.filter((row) => row.type === 'Absent' || row.type === 'Excused').length
+	const filteredRows = $derived(attendanceRows.filter((row) => visibleStatuses.includes(row.type)));
+	const latestRecord = $derived(attendanceRows.find((row) => row.dateObject));
+	const scheduleClasses = $derived(scheduleState.data?.classes ?? []);
+	const scheduleDate = $derived(
+		parseAttendanceDate(scheduleState.data?.date || scheduleClasses[0]?.date || '')
 	);
-	const tardies = $derived(
-		attendanceRows.filter(
-			(row) => row.type === 'Tardy' || row.periods.some((period) => /tardy/i.test(period._Name))
-		).length
+	const weekStart = $derived(
+		new Date(
+			selectedDate.getFullYear(),
+			selectedDate.getMonth(),
+			selectedDate.getDate() - selectedDate.getDay()
+		)
 	);
-	const daysRecorded = $derived(
-		new Set(attendanceRows.flatMap((row) => (row.dateObject ? [dateKey(row.dateObject)] : []))).size
+	const weekEnd = $derived(
+		new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6)
 	);
-	const courseTotals = $derived.by(() => {
-		if (attendanceState.data?.CourseTotals?.length) return attendanceState.data.CourseTotals;
-		const totals = new Map<
-			string,
-			{
-				Course: string;
-				Present: number;
-				Tardy: number;
-				Absent: number;
-				Excused: number;
-				Unexcused: number;
-			}
-		>();
-		for (const row of attendanceRows) {
-			for (const period of row.periods.filter((item) => item._Course)) {
-				const entry = totals.get(period._Course) ?? {
-					Course: period._Course,
-					Present: 0,
-					Tardy: 0,
-					Absent: 0,
-					Excused: 0,
-					Unexcused: 0
-				};
-				if (/tardy/i.test(period._Name)) entry.Tardy += 1;
-				else if (excusedReasonRegex.test(period._Name)) entry.Excused += 1;
-				else if (/absent|non ada/i.test(period._Name)) entry.Absent += 1;
-				else if (/present/i.test(period._Name)) entry.Present += 1;
-				totals.set(period._Course, entry);
-			}
-		}
-		return [...totals.values()];
-	});
-	const gradebookCourses = $derived.by(() => {
-		gradebookState.version;
-		return getActiveGradebook()?.Courses.Course ?? [];
-	});
-	const courseAttendanceRows = $derived(
-		courseTotals.map((total, index) => {
-			const normalizedName = removeCourseType(total.Course).trim().toLocaleLowerCase();
-			const course = gradebookCourses.find(
-				(candidate) =>
-					removeCourseType(candidate._CourseName).trim().toLocaleLowerCase() === normalizedName
+	const rangeLabel = $derived(
+		view === 'month' || view === 'day'
+			? monthFormatter.format(selectedDate)
+			: `${shortDateFormatter.format(weekStart)} – ${shortDateFormatter.format(weekEnd)}, ${weekEnd.getFullYear()}`
+	);
+	const visibleDates = $derived.by(() => {
+		if (view === 'day') return [selectedDate];
+		if (view === 'week')
+			return Array.from(
+				{ length: 7 },
+				(_, index) =>
+					new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + index)
 			);
-			return {
-				...total,
-				period: course?._Period || String(index + 1),
-				teacher: course?._Staff || '—',
-				absenceCount: total.Absent + total.Unexcused + total.Excused
-			};
-		})
-	);
-
-	const calendarDays = $derived.by(() => {
-		const year = currentMonth.getFullYear();
-		const month = currentMonth.getMonth();
-		const leadingDays = new Date(year, month, 1).getDay();
-		const dayCount = new Date(year, month + 1, 0).getDate();
-		return [
-			...Array.from({ length: leadingDays }, (_, index) => ({
-				key: `blank-${index}`,
-				date: undefined
-			})),
-			...Array.from({ length: dayCount }, (_, index) => {
-				const date = new Date(year, month, index + 1);
-				return { key: dateKey(date), date };
-			})
-		];
+		return Array.from(
+			{ length: new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate() },
+			(_, index) => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), index + 1)
+		);
 	});
-
+	const agendaDates = $derived(
+		view === 'month'
+			? visibleDates.filter((date) =>
+					filteredRows.some((row) => row.dateObject && dateKey(row.dateObject) === dateKey(date))
+				)
+			: visibleDates
+	);
+	const visibleCount = $derived(
+		visibleDates.reduce((count, date) => count + recordsForDate(date).length, 0)
+	);
 	function recordsForDate(date: Date) {
-		const key = dateKey(date);
-		return attendanceRows.filter(
-			(record) => record.dateObject && dateKey(record.dateObject) === key
+		return filteredRows.filter(
+			(row) => row.dateObject && dateKey(row.dateObject) === dateKey(date)
 		);
 	}
-	function changeMonth(offset: number) {
-		currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + offset, 1);
+	function move(offset: number) {
+		if (view === 'month')
+			selectedDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + offset, 1);
+		else
+			selectedDate = new Date(
+				selectedDate.getFullYear(),
+				selectedDate.getMonth(),
+				selectedDate.getDate() + offset * (view === 'week' ? 7 : 1)
+			);
+		calendarPlaceholder = toCalendarDate(selectedDate);
+		expandedRecord = undefined;
 	}
-	function goToToday() {
-		const today = new Date();
-		currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+	function chooseDate(date: Date) {
+		selectedDate = date;
+		calendarPlaceholder = toCalendarDate(date);
+		view = 'day';
+		expandedRecord = undefined;
 	}
-	function isToday(date: Date) {
-		return dateKey(date) === dateKey(new Date());
+	function showCalendarMonth(date: DateValue) {
+		calendarPlaceholder = new CalendarDate(date.year, date.month, date.day);
+		if (date.year !== selectedDate.getFullYear() || date.month !== selectedDate.getMonth() + 1) {
+			selectedDate = new Date(date.year, date.month - 1, 1);
+			expandedRecord = undefined;
+		}
+	}
+	function toggleStatus(status: AttendanceType) {
+		visibleStatuses = visibleStatuses.includes(status)
+			? visibleStatuses.filter((item) => item !== status)
+			: [...visibleStatuses, status];
+	}
+	function primaryType(records: AttendanceRow[]) {
+		return records.reduce(
+			(winner, record) =>
+				statusPriority[record.type] > statusPriority[winner] ? record.type : winner,
+			records[0]?.type ?? 'Unknown'
+		);
 	}
 </script>
 
 <svelte:head><title>Attendance - {brand}</title></svelte:head>
 
-<AppPageShell class="max-w-[67.5rem]">
-	<div class="mb-7 flex items-start justify-between gap-4">
+<AppPageShell class="attendance-shell">
+	<header class="page-heading">
 		<div>
-			<p class="text-primary text-[0.68rem] font-bold tracking-[0.14em] uppercase">School year</p>
-			<h1 class="font-heading mt-2 text-2xl font-bold tracking-[-0.035em] sm:text-[1.875rem]">
-				Attendance
-			</h1>
+			<h1>Attendance</h1>
+			<p>Explore the dates and details reported by your school.</p>
 		</div>
-		<div class="bg-secondary grid grid-cols-2 rounded-xl p-1" aria-label="Attendance view">
-			<button
-				type="button"
-				onclick={() => (view = 'overview')}
-				class="flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-semibold {view ===
-				'overview'
-					? 'bg-primary/12 text-primary shadow-sm'
-					: 'text-muted-foreground'}"><ListIcon class="size-4" /> Overview</button
-			>
-			<button
-				type="button"
-				onclick={() => (view = 'calendar')}
-				class="flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-semibold {view ===
-				'calendar'
-					? 'bg-primary/12 text-primary shadow-sm'
-					: 'text-muted-foreground'}"><CalendarDaysIcon class="size-4" /> Calendar</button
-			>
-		</div>
-	</div>
+	</header>
 
-	{#if !attendanceState.loaded}<LoadingBanner
-			>Loading attendance. Checking the ledger.</LoadingBanner
-		>{:else if attendanceState.refreshing}<LoadingBanner>Refreshing attendance...</LoadingBanner
-		>{/if}
+	{#if !attendanceState.loaded}<LoadingBanner>Loading attendance records…</LoadingBanner
+		>{:else if attendanceState.refreshing}<LoadingBanner>Refreshing attendance…</LoadingBanner>{/if}
 	{#if attendanceState.loaded && attendanceState.error}<RecordLoadFailure
 			label="attendance"
 			error={attendanceState.error}
@@ -266,222 +258,808 @@
 		/>{/if}
 
 	{#if attendanceState.data}
-		{#if view === 'overview'}
-			<section class="grid grid-cols-2 gap-3 sm:grid-cols-3" aria-label="Attendance summary">
-				<div class="summary-card">
-					<p class="metric-label">Absences</p>
-					<strong>{absences}</strong>
-				</div>
-				<div class="summary-card">
-					<p class="metric-label">Tardies</p>
-					<strong class="text-grade-watch">{tardies}</strong>
-				</div>
-				<div class="summary-card">
-					<p class="metric-label">Days recorded</p>
-					<strong class="text-grade-strong">{daysRecorded}</strong>
-				</div>
-			</section>
-
-			<section class="record-table mt-6">
-				<h2>By class</h2>
-				<div class="overflow-x-auto">
-					<table>
-						<thead
-							><tr
-								><th>Period</th><th>Class</th><th class="hidden sm:table-cell">Teacher</th><th
-									>Absent</th
-								><th>Tardy</th></tr
-							></thead
-						><tbody
-							>{#if courseAttendanceRows.length}{#each courseAttendanceRows as course (course.Course)}<tr
-										><td class="text-muted-foreground font-mono">{course.period}</td><td
-											class="font-semibold">{removeCourseType(course.Course)}</td
-										><td class="text-muted-foreground hidden sm:table-cell">{course.teacher}</td><td
-											>{course.absenceCount}</td
-										><td class="text-grade-watch">{course.Tardy}</td></tr
-									>{/each}{:else}<tr
-									><td colspan="5" class="empty-cell"
-										>No class attendance totals have been reported.</td
-									></tr
-								>{/if}</tbody
-						>
-					</table>
-				</div>
-			</section>
-
-			<section class="record-table mt-6">
-				<h2>History</h2>
-				<div class="overflow-x-auto">
-					<table>
-						<thead class="sr-only"><tr><th>Date</th><th>Status</th><th>Details</th></tr></thead
-						><tbody
-							>{#if attendanceRows.length}{#each attendanceRows as record, index (`${record.date}-${record.type}-${index}`)}<tr
-										><td class="whitespace-nowrap"
-											>{record.dateObject
-												? dateFormatter.format(record.dateObject)
-												: record.date}</td
-										><td
-											><span
-												class="rounded-full px-2.5 py-1 text-xs font-semibold {statusClasses(
-													record.type
-												)}">{record.type}</span
-											></td
-										><td class="min-w-64"
-											>{record.periods.length
-												? record.periods
-														.filter((period) => period._Course)
-														.map(
-															(period) => `P${period._Number} ${removeCourseType(period._Course)}`
-														)
-														.join(' · ')
-												: record.note || record.reason || record.type}</td
-										></tr
-									>{/each}{:else}<tr
-									><td colspan="3" class="empty-cell">No attendance records have been reported.</td
-									></tr
-								>{/if}</tbody
-						>
-					</table>
-				</div>
-			</section>
-		{:else}
-			<section aria-labelledby="attendance-month">
-				<div class="mb-4 flex flex-wrap items-center justify-center gap-3">
-					<button
+		<div class="calendar-toolbar">
+			<div class="date-actions">
+				<button
+					type="button"
+					class="today-button"
+					onclick={() => {
+						selectedDate = new Date();
+						calendarPlaceholder = toCalendarDate(selectedDate);
+						expandedRecord = undefined;
+					}}>Today</button
+				><button type="button" aria-label="Previous {view}" onclick={() => move(-1)}
+					><ChevronLeftIcon class="size-4" /></button
+				><button type="button" aria-label="Next {view}" onclick={() => move(1)}
+					><ChevronRightIcon class="size-4" /></button
+				>
+			</div>
+			<h2>{rangeLabel}</h2>
+			<div class="view-switch" aria-label="Calendar view">
+				{#each ['month', 'week', 'day'] as option (option)}<button
 						type="button"
-						onclick={() => changeMonth(-1)}
-						class="calendar-control"
-						aria-label="Previous month"><ChevronLeftIcon class="size-4" /></button
-					>
-					<h2 id="attendance-month" class="min-w-40 text-center text-lg font-bold">
-						{monthFormatter.format(currentMonth)}
-					</h2>
-					<button
+						class:active={view === option}
+						aria-pressed={view === option}
+						onclick={() => {
+							view = option as View;
+							expandedRecord = undefined;
+						}}>{(option[0] ?? '').toUpperCase() + option.slice(1)}</button
+					>{/each}
+			</div>
+		</div>
+	{/if}
+
+	<div class="workspace" class:schedule-only={!attendanceState.data}>
+		{#if attendanceState.data}
+			<main class="agenda" aria-label="Attendance records">
+				{#if view === 'day'}<div class="section-heading">
+						<CalendarDaysIcon class="size-5" />
+						<h3>{weekdayFormatter.format(selectedDate)}</h3>
+						<span>{visibleCount} {visibleCount === 1 ? 'record' : 'records'}</span>
+					</div>{/if}
+				{#if agendaDates.length}
+					{#each agendaDates as date (dateKey(date))}
+						{@const records = recordsForDate(date)}
+						{#if view !== 'day'}<div class="section-heading">
+								<h3>{weekdayFormatter.format(date)}</h3>
+								<span>{records.length} {records.length === 1 ? 'record' : 'records'}</span>
+							</div>{/if}
+						{#if records.length}
+							<div class="day-records">
+								{#each records as record, index (`${record.date}-${record.type}-${index}`)}
+									{@const recordKey = `${record.date}-${record.type}-${index}`}
+									<article class="record">
+										<button
+											type="button"
+											class="record-trigger"
+											aria-expanded={expandedRecord === recordKey}
+											onclick={() =>
+												(expandedRecord = expandedRecord === recordKey ? undefined : recordKey)}
+											><span class="record-icon {statusTone(record.type)}"></span><span
+												class="record-copy"
+												><strong>{record.note || record.reason || record.type}</strong><small
+													>{record.periods.length
+														? `${record.periods.length} affected ${record.periods.length === 1 ? 'period' : 'periods'}`
+														: 'Daily attendance record'}</small
+												></span
+											><span class="type-badge {statusTone(record.type)}">{record.type}</span
+											><ChevronDownIcon
+												class={`chevron size-4 ${expandedRecord === recordKey ? 'rotated' : ''}`}
+											/></button
+										>
+										{#if expandedRecord === recordKey}<div class="record-detail">
+												{#if record.periods.length}{#each record.periods as period (`${recordKey}-${period._Number}`)}<div
+														>
+															<span>Period {period._Number}</span><strong
+																>{period._Course || 'Course not provided'}</strong
+															>
+															<p>
+																{period._Reason ||
+																	period._Name ||
+																	'No reason provided'}{period._Staff ? ` · ${period._Staff}` : ''}
+															</p>
+														</div>{/each}{:else}<p>
+														{record.reason || 'No additional detail was provided.'}
+													</p>{/if}
+											</div>{/if}
+									</article>{/each}
+							</div>
+						{:else}<p class="day-empty">No attendance records for this day.</p>{/if}
+					{/each}
+				{:else}<div class="empty-month">
+						<CalendarDaysIcon class="size-6" />
+						<h3>No records this month</h3>
+						<p>Try another month or adjust the filters.</p>
+						{#if latestRecord?.dateObject}<button
+								type="button"
+								onclick={() => chooseDate(latestRecord.dateObject!)}>Go to latest record</button
+							>{/if}
+					</div>{/if}
+				{#if view === 'day' && !visibleCount && latestRecord?.dateObject}<button
 						type="button"
-						onclick={() => changeMonth(1)}
-						class="calendar-control"
-						aria-label="Next month"><ChevronRightIcon class="size-4" /></button
-					><button type="button" onclick={goToToday} class="calendar-control w-auto px-3"
-						>Today</button
+						class="latest-link"
+						onclick={() => chooseDate(latestRecord.dateObject!)}
+						>Go to latest record <ChevronRightIcon class="size-4" /></button
+					>{/if}
+			</main>
+
+			<aside class="calendar-sidebar" aria-label="Calendar and status filters">
+				<div class="mini-calendar">
+					<Calendar
+						type="single"
+						value={calendarValue}
+						placeholder={calendarPlaceholder}
+						onValueChange={(date) => {
+							if (date) chooseDate(fromCalendarDate(date));
+						}}
+						onPlaceholderChange={showCalendarMonth}
+						calendarLabel="Attendance dates"
+						weekdayFormat="short"
+						disableDaysOutsideMonth
+						class="attendance-calendar w-full bg-transparent p-0 [--cell-size:2rem]"
 					>
+						{#snippet day({ day, outsideMonth })}
+							{@const records = recordsForDate(fromCalendarDate(day))}
+							<CalendarDay
+								class="attendance-day relative"
+								title={records.length
+									? `${records.length} attendance ${records.length === 1 ? 'record' : 'records'}`
+									: undefined}
+							>
+								{day.day}
+								{#if !outsideMonth && records.length}<span
+										class="date-dot {statusTone(primaryType(records))}"
+										aria-hidden="true"
+									></span>{/if}
+							</CalendarDay>
+						{/snippet}
+					</Calendar>
 				</div>
-				<div class="overflow-x-auto pb-2">
-					<div class="min-w-[44rem]">
-						<div class="grid grid-cols-7">
-							{#each weekdayNames as weekday (weekday)}<div
-									class="metric-label px-2 pb-2 text-center"
-								>
-									{weekday}
-								</div>{/each}
-						</div>
-						<div
-							class="border-border/70 bg-card grid grid-cols-7 overflow-hidden rounded-xl border shadow-sm"
-						>
-							{#each calendarDays as day (day.key)}{#if day.date}{@const dayRecords =
-										recordsForDate(day.date)}
-									<div class="border-border/70 min-h-24 border-r border-b p-2">
-										<div class="mb-1 flex justify-end">
-											<time
-												datetime={day.key}
-												class="flex size-6 items-center justify-center rounded-full text-xs font-semibold {isToday(
-													day.date
-												)
-													? 'bg-foreground text-background'
-													: ''}">{day.date.getDate()}</time
-											>
-										</div>
-										<div class="space-y-1">
-											{#each dayRecords.slice(0, 3) as record, index (`${record.date}-${record.type}-${index}`)}<div
-													class="flex items-center gap-1.5 truncate rounded px-1.5 py-1 text-[0.68rem] font-semibold {statusClasses(
-														record.type
-													)}"
-												>
-													<span class="size-1.5 shrink-0 rounded-full {dotClasses(record.type)}"
-													></span><span class="truncate">{record.type}</span>
-												</div>{/each}
-										</div>
-									</div>{:else}<div
-										class="border-border/70 bg-muted/20 min-h-24 border-r border-b"
-									></div>{/if}{/each}
-						</div>
+				<div class="status-panel">
+					<div class="status-title">
+						<h3>Attendance types</h3>
+					</div>
+					<div class="status-options">
+						{#each statusOptions as status (status)}<label class="status-option"
+								><input
+									type="checkbox"
+									checked={visibleStatuses.includes(status)}
+									onchange={() => toggleStatus(status)}
+								/><span class="status-swatch {statusTone(status)}"></span><span
+									>{status === 'Unknown' ? 'Other records' : status}</span
+								></label
+							>{/each}
 					</div>
 				</div>
-			</section>
+				<p class="source-note">
+					Dates with dots have attendance records. Details come from your school’s StudentVUE
+					record.
+				</p>
+			</aside>
 		{/if}
-	{/if}
+
+		<section class="class-schedule" aria-labelledby="class-schedule-heading">
+			<div class="schedule-heading">
+				<h2 id="class-schedule-heading">Class schedule</h2>
+				{#if scheduleDate}<p class="schedule-date">
+						{scheduleDateFormatter.format(scheduleDate)}
+					</p>{/if}
+			</div>
+			{#if scheduleClasses.length}
+				<ol class="schedule-list">
+					{#each scheduleClasses as course, index (`${course.period}-${course.courseTitle}-${index}`)}
+						<li class="schedule-row">
+							<div class="schedule-period">
+								<span class="sr-only">Period </span>{course.period || '—'}
+							</div>
+							<div class="schedule-course">
+								<strong title={course.courseTitle}
+									>{scheduleCourseName(course.courseTitle) || 'Unnamed class'}</strong
+								>
+								<div class="schedule-details">
+									{#if course.startTime || course.endTime}<span class="schedule-chip"
+											><Clock3Icon class="size-3" />{[course.startTime, course.endTime]
+												.filter(Boolean)
+												.join(' – ')}</span
+										>{/if}
+									{#if course.room}<span class="schedule-chip"
+											><MapPinIcon class="size-3" />Room {course.room}</span
+										>{/if}
+									{#if course.teacher}<span class="schedule-chip"
+											><UserRoundIcon class="size-3" />{course.teacher}</span
+										>{/if}
+								</div>
+							</div>
+						</li>
+					{/each}
+				</ol>
+				{#if scheduleState.error}<p class="schedule-note">
+						Showing the last saved schedule. The latest update could not be loaded.
+					</p>{/if}
+			{:else if !scheduleState.loaded}
+				<p class="schedule-empty" role="status">Loading class schedule…</p>
+			{:else if scheduleState.error}
+				<RecordLoadFailure
+					label="class schedule"
+					error={scheduleState.error}
+					refreshing={scheduleState.refreshing}
+					retry={() => loadSchedule(true)}
+				/>
+			{:else}
+				<p class="schedule-empty">No classes were returned for this schedule.</p>
+			{/if}
+		</section>
+	</div>
 </AppPageShell>
 
 <style>
-	.metric-label {
+	/* Hallmark · pre-emit critique: P5 H4 E5 S5 R5 V4 · genre: modern-minimal · macrostructure: Agenda Workbench · palette: Grademaxxing semantic tokens */
+	:global(.attendance-shell) {
+		max-width: 90rem;
+	}
+	button {
+		cursor: pointer;
+	}
+	button:focus-visible,
+	input:focus-visible {
+		outline: 2px solid var(--focus);
+		outline-offset: 2px;
+	}
+	.page-heading {
+		margin-bottom: var(--space-md);
+		padding-bottom: 0.9rem;
+	}
+	.page-heading h1 {
+		margin: 0;
+		color: var(--foreground);
+		font-family: var(--font-heading);
+		font-size: clamp(1.5rem, 3vw, 1.875rem);
+		font-weight: 700;
+		line-height: 1.2;
+		letter-spacing: -0.035em;
+	}
+	.page-heading p:last-child {
+		margin: 0.25rem 0 0;
 		color: var(--muted-foreground);
-		font-size: 0.69rem;
-		font-weight: 700;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
-	}
-	.summary-card {
-		border: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
-		border-radius: 0.75rem;
-		background: var(--card);
-		min-height: 108px;
-		padding: 1.25rem;
-		box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
-	}
-	.summary-card strong {
-		display: block;
-		margin-top: 0.8rem;
-		font-family: var(--font-mono);
-		font-size: 2rem;
-		line-height: 1;
-	}
-	.record-table {
-		overflow: hidden;
-		border: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
-		border-radius: 0.75rem;
-		background: var(--card);
-		box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
-	}
-	.record-table h2 {
-		border-bottom: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
-		padding: 1rem 1.25rem;
-		font-weight: 700;
-	}
-	table {
-		width: 100%;
-		border-collapse: collapse;
 		font-size: 0.875rem;
 	}
-	th {
-		color: var(--muted-foreground);
-		padding: 0.8rem 1.25rem;
-		text-align: left;
-		font-size: 0.68rem;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-	}
-	td {
-		border-top: 1px solid color-mix(in oklab, var(--border) 65%, transparent);
-		padding: 0.9rem 1.25rem;
-	}
-	.empty-cell {
-		color: var(--muted-foreground);
-		padding: 2.5rem 1.25rem;
-		text-align: center;
-	}
-	.calendar-control {
-		display: flex;
-		height: 2.25rem;
-		width: 2.25rem;
+	.calendar-toolbar {
+		display: grid;
+		grid-template-columns: 1fr auto 1fr;
 		align-items: center;
-		justify-content: center;
+		gap: var(--space-md);
+		margin: 0 0 var(--space-md);
+	}
+	.calendar-toolbar h2 {
+		min-width: 0;
+		margin: 0;
+		color: var(--foreground);
+		font-family: var(--font-heading);
+		font-size: clamp(1.05rem, 2vw, 1.4rem);
+		letter-spacing: -0.025em;
+		text-align: center;
+		overflow-wrap: anywhere;
+	}
+	.date-actions,
+	.view-switch {
+		display: inline-flex;
+		align-items: stretch;
+		width: fit-content;
+		overflow: hidden;
 		border: 1px solid var(--border);
 		border-radius: 0.5rem;
+		background: var(--card);
 	}
-	@media (max-width: 639px) {
-		th,
-		td {
-			padding-right: 0.75rem;
-			padding-left: 0.75rem;
+	.date-actions button,
+	.view-switch button {
+		display: grid;
+		min-width: 2.375rem;
+		min-height: 2.375rem;
+		place-items: center;
+		border: 0;
+		border-right: 1px solid var(--border);
+		background: transparent;
+		color: var(--foreground);
+		font-size: 0.8rem;
+		white-space: nowrap;
+	}
+	.date-actions button:last-child,
+	.view-switch button:last-child {
+		border-right: 0;
+	}
+	.date-actions .today-button {
+		padding-inline: 0.9rem;
+		font-weight: 600;
+	}
+	.view-switch {
+		justify-self: end;
+	}
+	.view-switch button {
+		padding-inline: 0.75rem;
+	}
+	.view-switch button.active {
+		background: var(--secondary);
+		font-weight: 600;
+	}
+	.workspace {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(15.5rem, 18rem);
+		grid-template-rows: max-content minmax(0, 1fr);
+		align-items: start;
+		column-gap: var(--space-lg);
+		row-gap: var(--space-sm);
+	}
+	.workspace.schedule-only {
+		display: block;
+	}
+	.agenda {
+		grid-column: 1;
+		grid-row: 1;
+		min-width: 0;
+		overflow: hidden;
+		border: 1px solid var(--border);
+		border-radius: 0.75rem;
+		background: var(--card);
+	}
+	.section-heading {
+		display: flex;
+		align-items: center;
+		gap: var(--space-sm);
+		min-height: 2.7rem;
+		border-bottom: 1px solid var(--border);
+		padding: 0.55rem 1rem;
+		color: var(--foreground);
+	}
+	.section-heading:not(:first-child) {
+		border-top: 1px solid var(--border);
+	}
+	.section-heading h3 {
+		min-width: 0;
+		margin: 0;
+		font-family: var(--font-heading);
+		font-size: 0.875rem;
+		font-weight: 600;
+		letter-spacing: -0.02em;
+	}
+	.section-heading span {
+		margin-left: auto;
+		color: var(--muted-foreground);
+		font-family: var(--font-technical);
+		font-size: 0.68rem;
+		white-space: nowrap;
+	}
+	.record {
+		border-top: 1px solid var(--border);
+	}
+	.record:first-child {
+		border-top: 0;
+	}
+	.record-trigger {
+		display: flex;
+		align-items: center;
+		gap: var(--space-md);
+		width: 100%;
+		min-height: 4.7rem;
+		border: 0;
+		background: transparent;
+		color: var(--foreground);
+		padding: 0.75rem 1rem;
+		text-align: left;
+	}
+	.record-icon {
+		width: 0.55rem;
+		height: 0.55rem;
+		flex: 0 0 auto;
+		border-radius: 50%;
+		background: currentColor;
+	}
+	.record-copy {
+		display: grid;
+		min-width: 0;
+		gap: 0.2rem;
+	}
+	.record-copy strong {
+		overflow-wrap: anywhere;
+		font-size: 0.9rem;
+		line-height: 1.35;
+	}
+	.record-copy small {
+		color: var(--muted-foreground);
+		font-size: 0.76rem;
+	}
+	.type-badge {
+		margin-left: auto;
+		border-radius: 999px;
+		padding: 0.3rem 0.65rem;
+		font-size: 0.7rem;
+		font-weight: 700;
+		white-space: nowrap;
+	}
+	.type-badge.risk {
+		background: var(--grade-risk-soft);
+	}
+	.type-badge.watch {
+		background: var(--grade-watch-soft);
+	}
+	.type-badge.success {
+		background: var(--grade-strong-soft);
+	}
+	.type-badge.accent {
+		background: var(--accent);
+	}
+	.type-badge.neutral {
+		background: var(--secondary);
+	}
+	.chevron {
+		flex: 0 0 auto;
+		color: var(--muted-foreground);
+		transition: transform 150ms ease-out;
+	}
+	.chevron.rotated {
+		transform: rotate(180deg);
+	}
+	.record-detail {
+		display: grid;
+		gap: var(--space-xs);
+		padding: 0 var(--space-md) var(--space-md) calc(var(--space-md) + 0.55rem + var(--space-md));
+	}
+	.record-detail > div {
+		display: grid;
+		grid-template-columns: 5rem minmax(0, 1fr);
+		gap: 0.15rem var(--space-sm);
+		border-top: 1px solid var(--border);
+		padding: 0.7rem 0;
+	}
+	.record-detail span {
+		color: var(--muted-foreground);
+		font-family: var(--font-technical);
+		font-size: 0.68rem;
+	}
+	.record-detail strong {
+		overflow-wrap: anywhere;
+		font-size: 0.8rem;
+	}
+	.record-detail p {
+		grid-column: 2;
+		margin: 0;
+		color: var(--muted-foreground);
+		font-size: 0.78rem;
+	}
+	.day-empty {
+		margin: 0;
+		padding: 1rem;
+		color: var(--muted-foreground);
+		font-size: 0.9rem;
+	}
+	.latest-link,
+	.empty-month button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		margin: var(--space-sm) 0 0 1rem;
+		border: 0;
+		background: transparent;
+		color: var(--primary);
+		font-size: 0.83rem;
+		font-weight: 700;
+	}
+	.latest-link {
+		margin-top: 0;
+		margin-bottom: 0;
+		padding: 0.1rem 0 0.85rem;
+	}
+	.empty-month {
+		display: grid;
+		justify-items: center;
+		gap: 0.5rem;
+		padding: var(--space-2xl) var(--space-md);
+		color: var(--muted-foreground);
+		text-align: center;
+	}
+	.empty-month h3 {
+		margin: 0;
+		color: var(--foreground);
+	}
+	.empty-month p {
+		margin: 0;
+	}
+	.empty-month button {
+		margin-left: 0;
+	}
+	.calendar-sidebar {
+		grid-column: 2;
+		grid-row: 1 / 3;
+		overflow: hidden;
+		border: 1px solid var(--border);
+		border-radius: 0.75rem;
+		background: var(--card);
+	}
+	.mini-calendar {
+		padding: var(--space-md);
+	}
+	:global(.attendance-calendar) {
+		margin-inline: auto;
+		max-width: 17rem;
+	}
+	:global(.attendance-calendar [data-bits-calendar-header]) {
+		font-family: var(--font-heading);
+	}
+	.date-dot {
+		position: absolute;
+		bottom: 0.12rem;
+		width: 0.2rem;
+		height: 0.2rem;
+		border-radius: 50%;
+		background: currentColor;
+	}
+	:global(.attendance-calendar [data-selected]) .date-dot {
+		color: var(--primary-foreground);
+	}
+	.status-panel {
+		border-top: 1px solid var(--border);
+	}
+	.status-title {
+		border-bottom: 1px solid var(--border);
+		padding: 0.75rem 1rem;
+	}
+	.status-title h3 {
+		margin: 0;
+		color: var(--foreground);
+		font-family: var(--font-heading);
+		font-size: 0.875rem;
+		font-weight: 600;
+	}
+	.status-options {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0 var(--space-xs);
+		padding: 0.35rem 1rem 0.5rem;
+	}
+	.status-option {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		min-height: 2.4rem;
+		padding: 0.25rem 0;
+		color: var(--foreground);
+		font-size: 0.73rem;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+	.status-option:last-child {
+		grid-column: 1 / -1;
+	}
+	.status-option input {
+		appearance: none;
+		display: grid;
+		width: 1rem;
+		height: 1rem;
+		flex: 0 0 auto;
+		place-items: center;
+		margin: 0;
+		border: 1px solid var(--input);
+		border-radius: var(--radius-sm);
+		background: transparent;
+		cursor: pointer;
+	}
+	.status-option input:checked {
+		border-color: var(--primary);
+		background: var(--primary);
+	}
+	.status-option input::after {
+		width: 0.28rem;
+		height: 0.5rem;
+		border-right: 2px solid var(--primary-foreground);
+		border-bottom: 2px solid var(--primary-foreground);
+		content: '';
+		opacity: 0;
+		transform: translateY(-0.08rem) rotate(45deg);
+	}
+	.status-option input:checked::after {
+		opacity: 1;
+	}
+	.status-swatch {
+		width: 0.5rem;
+		height: 0.5rem;
+		border-radius: 50%;
+		background: currentColor;
+	}
+	.source-note {
+		margin: 0;
+		border-top: 1px solid var(--border);
+		padding: var(--space-md);
+		color: var(--muted-foreground);
+		font-size: 0.72rem;
+		line-height: 1.5;
+	}
+	.class-schedule {
+		grid-column: 1;
+		grid-row: 2;
+	}
+	.schedule-heading {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-md);
+		min-height: 2.5rem;
+		margin-bottom: 0.5rem;
+	}
+	.schedule-heading h2 {
+		margin: 0;
+		color: var(--foreground);
+		font-family: var(--font-heading);
+		font-size: 1.25rem;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+	}
+	.schedule-date {
+		margin: 0;
+		color: var(--muted-foreground);
+		font-family: var(--font-technical);
+		font-size: 0.74rem;
+		text-align: right;
+	}
+	.schedule-list {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.schedule-row {
+		display: grid;
+		grid-template-columns: 3rem minmax(0, 1fr);
+		align-items: center;
+		gap: 0.75rem;
+		min-height: 5.25rem;
+		margin-bottom: 0.75rem;
+		border: 1px solid var(--border);
+		border-radius: 0.75rem;
+		background: var(--card);
+		padding: 0.75rem 0.875rem;
+	}
+	.schedule-period {
+		color: var(--muted-foreground);
+		font-family: var(--font-heading);
+		font-size: 1.5rem;
+		font-weight: 700;
+		line-height: 1;
+		text-align: center;
+	}
+	.schedule-course {
+		display: grid;
+		min-width: 0;
+		gap: 0.4rem;
+	}
+	.schedule-course strong {
+		color: var(--foreground);
+		font-size: 0.9375rem;
+		font-weight: 600;
+		line-height: 1.3;
+		overflow-wrap: anywhere;
+	}
+	.schedule-details {
+		display: flex;
+		min-width: 0;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.3rem;
+		color: var(--muted-foreground);
+		font-size: 0.71875rem;
+		font-weight: 500;
+	}
+	.schedule-chip {
+		display: inline-flex;
+		max-width: 100%;
+		min-height: 1.3125rem;
+		align-items: center;
+		gap: 0.3125rem;
+		overflow: hidden;
+		border-radius: 999px;
+		background: var(--secondary);
+		padding: 0.1rem 0.5625rem;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.schedule-chip :global(svg) {
+		flex: 0 0 auto;
+	}
+	.schedule-empty,
+	.schedule-note {
+		margin: 0;
+		padding: var(--space-md) 0;
+		color: var(--muted-foreground);
+		font-size: 0.85rem;
+	}
+	.risk {
+		color: var(--grade-risk);
+	}
+	.watch {
+		color: var(--grade-watch);
+	}
+	.success {
+		color: var(--grade-strong);
+	}
+	.accent {
+		color: var(--primary);
+	}
+	.neutral {
+		color: var(--muted-foreground);
+	}
+	@media (min-width: 75rem) {
+		.schedule-list {
+			columns: 2;
+			column-gap: 0.75rem;
+		}
+		.schedule-row {
+			break-inside: avoid;
+		}
+	}
+	@media (max-width: 56rem) {
+		.workspace {
+			grid-template-columns: minmax(0, 1fr);
+			grid-template-rows: auto;
+		}
+		.calendar-sidebar {
+			grid-column: 1;
+			grid-row: 2;
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		}
+		.class-schedule {
+			grid-column: 1;
+			grid-row: 3;
+		}
+		.status-panel {
+			border-top: 0;
+			border-left: 1px solid var(--border);
+		}
+		.source-note {
+			grid-column: 1 / -1;
+		}
+	}
+	@media (max-width: 39rem) {
+		.schedule-heading {
+			align-items: start;
+			flex-direction: column;
+			gap: var(--space-xs);
+		}
+		.schedule-date {
+			text-align: left;
+		}
+		.schedule-row {
+			grid-template-columns: 2.75rem minmax(0, 1fr);
+		}
+		.calendar-toolbar {
+			grid-template-columns: 1fr auto;
+		}
+		.calendar-toolbar h2 {
+			grid-column: 1 / -1;
+			grid-row: 1;
+			text-align: left;
+		}
+		.date-actions,
+		.view-switch {
+			grid-row: 2;
+		}
+		.view-switch button {
+			padding-inline: 0.55rem;
+		}
+		.calendar-sidebar {
+			grid-template-columns: 1fr;
+		}
+		.status-panel {
+			border-left: 0;
+			border-top: 1px solid var(--border);
+		}
+		.source-note {
+			grid-column: auto;
+		}
+		.record-trigger {
+			gap: var(--space-sm);
+		}
+		.type-badge {
+			padding: 0.2rem 0.45rem;
+			font-size: 0.65rem;
+		}
+		.record-detail {
+			padding-left: var(--space-sm);
+		}
+		.record-detail > div {
+			grid-template-columns: 1fr;
+		}
+		.record-detail p {
+			grid-column: 1;
+		}
+	}
+	@media (hover: hover) {
+		.record-trigger:hover,
+		.date-actions button:hover,
+		.view-switch button:hover {
+			background: var(--secondary);
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.chevron {
+			transition: none;
 		}
 	}
 </style>

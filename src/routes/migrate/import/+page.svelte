@@ -46,18 +46,18 @@
 
 <AuthShell promo={false}>
 	<section
-		class="w-full max-w-[30rem] rounded-2xl border border-[rgba(228,238,248,0.1)] bg-[#0d2033] p-5 text-[#e4eef8] shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)] sm:p-9"
+		class="border-border bg-card text-card-foreground w-full max-w-[30rem] rounded-2xl border p-5 shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)] sm:p-9"
 	>
 		<AuthPanelHeader />
-		<p class="mb-2 text-xs font-bold tracking-[0.14em] text-[#4db6f5] uppercase">Data import</p>
+		<p class="text-primary mb-2 text-xs font-bold tracking-[0.14em] uppercase">Data import</p>
 		<h1
 			class="mb-5 text-[1.4375rem] leading-[2.15625rem] font-bold tracking-[-0.01em]"
-			style="font-family: 'Space Grotesk', sans-serif"
+			style="font-family: 'Outfit', sans-serif"
 		>
 			Move your local app data
 		</h1>
 
-		<div class="space-y-4 text-sm leading-6 text-[#8fa9c2]">
+		<div class="text-muted-foreground space-y-4 text-sm leading-6">
 			<p>
 				{#if env.PUBLIC_ALLOWED_MIGRATION_ORIGINS !== undefined}
 					{#if sourceOrigin !== null}

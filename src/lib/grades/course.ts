@@ -1,4 +1,4 @@
-import type { Course } from '$lib/contracts/studentvue/gradebook';
+import type { AssignmentEntity, Course } from '$lib/contracts/studentvue/gradebook';
 import type { Category } from './assignments';
 import { seenAssignmentIDs } from './seenAssignments.svelte';
 
@@ -40,3 +40,25 @@ export function clearCourseUnseenAssignments(course: Course) {
 /** StudentVUE marks non-calculating work in the assignment-note prefix. */
 export const isNotForGrade = (notes: string | undefined) =>
 	/^\s*\(\s*not\s+for\s+grading\s*\)/i.test(notes ?? '');
+
+/**
+ * Districts post not-yet-graded work in different shapes: some omit the score
+ * fields, others send them as empty or non-numeric strings, and the portal
+ * labels the display score 'Not Graded'. Only a score that actually parses to
+ * a number — the same bar the percentage column uses — proves a teacher graded
+ * it. Not-for-grade work never counts.
+ */
+export function isGradedAssignment(assignment: AssignmentEntity) {
+	if (isNotForGrade(assignment._Notes)) return false;
+	if (/^\s*not\s+graded\s*$/i.test(assignment._DisplayScore)) return false;
+	const numericScore = (value: string | undefined) => {
+		if (value === undefined || value.trim() === '') return undefined;
+		const parsed = Number.parseFloat(value);
+		return Number.isFinite(parsed) ? parsed : undefined;
+	};
+	return (
+		numericScore(assignment._Score) !== undefined ||
+		numericScore(assignment._ScoreCalValue) !== undefined ||
+		numericScore(assignment._Point) !== undefined
+	);
+}

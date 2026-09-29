@@ -3,7 +3,9 @@
 	import { getRelativeTime } from '$lib/format/date-time';
 	import { removeCourseType } from '$lib/grades/course-name';
 	import { acc } from '$lib/account.svelte';
-	import { brand, brandName, releaseChannel } from '$lib/brand';
+	import { brandName } from '$lib/brand';
+	import ThinkingOrb from '$lib/components/ThinkingOrb.svelte';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Spinner } from '$lib/components/ui/spinner';
 	import {
@@ -20,17 +22,15 @@
 	} from '$lib/session.svelte';
 	import { StudentVueSessionExpiredError } from '$lib/synergy';
 	import AppWindowMacIcon from '@lucide/svelte/icons/app-window-mac';
-	import BookOpenIcon from '@lucide/svelte/icons/book-open';
-	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
-	import CheckIcon from '@lucide/svelte/icons/check';
-	import FileTextIcon from '@lucide/svelte/icons/file-text';
+	import BookIcon from '@lucide/svelte/icons/book';
+	import CommandIcon from '@lucide/svelte/icons/command';
+	import CalendarCheck2Icon from '@lucide/svelte/icons/calendar-check-2';
+	import FilesIcon from '@lucide/svelte/icons/files';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
-	import MailIcon from '@lucide/svelte/icons/mail';
-	import MoonIcon from '@lucide/svelte/icons/moon';
-	import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
-	import SunIcon from '@lucide/svelte/icons/sun';
-	import TrophyIcon from '@lucide/svelte/icons/trophy';
-	import { mode, setMode } from 'mode-watcher';
+	import MailOpenIcon from '@lucide/svelte/icons/mail-open';
+	import MessageSquareQuoteIcon from '@lucide/svelte/icons/message-square-quote';
+	import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
+	import * as Avatar from '$lib/components/ui/avatar';
 	import { toast } from 'svelte-sonner';
 	import { onMount, type Component } from 'svelte';
 	import { installPrompt } from '../../hooks.client';
@@ -38,6 +38,7 @@
 	import { documentsState, loadDocuments } from './documents/documents.svelte';
 	import { loadMailData, mailDataState } from './mail/mailData.svelte';
 	import { resetNonGradeRecords } from './resetNonGradeRecords.svelte';
+	import { quickJumpState } from './quickJumpState.svelte';
 	import { loadStudentInfo, studentInfoState } from './studentinfo/studentInfo.svelte';
 
 	const sidebar = Sidebar.useSidebar();
@@ -130,16 +131,31 @@
 		$installPrompt.prompt?.();
 	}
 
+	let confirmLogOut = $state(false);
+
 	function isRouteActive(url: string) {
 		return page.url.pathname === url || page.url.pathname.startsWith(`${url}/`);
 	}
 
-	const navigation: { title: string; url: string; icon: Component }[] = [
-		{ title: 'Gradebook', url: '/grades', icon: BookOpenIcon },
-		{ title: 'Rankings', url: '/rankings', icon: TrophyIcon },
-		{ title: 'Attendance', url: '/attendance', icon: CalendarDaysIcon },
-		{ title: 'Documents', url: '/documents', icon: FileTextIcon },
-		{ title: 'Mail', url: '/mail', icon: MailIcon }
+	const navigation: {
+		title: string;
+		url: string;
+		icon: Component;
+		section: 'Overview' | 'School';
+	}[] = [
+		{ title: 'Gradebook', url: '/grades', icon: BookIcon, section: 'Overview' },
+		{ title: 'Attendance', url: '/attendance', icon: CalendarCheck2Icon, section: 'School' },
+		{ title: 'Documents', url: '/documents', icon: FilesIcon, section: 'School' },
+		{ title: 'Mail', url: '/mail', icon: MailOpenIcon, section: 'School' },
+		{ title: 'Feedback', url: '/feedback', icon: MessageSquareQuoteIcon, section: 'School' }
+	];
+	const navigationSections = ['Overview', 'School'] as const;
+	const courseMarkerClasses = [
+		'bg-chart-1',
+		'bg-chart-2',
+		'bg-chart-3',
+		'bg-chart-4',
+		'bg-chart-5'
 	];
 
 	onMount(() => {
@@ -148,71 +164,116 @@
 	});
 </script>
 
-<Sidebar.Root class="border-sidebar-border/80" data-testid="app-sidebar">
-	<Sidebar.Header class="px-[0.875rem] pt-5 pb-[1.734375rem]">
-		<a
-			href="/grades"
-			class="focus-visible:ring-sidebar-ring flex h-[3.03125rem] w-full items-start gap-[0.5625rem] rounded-lg px-2 pt-1 pb-4 outline-none focus-visible:ring-2"
-			aria-label={`${brand} gradebook`}
+<!-- Hallmark · component: sidebar · genre: atmospheric · theme: existing Grademaxxing tokens
+ states: default · hover · focus · active · disabled · loading · error · success
+ pre-emit critique: P5 H5 E5 S5 R5 V5 -->
+<div
+	class="hidden w-(--sidebar-width) shrink-0 md:block"
+	aria-hidden="true"
+	data-testid="sidebar-layout-spacer"
+></div>
+
+<Sidebar.Root
+	collapsible={sidebar.isMobile ? 'offcanvas' : 'none'}
+	class="sidebar-shell border-sidebar-border/80 h-svh shrink-0 overflow-hidden overscroll-none border-r md:fixed md:inset-y-0 md:left-0 md:z-40"
+	data-testid="app-sidebar"
+>
+	<Sidebar.Header class="sidebar-header border-b-0 px-4 pt-5 pb-0">
+		<div
+			class="sidebar-brand flex h-12 w-full items-center gap-2 px-1 pt-1"
 			data-testid="sidebar-brand"
 		>
-			<img src="/grademaxxing-logo.png" class="size-8" alt="" />
+			<img src="/grademaxxing-growth-mark.png" class="size-8 shrink-0" alt="" />
 			<span
-				class="flex min-w-0 flex-col text-[1.1875rem] leading-5 font-bold tracking-[-0.01em]"
-				style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
-				><span>{brandName}</span><small
-					class="mt-0.5 text-[0.625rem] leading-3 font-semibold tracking-[0.04em] text-[#8fa9c2]"
-					>({releaseChannel})</small
-				></span
+				class="font-heading flex min-w-0 flex-1 flex-col text-xl leading-5 font-bold tracking-[-0.01em]"
+				><span>{brandName}</span></span
 			>
-		</a>
+		</div>
 	</Sidebar.Header>
 
-	<Sidebar.Content class="gap-0 px-[0.875rem] pb-0">
-		<nav aria-label="Primary navigation" data-testid="sidebar-primary-nav">
-			<Sidebar.Menu class="gap-[0.1875rem]">
-				{#each navigation as item (item.url)}
-					<Sidebar.MenuItem>
-						<Sidebar.MenuButton
-							class="text-muted-foreground hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground h-[2.3125rem] gap-2.5 rounded-[0.5rem] px-3 py-2.5 text-sm font-semibold transition-colors data-[active=true]:font-semibold"
-							isActive={isRouteActive(item.url)}
-						>
-							{#snippet child({ props })}
-								<a
-									href={item.url}
-									aria-current={page.url.pathname === item.url ? 'page' : undefined}
-									data-testid={`sidebar-nav-${item.url.slice(1)}`}
-									{...props}
+	<Sidebar.Content
+		class="sidebar-scroll-region gap-0 overflow-hidden overscroll-none px-4 pt-0 pb-2 group-data-[collapsible=icon]:p-2"
+	>
+		<nav
+			aria-label="Primary navigation"
+			data-testid="sidebar-primary-nav"
+			class="group-data-[collapsible=icon]:w-8"
+		>
+			{#each navigationSections as section, sectionIndex (section)}
+				<div class="sidebar-nav-section" class:mt-4={sectionIndex > 0}>
+					<h2
+						class="sidebar-section-heading text-tertiary-foreground mb-1.5 h-4 px-2 font-mono text-[0.5625rem] leading-4 font-semibold tracking-[0.18em] uppercase"
+					>
+						{section}
+					</h2>
+					<Sidebar.Menu class="gap-px">
+						{#each navigation.filter((item) => item.section === section) as item (item.url)}
+							<Sidebar.MenuItem>
+								<Sidebar.MenuButton
+									class="sidebar-nav-row text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground data-[active=true]:text-sidebar-accent-foreground h-9 gap-2.5 rounded-sm border-l-2 border-transparent px-3 text-sm font-medium transition-colors data-[active=true]:bg-transparent data-[active=true]:font-semibold!"
+									isActive={isRouteActive(item.url)}
+									tooltipContent={item.title}
 								>
-									<item.icon class="size-4" strokeWidth={1.5} />
-									<span>{item.title}</span>
-								</a>
-							{/snippet}
-						</Sidebar.MenuButton>
-					</Sidebar.MenuItem>
-				{/each}
-			</Sidebar.Menu>
+									{#snippet child({ props })}
+										<a
+											href={item.url}
+											aria-current={page.url.pathname === item.url ? 'page' : undefined}
+											data-testid={`sidebar-nav-${item.url.slice(1)}`}
+											{...props}
+										>
+											<item.icon
+												class="size-4 {item.url === '/grades' ? 'scale-[1.15]' : ''}"
+												strokeWidth={1.75}
+											/>
+											<span class="flex-1">{item.title}</span>
+										</a>
+									{/snippet}
+								</Sidebar.MenuButton>
+							</Sidebar.MenuItem>
+						{/each}
+					</Sidebar.Menu>
+				</div>
+			{/each}
 		</nav>
 
-		<section class="mt-[1.375rem]" aria-labelledby="classes-heading" data-testid="sidebar-classes">
+		<nav
+			class="sidebar-classes-region mt-5 group-data-[collapsible=icon]:hidden"
+			aria-labelledby="classes-heading"
+			data-testid="sidebar-classes"
+		>
 			<h2
 				id="classes-heading"
-				class="text-tertiary-foreground h-[1.03125rem] px-2 text-[0.6875rem] leading-[1.03125rem] font-semibold tracking-[0.1em] uppercase"
+				class="sidebar-section-heading text-tertiary-foreground mb-1.5 flex h-4 items-center px-2 font-mono text-[0.5625rem] font-semibold tracking-[0.18em] uppercase"
 			>
 				Classes
 			</h2>
+			<button
+				type="button"
+				onclick={() => (quickJumpState.open = true)}
+				class="text-muted-foreground hover:bg-sidebar-accent hover:text-foreground active:bg-sidebar-accent focus-visible:ring-sidebar-ring mb-1 -ml-1 flex h-7 w-full items-center gap-2 rounded-sm px-2 text-[0.78125rem] font-medium transition-colors outline-none focus-visible:ring-2"
+				title="Quick jump (⌘K)"
+				aria-label="Open quick jump"
+				data-testid="quick-jump-trigger"
+			>
+				<CommandIcon class="size-3.5" strokeWidth={1.75} />
+				<span>Jump to…</span>
+				<span
+					class="bg-sidebar-accent text-muted-foreground ml-auto rounded px-1 font-mono text-[0.625rem]"
+					aria-hidden="true">⌘K</span
+				>
+			</button>
 
 			<svelte:boundary>
 				{#if courses}
-					<ol class="mt-2 space-y-px">
+					<ul class="space-y-px">
 						{#each courses as course, index (course._CourseID)}
 							<li>
 								<a
 									href={`/grades/${encodeURIComponent(course._CourseID)}`}
-									class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring flex h-[1.8125rem] items-center gap-2 rounded-[0.4375rem] px-2 py-[0.4375rem] outline-none focus-visible:ring-2 {page
+									class="sidebar-course-row hover:bg-sidebar-accent/60 hover:text-foreground active:bg-sidebar-accent focus-visible:ring-sidebar-ring flex h-7 items-center gap-2.5 rounded-sm border-l-2 px-2 text-[0.8125rem] transition-colors outline-none focus-visible:ring-2 {page
 										.url.pathname === `/grades/${encodeURIComponent(course._CourseID)}`
-										? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold'
-										: 'text-muted-foreground'}"
+										? 'text-sidebar-accent-foreground border-transparent font-semibold'
+										: 'text-muted-foreground border-transparent'}"
 									aria-current={page.url.pathname ===
 									`/grades/${encodeURIComponent(course._CourseID)}`
 										? 'page'
@@ -221,135 +282,122 @@
 									data-testid="sidebar-course"
 								>
 									<span
-										class="text-tertiary-foreground w-3 shrink-0 font-mono text-[0.6875rem] leading-none tabular-nums"
-										>{index + 1}</span
+										class="size-1.5 shrink-0 rounded-full {courseMarkerClasses[
+											index % courseMarkerClasses.length
+										]}"
+										aria-hidden="true"
 									>
+									</span>
 									<span class="truncate text-[0.78125rem] leading-none font-medium"
 										>{removeCourseType(course._CourseName)}</span
 									>
 								</a>
 							</li>
 						{/each}
-					</ol>
+					</ul>
 				{:else}
 					<div class="text-muted-foreground flex items-center gap-2 px-3 py-4 text-sm">
 						<Spinner class="size-4" /> Loading classes.
 					</div>
 				{/if}
 			</svelte:boundary>
-		</section>
+		</nav>
 
-		<div class="mt-auto flex flex-col gap-3 pt-4" data-testid="sidebar-utilities">
+		<div
+			class="sidebar-utilities mt-auto flex flex-col gap-2 pt-3 group-data-[collapsible=icon]:hidden"
+			data-testid="sidebar-utilities"
+		>
 			{#if portalConnection.state === 'offline'}
 				<div
-					class="text-tertiary-foreground rounded-[0.5625rem] border border-amber-400/30 bg-amber-400/10 px-[0.6875rem] py-[0.5625rem] text-[0.71875rem] leading-[1.45]"
+					class="text-tertiary-foreground border-l-2 border-amber-400/60 px-2 py-1 text-[0.71875rem] leading-[1.45]"
 					role="status"
 					data-testid="portal-offline-indicator"
 				>
 					StudentVUE is unavailable. Saved records stay available; we'll retry automatically.
 				</div>
 			{/if}
-			<a
-				href="/privacy"
-				class="border-border text-tertiary-foreground hover:bg-sidebar-accent block rounded-[0.5625rem] border px-[0.6875rem] py-[0.5625rem] text-[0.71875rem] leading-[1.45] transition-colors"
+			<div
+				class="text-tertiary-foreground flex items-center gap-2 px-2 py-1 text-[0.6875rem] leading-[1.4]"
 				data-testid="sidebar-privacy"
 			>
-				Your password stays encrypted on this device. Signing out deletes your secure server session
-				and saved credentials.
-			</a>
-
-			<div
-				class="text-tertiary-foreground flex items-center px-1.5 text-[0.6875rem] leading-[0.9625rem]"
-			>
-				<span>Built for students. Somehow.</span>
-				<span class="px-1.5" aria-hidden="true">·</span>
-				<a href="/feedback" class="hover:text-foreground underline underline-offset-4">Feedback</a>
+				<ShieldCheckIcon class="text-success size-3.5 shrink-0" strokeWidth={1.75} />
+				<span class="min-w-0"
+					><strong class="text-foreground mr-1 font-medium">Privacy protected.</strong><a
+						href="/privacy"
+						class="text-link focus-visible:ring-sidebar-ring inline-flex whitespace-nowrap underline-offset-2 hover:underline focus-visible:rounded-sm focus-visible:ring-2 focus-visible:outline-none active:opacity-75"
+						data-testid="sidebar-privacy-link">Details</a
+					></span
+				>
 			</div>
 
 			<button
 				type="button"
 				onclick={() => void refreshAll()}
 				disabled={refreshingAll}
-				class="border-input hover:bg-sidebar-accent flex h-9 w-full items-center justify-center gap-2 rounded-[0.4375rem] border px-3 text-[0.78125rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+				class="hover:bg-sidebar-accent/60 active:bg-sidebar-accent focus-visible:ring-sidebar-ring flex min-h-12 w-full items-center gap-2 rounded-sm px-2 text-left transition-colors outline-none focus-visible:ring-2 disabled:cursor-wait disabled:opacity-70"
 				aria-busy={refreshingAll}
+				aria-label={refreshingAll
+					? 'Refreshing grades and records'
+					: portalConnection.state === 'offline'
+						? 'Retry StudentVUE connection'
+						: 'Refresh grades and records'}
 				data-testid="sidebar-refresh"
 			>
-				{#if lastSync !== undefined && !refreshingAll}
-					<CheckIcon class="size-3.5" strokeWidth={1.75} />
-				{:else}
-					<RefreshCwIcon class="size-3.5 {refreshingAll ? 'animate-spin' : ''}" strokeWidth={1.5} />
-				{/if}
-				<span
-					>{refreshingAll
-						? 'Refreshing'
-						: portalConnection.state === 'offline'
-							? 'Retry now'
-							: 'Refresh'}</span
-				>
-				{#if lastSync !== undefined && !refreshingAll}
-					<span class="text-muted-foreground font-normal"
-						>Updated {getRelativeTime(new Date(lastSync))}</span
+				<span class="flex size-9 shrink-0 items-center justify-center">
+					{#key refreshingAll}
+						<ThinkingOrb state={refreshingAll ? 'searching' : 'weaving'} />
+					{/key}
+				</span>
+				<span class="min-w-0 flex-1">
+					<span class="block text-[0.8125rem] leading-4 font-semibold"
+						>{refreshingAll
+							? 'Refreshing'
+							: portalConnection.state === 'offline'
+								? 'Retry connection'
+								: 'Refresh'}</span
 					>
-				{/if}
+					<span
+						class="text-muted-foreground block truncate text-[0.6875rem] leading-4 font-normal"
+						aria-live="polite"
+						aria-atomic="true"
+					>
+						{refreshingAll
+							? 'Checking grades and records…'
+							: lastSync !== undefined
+								? `Updated ${getRelativeTime(new Date(lastSync))}`
+								: 'Grades and records'}
+					</span>
+				</span>
 			</button>
-
-			<div
-				class="border-input grid grid-cols-2 gap-1 rounded-[0.5rem] border p-1"
-				aria-label="Color theme"
-				data-testid="sidebar-theme"
-			>
-				<button
-					type="button"
-					onclick={() => setMode('dark')}
-					class="flex h-[1.9375rem] items-center justify-center gap-[0.4375rem] rounded-[0.3125rem] text-xs font-semibold transition-colors {mode.current ===
-					'dark'
-						? 'bg-sidebar-accent text-sidebar-accent-foreground'
-						: 'text-muted-foreground hover:text-foreground'}"
-					aria-pressed={mode.current === 'dark'}
-				>
-					<MoonIcon class="size-[0.8125rem]" strokeWidth={1.5} /> Dark
-				</button>
-				<button
-					type="button"
-					onclick={() => setMode('light')}
-					class="flex h-[1.9375rem] items-center justify-center gap-[0.4375rem] rounded-[0.3125rem] text-xs font-semibold transition-colors {mode.current ===
-					'light'
-						? 'bg-sidebar-accent text-sidebar-accent-foreground'
-						: 'text-muted-foreground hover:text-foreground'}"
-					aria-pressed={mode.current === 'light'}
-				>
-					<SunIcon class="size-[0.8125rem]" strokeWidth={1.5} /> Light
-				</button>
-			</div>
 		</div>
 	</Sidebar.Content>
 
 	<Sidebar.Footer
-		class="border-sidebar-border border-t px-[0.875rem] py-2.5"
+		class="sidebar-footer border-sidebar-border border-t p-2"
 		data-testid="sidebar-profile-footer"
 	>
-		<div class="flex items-center gap-3">
+		<div class="flex items-center gap-1">
 			<a
 				href="/studentinfo"
-				class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1.5 outline-none focus-visible:ring-2"
+				class="hover:bg-sidebar-accent active:bg-sidebar-accent focus-visible:ring-sidebar-ring flex h-11 min-w-0 flex-1 items-center gap-2 rounded-md px-2 transition-colors outline-none group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0 focus-visible:ring-2"
 				title={studentInfoState.data?.FormattedName ?? 'Student profile'}
 				data-testid="sidebar-profile"
 			>
-				{#if studentInfoState.data?.Photo}
-					<img
-						src="data:{studentInfoState.data.PhotoMimeType || 'image/png'};base64,{studentInfoState
-							.data.Photo}"
-						class="size-9 shrink-0 rounded-full object-cover"
-						alt=""
-					/>
-				{:else}
-					<span
-						class="bg-sidebar-accent text-sidebar-accent-foreground flex size-9 shrink-0 items-center justify-center rounded-full font-bold"
+				<Avatar.Root class="size-8 shrink-0 rounded-md after:rounded-md">
+					{#if studentInfoState.data?.Photo}
+						<Avatar.Image
+							src="data:{studentInfoState.data.PhotoMimeType ||
+								'image/png'};base64,{studentInfoState.data.Photo}"
+							alt=""
+						/>
+					{/if}
+					<Avatar.Fallback
+						class="bg-sidebar-accent text-sidebar-accent-foreground rounded-md font-bold"
 					>
 						{profileName.charAt(0) || 'S'}
-					</span>
-				{/if}
-				<span class="min-w-0">
+					</Avatar.Fallback>
+				</Avatar.Root>
+				<span class="min-w-0 group-data-[collapsible=icon]:hidden">
 					<span class="block truncate text-sm font-bold">
 						{profileName}
 					</span>
@@ -365,7 +413,7 @@
 				<button
 					type="button"
 					onclick={installWebApp}
-					class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg outline-none focus-visible:ring-2"
+					class="hover:bg-sidebar-accent active:bg-sidebar-accent focus-visible:ring-sidebar-ring text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md outline-none group-data-[collapsible=icon]:hidden focus-visible:ring-2"
 					title="Install web app"
 					aria-label="Install web app"
 				>
@@ -373,15 +421,35 @@
 				</button>
 			{/if}
 
-			<button
-				type="button"
-				onclick={logOut}
-				class="hover:bg-sidebar-accent focus-visible:ring-sidebar-ring text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg outline-none focus-visible:ring-2"
-				title="Log out"
-				aria-label="Log out"
-			>
-				<LogOutIcon class="size-4" strokeWidth={1.5} />
-			</button>
+			<AlertDialog.Root bind:open={confirmLogOut}>
+				<AlertDialog.Trigger
+					class="text-muted-foreground hover:bg-destructive-soft hover:text-destructive active:bg-destructive-soft active:text-destructive focus-visible:ring-sidebar-ring flex size-8 shrink-0 items-center justify-center rounded-md transition-colors outline-none group-data-[collapsible=icon]:hidden focus-visible:ring-2"
+					title="Log out"
+					aria-label="Log out"
+					data-testid="sidebar-log-out"
+				>
+					<LogOutIcon class="size-4" strokeWidth={1.5} />
+				</AlertDialog.Trigger>
+				<AlertDialog.Content>
+					<AlertDialog.Header>
+						<AlertDialog.Title>Log out of Grademaxxing?</AlertDialog.Title>
+						<AlertDialog.Description>
+							This clears your saved grades and records on this device, and returns you to the
+							sign-in page. Your StudentVUE account is untouched.
+						</AlertDialog.Description>
+					</AlertDialog.Header>
+					<AlertDialog.Footer>
+						<AlertDialog.Cancel>Stay signed in</AlertDialog.Cancel>
+						<AlertDialog.Action
+							class="bg-destructive hover:bg-destructive/90 text-white"
+							onclick={logOut}
+							data-testid="confirm-log-out"
+						>
+							Log out
+						</AlertDialog.Action>
+					</AlertDialog.Footer>
+				</AlertDialog.Content>
+			</AlertDialog.Root>
 		</div>
 	</Sidebar.Footer>
 </Sidebar.Root>

@@ -15,8 +15,8 @@
 <main class="maintenance-root" aria-labelledby="maintenance-title">
 	<div class="maintenance-card">
 		<div class="maintenance-brand" aria-label={brand}>
-			<img src="/grademaxxing-logo.png" width="40" height="40" alt="" />
-			<span>Grade<span class="maintenance-accent">maxxing</span> <small>(Beta)</small></span>
+			<img src="/grademaxxing-growth-mark.png" width="40" height="40" alt="" />
+			<span>Grade<span class="maintenance-accent">maxxing</span></span>
 		</div>
 
 		<div class="maintenance-icon" aria-hidden="true">
@@ -52,7 +52,7 @@
 			),
 			var(--background);
 		color: var(--foreground);
-		font-family: 'Instrument Sans', sans-serif;
+		font-family: 'Manrope', sans-serif;
 	}
 
 	.maintenance-card {
@@ -73,7 +73,7 @@
 		align-items: center;
 		gap: 0.7rem;
 		margin-bottom: 3.5rem;
-		font-family: 'Space Grotesk', sans-serif;
+		font-family: 'Outfit', sans-serif;
 		font-size: 1.05rem;
 		font-weight: 700;
 		letter-spacing: -0.02em;
@@ -81,14 +81,6 @@
 
 	.maintenance-brand img {
 		border-radius: 0.65rem;
-	}
-
-	.maintenance-brand small {
-		color: var(--muted-foreground);
-		font-family: 'IBM Plex Mono', monospace;
-		font-size: 0.58em;
-		font-weight: 600;
-		letter-spacing: 0.03em;
 	}
 
 	.maintenance-accent {
@@ -110,7 +102,7 @@
 	.maintenance-eyebrow {
 		margin: 0 0 0.8rem;
 		color: var(--primary);
-		font-family: 'IBM Plex Mono', monospace;
+		font-family: 'JetBrains Mono', monospace;
 		font-size: 0.7rem;
 		font-weight: 600;
 		letter-spacing: 0.12em;
@@ -119,7 +111,7 @@
 
 	h1 {
 		margin: 0;
-		font-family: 'Space Grotesk', sans-serif;
+		font-family: 'Outfit', sans-serif;
 		font-size: clamp(2rem, 7vw, 3rem);
 		line-height: 1.05;
 		letter-spacing: -0.05em;

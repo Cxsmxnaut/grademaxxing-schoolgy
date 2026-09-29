@@ -136,7 +136,6 @@ test('1 — a student signs in and sees the Gradebook home', async () => {
 	await expect(page).toHaveURL(/\/grades$/, { timeout: 60_000 });
 	await expect(page.getByRole('heading', { level: 1, name: 'Gradebook' })).toBeVisible();
 	await expect(page.getByText('GPA · Unweighted', { exact: true })).toBeVisible();
-	await expect(page.getByText('Rank', { exact: true })).toBeVisible();
 	await expect(page.getByRole('link', { name: 'Gradebook', exact: true })).toBeVisible();
 	await expect(page.getByText('Loading grades. StudentVUE is on the clock.')).toBeHidden();
 	await expect(page.getByText('Something went wrong')).toHaveCount(0);
@@ -440,9 +439,6 @@ test('2 — a student opens a course and uses the grade-planning controls', asyn
 
 	await page.getByLabel('Hypothetical Mode').check();
 	await expect(page.getByText('Simulation · not official', { exact: true })).toBeVisible();
-	await expect(
-		page.getByRole('button', { name: 'Target Grade Calculator', exact: true })
-	).toBeVisible();
 	const whatIfForm = page.getByRole('form', { name: 'Add what-if assignment', exact: true });
 	await expect(whatIfForm).toBeVisible();
 
@@ -460,18 +456,6 @@ test('2 — a student opens a course and uses the grade-planning controls', asyn
 	await earnedInputs.nth(0).fill('8');
 	await possibleInputs.nth(0).fill('10');
 
-	await page.getByRole('button', { name: 'Target Grade Calculator', exact: true }).click();
-	await expect(
-		page.getByRole('region', { name: 'Target Grade Calculator', exact: true })
-	).toBeVisible();
-	await page.getByRole('button', { name: 'Select', exact: true }).click();
-	await expect(page.getByRole('dialog')).toBeVisible();
-	const assignmentChoices = page.getByRole('radio');
-	expect(await assignmentChoices.count()).toBeGreaterThan(0);
-	await assignmentChoices.nth(0).check();
-	await page.keyboard.press('Escape');
-	await expect(page.getByRole('dialog')).toBeHidden();
-
 	await page.getByRole('button', { name: 'Reset', exact: true }).click();
 	await page.getByLabel('Hypothetical Mode').uncheck();
 	await expect(page.getByText(/^Official · synced /)).toBeVisible();
@@ -483,9 +467,7 @@ test('3 — a student reviews attendance and refreshes it', async () => {
 	expect(await attendanceLink.count()).toBe(1);
 	await attendanceLink.click();
 	await expect(page).toHaveURL(/\/attendance$/);
-	await expect(
-		page.getByText('Loading attendance. Checking the ledger.', { exact: true })
-	).toBeHidden();
+	await expect(page.getByText('Loading attendance records…', { exact: true })).toBeHidden();
 	await expect(page.getByText('Something went wrong')).toHaveCount(0);
 
 	const refreshButton = page.getByRole('button', { name: 'Refresh', exact: true });
@@ -499,10 +481,10 @@ test('3 — a student reviews attendance and refreshes it', async () => {
 		await route.continue();
 	});
 	await refreshButton.click();
-	await expect(page.getByText('Refreshing attendance...', { exact: true })).toBeVisible();
+	await expect(page.getByText('Refreshing attendance…', { exact: true })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Refreshing…', exact: true })).toBeDisabled();
 	releaseAttendance();
-	await expect(page.getByText('Refreshing attendance...', { exact: true })).toBeHidden({
+	await expect(page.getByText('Refreshing attendance…', { exact: true })).toBeHidden({
 		timeout: 60_000
 	});
 	await page.unroute('**/api/studentvue/attendance');
@@ -533,9 +515,7 @@ test('4 — a student reviews documents and opens an available document', async 
 	expect(await documentsLink.count()).toBe(1);
 	await documentsLink.click();
 	await expect(page).toHaveURL(/\/documents$/);
-	await expect(
-		page.getByText('Loading documents. Filing cabinet mode.', { exact: true })
-	).toBeHidden();
+	await expect(page.getByText('Loading documents…', { exact: true })).toBeHidden();
 	await expect(page.getByText('Something went wrong')).toHaveCount(0);
 	await expect(page.getByRole('tab', { name: 'All', exact: true })).toBeVisible();
 
@@ -549,7 +529,7 @@ test('4 — a student reviews documents and opens an available document', async 
 		expect(documentPage.url()).toContain('/documents/document?documentGU=');
 		await documentPage.close();
 	} else
-		await expect(page.getByRole('status')).toHaveText('No student documents are available yet.');
+		await expect(page.getByRole('heading', { name: 'No documents available yet' })).toBeVisible();
 
 	if (documentCount > 0) {
 		await page.route('**/api/studentvue/documents', async (route) => {
@@ -589,9 +569,7 @@ test('5 — a student reads mail and opens an available attachment', async () =>
 	expect(await mailLink.count()).toBe(1);
 	await mailLink.click();
 	await expect(page).toHaveURL(/\/mail$/);
-	await expect(
-		page.getByText('Loading mail. Checking the digital hallway.', { exact: true })
-	).toBeHidden();
+	await expect(page.getByText('Loading mail…', { exact: true })).toBeHidden();
 	await expect(page.getByText('Something went wrong')).toHaveCount(0);
 
 	const inbox = page.getByRole('list', { name: 'Inbox messages', exact: true });
@@ -638,8 +616,7 @@ test('5 — a student reads mail and opens an available attachment', async () =>
 		await expect(page.getByText('Something went wrong')).toHaveCount(0);
 		await page.unroute('**/api/studentvue/messages');
 		await page.getByRole('button', { name: 'Refresh', exact: true }).click();
-	} else
-		await expect(page.getByRole('status')).toContainText('Your inbox is empty. Enjoy the silence.');
+	} else await expect(page.getByRole('status')).toContainText('No messages yet');
 	expect(pageErrors).toEqual([]);
 });
 
@@ -689,7 +666,7 @@ test('6b — a student can read privacy information and reach feedback', async (
 	await privacyLink.click();
 	await expect(page).toHaveURL(/\/privacy$/);
 	await expect(
-		page.getByText('How Grademaxxing (Beta) handles your information', { exact: true })
+		page.getByText('How Grademaxxing handles your information', { exact: true })
 	).toBeVisible();
 	await expect(
 		page.getByText('Your password is not written to disk', { exact: false })
@@ -839,7 +816,7 @@ test('8 — a student can navigate the full app at phone width', async () => {
 		await mobilePage.getByRole('button', { name: 'Log in', exact: true }).click();
 		record('mobile-step', { step: 'submitted-login' });
 		await expect(mobilePage).toHaveURL(/\/grades$/, { timeout: 60_000 });
-		await expect(mobilePage.getByText('GPA and rank', { exact: true })).toBeVisible();
+		await expect(mobilePage.getByText('GPA summary', { exact: true })).toBeVisible();
 		await mobileContext.tracing.start({ screenshots: true, snapshots: true, sources: true });
 		mobileTraceStarted = true;
 		record('mobile-step', { step: 'signed-in' });
@@ -856,9 +833,7 @@ test('8 — a student can navigate the full app at phone width', async () => {
 			path: `${diagnosticsDirectory}/mobile-attendance.png`,
 			fullPage: true
 		});
-		await expect(
-			mobilePage.getByText('Loading attendance. Checking the ledger.', { exact: true })
-		).toBeHidden();
+		await expect(mobilePage.getByText('Loading attendance records…', { exact: true })).toBeHidden();
 		record('mobile-step', { step: 'attendance-loaded' });
 
 		const gradesLink = mobilePage

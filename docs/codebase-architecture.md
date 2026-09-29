@@ -45,7 +45,7 @@ Key authenticated routes:
 `src/lib/grades/` contains calculation and presentation-independent grade logic:
 
 - `gradebook.ts` and `course.ts` normalize grade data.
-- `assignments.ts` is the stable assignment-domain facade; `assignments/` owns contracts, calculations, portal parsing, and target-grade solving.
+- `assignments.ts` is the stable assignment-domain facade; `assignments/` owns contracts, calculations, and portal parsing.
 - `gpa.ts` and `rank.ts` own GPA/rank calculations.
 - `refresh.ts` and `seenAssignments.ts` manage refresh snapshots and newly seen records.
 - `catalog.ts` is the persisted gradebook catalog; `catalog.svelte.ts` is its reactive client facade.

@@ -5,8 +5,9 @@
 	import { LocalStorageKey } from '$lib/storage/keys';
 	import { acc, loadStudentAccount, persistStudentAccount } from '$lib/account.svelte';
 	import { clearStoredCredentials, loadStoredCredentials } from '$lib/auth/credential-vault';
-	import { brandName, releaseChannel } from '$lib/brand';
+	import { brandName } from '$lib/brand';
 	import BoundaryFailure from '$lib/components/BoundaryFailure.svelte';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Spinner } from '$lib/components/ui/spinner';
 	import {
@@ -29,16 +30,15 @@
 	import FileTextIcon from '@lucide/svelte/icons/file-text';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import MailIcon from '@lucide/svelte/icons/mail';
-	import MoonIcon from '@lucide/svelte/icons/moon';
-	import SunIcon from '@lucide/svelte/icons/sun';
-	import TrophyIcon from '@lucide/svelte/icons/trophy';
-	import { mode, setMode } from 'mode-watcher';
 	import AppSidebar from './AppSidebar.svelte';
+	import QuickJump from './QuickJump.svelte';
 	import ReconnectStudentVue from './ReconnectStudentVue.svelte';
 	import { resetNonGradeRecords } from './resetNonGradeRecords.svelte';
 	import { onMount } from 'svelte';
 
 	let { children } = $props();
+
+	let confirmMobileLogOut = $state(false);
 	const KEEPALIVE_INTERVAL_MS = 8 * 60 * 1000;
 	const BACKGROUND_GRADE_REFRESH_MS = 5 * 60 * 1000;
 	const RESUME_DEBOUNCE_MS = 30 * 1000;
@@ -50,7 +50,6 @@
 
 	const mobileNavigation = [
 		{ title: 'Grades', url: '/grades', icon: BookOpenIcon },
-		{ title: 'Rankings', url: '/rankings', icon: TrophyIcon },
 		{ title: 'Attendance', url: '/attendance', icon: CalendarDaysIcon },
 		{ title: 'Documents', url: '/documents', icon: FileTextIcon },
 		{ title: 'Mail', url: '/mail', icon: MailIcon }
@@ -255,10 +254,14 @@
 </script>
 
 <svelte:boundary>
-	<Sidebar.Provider>
+	<Sidebar.Provider class="md:h-svh md:overflow-hidden">
 		<AppSidebar />
+		<QuickJump />
 
-		<Sidebar.Inset class="min-w-0 pb-[3.75rem] md:pb-0">
+		<Sidebar.Inset
+			class="min-w-0 pb-[3.75rem] md:h-svh md:overflow-y-auto md:pb-0"
+			data-testid="app-content-scroll"
+		>
 			<ReconnectStudentVue />
 			<header
 				class="bg-card border-border/70 sticky top-0 z-30 flex h-[3.09375rem] shrink-0 items-center border-b px-4 md:hidden"
@@ -267,30 +270,35 @@
 					href="/grades"
 					class="mr-auto flex items-center gap-2 text-lg font-extrabold tracking-[-0.035em] whitespace-nowrap"
 				>
-					<img src="/grademaxxing-logo.png" class="size-7" alt="" />
-					<span>{brandName}</span><small
-						class="rounded bg-sky-400/10 px-1.5 py-0.5 text-[0.5625rem] font-bold tracking-[0.04em] text-sky-400"
-						>({releaseChannel})</small
-					>
+					<img src="/grademaxxing-growth-mark.png" class="size-7" alt="" />
+					<span>{brandName}</span>
 				</a>
-				<button
-					type="button"
-					onclick={() => setMode(mode.current === 'dark' ? 'light' : 'dark')}
-					class="text-muted-foreground hover:text-foreground flex size-9 items-center justify-center rounded-lg"
-					aria-label={mode.current === 'dark' ? 'Use light theme' : 'Use dark theme'}
-				>
-					{#if mode.current === 'dark'}<SunIcon class="size-4" />{:else}<MoonIcon
-							class="size-4"
-						/>{/if}
-				</button>
-				<button
-					type="button"
-					onclick={() => void logOut()}
-					class="text-muted-foreground hover:text-foreground flex size-9 items-center justify-center rounded-lg"
-					aria-label="Log out"
-				>
-					<LogOutIcon class="size-4" />
-				</button>
+				<AlertDialog.Root bind:open={confirmMobileLogOut}>
+					<AlertDialog.Trigger
+						class="text-muted-foreground hover:text-foreground flex size-9 items-center justify-center rounded-lg"
+						aria-label="Log out"
+					>
+						<LogOutIcon class="size-4" />
+					</AlertDialog.Trigger>
+					<AlertDialog.Content>
+						<AlertDialog.Header>
+							<AlertDialog.Title>Log out of Grademaxxing?</AlertDialog.Title>
+							<AlertDialog.Description>
+								This clears your saved grades and records on this device, and returns you to the
+								sign-in page. Your StudentVUE account is untouched.
+							</AlertDialog.Description>
+						</AlertDialog.Header>
+						<AlertDialog.Footer>
+							<AlertDialog.Cancel>Stay signed in</AlertDialog.Cancel>
+							<AlertDialog.Action
+								class="bg-destructive hover:bg-destructive/90 text-white"
+								onclick={() => void logOut()}
+							>
+								Log out
+							</AlertDialog.Action>
+						</AlertDialog.Footer>
+					</AlertDialog.Content>
+				</AlertDialog.Root>
 			</header>
 
 			<div class="flex flex-1 flex-col">

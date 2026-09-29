@@ -91,7 +91,7 @@
 					/>
 				</div>
 				<label class="text-muted-foreground flex items-start gap-2 text-xs">
-					<input type="checkbox" bind:checked={rememberMe} class="mt-0.5 size-4 accent-[#4db6f5]" />
+					<input type="checkbox" bind:checked={rememberMe} class="accent-primary mt-0.5 size-4" />
 					<span>
 						Keep me signed in on this device
 						<span class="block text-[0.6875rem]">

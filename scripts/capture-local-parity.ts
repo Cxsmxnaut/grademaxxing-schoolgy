@@ -309,9 +309,6 @@ async function measurePage(page: Page) {
 		const reportPeriod = Array.from(document.querySelectorAll<HTMLElement>('main button')).find(
 			(element) => element.textContent?.trim() === 'Quarter 1'
 		);
-		const finalsPlanner = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find(
-			(button) => button.textContent?.includes('Finals Planner')
-		);
 		const allCoursesLink = Array.from(document.querySelectorAll<HTMLAnchorElement>('a')).find(
 			(link) => link.textContent?.includes('All courses')
 		);
@@ -326,7 +323,6 @@ async function measurePage(page: Page) {
 			button: measure('button'),
 			input: measure('input'),
 			allCoursesLink: allCoursesLink ? measureElement(allCoursesLink) : null,
-			finalsPlanner: finalsPlanner ? measureElement(finalsPlanner) : null,
 			gpaCalculator: gpaCalculator ? measureElement(gpaCalculator) : null,
 			reportPeriod: reportPeriod ? measureElement(reportPeriod) : null,
 			mobileGpaFold: measure('details'),
@@ -474,15 +470,6 @@ async function capture(
 			}
 		}
 		if (name === 'course') {
-			const planner = page.getByRole('button', { name: /Finals Planner/ });
-			await planner.click();
-			await settlePage(page);
-			await page.screenshot({
-				path: `${directory}/course-finals-open.png`,
-				fullPage: true,
-				animations: 'disabled'
-			});
-			await planner.click();
 			await page.getByRole('tab', { name: 'Assessments', exact: true }).click();
 			await settlePage(page);
 			await page.screenshot({

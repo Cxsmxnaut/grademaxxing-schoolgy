@@ -60,8 +60,8 @@
 <div class="landing-root">
 	<nav class="landing-nav" aria-label="Primary navigation">
 		<a class="wordmark" href="/" aria-label="{brand} home">
-			<img src="/grademaxxing-logo.png" width="32" height="32" alt="" />
-			<span>Grade<span class="accent-word">maxxing</span> <small>(Beta)</small></span>
+			<img src="/grademaxxing-growth-mark.png" width="32" height="32" alt="" />
+			<span>Grade<span class="accent-word">maxxing</span></span>
 		</a>
 		<div class="nav-actions">
 			<a class="button button-ghost button-small" href="/login">Log in</a>
@@ -98,7 +98,7 @@
 						src="/demo_dark.png"
 						width="1440"
 						height="900"
-						alt={`${brand} gradebook home with GPA summary, courses, rank, and recent assignments`}
+						alt={`${brand} gradebook home with GPA summary, courses, and recent assignments`}
 					/>
 				</div>
 			</div>
@@ -130,9 +130,9 @@
 						<svg viewBox="0 0 300 120" preserveAspectRatio="none">
 							<defs
 								><linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1"
-									><stop offset="0" stop-color="#4db6f5" stop-opacity="0.28" /><stop
+									><stop offset="0" stop-color="#6ea8dc" stop-opacity="0.24" /><stop
 										offset="1"
-										stop-color="#4db6f5"
+										stop-color="#6ea8dc"
 										stop-opacity="0"
 									/></linearGradient
 								></defs
@@ -207,7 +207,7 @@
 		</section>
 
 		<section class="final-cta" aria-labelledby="cta-heading">
-			<img src="/grademaxxing-logo.png" width="64" height="64" alt="" />
+			<img src="/grademaxxing-growth-mark.png" width="64" height="64" alt="" />
 			<h2 id="cta-heading">Your grades are already enough of a puzzle.</h2>
 			<p>Connect StudentVUE. We'll do the sorting.</p>
 			<a class="button button-primary button-large" href="/login"
@@ -218,7 +218,7 @@
 
 	<footer class="landing-footer">
 		<div class="footer-wordmark">
-			<img src="/grademaxxing-logo.png" width="24" height="24" alt="" /><span>{brand}</span>
+			<img src="/grademaxxing-growth-mark.png" width="24" height="24" alt="" /><span>{brand}</span>
 		</div>
 		<div class="footer-links">
 			<a href="/login">Log in</a><a href="/privacy">Privacy</a>
