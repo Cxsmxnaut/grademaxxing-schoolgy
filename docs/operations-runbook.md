@@ -13,6 +13,12 @@ The active public deployment is a Cloudflare Worker:
 
 `wrangler.jsonc` is the source of truth for the Worker route. It requires `GRADEMAXXING_SESSION_SECRET`, keeps Cloudflare observability disabled, and uses Cloudflare's static-assets binding. Normal builds remain Node-oriented; Cloudflare builds require `DEPLOY_TARGET=cloudflare`.
 
+## Maintenance page
+
+The maintenance page is preserved in [`src/lib/components/MaintenancePage.svelte`](../src/lib/components/MaintenancePage.svelte). It is a reusable fallback; do not delete it when the public site is open. The root layout renders it only when the server-side `MAINTENANCE_MODE` variable is exactly `on`. Production sets this variable to `off` in `wrangler.jsonc`, so the public site shows the normal application.
+
+To use the page again for a planned maintenance window, change `MAINTENANCE_MODE` to `on` in `wrangler.jsonc`, deploy the Worker, and verify the public page. Set it back to `off` and deploy again to reopen the site. The health endpoint remains available in either mode, so check the homepage itself when verifying the switch. The maintenance page was previously enabled by a permanent `grademaxxing.app` hostname check; that check was removed because it kept production offline after the merge.
+
 ## Common commands
 
 ```sh

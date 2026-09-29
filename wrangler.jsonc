@@ -46,6 +46,7 @@
 		}
 	],
 	"vars": {
-		"NODE_ENV": "production"
+		"NODE_ENV": "production",
+		"MAINTENANCE_MODE": "off"
 	}
 }

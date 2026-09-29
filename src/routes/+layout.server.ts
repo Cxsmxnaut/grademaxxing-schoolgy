@@ -3,8 +3,10 @@
 // of being served as an unheadered prerendered file by adapter-node.
 export const prerender = false;
 
-export function load({ url }) {
+import { env } from '$env/dynamic/private';
+
+export function load() {
 	return {
-		maintenance: url.hostname === 'grademaxxing.app'
+		maintenance: env.MAINTENANCE_MODE === 'on'
 	};
 }
