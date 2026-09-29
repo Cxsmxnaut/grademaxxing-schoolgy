@@ -5,7 +5,6 @@
 
 	interface Props {
 		courseId: string;
-		position: number;
 		name: string;
 		period: string;
 		room: string;
@@ -14,8 +13,7 @@
 		unseenAssignmentsCount: number;
 		grade?: { letter: string; percentage: number };
 	}
-	const { courseId, position, name, period, room, teacher, unseenAssignmentsCount, grade }: Props =
-		$props();
+	const { courseId, name, period, room, teacher, unseenAssignmentsCount, grade }: Props = $props();
 
 	function gradeTone(percentage: number) {
 		if (percentage > 100) return 'text-grade-extra';
@@ -34,13 +32,15 @@
 
 <a
 	href="/grades/{encodeURIComponent(courseId)}"
-	class="group border-border bg-card hover:border-primary focus-visible:ring-ring grid grid-cols-[40px_minmax(0,1fr)_78px] items-center gap-3 rounded-[0.75rem] border px-[0.875rem] py-[0.8125rem] transition-colors focus-visible:ring-2 focus-visible:outline-none sm:min-h-[82px] sm:grid-cols-[56px_minmax(0,1fr)_minmax(280px,40%)] sm:gap-4 sm:px-5 sm:py-4"
+	class="group border-border bg-card hover:border-primary focus-visible:ring-ring grid grid-cols-[44px_minmax(0,1fr)_45px] items-center gap-3 rounded-[0.75rem] border px-[0.875rem] py-[0.8125rem] transition-colors focus-visible:ring-2 focus-visible:outline-none sm:min-h-[82px] sm:grid-cols-[56px_minmax(0,1fr)_minmax(180px,209px)] sm:gap-4 sm:px-5 sm:py-4"
 >
 	<div
-		aria-hidden="true"
-		class="border-border bg-secondary text-foreground grid size-10 place-items-center rounded-full border text-base font-bold sm:size-12 sm:text-lg"
+		style="font-family: 'Outfit', 'Manrope', system-ui, sans-serif;"
+		class="text-center text-[1.375rem] leading-[normal] font-bold tracking-[-0.03em] sm:text-[1.6875rem] {grade
+			? gradeTone(grade.percentage)
+			: 'text-muted-foreground'}"
 	>
-		{position}
+		{grade?.letter ?? '—'}
 	</div>
 
 	<div class="min-w-0">
@@ -85,21 +85,16 @@
 		</div>
 	</div>
 
-	<div class="min-w-0">
+	<div class="hidden items-center gap-3.5 sm:flex">
 		{#if grade}
-			<div
+			<span
 				class="{gradeTone(
 					grade.percentage
-				)} flex items-baseline justify-end gap-1.5 whitespace-nowrap font-bold sm:justify-start sm:gap-2"
-				style="font-family: 'Outfit', 'Manrope', system-ui, sans-serif;"
+				)} h-[1.1875rem] text-right font-mono text-[0.9375rem] leading-[normal] font-semibold"
+				>{grade.percentage.toLocaleString(undefined, { maximumFractionDigits: 1 })}%</span
 			>
-				<span class="text-base sm:text-2xl">{grade.letter}</span>
-				<span class="text-sm sm:text-2xl"
-					>{grade.percentage.toLocaleString(undefined, { maximumFractionDigits: 1 })}%</span
-				>
-			</div>
 			<div
-				class="bg-secondary mt-1.5 h-1.5 min-w-0 overflow-hidden rounded-full sm:mt-2"
+				class="bg-secondary h-1.5 min-w-0 flex-1 overflow-hidden rounded-full"
 				role="progressbar"
 				aria-label={`${name} grade`}
 				aria-valuemin="0"
@@ -113,7 +108,18 @@
 				></div>
 			</div>
 		{:else}
-			<span class="text-muted-foreground block text-right text-xs sm:text-left">Not graded</span>
+			<span class="text-muted-foreground ml-auto text-sm">Not graded</span>
 		{/if}
 	</div>
+
+	{#if grade}
+		<span
+			class="{gradeTone(
+				grade.percentage
+			)} h-[1.1875rem] text-right font-mono text-[0.9375rem] leading-[normal] font-semibold sm:hidden"
+			>{grade.percentage.toLocaleString(undefined, { maximumFractionDigits: 1 })}%</span
+		>
+	{:else}
+		<span class="text-muted-foreground text-xs sm:hidden">Not graded</span>
+	{/if}
 </a>
