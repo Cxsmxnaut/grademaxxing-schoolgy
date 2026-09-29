@@ -701,27 +701,26 @@ test('legacy dashboard bookmarks resolve to the Gradebook home', async ({ page }
 	await expect(page.getByRole('heading', { level: 1, name: 'Gradebook' })).toBeVisible();
 });
 
-test('Gradebook exposes the GPA rank summary on desktop and mobile', async ({ page }) => {
+test('Gradebook shows GPA and courses without rankings on desktop and mobile', async ({ page }) => {
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.goto('/grades');
 	const summary = page.getByRole('region', { name: 'Grade summary' });
-	await expect(summary.getByText('Rank', { exact: true })).toBeVisible();
-	await expect(summary.getByText('Diamond', { exact: true })).toBeVisible();
+	await expect(summary.getByText('GPA · Unweighted', { exact: true })).toBeVisible();
+	await expect(summary.getByText('GPA · Weighted', { exact: true })).toBeVisible();
 	await expect(page.getByRole('progressbar', { name: 'Theme Preview grade' })).toHaveAttribute(
 		'aria-valuenow',
 		'95'
 	);
-	await expect(page.getByRole('button', { name: 'Share your rank' })).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'Next rank' })).toBeVisible();
-	await expect(page.getByText('Provisional until 3 more graded classes.')).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Share your rank' })).toHaveCount(0);
+	await expect(page.getByRole('heading', { name: 'Next rank' })).toHaveCount(0);
 
 	await page.setViewportSize({ width: 390, height: 844 });
-	await expect(page.getByText('GPA and rank', { exact: true })).toBeVisible();
-	await page.getByText('GPA and rank', { exact: true }).click();
+	await expect(page.getByText('GPA summary', { exact: true })).toBeVisible();
+	await page.getByText('GPA summary', { exact: true }).click();
 	const mobileSummary = page.locator('details');
 	await expect(mobileSummary.getByText('GPA · Unweighted', { exact: true })).toBeVisible();
 	await expect(mobileSummary.getByText('GPA · Weighted', { exact: true })).toBeVisible();
-	await expect(mobileSummary.getByRole('button', { name: 'Share your rank' })).toBeVisible();
+	await expect(mobileSummary.getByText('Rank', { exact: true })).toHaveCount(0);
 });
 
 test('Gradebook report period menu switches data and preserves native menu semantics', async ({
@@ -741,34 +740,8 @@ test('Gradebook report period menu switches data and preserves native menu seman
 	).toBeVisible();
 });
 
-test('Gradebook class and rank controls perform their real actions', async ({ page }) => {
-	await page.addInitScript(() => {
-		Object.defineProperty(navigator, 'share', {
-			configurable: true,
-			value: async (payload: ShareData) =>
-				sessionStorage.setItem('shared-rank', JSON.stringify(payload))
-		});
-	});
+test('Gradebook class controls open the selected course', async ({ page }) => {
 	await page.goto('/grades');
-	await page.getByRole('button', { name: 'Share your rank' }).click();
-	await expect(page.getByRole('dialog', { name: 'Your rank card' })).toBeVisible();
-	await expect(page.getByText('No GPA or grades on the card.')).toBeVisible();
-	await page.getByRole('button', { name: 'Cancel', exact: true }).click();
-	await expect(page.getByRole('dialog', { name: 'Your rank card' })).toHaveCount(0);
-
-	await page.getByRole('button', { name: 'Share your rank' }).click();
-	const downloadPromise = page.waitForEvent('download');
-	await page.getByRole('button', { name: 'Save image', exact: true }).click();
-	const download = await downloadPromise;
-	expect(download.suggestedFilename()).toMatch(/-rank\.svg$/);
-
-	await page.getByRole('button', { name: 'Close', exact: true }).click();
-	await page.getByRole('button', { name: 'Share your rank' }).click();
-	await page.getByRole('button', { name: 'Share', exact: true }).click();
-	await expect
-		.poll(() => page.evaluate(() => sessionStorage.getItem('shared-rank')))
-		.toContain('GPA rank');
-
 	await page
 		.locator('main ol')
 		.getByRole('link', { name: /Theme Preview/ })
