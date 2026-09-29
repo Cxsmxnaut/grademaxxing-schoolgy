@@ -95,10 +95,10 @@
 				</div>
 				<div class="frame-image-wrap">
 					<img
-						src="/demo_dark.png"
+						src="/gradebook-preview-dark.png"
 						width="1440"
 						height="900"
-						alt={`${brand} gradebook home with GPA summary, courses, and recent assignments`}
+						alt={`${brand} gradebook screenshot with sample grades, GPA summary, courses, and recent assignments`}
 					/>
 				</div>
 			</div>
