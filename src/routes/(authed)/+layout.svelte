@@ -318,7 +318,7 @@
 			</div>
 
 			<nav
-				class="bg-card border-border fixed inset-x-0 bottom-0 z-40 grid h-[3.375rem] grid-cols-5 border-t md:hidden"
+				class="bg-card border-border fixed inset-x-0 bottom-0 z-40 grid h-[3.375rem] grid-cols-4 border-t md:hidden"
 				aria-label="Mobile navigation"
 			>
 				{#each mobileNavigation as item (item.url)}
