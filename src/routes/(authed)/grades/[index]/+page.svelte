@@ -341,7 +341,7 @@
 		</header>
 
 		<section
-			class="border-border/80 bg-card mb-4 overflow-hidden rounded-[0.75rem] border shadow-[0_1px_2px_rgba(15,28,46,0.06),0_8px_24px_rgba(11,125,194,0.08)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)]"
+			class="border-border/80 bg-card mb-4 overflow-hidden rounded-lg border shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)]"
 		>
 			<button
 				type="button"
@@ -382,7 +382,7 @@
 
 		<section
 			aria-label="Grade trend"
-			class="border-border/80 bg-card overflow-hidden rounded-[0.75rem] border shadow-[0_1px_2px_rgba(15,28,46,0.06),0_8px_24px_rgba(11,125,194,0.08)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)]"
+			class="border-border/80 bg-card overflow-hidden rounded-lg border shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)]"
 		>
 			{@render chart()}
 		</section>

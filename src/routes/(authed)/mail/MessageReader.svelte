@@ -149,7 +149,7 @@
 		align-self: center;
 		margin: 1.25rem 0;
 		border: 0;
-		border-radius: var(--radius-sm);
+		border-radius: var(--corner-sm);
 		background: var(--foreground);
 	}
 	.reader-attachments {

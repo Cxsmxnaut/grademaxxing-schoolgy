@@ -206,7 +206,7 @@
 		min-height: 18rem;
 		overflow: hidden;
 		border: 1px solid var(--sidebar-border);
-		border-radius: var(--radius-lg);
+		border-radius: var(--corner-lg);
 	}
 	.document-navigation {
 		min-width: 0;
@@ -247,7 +247,7 @@
 		justify-content: space-between;
 		gap: 0.5rem;
 		border: 0;
-		border-radius: var(--radius-sm);
+		border-radius: var(--corner-sm);
 		background: transparent;
 		color: var(--muted-foreground);
 		padding: 0 0.75rem;
@@ -386,7 +386,7 @@
 		justify-items: center;
 		gap: var(--space-sm);
 		border: 1px solid var(--sidebar-border);
-		border-radius: var(--radius-lg);
+		border-radius: var(--corner-lg);
 		padding: 2rem;
 		color: var(--muted-foreground);
 		text-align: center;

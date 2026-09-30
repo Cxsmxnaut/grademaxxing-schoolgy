@@ -3,7 +3,6 @@ import { expect, test } from 'vitest';
 
 const themeCss = readFileSync(new URL('../app.css', import.meta.url), 'utf8');
 const rootBlock = themeCss.match(/:root\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
-const darkBlock = themeCss.match(/\.dark\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
 const tailwindBlock = themeCss.match(/@theme inline\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
 
 const semanticTokens = [
@@ -34,10 +33,9 @@ const semanticTokens = [
 	'grade-extra-soft'
 ] as const;
 
-test('light and dark modes define the complete semantic visual contract', () => {
+test('the dark interface defines the complete semantic visual contract', () => {
 	for (const token of semanticTokens) {
-		expect(rootBlock, `light mode is missing --${token}`).toContain(`--${token}:`);
-		expect(darkBlock, `dark mode is missing --${token}`).toContain(`--${token}:`);
+		expect(rootBlock, `dark interface is missing --${token}`).toContain(`--${token}:`);
 	}
 });
 
@@ -50,26 +48,15 @@ test('semantic visual tokens are exposed as Tailwind utilities', () => {
 });
 
 test('brand, status, and grade semantics remain visually distinct', () => {
-	expect(rootBlock).toContain('--background: #f5f9fd;');
-	expect(rootBlock).toContain('--foreground: #0f1c2e;');
-	expect(rootBlock).toContain('--primary: #0a73b2;');
-	expect(rootBlock).toContain('--success: #177a52;');
-	expect(rootBlock).toContain('--warning: #8f6b1e;');
-	expect(rootBlock).toContain('--destructive: #b0483a;');
-	expect(rootBlock).toContain('--grade-strong: #177a52;');
-	expect(rootBlock).toContain('--chart: #0a73b2;');
-
-	expect(darkBlock).toContain('--background: #151e28;');
-	expect(darkBlock).toContain('--card: #1a2737;');
-	expect(darkBlock).toContain('--primary: #6ea8dc;');
-	expect(darkBlock).toContain('--success: #04dfa7;');
-	expect(darkBlock).toContain('--warning: #e7bd62;');
-	expect(darkBlock).toContain('--destructive: #f08078;');
-	expect(darkBlock).toContain('--grade-strong: #04dfa7;');
-	expect(darkBlock).toContain('--chart: #6ea8dc;');
-
-	expect(rootBlock).not.toContain('--success: #0a73b2;');
-	expect(darkBlock).not.toContain('--success: #6ea8dc;');
+	expect(rootBlock).toContain('--background: #151e28;');
+	expect(rootBlock).toContain('--card: #1a2737;');
+	expect(rootBlock).toContain('--primary: #6ea8dc;');
+	expect(rootBlock).toContain('--success: #04dfa7;');
+	expect(rootBlock).toContain('--warning: #e7bd62;');
+	expect(rootBlock).toContain('--destructive: #f08078;');
+	expect(rootBlock).toContain('--grade-strong: #04dfa7;');
+	expect(rootBlock).toContain('--chart: #6ea8dc;');
+	expect(rootBlock).not.toContain('--success: #6ea8dc;');
 });
 
 test('named badge colors are not collapsed into the brand palette', () => {
@@ -82,9 +69,9 @@ test('named badge colors are not collapsed into the brand palette', () => {
 		'utf8'
 	);
 
-	expect(badgeSource).toContain('bg-green-200');
-	expect(badgeSource).toContain('bg-emerald-200');
-	expect(badgeSource).toContain('bg-teal-200');
+	expect(badgeSource).toContain('bg-green-900/70');
+	expect(badgeSource).toContain('bg-emerald-900/70');
+	expect(badgeSource).toContain('bg-teal-900/70');
 	expect(colorSource).toContain("green: 'bg-green-500'");
 	expect(colorSource).toContain("emerald: 'bg-emerald-500'");
 	expect(colorSource).toContain("teal: 'bg-teal-500'");

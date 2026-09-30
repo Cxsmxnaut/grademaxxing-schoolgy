@@ -262,7 +262,7 @@
 								type="text"
 								bind:value={username}
 								autocomplete="username"
-								class="border-input bg-secondary text-foreground focus-visible:border-primary focus-visible:outline-primary h-12 rounded-[0.625rem] px-4 text-sm shadow-none focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2"
+								class="border-input bg-secondary text-foreground focus-visible:border-primary focus-visible:outline-primary h-12 rounded-md px-4 text-sm shadow-none focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2"
 								disabled={!interactive}
 								required
 							/>
@@ -280,7 +280,7 @@
 								type="password"
 								bind:value={password}
 								autocomplete="current-password"
-								class="border-input bg-secondary text-foreground focus-visible:border-primary focus-visible:outline-primary h-12 rounded-[0.625rem] px-4 text-sm shadow-none focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2"
+								class="border-input bg-secondary text-foreground focus-visible:border-primary focus-visible:outline-primary h-12 rounded-md px-4 text-sm shadow-none focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2"
 								disabled={!interactive}
 								required
 							/>
@@ -314,7 +314,7 @@
 
 						<Button
 							type="submit"
-							class="border-primary bg-primary text-primary-foreground mt-2 h-12 w-full rounded-[0.625rem] border text-[0.90625rem] font-semibold shadow-none transition-none hover:brightness-[1.08]"
+							class="border-primary bg-primary text-primary-foreground mt-2 h-12 w-full rounded-md border text-[0.90625rem] font-semibold shadow-none transition-none hover:brightness-[1.08]"
 							disabled={!interactive || loggingIn}
 						>
 							{loggingIn ? 'Logging in…' : 'Log in'}
@@ -385,7 +385,7 @@
 		width: min(100%, 78rem);
 		min-height: 43rem;
 		border: 1px solid var(--border);
-		border-radius: 1.5rem;
+		border-radius: var(--corner-2xl);
 		background: var(--card);
 		padding: 1rem;
 		box-shadow: 0 2rem 4.5rem color-mix(in srgb, var(--surface-sunken) 46%, transparent);
@@ -395,7 +395,7 @@
 		min-width: 0;
 		min-height: 41rem;
 		overflow: hidden;
-		border-radius: 1rem;
+		border-radius: var(--corner-lg);
 		color: var(--foreground);
 	}
 	.login-story > img {

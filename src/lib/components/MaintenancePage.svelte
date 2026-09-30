@@ -62,7 +62,7 @@
 		align-items: center;
 		padding: clamp(2rem, 7vw, 4.25rem) clamp(1.5rem, 7vw, 4rem);
 		border: 1px solid var(--border);
-		border-radius: 1.5rem;
+		border-radius: var(--corner-2xl);
 		background: color-mix(in srgb, var(--card) 92%, transparent);
 		box-shadow: 0 1.5rem 4rem color-mix(in srgb, var(--foreground) 9%, transparent);
 		text-align: center;
@@ -80,7 +80,7 @@
 	}
 
 	.maintenance-brand img {
-		border-radius: 0.65rem;
+		border-radius: var(--corner-md);
 	}
 
 	.maintenance-accent {
@@ -94,7 +94,7 @@
 		height: 4.25rem;
 		margin-bottom: 1.5rem;
 		border: 1px solid color-mix(in srgb, var(--primary) 25%, var(--border));
-		border-radius: 1.25rem;
+		border-radius: var(--corner-xl);
 		background: var(--accent);
 		color: var(--primary);
 	}
@@ -131,7 +131,7 @@
 		gap: 0.55rem;
 		margin-top: 2rem;
 		padding: 0.7rem 0.9rem;
-		border-radius: 0.75rem;
+		border-radius: var(--corner-lg);
 		background: var(--secondary);
 		color: var(--secondary-foreground);
 		font-size: 0.82rem;

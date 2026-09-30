@@ -22,7 +22,7 @@ export const srcdoc = (content: string, openNewTabInstruction: string) => `<!DOC
                 background-color: #333;
                 color: white;
                 padding: 0.25rem;
-                border-radius: 0.25rem;
+                border-radius: var(--corner-xs);
                 font-size: 0.8rem;
                 white-space: normal;
                 max-width: 12rem;

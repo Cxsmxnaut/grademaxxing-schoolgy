@@ -81,18 +81,16 @@
 <section class="mt-4">
 	<Tabs.Root bind:value={activeTab} class="gap-0">
 		<Tabs.List
-			class="border-border/80 bg-secondary mb-4 h-[4.625rem] min-h-[2.5625rem] max-w-full flex-wrap justify-start gap-1 overflow-visible rounded-[0.625rem] border p-[0.3125rem] sm:h-[2.5625rem] sm:flex-nowrap sm:overflow-x-auto"
+			class="border-border/80 bg-secondary mb-4 h-[4.625rem] min-h-[2.5625rem] max-w-full flex-wrap justify-start gap-1 overflow-visible rounded-md border p-[0.3125rem] sm:h-[2.5625rem] sm:flex-nowrap sm:overflow-x-auto"
 		>
-			<Tabs.Trigger
-				value="all"
-				class="h-[1.8125rem] flex-none rounded-[0.4375rem] border-0 px-[0.640625rem]"
+			<Tabs.Trigger value="all" class="h-[1.8125rem] flex-none rounded-sm border-0 px-[0.640625rem]"
 				>All</Tabs.Trigger
 			>
 
 			{#each assignmentCategoryNames as categoryName (categoryName)}
 				<Tabs.Trigger
 					value={categoryName}
-					class="h-[1.8125rem] flex-none rounded-[0.4375rem] border-0 px-[0.640625rem]"
+					class="h-[1.8125rem] flex-none rounded-sm border-0 px-[0.640625rem]"
 				>
 					{#if assignmentCategoryColors.has(categoryName)}
 						<div
@@ -110,13 +108,13 @@
 		{#if hypotheticalMode}
 			<form
 				aria-label="Add what-if assignment"
-				class="border-border/80 bg-card mt-[0.875rem] mb-[0.875rem] flex flex-wrap items-center gap-2 rounded-[0.75rem] border px-5 py-[0.875rem] shadow-[0_1px_2px_rgba(15,28,46,0.06),0_8px_24px_rgba(11,125,194,0.08)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)]"
+				class="border-border/80 bg-card mt-[0.875rem] mb-[0.875rem] flex flex-wrap items-center gap-2 rounded-lg border px-5 py-[0.875rem] shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)]"
 				onsubmit={submitHypotheticalAssignment}
 			>
 				{#if categoryDropdownOptions?.size}
 					<select
 						aria-label="Category for the what-if assignment"
-						class="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-[2.375rem] w-full flex-none rounded-[0.5rem] border px-3 text-[0.8125rem] outline-none focus-visible:ring-[3px] sm:min-w-[10rem] sm:flex-1"
+						class="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-[2.375rem] w-full flex-none rounded-sm border px-3 text-[0.8125rem] outline-none focus-visible:ring-[3px] sm:min-w-[10rem] sm:flex-1"
 						bind:value={draftCategory}
 					>
 						{#each categoryDropdownOptions as category (category)}
@@ -127,7 +125,7 @@
 
 				<input
 					aria-label="What-if score"
-					class="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-[2.1875rem] w-16 rounded-[0.4375rem] border px-3 font-mono text-[0.8125rem] outline-none focus-visible:ring-[3px]"
+					class="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-[2.1875rem] w-16 rounded-sm border px-3 font-mono text-[0.8125rem] outline-none focus-visible:ring-[3px]"
 					type="number"
 					inputmode="decimal"
 					min="0"
@@ -139,7 +137,7 @@
 				<span class="text-muted-foreground">/</span>
 				<input
 					aria-label="What-if points possible"
-					class="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-[2.1875rem] w-16 rounded-[0.4375rem] border px-3 font-mono text-[0.8125rem] outline-none focus-visible:ring-[3px]"
+					class="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-[2.1875rem] w-16 rounded-sm border px-3 font-mono text-[0.8125rem] outline-none focus-visible:ring-[3px]"
 					type="number"
 					inputmode="decimal"
 					min="0.01"
@@ -150,7 +148,7 @@
 				/>
 				<button
 					type="submit"
-					class="bg-primary text-primary-foreground focus-visible:ring-ring/50 inline-flex h-[1.9375rem] items-center justify-center rounded-[0.4375rem] px-3 text-[0.78125rem] font-semibold outline-none hover:brightness-95 focus-visible:ring-[3px]"
+					class="bg-primary text-primary-foreground focus-visible:ring-ring/50 inline-flex h-[1.9375rem] items-center justify-center rounded-sm px-3 text-[0.78125rem] font-semibold outline-none hover:brightness-95 focus-visible:ring-[3px]"
 					>Add</button
 				>
 			</form>

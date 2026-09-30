@@ -21,7 +21,6 @@ let requestCounts: Record<string, number>;
 test.beforeEach(async ({ page }) => {
 	requestCounts = {};
 	await page.addInitScript(() => {
-		localStorage.setItem('mode-watcher-mode', 'light');
 		localStorage.setItem(
 			'token',
 			JSON.stringify({
@@ -97,7 +96,7 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 }) => {
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.goto('/documents');
-	await expect(page.locator('html')).toHaveClass(/dark/);
+	await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
 	await expect(page.getByTestId('sidebar-course')).toHaveCount(6);
 
 	const sidebar = await boundingBox(page, 'app-sidebar');
@@ -154,7 +153,7 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 		expect(box?.width).toBe(207);
 		expect(box?.height).toBe(36);
 		await expect(item).toHaveCSS('font-size', '14px');
-		await expect(item).toHaveCSS('border-radius', '6px');
+		await expect(item).toHaveCSS('border-radius', '8px');
 	}
 
 	const active = page.getByTestId('sidebar-nav-documents');
@@ -178,7 +177,7 @@ test('desktop sidebar matches the redesigned workspace geometry and visual token
 		const box = await row.boundingBox();
 		expect(box?.width).toBe(207);
 		expect(box?.height).toBe(28);
-		await expect(row).toHaveCSS('border-radius', '6px');
+		await expect(row).toHaveCSS('border-radius', '8px');
 	}
 
 	const privacy = await boundingBox(page, 'sidebar-privacy');
@@ -228,7 +227,7 @@ test('every sidebar action works and preserves a single active destination', asy
 		page.getByTestId('sidebar-course').filter({ hasText: 'AP Calculus BC' })
 	).toHaveAttribute('aria-current', 'page');
 
-	await expect(page.locator('html')).toHaveClass(/dark/);
+	await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
 	await expect(page.getByTestId('sidebar-theme')).toHaveCount(0);
 
 	const beforeRefresh = { ...requestCounts };
@@ -449,7 +448,7 @@ test('hover, keyboard focus, and active-course states remain legible in dark mod
 	await expect(activeCourse).toHaveCSS('color', 'rgb(110, 168, 220)');
 	await expect(activeCourse).toHaveCSS('border-left-color', 'rgba(0, 0, 0, 0)');
 
-	await expect(page.locator('html')).toHaveClass(/dark/);
+	await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
 	await expect(activeCourse).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 	await expect(activeCourse).toHaveCSS('color', 'rgb(110, 168, 220)');
 	await expect(page.getByTestId('app-sidebar')).toHaveCSS('background-color', 'rgb(21, 30, 40)');

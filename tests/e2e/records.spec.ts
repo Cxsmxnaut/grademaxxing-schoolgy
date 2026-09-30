@@ -78,7 +78,6 @@ const message = {
 
 test.beforeEach(async ({ context }) => {
 	await context.addInitScript(() => {
-		localStorage.setItem('mode-watcher-mode', 'dark');
 		localStorage.setItem(
 			'token',
 			JSON.stringify({

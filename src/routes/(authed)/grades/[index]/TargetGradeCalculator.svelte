@@ -81,7 +81,7 @@
 			<span class="sr-only">Target grade</span>
 			<select
 				bind:value={targetGradePercentage}
-				class="border-input bg-background h-[2.375rem] w-[3.75rem] rounded-[0.625rem] border px-2.5 font-semibold"
+				class="border-input bg-background h-[2.375rem] w-[3.75rem] rounded-md border px-2.5 font-semibold"
 			>
 				{#each gradeTargets as target (target.value)}
 					<option value={target.value}>{target.label}</option>
@@ -96,7 +96,7 @@
 				min="1"
 				step="1"
 				bind:value={finalPointsPossible}
-				class="border-input bg-background h-[2.375rem] w-20 rounded-[0.625rem] border px-2.5 font-mono"
+				class="border-input bg-background h-[2.375rem] w-20 rounded-md border px-2.5 font-mono"
 			/>
 		</label>
 		<span class="text-muted-foreground">points{categories.length ? ' in' : ''}</span>
@@ -105,7 +105,7 @@
 				<span class="sr-only">Final category</span>
 				<select
 					bind:value={selectedCategory}
-					class="border-input bg-background h-[2.375rem] min-w-[8rem] rounded-[0.625rem] border px-2.5 font-semibold"
+					class="border-input bg-background h-[2.375rem] min-w-[8rem] rounded-md border px-2.5 font-semibold"
 				>
 					{#each categories as category (category)}
 						<option value={category}>{category}</option>

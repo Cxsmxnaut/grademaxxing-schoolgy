@@ -18,7 +18,7 @@
 
 <select
 	aria-label="Report period"
-	class="border-input bg-card h-[2.375rem] w-full rounded-[0.5rem] border px-3 py-[0.5625rem] text-left text-[0.84375rem] leading-[normal] font-medium shadow-none sm:w-[11.125rem]"
+	class="border-input bg-card h-[2.375rem] w-full rounded-sm border px-3 py-[0.5625rem] text-left text-[0.84375rem] leading-[normal] font-medium shadow-none sm:w-[11.125rem]"
 	value={activeIndex.toString()}
 	{disabled}
 	onchange={handleChange}

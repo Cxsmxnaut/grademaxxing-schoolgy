@@ -367,24 +367,19 @@ async function measurePage(page: Page) {
 }
 
 async function capture(
-	mode: 'desktop-dark' | 'mobile-dark' | 'desktop-light' | 'mobile-light',
-	viewport: { width: number; height: number },
-	light: boolean
+	mode: 'desktop-dark' | 'mobile-dark',
+	viewport: { width: number; height: number }
 ) {
 	const browser = await chromium.launch({ channel: 'chrome' });
-	const context = await browser.newContext({ viewport, colorScheme: light ? 'light' : 'dark' });
+	const context = await browser.newContext({ viewport, colorScheme: 'dark' });
 	await mockApp(context);
-	await context.addInitScript(
-		(theme) => {
-			localStorage.setItem('mode-watcher-mode', theme);
-			Object.defineProperty(navigator, 'share', {
-				configurable: true,
-				value: async (payload: ShareData) =>
-					sessionStorage.setItem('visual-audit-share', JSON.stringify(payload))
-			});
-		},
-		light ? 'light' : 'dark'
-	);
+	await context.addInitScript(() => {
+		Object.defineProperty(navigator, 'share', {
+			configurable: true,
+			value: async (payload: ShareData) =>
+				sessionStorage.setItem('visual-audit-share', JSON.stringify(payload))
+		});
+	});
 	const page: Page = await context.newPage();
 	const directory = `${outputRoot}/${mode}`;
 	await mkdir(directory, { recursive: true });
@@ -458,16 +453,6 @@ async function capture(
 				fullPage: true
 			});
 			await page.getByRole('button', { name: 'Close', exact: true }).click();
-			if (mode.startsWith('desktop')) {
-				await page.getByRole('button', { name: light ? 'Dark' : 'Light', exact: true }).click();
-				await settlePage(page);
-				await page.screenshot({
-					path: `${directory}/gradebook-theme-toggled.png`,
-					fullPage: true,
-					animations: 'disabled'
-				});
-				await page.getByRole('button', { name: light ? 'Light' : 'Dark', exact: true }).click();
-			}
 		}
 		if (name === 'course') {
 			await page.getByRole('tab', { name: 'Assessments', exact: true }).click();
@@ -712,13 +697,9 @@ async function capturePublic(
 }
 
 if (!requestedMode || requestedMode === 'desktop-dark')
-	await capture('desktop-dark', { width: 1440, height: 900 }, false);
+	await capture('desktop-dark', { width: 1440, height: 900 });
 if (!requestedMode || requestedMode === 'mobile-dark')
-	await capture('mobile-dark', { width: 390, height: 844 }, false);
-if (!requestedMode || requestedMode === 'desktop-light')
-	await capture('desktop-light', { width: 1440, height: 900 }, true);
-if (!requestedMode || requestedMode === 'mobile-light')
-	await capture('mobile-light', { width: 390, height: 844 }, true);
+	await capture('mobile-dark', { width: 390, height: 844 });
 if (!requestedMode || requestedMode === 'desktop-public')
 	await capturePublic({ width: 1440, height: 900 }, 'desktop');
 if (!requestedMode || requestedMode === 'mobile-public')

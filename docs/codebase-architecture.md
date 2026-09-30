@@ -83,7 +83,7 @@ The StudentVUE portal maintains gradebook period/class focus in its own upstream
 
 ## Styling and components
 
-`src/app.css` is the canonical semantic-token file for light/dark colors, typography, status colors, surfaces, sidebar tokens, focus rings, and charts. Fonts are Instrument Sans (body), Space Grotesk (headings), and IBM Plex Mono (technical labels). Prefer semantic Tailwind tokens such as `bg-background`, `text-foreground`, and `bg-sidebar` over hard-coded colors. The public landing page's isolated visual system lives in `src/lib/components/landing/landing.css`.
+`src/app.css` is the canonical semantic-token file for the dark interface, typography, status colors, surfaces, sidebar tokens, focus rings, and charts. Fonts are Instrument Sans (body), Space Grotesk (headings), and IBM Plex Mono (technical labels). Prefer semantic Tailwind tokens such as `bg-background`, `text-foreground`, and `bg-sidebar` over hard-coded colors. The public landing page's isolated visual system lives in `src/lib/components/landing/landing.css`.
 
 Reusable primitives live in `src/lib/components/ui`. Keep only primitives that have active application consumers. Product-level shared pieces live in `src/lib/components`, notably `AppPageShell`, `AppPageHeader`, `LoadingBanner`, `RecordLoadFailure`, and `RankEmblem`.
 

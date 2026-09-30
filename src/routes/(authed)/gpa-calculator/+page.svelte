@@ -248,7 +248,7 @@
 							<label class="grid gap-1 justify-self-end text-xs font-semibold"
 								><span class="sr-only">Projected grade</span><select
 									bind:value={row.letter}
-									class="border-input bg-background h-[2.375rem] w-[7.375rem] justify-self-end rounded-[0.625rem] border px-2.5 text-sm font-semibold"
+									class="border-input bg-background h-[2.375rem] w-[7.375rem] justify-self-end rounded-md border px-2.5 text-sm font-semibold"
 									>{#each gradeOptions as grade (grade)}<option value={grade}
 											>{grade}{grade === getGpaCourses(courses)[index]?.letter
 												? ' (current)'

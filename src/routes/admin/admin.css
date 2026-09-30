@@ -65,7 +65,7 @@ button:disabled {
 	height: 36px;
 	color: #fff;
 	background: #171923;
-	border-radius: 11px;
+	border-radius: var(--corner-md);
 }
 .admin-brand div {
 	display: flex;
@@ -131,7 +131,7 @@ button:disabled {
 	align-items: center;
 	justify-content: center;
 	gap: 7px;
-	border-radius: 9px;
+	border-radius: var(--corner-sm);
 	font-weight: 700;
 }
 .icon-button {
@@ -164,7 +164,7 @@ button:disabled {
 	margin-bottom: 18px;
 	padding: 12px 15px;
 	border: 1px solid #fecaca;
-	border-radius: 10px;
+	border-radius: var(--corner-md);
 	color: #991b1b;
 	background: #fff1f2;
 }
@@ -202,14 +202,14 @@ button:disabled {
 	gap: 4px;
 	padding: 4px;
 	border: 1px solid #e1e4ea;
-	border-radius: 11px;
+	border-radius: var(--corner-md);
 	background: #fff;
 }
 .range-picker button {
 	height: 34px;
 	padding: 0 12px;
 	border: 0;
-	border-radius: 7px;
+	border-radius: var(--corner-sm);
 	color: #717784;
 	background: transparent;
 	font-size: 13px;
@@ -232,7 +232,7 @@ button:disabled {
 	gap: 14px;
 	padding: 20px;
 	border: 1px solid #e5e7eb;
-	border-radius: 14px;
+	border-radius: var(--corner-lg);
 	background: #fff;
 	text-align: left;
 	box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
@@ -249,7 +249,7 @@ button:disabled {
 	flex: 0 0 43px;
 	width: 43px;
 	height: 43px;
-	border-radius: 12px;
+	border-radius: var(--corner-md);
 }
 .metric-icon svg {
 	width: 19px;
@@ -293,7 +293,7 @@ button:disabled {
 }
 .panel {
 	border: 1px solid #e5e7eb;
-	border-radius: 14px;
+	border-radius: var(--corner-lg);
 	background: #fff;
 	box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
 }
@@ -388,7 +388,7 @@ button:disabled {
 	height: 40px;
 	padding: 0 11px;
 	border: 1px solid #dfe2e7;
-	border-radius: 9px;
+	border-radius: var(--corner-sm);
 	color: #8a909d;
 	background: #fafafa;
 }
@@ -466,7 +466,7 @@ button:disabled {
 	height: 36px;
 	padding: 0 10px;
 	border: 0;
-	border-radius: 8px;
+	border-radius: var(--corner-sm);
 	color: #6f7480;
 	background: transparent;
 	font-size: 12px;
@@ -711,7 +711,7 @@ button:disabled {
 	resize: vertical;
 	padding: 11px 12px;
 	border: 1px solid #dfe2e7;
-	border-radius: 12px;
+	border-radius: var(--corner-md);
 	outline: 0;
 	background: #fafafa;
 }
@@ -768,7 +768,7 @@ button:disabled {
 	resize: vertical;
 	padding: 9px 10px;
 	border: 1px solid #dfe2e7;
-	border-radius: 8px;
+	border-radius: var(--corner-sm);
 	outline: 0;
 	background: #fafafa;
 }
@@ -810,7 +810,7 @@ button:disabled {
 	width: min(430px, 100%);
 	padding: 34px;
 	border: 1px solid rgba(255, 255, 255, 0.8);
-	border-radius: 20px;
+	border-radius: var(--corner-xl);
 	background: rgba(255, 255, 255, 0.92);
 	box-shadow: 0 22px 70px rgba(42, 37, 78, 0.12);
 }
@@ -825,7 +825,7 @@ button:disabled {
 	place-items: center;
 	width: 45px;
 	height: 45px;
-	border-radius: 13px;
+	border-radius: var(--corner-md);
 	color: #5b4ddd;
 	background: #efedff;
 }
@@ -860,7 +860,7 @@ button:disabled {
 	height: 44px;
 	padding: 0 12px;
 	border: 1px solid #d8dbe1;
-	border-radius: 9px;
+	border-radius: var(--corner-sm);
 	outline: none;
 }
 .login-card input:focus {
@@ -871,7 +871,7 @@ button:disabled {
 	height: 44px;
 	margin-top: 6px;
 	border: 0;
-	border-radius: 9px;
+	border-radius: var(--corner-sm);
 	color: #fff;
 	background: #171923;
 	font-weight: 750;
@@ -1053,7 +1053,7 @@ button:disabled {
 	padding: 18px;
 	background: #fff;
 	border: 1px solid #e8e9f0;
-	border-radius: 14px;
+	border-radius: var(--corner-lg);
 	box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
 }
 .referral-metrics div > span,
@@ -1098,7 +1098,7 @@ button:disabled {
 	flex: 0 0 42px;
 	color: #6654e8;
 	background: #efedff;
-	border-radius: 13px;
+	border-radius: var(--corner-md);
 }
 .referral-card-heading {
 	display: flex;
@@ -1125,7 +1125,7 @@ button:disabled {
 	padding: 12px 13px;
 	color: #606477;
 	background: #f8f8fc;
-	border-radius: 10px;
+	border-radius: var(--corner-md);
 	font-size: 13px;
 	line-height: 1.5;
 }
@@ -1149,7 +1149,7 @@ button:disabled {
 	color: #202231;
 	background: #fff;
 	border: 1px solid #dcdde6;
-	border-radius: 10px;
+	border-radius: var(--corner-md);
 	outline: none;
 }
 .referral-create input:focus {
@@ -1171,7 +1171,7 @@ button:disabled {
 	padding: 10px 12px;
 	color: #4f46b7;
 	background: #f2f0ff;
-	border-radius: 9px;
+	border-radius: var(--corner-sm);
 	font-size: 12px;
 	font-weight: 650;
 	line-height: 1.45;
@@ -1190,7 +1190,7 @@ button:disabled {
 	color: #596071;
 	background: #f8f9fb;
 	border: 1px solid #eceef3;
-	border-radius: 10px;
+	border-radius: var(--corner-md);
 	font-size: 12px;
 	line-height: 1.45;
 }
@@ -1214,7 +1214,7 @@ button:disabled {
 	padding: 2px 6px;
 	color: #6d5dfc;
 	background: #f3f1ff;
-	border-radius: 5px;
+	border-radius: var(--corner-xs);
 	font-size: 10px;
 }
 .rank-badge {
@@ -1224,7 +1224,7 @@ button:disabled {
 	place-items: center;
 	color: #6e7282;
 	background: #f4f5f7;
-	border-radius: 8px;
+	border-radius: var(--corner-sm);
 	font-size: 12px;
 	font-weight: 750;
 }
@@ -1240,7 +1240,7 @@ button:disabled {
 	color: #5b4ed2;
 	background: #f1efff;
 	border: 0;
-	border-radius: 8px;
+	border-radius: var(--corner-sm);
 	cursor: pointer;
 	font-size: 12px;
 	font-weight: 700;

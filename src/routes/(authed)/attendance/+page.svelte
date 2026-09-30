@@ -527,7 +527,7 @@
 		width: fit-content;
 		overflow: hidden;
 		border: 1px solid var(--border);
-		border-radius: 0.5rem;
+		border-radius: var(--corner-sm);
 		background: var(--card);
 	}
 	.date-actions button,
@@ -578,7 +578,7 @@
 		min-width: 0;
 		overflow: hidden;
 		border: 1px solid var(--border);
-		border-radius: 0.75rem;
+		border-radius: var(--corner-lg);
 		background: var(--card);
 	}
 	.section-heading {
@@ -751,7 +751,7 @@
 		grid-row: 1 / 3;
 		overflow: hidden;
 		border: 1px solid var(--border);
-		border-radius: 0.75rem;
+		border-radius: var(--corner-lg);
 		background: var(--card);
 	}
 	.mini-calendar {
@@ -818,7 +818,7 @@
 		place-items: center;
 		margin: 0;
 		border: 1px solid var(--input);
-		border-radius: var(--radius-sm);
+		border-radius: var(--corner-sm);
 		background: transparent;
 		cursor: pointer;
 	}
@@ -892,7 +892,7 @@
 		min-height: 5.25rem;
 		margin-bottom: 0.75rem;
 		border: 1px solid var(--border);
-		border-radius: 0.75rem;
+		border-radius: var(--corner-lg);
 		background: var(--card);
 		padding: 0.75rem 0.875rem;
 	}

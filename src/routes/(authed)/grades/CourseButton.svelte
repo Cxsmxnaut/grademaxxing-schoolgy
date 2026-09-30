@@ -32,7 +32,7 @@
 
 <a
 	href="/grades/{encodeURIComponent(courseId)}"
-	class="group border-border bg-card hover:border-primary focus-visible:ring-ring grid grid-cols-[44px_minmax(0,1fr)_45px] items-center gap-3 rounded-[0.75rem] border px-[0.875rem] py-[0.8125rem] shadow-[0_1px_2px_rgb(15_28_46_/_6%),0_8px_24px_rgb(11_125_194_/_8%)] transition-[border-color,background-color] focus-visible:ring-2 focus-visible:outline-none sm:min-h-[82px] sm:grid-cols-[56px_minmax(0,1fr)_minmax(180px,209px)] sm:gap-4 sm:px-5 sm:py-4 dark:shadow-[0_1px_2px_rgb(0_0_0_/_40%),0_8px_24px_rgb(0_0_0_/_30%)]"
+	class="group border-border bg-card hover:border-primary focus-visible:ring-ring grid grid-cols-[44px_minmax(0,1fr)_45px] items-center gap-3 rounded-lg border px-[0.875rem] py-[0.8125rem] shadow-[0_1px_2px_rgb(0_0_0_/_40%),0_8px_24px_rgb(0_0_0_/_30%)] transition-[border-color,background-color] focus-visible:ring-2 focus-visible:outline-none sm:min-h-[82px] sm:grid-cols-[56px_minmax(0,1fr)_minmax(180px,209px)] sm:gap-4 sm:px-5 sm:py-4"
 >
 	<div
 		style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"

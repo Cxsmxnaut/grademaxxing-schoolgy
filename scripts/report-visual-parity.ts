@@ -8,8 +8,6 @@ const threshold = Number(process.env.VISUAL_THRESHOLD ?? '0.1');
 const pairs = [
 	['desktop-dark', 'desktop-dark', 'desktop-dark'],
 	['mobile-dark', 'mobile-dark', 'mobile-dark'],
-	['desktop-light', 'desktop-light', 'desktop-light'],
-	['mobile-light', 'mobile-light', 'mobile-light'],
 	['desktop-public-dark', 'desktop-dark', 'desktop-public'],
 	['mobile-public-dark', 'mobile-dark', 'mobile-public']
 ] as const;

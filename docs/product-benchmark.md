@@ -38,13 +38,13 @@ We explicitly reject ranks, streaks, achievement systems, social comparison, pub
 
 ## Versioned roadmap
 
-| Version                       | Scope                                                                                  | Required validation                                                                         |
-| ----------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| v0.0.1 baseline               | Freeze the known-good product before visual changes.                                   | Types, lint, unit, production build, public browser journeys, WCAG A/AA.                    |
-| v0.1 visual foundation        | Central semantic light/dark tokens and outcome colors; no layout or data-path changes. | Theme contract, control states, WCAG, mobile, live StudentVUE human journey, source parity. |
-| v0.2 grade truth              | Official/estimated/simulated labels, freshness, stale and failure behavior.            | Parser fixtures, discrepancy cases, refresh recovery, live parity.                          |
-| v0.3 information architecture | Sharper navigation and grade-page hierarchy built from proven primitives.              | Every route/action, keyboard, screen readers, mobile/tablet/desktop.                        |
-| v0.4 planning clarity         | Canvas-inspired what-if flow without copying its expression.                           | Math edge cases, undo/reset, simulation isolation, explanatory copy.                        |
-| v1.0 school pilot             | Capacity, privacy, observability, incident ownership, and approved pilot.              | Full release, security, load, privacy, and operational gates.                               |
+| Version                       | Scope                                                                       | Required validation                                                                         |
+| ----------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| v0.0.1 baseline               | Freeze the known-good product before visual changes.                        | Types, lint, unit, production build, public browser journeys, WCAG A/AA.                    |
+| v0.1 visual foundation        | Central semantic tokens and outcome colors; no layout or data-path changes. | Theme contract, control states, WCAG, mobile, live StudentVUE human journey, source parity. |
+| v0.2 grade truth              | Official/estimated/simulated labels, freshness, stale and failure behavior. | Parser fixtures, discrepancy cases, refresh recovery, live parity.                          |
+| v0.3 information architecture | Sharper navigation and grade-page hierarchy built from proven primitives.   | Every route/action, keyboard, screen readers, mobile/tablet/desktop.                        |
+| v0.4 planning clarity         | Canvas-inspired what-if flow without copying its expression.                | Math edge cases, undo/reset, simulation isolation, explanatory copy.                        |
+| v1.0 school pilot             | Capacity, privacy, observability, incident ownership, and approved pilot.   | Full release, security, load, privacy, and operational gates.                               |
 
 No version is described as school-ready until the capacity and privacy gates in `docs/release-checklist.md` have passed against the deployed artifact.

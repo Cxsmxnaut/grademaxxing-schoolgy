@@ -17,13 +17,7 @@ async function expectWcagAA(page: Page) {
 }
 
 for (const path of publicPages) {
-	test(`${path} meets WCAG A/AA in light mode`, async ({ page }) => {
-		await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
-		await page.goto(path);
-		await expectWcagAA(page);
-	});
-
-	test(`${path} meets WCAG A/AA in dark mode`, async ({ page }) => {
+	test(`${path} meets WCAG A/AA`, async ({ page }) => {
 		await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
 		await page.goto(path);
 		await expectWcagAA(page);

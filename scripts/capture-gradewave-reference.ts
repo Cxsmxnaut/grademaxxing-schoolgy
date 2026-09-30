@@ -36,24 +36,17 @@ async function settlePage(page: Page) {
 	await page.waitForTimeout(250);
 }
 
-async function capture(
-	context: BrowserContext,
-	mode: 'desktop-dark' | 'mobile-dark' | 'desktop-light' | 'mobile-light'
-) {
+async function capture(context: BrowserContext, mode: 'desktop-dark' | 'mobile-dark') {
 	const directory = `${outputRoot}/${mode}`;
 	await mkdir(directory, { recursive: true });
-	const useLightMode = mode.endsWith('light');
-	await context.addInitScript(
-		(theme) => {
-			localStorage.setItem('gradewave.theme', theme);
-			Object.defineProperty(navigator, 'share', {
-				configurable: true,
-				value: async (payload: ShareData) =>
-					sessionStorage.setItem('visual-audit-share', JSON.stringify(payload))
-			});
-		},
-		useLightMode ? 'light' : 'dark'
-	);
+	await context.addInitScript(() => {
+		localStorage.setItem('gradewave.theme', 'dark');
+		Object.defineProperty(navigator, 'share', {
+			configurable: true,
+			value: async (payload: ShareData) =>
+				sessionStorage.setItem('visual-audit-share', JSON.stringify(payload))
+		});
+	});
 	const page = await context.newPage();
 	const metrics: Record<string, unknown> = {};
 
@@ -127,22 +120,6 @@ async function capture(
 				fullPage: true
 			});
 			await page.getByRole('button', { name: 'Close', exact: true }).click();
-			if (mode.startsWith('desktop')) {
-				const themeButton = page.getByRole('button', {
-					name: useLightMode ? 'Dark' : 'Light',
-					exact: true
-				});
-				await themeButton.click();
-				await settlePage(page);
-				await page.screenshot({
-					path: `${directory}/gradebook-theme-toggled.png`,
-					fullPage: true,
-					animations: 'disabled'
-				});
-				await page
-					.getByRole('button', { name: useLightMode ? 'Light' : 'Dark', exact: true })
-					.click();
-			}
 		}
 		if (name === 'course') {
 			const planner = page.locator('.fold-head');
@@ -310,20 +287,8 @@ const mobileDark = await browser.newContext({
 	viewport: { width: 390, height: 844 },
 	colorScheme: 'dark'
 });
-const desktopLight = await browser.newContext({
-	viewport: { width: 1440, height: 900 },
-	colorScheme: 'light'
-});
-const mobileLight = await browser.newContext({
-	viewport: { width: 390, height: 844 },
-	colorScheme: 'light'
-});
-
 if (!requestedMode || requestedMode === 'desktop-dark') await capture(desktopDark, 'desktop-dark');
 if (!requestedMode || requestedMode === 'mobile-dark') await capture(mobileDark, 'mobile-dark');
-if (!requestedMode || requestedMode === 'desktop-light')
-	await capture(desktopLight, 'desktop-light');
-if (!requestedMode || requestedMode === 'mobile-light') await capture(mobileLight, 'mobile-light');
 await browser.close();
 
 console.log(outputRoot);

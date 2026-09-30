@@ -259,7 +259,7 @@
 		min-height: 28rem;
 		overflow: hidden;
 		border: 1px solid var(--sidebar-border);
-		border-radius: var(--radius-lg);
+		border-radius: var(--corner-lg);
 	}
 	.mail-inbox {
 		display: flex;

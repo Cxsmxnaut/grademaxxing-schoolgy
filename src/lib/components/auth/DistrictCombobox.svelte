@@ -128,7 +128,7 @@
 	>
 	{#if !editing && selectedDistrict}
 		<div
-			class="border-input bg-secondary text-foreground flex h-12 items-center gap-2.5 rounded-[0.625rem] border px-4 py-3 text-[0.90625rem] leading-[1.5] font-semibold"
+			class="border-input bg-secondary text-foreground flex h-12 items-center gap-2.5 rounded-md border px-4 py-3 text-[0.90625rem] leading-[1.5] font-semibold"
 		>
 			<span class="min-w-0 flex-1 truncate">
 				{selectedDistrict.name}
@@ -150,7 +150,7 @@
 		</div>
 	{:else}
 		<div
-			class="border-input bg-secondary focus-within:border-primary focus-within:outline-primary flex h-12 items-center overflow-hidden rounded-[0.625rem] border focus-within:outline-2 focus-within:outline-offset-2"
+			class="border-input bg-secondary focus-within:border-primary focus-within:outline-primary flex h-12 items-center overflow-hidden rounded-md border focus-within:outline-2 focus-within:outline-offset-2"
 		>
 			<input
 				id="district-search"

@@ -15,40 +15,24 @@ const tokenNames = [
 	'--grade-risk'
 ] as const;
 
-async function readTheme(page: Page, mode: 'light' | 'dark') {
-	return page.evaluate(
-		({ mode, tokenNames }) => {
-			document.documentElement.classList.toggle('dark', mode === 'dark');
-			const styles = getComputedStyle(document.documentElement);
-			return Object.fromEntries(
-				tokenNames.map((token) => [token, styles.getPropertyValue(token).trim()])
-			);
-		},
-		{ mode, tokenNames }
-	);
+async function readTheme(page: Page) {
+	return page.evaluate((tokenNames) => {
+		const styles = getComputedStyle(document.documentElement);
+		return Object.fromEntries(
+			tokenNames.map((token) => [token, styles.getPropertyValue(token).trim()])
+		);
+	}, tokenNames);
 }
 
-test('the complete semantic palette resolves in light and dark modes', async ({ page }) => {
+test('the complete dark palette resolves', async ({ page }) => {
 	await page.goto('/login');
-	const light = await readTheme(page, 'light');
-	const dark = await readTheme(page, 'dark');
+	const palette = await readTheme(page);
 
 	for (const token of tokenNames) {
-		expect(light[token], `${token} should resolve in light mode`).not.toBe('');
-		expect(dark[token], `${token} should resolve in dark mode`).not.toBe('');
-		expect(dark[token], `${token} should differ between modes`).not.toBe(light[token]);
+		expect(palette[token], `${token} should resolve`).not.toBe('');
 	}
 
-	expect(light).toMatchObject({
-		'--background': '#f5f9fd',
-		'--foreground': '#0f1c2e',
-		'--primary': '#0a73b2',
-		'--success': '#177a52',
-		'--warning': '#8f6b1e',
-		'--destructive': '#b0483a',
-		'--grade-strong': '#177a52'
-	});
-	expect(dark).toMatchObject({
+	expect(palette).toMatchObject({
 		'--background': '#151e28',
 		'--primary': '#6ea8dc',
 		'--success': '#04dfa7',
@@ -56,13 +40,12 @@ test('the complete semantic palette resolves in light and dark modes', async ({ 
 		'--destructive': '#f08078',
 		'--grade-strong': '#04dfa7'
 	});
-	expect(light['--primary']).not.toBe(light['--success']);
-	expect(dark['--primary']).not.toBe(dark['--success']);
+	expect(palette['--primary']).not.toBe(palette['--success']);
 });
 
 test('primary controls keep visible hover, focus, and disabled states', async ({ page }) => {
 	await page.goto('/login');
-	await readTheme(page, 'light');
+	await readTheme(page);
 
 	const submit = page.getByRole('button', { name: 'Log in' });
 	const initialBackground = await submit.evaluate(

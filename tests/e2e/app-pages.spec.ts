@@ -122,6 +122,24 @@ const pages = [
 	['/feedback', 'Feedback']
 ] as const;
 
+test('student pages fit small, standard, and large phone widths in dark mode', async ({ page }) => {
+	for (const width of [320, 390, 430]) {
+		await page.setViewportSize({ width, height: 844 });
+		for (const [path, heading] of pages) {
+			await page.goto(path);
+			await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
+			await expect(page.getByRole('navigation', { name: 'Mobile navigation' })).toBeVisible();
+			await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
+			const overflow = await page.evaluate(
+				() => document.documentElement.scrollWidth - document.documentElement.clientWidth
+			);
+			expect(overflow, `${path} should not scroll horizontally at ${width}px`).toBeLessThanOrEqual(
+				1
+			);
+		}
+	}
+});
+
 for (const [path, heading] of pages) {
 	test(`${path} has a visible page identity and app navigation`, async ({ page }) => {
 		await page.goto(path);
@@ -668,12 +686,11 @@ test('empty records, feedback state, mobile navigation, and dark theme are clear
 		await page.screenshot({ path: '/tmp/grademaxxing-feedback-sent-mobile.png', fullPage: true });
 	await page.setViewportSize({ width: 1280, height: 900 });
 
-	await expect(page.locator('html')).toHaveClass(/dark/);
+	await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
 	await expect(page.getByTestId('sidebar-theme')).toHaveCount(0);
 
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.goto('/grades');
-	await expect(page.getByRole('button', { name: 'Use light theme' })).toHaveCount(0);
 	for (const label of ['Grades', 'Attendance', 'Documents', 'Mail'])
 		await expect(
 			page.getByRole('navigation', { name: 'Mobile navigation' }).getByText(label, { exact: true })

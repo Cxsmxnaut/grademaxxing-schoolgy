@@ -148,7 +148,7 @@
 					>
 						<Button
 							href="/gpa-calculator"
-							class="border-primary h-[2.171875rem] w-full gap-[0.4375rem] rounded-[0.4375rem] border px-3 py-[0.4375rem] text-[0.78125rem] leading-[1.5] font-semibold tracking-[0.015625rem] shadow-none sm:w-[8.6328125rem]"
+							class="border-primary h-[2.171875rem] w-full gap-[0.4375rem] rounded-sm border px-3 py-[0.4375rem] text-[0.78125rem] leading-[1.5] font-semibold tracking-[0.015625rem] shadow-none sm:w-[8.6328125rem]"
 							><CalculatorIcon class="size-[0.9375rem]" /> GPA calculator</Button
 						>
 						<ReportPeriodSwitcher
@@ -302,13 +302,7 @@
 
 <style>
 	.gradebook-panel {
-		border-radius: 0.75rem;
-		box-shadow:
-			0 1px 2px rgb(15 28 46 / 6%),
-			0 8px 24px rgb(11 125 194 / 8%);
-	}
-
-	:global(.dark) .gradebook-panel {
+		border-radius: var(--corner-lg);
 		box-shadow:
 			0 1px 2px rgb(0 0 0 / 40%),
 			0 8px 24px rgb(0 0 0 / 30%);

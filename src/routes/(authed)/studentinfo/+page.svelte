@@ -157,7 +157,7 @@
 
 	{#if !studentInfoState.loaded && !studentInfoState.data}
 		<div class="grid items-start gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
-			<div class="space-y-5">
+			<div class="min-w-0 space-y-5">
 				<Card.Root>
 					<Card.Content class="flex flex-col gap-5 px-5 py-6 sm:flex-row sm:items-center sm:px-7">
 						<Skeleton class="size-24 shrink-0 rounded-full" />
@@ -186,7 +186,7 @@
 					</Card.Content>
 				</Card.Root>
 			</div>
-			<div class="space-y-5">
+			<div class="min-w-0 space-y-5">
 				<Card.Root>
 					<Card.Content class="px-5 py-6 sm:px-7">
 						<Skeleton class="h-5 w-36" />
@@ -227,7 +227,7 @@
 
 	{#if studentInfoState.data}
 		<div class="grid items-start gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
-			<div class="space-y-5">
+			<div class="min-w-0 space-y-5">
 				<Card.Root class="overflow-hidden">
 					<div
 						class="from-primary/8 flex flex-col gap-5 bg-gradient-to-br to-transparent px-5 py-6 sm:flex-row sm:items-center sm:px-7"
@@ -315,7 +315,7 @@
 											<Badge
 												variant="secondary"
 												class={ongoing
-													? 'w-fit shrink-0 bg-emerald-100 font-mono text-[0.6875rem] dark:bg-emerald-900/60'
+													? 'w-fit shrink-0 bg-emerald-900/60 font-mono text-[0.6875rem]'
 													: 'w-fit shrink-0 font-mono text-[0.6875rem]'}
 											>
 												{classPeriodLabel(entry.period)}
@@ -442,7 +442,7 @@
 				</Card.Root>
 			</div>
 
-			<div class="space-y-5">
+			<div class="min-w-0 space-y-5">
 				{#if !schoolInfoState.error}
 					{#if schoolInfoState.data}
 						<Card.Root>

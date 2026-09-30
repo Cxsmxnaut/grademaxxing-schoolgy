@@ -11,7 +11,7 @@ Do not describe a Grademaxxing (Beta) build as school-ready until this checklist
 5. Supply test-account credentials only through environment variables and run `PLAYWRIGHT_HEADLESS=1 npm run test:human`. This exercises actual clicks through login, grades, every class, planning tools, attendance, documents, mail, profile, privacy, refresh, failure recovery, password-only session reconnect, logout, and a 390px viewport. It also verifies the complete modern API contract and malformed upstream records.
 6. Confirm `GRADEMAXXING_SESSION_SECRET` is present in every production and preview runtime and is never exposed to the browser, build logs, or repository.
 7. Scan tracked and untracked source for real usernames, passwords, cookies, tokens, generated portal records, traces, and screenshots before publishing.
-8. For visual-system releases, verify the semantic theme contract, light/dark interactive states, phone layout, and WCAG A/AA checks. Compare screenshots locally, but never commit screenshots containing a real student's record.
+8. For visual-system releases, verify the dark semantic token contract, interactive states, phone layout, and WCAG A/AA checks. Compare screenshots locally, but never commit screenshots containing a real student's record.
 
 ## Capacity gate
 

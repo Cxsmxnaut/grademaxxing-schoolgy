@@ -22,7 +22,7 @@
 	<Button
 		href={backHref}
 		variant="outline"
-		class="border-input text-muted-foreground hover:border-primary hover:text-foreground h-auto rounded-[0.4375rem] bg-transparent px-3 py-[0.4375rem] text-[0.78125rem] leading-[1.5] font-semibold shadow-none hover:bg-transparent"
+		class="border-input text-muted-foreground hover:border-primary hover:text-foreground h-auto rounded-sm bg-transparent px-3 py-[0.4375rem] text-[0.78125rem] leading-[1.5] font-semibold shadow-none hover:bg-transparent"
 		><ArrowLeftIcon class="size-3.5" strokeWidth={1.5} /> Back</Button
 	>
 </header>
