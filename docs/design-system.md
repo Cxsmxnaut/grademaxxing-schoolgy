@@ -39,7 +39,7 @@ Playwright tests cover accessibility, responsive layouts, sidebar/navigation beh
 
 Use screenshots and pixel diffs to catch regressions, but never commit screenshots containing a real student's information. For a change touching menus, test the closed state, open state, keyboard access, dismissal, phone layout, loading state, error state, and light/dark rendering.
 
-The landing page uses `static/gradebook-preview-dark.png`, captured from the current Gradebook UI with synthetic sample grades. Refresh that asset when the Gradebook layout changes; never use a student's live records for the public preview.
+The landing page uses `static/gradebook-preview-dark-v2.png`, captured from the current Gradebook UI with synthetic sample grades. Refresh that asset when the Gradebook layout changes; never use a student's live records for the public preview.
 
 ## Product copy and branding
 

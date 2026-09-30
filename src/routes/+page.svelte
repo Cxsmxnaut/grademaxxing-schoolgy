@@ -95,7 +95,7 @@
 				</div>
 				<div class="frame-image-wrap">
 					<img
-						src="/gradebook-preview-dark.png"
+						src="/gradebook-preview-dark-v2.png"
 						width="1440"
 						height="900"
 						alt={`${brand} gradebook screenshot with sample grades, GPA summary, courses, and recent assignments`}

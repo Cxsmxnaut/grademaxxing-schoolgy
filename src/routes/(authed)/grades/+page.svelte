@@ -299,3 +299,27 @@
 		</div>
 	{/if}
 </AppPageShell>
+
+<style>
+	.gradebook-panel {
+		border-radius: 0.75rem;
+		box-shadow:
+			0 1px 2px rgb(15 28 46 / 6%),
+			0 8px 24px rgb(11 125 194 / 8%);
+	}
+
+	:global(.dark) .gradebook-panel {
+		box-shadow:
+			0 1px 2px rgb(0 0 0 / 40%),
+			0 8px 24px rgb(0 0 0 / 30%);
+	}
+
+	.metric-label {
+		color: var(--muted-foreground);
+		font-size: 0.75rem;
+		font-weight: 600;
+		line-height: 1.5;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+</style>
