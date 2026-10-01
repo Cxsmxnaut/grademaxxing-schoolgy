@@ -420,6 +420,11 @@ export function courseAssignment(
 	const score = text(item.gradeMark);
 	const possible = text(item.pointsPossible);
 	const portalPoints = text(item.points);
+	const scorePair = /^\s*-?\d+(?:\.\d+)?\s*$/.test(score) ? pointPair(score, possible) : '';
+	const points = /^\s*-?\d+(?:\.\d+)?\s*\/\s*-?\d+(?:\.\d+)?\s*$/.test(portalPoints)
+		? portalPoints
+		: scorePair || portalPoints;
+	const rawPair = /^\s*(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)\s*$/.exec(scorePair);
 	const assignmentId = identifier(item.itemID);
 	const dueDate = portalDate(text(item.due_date));
 	const assignedDate = portalDate(text(item.date)) || dueDate;
@@ -431,7 +436,8 @@ export function courseAssignment(
 		DueDate: dueDate || assignedDate,
 		Score: score,
 		ScoreType: 'Raw Score',
-		Points: pointPair(score, possible) || portalPoints,
+		Points: points,
+		...(rawPair ? { ScoreCalValue: rawPair[1]!, ScoreMaxValue: rawPair[2]! } : {}),
 		Notes: [text(item.commentText), text(item.publicNote)].filter(Boolean).join(' — '),
 		Description: text(item.publicNote)
 	};
@@ -500,12 +506,17 @@ export function parseGradebookClassDetail(html: string) {
 		split < 0 ? html : html.slice(split),
 		assignmentGridKeys
 	);
+	const categories = categoryRows.flatMap(detailCategory);
 	return {
 		hasAssignmentGrid: split >= 0,
 		letter,
 		percentage,
-		categories: categoryRows.flatMap(detailCategory),
-		assignments: assignmentRows.map(detailAssignment).filter((assignment) => assignment.Date)
+		categories,
+		assignments: reconcileAssignmentPoints(
+			assignmentRows.map(detailAssignment).filter((assignment) => assignment.Date),
+			categories,
+			percentage
+		)
 	};
 }
 
@@ -585,6 +596,105 @@ function detailAssignment(row: Record<string, unknown>): Record<string, string> 
 		Notes: stripHtml(cellText(row.GBNotes)),
 		Description: stripHtml(cellText(row.GBDescription ?? row.MeasureDescription))
 	};
+}
+
+function pointRatiosAgree(earnedA: string, possibleA: string, earnedB: string, possibleB: string) {
+	const a = Number(earnedA) / Number(possibleA);
+	const b = Number(earnedB) / Number(possibleB);
+	return Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) <= 0.01;
+}
+
+/**
+ * Use the complete upstream class response as the source of truth. When its
+ * displayed points and score disagree, the official category totals (or
+ * official course mark for unweighted classes) resolve the ambiguity.
+ */
+export function reconcileAssignmentPoints(
+	assignments: Array<Record<string, string>>,
+	categories: PortalGradeCategory[],
+	officialPercentage: string
+) {
+	const result = assignments.map((assignment) => ({ ...assignment }));
+	const points = (assignment: Record<string, string>) => {
+		const fraction = /^\s*(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)\s*$/.exec(
+			assignment.Points ?? ''
+		);
+		const earned = assignment.Point ?? fraction?.[1];
+		const possible = assignment.PointPossible ?? fraction?.[2];
+		if (earned === undefined || possible === undefined || possible === '') return undefined;
+		const parsed = { earned: Number(earned), possible: Number(possible) };
+		return Number.isFinite(parsed.earned) && Number.isFinite(parsed.possible) && parsed.possible > 0
+			? parsed
+			: undefined;
+	};
+	const totals = (category?: string) =>
+		result.reduce(
+			(total, assignment) => {
+				if (category !== undefined && assignment.Type !== category) return total;
+				if (/^\s*\(\s*not\s+for\s+grading\s*\)/i.test(assignment.Notes ?? '')) return total;
+				const pair = points(assignment);
+				return pair
+					? { earned: total.earned + pair.earned, possible: total.possible + pair.possible }
+					: total;
+			},
+			{ earned: 0, possible: 0 }
+		);
+
+	for (const assignment of result) {
+		const current = points(assignment);
+		const scoreEarned = assignment.ScoreCalValue;
+		const scorePossible = assignment.ScoreMaxValue;
+		if (!current || !scoreEarned || !scorePossible) continue;
+		const alternate = { earned: Number(scoreEarned), possible: Number(scorePossible) };
+		if (
+			!Number.isFinite(alternate.earned) ||
+			!Number.isFinite(alternate.possible) ||
+			alternate.possible <= 0 ||
+			pointRatiosAgree(String(current.earned), String(current.possible), scoreEarned, scorePossible)
+		)
+			continue;
+
+		const category = categories.find((entry) => entry.name === assignment.Type);
+		let useAlternate = false;
+		if (category?.points && category.pointsPossible) {
+			const target = { earned: Number(category.points), possible: Number(category.pointsPossible) };
+			const currentTotals = totals(category.name);
+			const updated = {
+				earned: currentTotals.earned - current.earned + alternate.earned,
+				possible: currentTotals.possible - current.possible + alternate.possible
+			};
+			const earnedGap = Math.abs(currentTotals.earned - target.earned);
+			const possibleGap = Math.abs(currentTotals.possible - target.possible);
+			const newEarnedGap = Math.abs(updated.earned - target.earned);
+			const newPossibleGap = Math.abs(updated.possible - target.possible);
+			useAlternate =
+				newEarnedGap <= earnedGap + 0.0001 &&
+				newPossibleGap <= possibleGap + 0.0001 &&
+				(newEarnedGap < earnedGap - 0.0001 || newPossibleGap < possibleGap - 0.0001);
+		} else if (
+			!categories.length &&
+			officialPercentage.trim() !== '' &&
+			Number.isFinite(Number(officialPercentage))
+		) {
+			const currentTotals = totals();
+			const currentGrade = (currentTotals.earned / currentTotals.possible) * 100;
+			const updatedGrade =
+				((currentTotals.earned - current.earned + alternate.earned) /
+					(currentTotals.possible - current.possible + alternate.possible)) *
+				100;
+			useAlternate =
+				Number.isFinite(updatedGrade) &&
+				Math.abs(updatedGrade - Number(officialPercentage)) <
+					Math.abs(currentGrade - Number(officialPercentage));
+		}
+		if (!useAlternate) continue;
+		assignment.Point = scoreEarned;
+		assignment.PointPossible = scorePossible;
+		assignment.Points = `${scoreEarned} / ${scorePossible}`;
+		delete assignment.ScoreCalValue;
+		delete assignment.ScoreMaxValue;
+	}
+	return result;
 }
 
 function cellText(value: unknown): string {

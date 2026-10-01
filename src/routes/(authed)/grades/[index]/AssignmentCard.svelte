@@ -312,7 +312,7 @@
 						{pointsPossible}
 					{/if}
 				</span>
-				{#if percentage && percentage !== Infinity}
+				{#if percentage && Number.isFinite(percentage)}
 					<span class={percentageTextClass} title="Assignment grade percentage"
 						>{Math.round(percentage * 100) / 100}%</span
 					>

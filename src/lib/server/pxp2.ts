@@ -36,6 +36,7 @@ import {
 	parseGradebookAssignmentDetail,
 	parseGradebookClassDetail,
 	portalDate,
+	reconcileAssignmentPoints,
 	tableFields,
 	text
 } from './pxp2/parsers';
@@ -373,11 +374,18 @@ export class Pxp2Client {
 					})
 				)
 			).filter((assignment): assignment is Record<string, string> => assignment !== undefined);
+			const categories = classData.enabled === false ? [] : gradeCategories(classData);
+			const officialPercentage =
+				numericText(gradeCard.classPct) || numericText(classData.students?.[0]?.percentage);
 			assignmentsByCourse.set(
 				focus.courseId,
-				[...visibleAssignments, ...recoveredAssignments].toSorted(
-					(a, b) =>
-						(mdyDate(b.Date ?? '')?.getTime() ?? 0) - (mdyDate(a.Date ?? '')?.getTime() ?? 0)
+				reconcileAssignmentPoints(
+					[...visibleAssignments, ...recoveredAssignments].toSorted(
+						(a, b) =>
+							(mdyDate(b.Date ?? '')?.getTime() ?? 0) - (mdyDate(a.Date ?? '')?.getTime() ?? 0)
+					),
+					categories,
+					officialPercentage
 				)
 			);
 			const authoritativeGrade = classData.students?.[0];
@@ -390,7 +398,7 @@ export class Pxp2Client {
 				percentage:
 					numericText(gradeCard.classPct) ||
 					(cardLetter || authoritativeLetter ? numericText(authoritativeGrade?.percentage) : ''),
-				categories: classData.enabled === false ? [] : gradeCategories(classData)
+				categories
 			});
 		}
 		const courses = classes.map((course, index) => {

@@ -1,4 +1,11 @@
 import {
+	getCalculableAssignments,
+	getHiddenAssignmentsFromCategories,
+	getPointsByCategory,
+	parseSynergyAssignment
+} from '$lib/grades/assignments';
+import { gradebookXml } from '$lib/server/gradebook-adapter';
+import {
 	attendanceCourseRecords,
 	attendancePeriodRecords,
 	normalizeDistrictUrl,
@@ -8,6 +15,8 @@ import {
 	Pxp2InputError,
 	Pxp2SessionExpiredError
 } from '$lib/server/pxp2';
+import { courseAssignment, reconcileAssignmentPoints } from '$lib/server/pxp2/parsers';
+import { parseGradebookXML } from '$lib/synergy';
 import { afterEach, expect, test, vi } from 'vitest';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -245,6 +254,110 @@ test('complete class details recover wrapped and scaled assignment rows', () => 
 			}
 		]
 	});
+});
+
+test('a corrected upstream score replaces a stale one-point maximum throughout the gradebook', () => {
+	const detail = parseGradebookClassDetail(`
+		<div id="current-grade"><span class="mark">A</span><span class="score">95%</span></div>
+		<script>{"dataSource":[{"CategoryName":"Homework","Weight":"100%","Points":"9.5","PointsPossible":"10"}]}</script>
+		<div id="AssignmentsGrid"></div>
+		<script>{"dataSource":[{
+			"gradeBookId":"example-1", "Date":"9/20/26", "GBAssignment":"Video quiz",
+			"GBAssignmentType":"Homework", "GBScore":"9.5 out of 10",
+			"GBPoints":"9.5/1"
+		}]}</script>`);
+	const xml = gradebookXml([
+		{
+			id: 'course-1',
+			period: '1',
+			title: 'History',
+			room: '',
+			teacher: '',
+			teacherEmail: '',
+			score: detail.letter,
+			scoreRaw: detail.percentage,
+			missing: '0',
+			categories: detail.categories,
+			assignments: detail.assignments
+		}
+	]);
+	const course = parseGradebookXML(xml).Courses.Course[0]!;
+	const assignment = parseSynergyAssignment(course.Marks!.Mark[0]!.Assignments!.Assignment[0]!);
+	const category = course.Marks!.Mark[0]!.GradeCalculationSummary!.AssignmentGradeCalc[0]!;
+	const hidden = getHiddenAssignmentsFromCategories(
+		[
+			{
+				name: category._Type,
+				weightPercentage: Number(category._Weight),
+				pointsEarned: Number(category._Points),
+				pointsPossible: Number(category._PointsPossible),
+				weightedPercentage: Number(category._WeightedPct),
+				gradeLetter: category._CalculatedMark
+			}
+		],
+		getPointsByCategory(getCalculableAssignments([assignment]))
+	);
+
+	expect(assignment).toMatchObject({ pointsEarned: 9.5, pointsPossible: 10 });
+	expect(hidden).toEqual([]);
+	expect(course.Marks!.Mark[0]!._CalculatedScoreRaw).toBe('95');
+});
+
+test('course-content fallback checks conflicting upstream values against official totals', () => {
+	const assignment = courseAssignment(
+		{
+			itemID: 'example-2',
+			title: 'Video quiz',
+			date: '9/20/2026',
+			gradeMark: '9.5',
+			pointsPossible: '10',
+			points: '9.5 / 1'
+		},
+		new Map()
+	);
+	expect(assignment.Points).toBe('9.5 / 1');
+	const reconciled = reconcileAssignmentPoints(
+		[{ ...assignment, Type: 'Homework' }],
+		[
+			{
+				name: 'Homework',
+				weight: '100',
+				points: '9.5',
+				pointsPossible: '10',
+				weightedPercentage: '95',
+				calculatedMark: 'A'
+			}
+		],
+		'95'
+	);
+	expect(reconciled[0]?.Points).toBe('9.5 / 10');
+});
+
+test('a high assignment percentage remains when the official category supports it', () => {
+	const [assignment] = reconcileAssignmentPoints(
+		[
+			{
+				Type: 'Homework',
+				Points: '15 / 10',
+				Point: '15',
+				PointPossible: '10',
+				ScoreCalValue: '15',
+				ScoreMaxValue: '20'
+			}
+		],
+		[
+			{
+				name: 'Homework',
+				weight: '100',
+				points: '15',
+				pointsPossible: '10',
+				weightedPercentage: '150',
+				calculatedMark: 'A'
+			}
+		],
+		'150'
+	);
+	expect(assignment?.Points).toBe('15 / 10');
 });
 
 test('N/A class-detail placeholders are not exposed as real zero-percent grades', () => {

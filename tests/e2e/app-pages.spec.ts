@@ -263,6 +263,21 @@ test('gradebook calculator, course details, and attendance views are interactive
 	await expect(page.getByText('No records this month')).toBeVisible();
 });
 
+test('a corrected assignment maximum keeps the course chart and cards consistent', async ({
+	page
+}) => {
+	const xml = `<Gradebook><ReportingPeriod Index="0" GradePeriod="Quarter 1"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1"/></ReportingPeriods><Courses><Course CourseID="points-check" CourseName="History" Period="1"><Marks><Mark MarkName="Quarter 1" CalculatedScoreRaw="97.5" CalculatedScoreString="A"><GradeCalculationSummary><AssignmentGradeCalc Type="Homework" Weight="100" Points="19.5" PointsPossible="20" WeightedPct="97.5" CalculatedMark="A"/></GradeCalculationSummary><Assignments><Assignment GradebookID="earlier" Measure="Earlier quiz" Type="Homework" Date="9/19/2026" DueDate="9/19/2026" Score="10" DisplayScore="10 out of 10" ScoreCalValue="10" ScoreMaxValue="10" Points="10 / 10" Point="10" PointPossible="10" Notes="" MeasureDescription="Earlier work"/><Assignment GradebookID="corrected" Measure="Video quiz" Type="Homework" Date="9/20/2026" DueDate="9/20/2026" Score="9.5" DisplayScore="9.5 out of 10" ScoreCalValue="9.5" ScoreMaxValue="10" Points="9.5 / 10" Point="9.5" PointPossible="10" Notes="" MeasureDescription="Video work"/></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
+	await page.route('**/api/studentvue/gradebook*', (route) =>
+		route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ xml }) })
+	);
+	await page.goto('/grades/points-check');
+	await expect(page.getByRole('heading', { level: 1, name: 'History' })).toBeVisible();
+	await expect(page.getByText('9.5/10').first()).toBeVisible();
+	await expect(page.getByTestId('grade-trend-chart')).toBeVisible();
+	await expect(page.getByText('Point Discrepancy')).toHaveCount(0);
+	await expect(page.getByText('950%')).toHaveCount(0);
+});
+
 test('attendance agenda shows school records and fits a phone viewport', async ({ page }) => {
 	const today = new Date();
 	const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;

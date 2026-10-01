@@ -14,11 +14,15 @@ export interface GradebookRecord {
 }
 
 interface GradebookCatalogLocalStorageCache {
+	version: number;
 	recordCache: (null | GradebookRecord)[];
 	defaultIndex: number;
 	overrideIndex: number | null;
 	owner?: string;
 }
+
+// Assignment point interpretation changed; old serialized XML must be fetched again.
+const gradebookCacheVersion = 2;
 
 export interface GradebookCatalog {
 	recordCache: (undefined | GradebookRecord)[];
@@ -34,6 +38,10 @@ export function getGradebookCatalogFromLocalStorage() {
 	if (cacheStr === null) return undefined;
 
 	const cache = JSON.parse(cacheStr) as Partial<GradebookCatalogLocalStorageCache>;
+	if (cache.version !== gradebookCacheVersion) {
+		localStorage.removeItem(LocalStorageKey.gradebook);
+		return undefined;
+	}
 	const owner = getGradebookCacheOwner();
 	// Old caches were not account-scoped. Never render one into a newly signed-in account.
 	if (!owner || cache.owner !== owner) return undefined;
@@ -83,6 +91,7 @@ export function saveGradebookCatalogToLocalStorage(gradebookCatalog: GradebookCa
 	const owner = getGradebookCacheOwner();
 	if (!owner) return;
 	const cache: GradebookCatalogLocalStorageCache = {
+		version: gradebookCacheVersion,
 		recordCache: gradebookCatalog.recordCache.map((record) => record ?? null),
 		defaultIndex: gradebookCatalog.defaultIndex,
 		overrideIndex: gradebookCatalog.overrideIndex ?? null,

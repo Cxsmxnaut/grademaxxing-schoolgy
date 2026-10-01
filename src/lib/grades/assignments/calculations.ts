@@ -192,8 +192,8 @@ export function getHiddenAssignmentsFromCategories(
 				pointsPossible: 0
 			};
 			return (
-				category.pointsEarned !== categoryPoints.pointsEarned ||
-				category.pointsPossible !== categoryPoints.pointsPossible
+				Math.abs(category.pointsEarned - categoryPoints.pointsEarned) > 0.0001 ||
+				Math.abs(category.pointsPossible - categoryPoints.pointsPossible) > 0.0001
 			);
 		})
 		.map((category) => {

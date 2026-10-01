@@ -68,3 +68,20 @@ test('authoritative category totals synthesize a discrepancy when every graded a
 		hidden: true
 	});
 });
+
+test('rounding noise in upstream category totals does not create a discrepancy assignment', () => {
+	const hidden = getHiddenAssignmentsFromCategories(
+		[
+			{
+				name: 'Homework',
+				weightPercentage: 100,
+				pointsEarned: 0.3,
+				pointsPossible: 10,
+				weightedPercentage: 3,
+				gradeLetter: 'F'
+			}
+		],
+		{ Homework: { pointsEarned: 0.1 + 0.2, pointsPossible: 10 } }
+	);
+	expect(hidden).toEqual([]);
+});
