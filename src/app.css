@@ -85,9 +85,7 @@
 	--grade-extra: #c2a7e8;
 	--grade-extra-soft: rgb(194 167 232 / 14%);
 	--chart: #6ea8dc;
-	--chart-error: #f08078;
 	--chart-bg: #315f90;
-	--chart-bg-error: #6f3b39;
 	--canvas-background:
 		radial-gradient(880px 540px at 94% -14%, rgb(39 86 136 / 11%), transparent 68%),
 		radial-gradient(720px 520px at 5% 100%, rgb(110 168 220 / 4%), transparent 70%);
@@ -160,9 +158,7 @@
 	--color-grade-extra: var(--grade-extra);
 	--color-grade-extra-soft: var(--grade-extra-soft);
 	--color-chart: var(--chart);
-	--color-chart-error: var(--chart-error);
 	--color-chart-bg: var(--chart-bg);
-	--color-chart-bg-error: var(--chart-bg-error);
 }
 
 @layer base {

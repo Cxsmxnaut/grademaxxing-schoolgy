@@ -35,13 +35,11 @@
 	import { gradebookState, switchReportPeriod } from '$lib/grades/catalog.svelte';
 	import { saveSeenAssignmentsToLocalStorage } from '$lib/grades/seenAssignments';
 	import { seenAssignmentIDs } from '$lib/grades/seenAssignments.svelte';
-	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
 	import CircleXIcon from '@lucide/svelte/icons/circle-x';
 	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
 	import { untrack } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import AssignmentTabs from './AssignmentTabs.svelte';
-	import CalculationError from './CalculationError.svelte';
 	import GradeCategoryTable from './GradeCategoryTable.svelte';
 	import GradeChart from './GradeChart.svelte';
 	import TargetGradeCalculator from './TargetGradeCalculator.svelte';
@@ -286,9 +284,6 @@
 
 			<div class="shrink-0 text-right">
 				<div class="flex items-baseline justify-end gap-[0.625rem]">
-					{#if hypotheticalMode && !categories && !rawGradeCalcMatches}<CircleAlertIcon
-							class="text-grade-risk size-5"
-						/>{/if}
 					{#if hypotheticalMode}<span
 							data-testid="hypothetical-letter"
 							class="font-heading {gradeTone} text-[2.125rem] leading-none font-bold"
@@ -355,16 +350,6 @@
 			{/if}
 		</section>
 
-		{#if !rawGradeCalcMatches}
-			<div class="my-3 flex justify-center" in:fade>
-				<CalculationError
-					{hypotheticalMode}
-					officialPercentage={synergyGradePercentage}
-					estimatedPercentage={hypotheticalMode ? hypotheticalGrade : calculatedGrade}
-				/>
-			</div>
-		{/if}
-
 		<section
 			aria-label="Grade trend"
 			class="border-border/80 bg-card overflow-hidden rounded-lg border shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)]"
@@ -377,17 +362,11 @@
 				assignments={hypotheticalMode ? reactiveAssignments : realAssignments}
 				{gradeCategories}
 				animate={!hypotheticalMode}
-				error={!rawGradeCalcMatches}
 				officialGrade={hypotheticalMode || !rawGradeCalcMatches
 					? undefined
 					: synergyGradePercentage}
 			/>
 		{/snippet}
-		{#if !rawGradeCalcMatches}
-			<p class="text-muted-foreground px-5 pb-3 text-xs">
-				Trend estimated from StudentVUE assignments; the official current grade is shown above.
-			</p>
-		{/if}
 
 		<div class="my-[0.875rem] flex flex-wrap items-center gap-x-5 gap-y-3">
 			<div class="flex items-center gap-2">

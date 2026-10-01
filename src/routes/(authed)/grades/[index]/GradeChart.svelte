@@ -12,7 +12,6 @@
 		type CalculableWithCategory,
 		type Category
 	} from '$lib/grades/assignments';
-	import { cn } from '$lib/utils';
 	import { Area, AreaChart, LinearGradient, Points } from 'layerchart';
 	import { SvelteMap } from 'svelte/reactivity';
 
@@ -20,10 +19,9 @@
 		assignments: Assignment[];
 		gradeCategories?: Category[];
 		animate: boolean;
-		error?: boolean;
 		officialGrade?: number;
 	}
-	let { assignments, gradeCategories, error = false, officialGrade }: Props = $props();
+	let { assignments, gradeCategories, officialGrade }: Props = $props();
 
 	interface DataPointMetadata {
 		assignmentsOnDate: Assignment[];
@@ -156,20 +154,15 @@
 			{#snippet marks()}
 				<LinearGradient
 					stops={['var(--tw-gradient-from)', 'var(--tw-gradient-via)', 'var(--tw-gradient-to)']}
-					class={error
-						? 'from-chart-bg-error/50 via-chart-bg-error/15 to-chart-bg-error/1'
-						: 'from-chart-bg/50 via-chart-bg/15 to-chart-bg/1'}
+					class="from-chart-bg/50 via-chart-bg/15 to-chart-bg/1"
 					vertical
 				>
 					{#snippet children({ gradient })}
-						<Area
-							line={{ class: cn(['stroke-2', error ? 'stroke-chart-error' : 'stroke-chart']) }}
-							fill={gradient}
-						/>
+						<Area line={{ class: 'stroke-chart stroke-2' }} fill={gradient} />
 					{/snippet}
 				</LinearGradient>
 
-				<Points r={4} class={error ? 'fill-chart-error' : 'fill-chart'} />
+				<Points r={4} class="fill-chart" />
 			{/snippet}
 		</AreaChart>
 	</Chart.Container>
