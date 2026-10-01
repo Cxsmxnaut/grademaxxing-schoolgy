@@ -26,7 +26,7 @@
 			icon: ChartLineIcon,
 			title: 'Grade trends',
 			description:
-				'Track StudentVUE grades over time. Earlier estimates appear when assignment math matches the official mark.'
+				'Track grade changes from dated assignments, with the latest mark anchored to StudentVUE.'
 		},
 		{
 			icon: CalculatorIcon,
@@ -151,8 +151,8 @@
 						<div class="detail-heading"><ChartLineIcon aria-hidden="true" /> Grade history</div>
 						<h3>See how your grade changed.</h3>
 						<p>
-							Official StudentVUE marks anchor the chart. Earlier assignment estimates appear only
-							when they match the current mark.
+							Official StudentVUE marks anchor the chart. Earlier points use the changes from dated
+							assignments.
 						</p>
 					</div>
 				</article>

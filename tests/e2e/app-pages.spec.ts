@@ -268,7 +268,7 @@ test('gradebook calculator, course details, and attendance views are interactive
 test('a corrected assignment maximum leaves the chart on the official course grade', async ({
 	page
 }) => {
-	const xml = `<Gradebook><ReportingPeriod Index="0" GradePeriod="Quarter 1"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1"/></ReportingPeriods><Courses><Course CourseID="points-check" CourseName="History" Period="1"><Marks><Mark MarkName="Quarter 1" CalculatedScoreRaw="97.5" CalculatedScoreString="A"><GradeCalculationSummary><AssignmentGradeCalc Type="Homework" Weight="100" Points="19.5" PointsPossible="20" WeightedPct="97.5" CalculatedMark="A"/></GradeCalculationSummary><Assignments><Assignment GradebookID="earlier" Measure="Earlier quiz" Type="Homework" Date="9/19/2026" DueDate="9/19/2026" Score="10" DisplayScore="10 out of 10" ScoreCalValue="10" ScoreMaxValue="10" Points="10 / 10" Point="10" PointPossible="10" Notes="" MeasureDescription="Earlier work"/><Assignment GradebookID="corrected" Measure="Video quiz" Type="Homework" Date="9/20/2026" DueDate="9/20/2026" Score="9.5" DisplayScore="9.5 out of 10" ScoreCalValue="9.5" ScoreMaxValue="10" Points="9.5 / 10" Point="9.5" PointPossible="10" Notes="" MeasureDescription="Video work"/></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
+	const xml = `<Gradebook><ReportingPeriod Index="0" GradePeriod="Quarter 1"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1"/></ReportingPeriods><Courses><Course CourseID="points-check" CourseName="History" Period="1"><Marks><Mark MarkName="Quarter 1" CalculatedScoreRaw="97.5" CalculatedScoreString="A"><GradeCalculationSummary><AssignmentGradeCalc Type="Homework" Weight="100" Points="19.5" PointsPossible="20" WeightedPct="97.5" CalculatedMark="A"/></GradeCalculationSummary><Assignments><Assignment GradebookID="earlier" Measure="Earlier quiz" Type="Homework" Date="9/19/2026" DueDate="9/19/2026" Score="10" DisplayScore="10 out of 10" ScoreCalValue="10" ScoreMaxValue="10" Points="10 / 10" Point="10" PointPossible="10" Notes="" MeasureDescription="Earlier work"/><Assignment GradebookID="corrected" Measure="Video quiz" Type="Homework" Date="9/20/2026" DueDate="9/20/2026" Score="9.5" DisplayScore="9.5 out of 10" ScoreCalValue="9.5" ScoreMaxValue="10" Points="9.5 / 1" Point="9.5" PointPossible="1" Notes="" MeasureDescription="Video work"/></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
 	await page.route('**/api/studentvue/gradebook*', (route) =>
 		route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ xml }) })
 	);
@@ -283,7 +283,7 @@ test('a corrected assignment maximum leaves the chart on the official course gra
 	await expect(page.getByText('950%')).toHaveCount(0);
 });
 
-test('a StudentVUE category mismatch shows neither a fake assignment nor a discrepancy banner', async ({
+test('a StudentVUE category mismatch keeps an estimated chart anchored to the official grade', async ({
 	page
 }) => {
 	const xml = `<Gradebook><ReportingPeriod Index="0" GradePeriod="Quarter 1"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1"/></ReportingPeriods><Courses><Course CourseID="mismatch-check" CourseName="History" Period="1"><Marks><Mark MarkName="Quarter 1" CalculatedScoreRaw="96.5" CalculatedScoreString="A"><GradeCalculationSummary><AssignmentGradeCalc Type="Homework" Weight="100" Points="19.3" PointsPossible="20" WeightedPct="96.5" CalculatedMark="A"/></GradeCalculationSummary><Assignments><Assignment GradebookID="earlier" Measure="Earlier quiz" Type="Homework" Date="9/19/2026" DueDate="9/19/2026" Score="10" DisplayScore="10 out of 10" ScoreCalValue="10" ScoreMaxValue="10" Points="10 / 10" Point="10" PointPossible="10" Notes="" MeasureDescription="Earlier work"/><Assignment GradebookID="visible" Measure="Video quiz" Type="Homework" Date="9/20/2026" DueDate="9/20/2026" Score="9.5" DisplayScore="9.5 out of 10" ScoreCalValue="9.5" ScoreMaxValue="10" Points="9.5 / 10" Point="9.5" PointPossible="10" Notes="" MeasureDescription="Video work"/></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
@@ -296,10 +296,10 @@ test('a StudentVUE category mismatch shows neither a fake assignment nor a discr
 	await expect(page.getByText('Point Discrepancy')).toHaveCount(0);
 	await expect(page.getByText('Official and visible-work grades differ')).toHaveCount(0);
 	await expect(page.getByText(/Trend estimated from StudentVUE assignments/)).toHaveCount(0);
-	await expect(page.getByTestId('grade-trend-insufficient')).toContainText('96.5%');
+	await expect(page.getByTestId('grade-trend-chart')).toBeVisible();
 	await expect(
 		page.getByText('Earlier points are estimates from StudentVUE assignments.')
-	).toHaveCount(0);
+	).toBeVisible();
 });
 
 test('saved official StudentVUE marks replace assignment estimates in the chart', async ({

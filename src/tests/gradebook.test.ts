@@ -416,3 +416,23 @@ test('Scaled Assignment', () => {
 		newHypothetical: false
 	});
 });
+
+test('displayed score corrects a stale point maximum', () => {
+	const parsed = parseSynergyAssignment({
+		_GradebookID: 'corrected-video',
+		_Measure: 'Video quiz',
+		_Type: 'Homework',
+		_Date: '9/20/2026',
+		_DueDate: '9/20/2026',
+		_Point: '9.5',
+		_PointPossible: '1',
+		_Points: '9.5 / 1',
+		_ScoreCalValue: '9.5',
+		_ScoreMaxValue: '10',
+		_Notes: '',
+		_MeasureDescription: ''
+	} as AssignmentEntity);
+	expect(parsed.pointsEarned).toBe(9.5);
+	expect(parsed.pointsPossible).toBe(10);
+	expect(parsed.unscaledPoints).toBeUndefined();
+});

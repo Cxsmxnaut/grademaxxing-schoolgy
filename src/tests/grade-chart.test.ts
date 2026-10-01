@@ -51,18 +51,36 @@ describe('estimated grade history', () => {
 		expect(points.map(({ percentage }) => percentage)).toEqual([100, 97.5]);
 	});
 
-	it('hides estimates when visible assignment math disagrees with StudentVUE', () => {
-		const assignments = [
-			assignment('Earlier', 19, 10, 10),
-			assignment('Wrong maximum', 20, 9.5, 1)
-		];
-		expect(getEstimatedGradeTrend(assignments, undefined, 97.5)).toEqual([]);
-		expect(
-			getEstimatedGradeTrend(
-				[assignment('Earlier', 19, 10, 10), assignment('Visible', 20, 9.5, 10)],
-				undefined,
-				96.5
-			)
-		).toEqual([]);
+	it('anchors a mismatched assignment trend to the official current grade', () => {
+		const points = getEstimatedGradeTrend(
+			[assignment('Earlier', 19, 10, 10), assignment('Visible', 20, 9.5, 10)],
+			undefined,
+			96.5
+		);
+		expect(points.map(({ percentage }) => percentage)).toEqual([99, 96.5]);
+	});
+
+	it('keeps a 104.754% visible-work total from becoming the current chart grade', () => {
+		const points = getEstimatedGradeTrend(
+			[assignment('Earlier', 19, 100, 100), assignment('Later', 20, 109.508, 100)],
+			undefined,
+			96.53
+		);
+		expect(points).toHaveLength(2);
+		expect(points[0]!.percentage).toBeCloseTo(91.776);
+		expect(points[1]!.percentage).toBeCloseTo(96.53);
+	});
+
+	it('uses the displayed StudentVUE score when a stale point maximum would create 950%', () => {
+		const incorrectPoints = {
+			...assignment('Video', 20, 9.5, 1),
+			unscaledPoints: { pointsEarned: 9.5, pointsPossible: 10 }
+		};
+		const points = getEstimatedGradeTrend(
+			[assignment('Earlier', 19, 10, 10), incorrectPoints],
+			undefined,
+			97.5
+		);
+		expect(points.map(({ percentage }) => percentage)).toEqual([100, 97.5]);
 	});
 });

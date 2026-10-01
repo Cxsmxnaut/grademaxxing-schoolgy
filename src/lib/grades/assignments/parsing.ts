@@ -26,10 +26,9 @@ export function parseSynergyAssignment(synergyAssignment: AssignmentEntity) {
 		? finiteNumber(_Points.split('/')[1]?.trim())
 		: finiteNumber(_Points?.split(' Points Possible')[0]);
 
-	const pointsEarned =
-		_Point !== undefined ? (_Point === '' ? 0 : finiteNumber(_Point)) : undefined; // _Point can be empty; equivalent to 0
+	let pointsEarned = _Point !== undefined ? (_Point === '' ? 0 : finiteNumber(_Point)) : undefined; // _Point can be empty; equivalent to 0
 
-	const pointsPossible =
+	let pointsPossible =
 		_PointPossible !== undefined && _PointPossible !== ''
 			? finiteNumber(_PointPossible)
 			: _ScoreMaxValue !== undefined && _ScoreMaxValue !== ''
@@ -61,6 +60,29 @@ export function parseSynergyAssignment(synergyAssignment: AssignmentEntity) {
 			pointsEarned: parseFloat(_ScoreCalValue),
 			pointsPossible: parseFloat(_ScoreMaxValue)
 		};
+	}
+
+	// A true scale changes earned and possible points by the same factor. If the
+	// ratios disagree, use StudentVUE's displayed score pair instead of turning
+	// a stale point maximum into a 950% assignment.
+	if (
+		_PointPossible !== '' &&
+		pointsEarned !== undefined &&
+		pointsPossible !== undefined &&
+		unscaledPoints &&
+		Number.isFinite(unscaledPoints.pointsEarned) &&
+		Number.isFinite(unscaledPoints.pointsPossible) &&
+		unscaledPoints.pointsPossible > 0
+	) {
+		const rawProduct = pointsEarned * unscaledPoints.pointsPossible;
+		const displayedProduct = unscaledPoints.pointsEarned * pointsPossible;
+		const roundingTolerance =
+			Number.EPSILON * Math.max(1, Math.abs(rawProduct), Math.abs(displayedProduct)) * 8;
+		if (Math.abs(rawProduct - displayedProduct) > roundingTolerance) {
+			pointsEarned = unscaledPoints.pointsEarned;
+			pointsPossible = unscaledPoints.pointsPossible;
+			unscaledPoints = undefined;
+		}
 	}
 
 	const notesFormatted = _Notes.replace(/^\s*\(\s*not\s+for\s+grading\s*\)\s*/i, '').trim();

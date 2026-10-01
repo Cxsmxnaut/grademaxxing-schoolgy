@@ -241,7 +241,7 @@ async function initializeGradebookCatalogOnce() {
 			if (overrideIndex !== undefined) {
 				try {
 					// Assignment data is required for "new" markers, what-if tools, and
-					// chart estimates checked against the official mark. A
+					// chart estimates anchored to the official mark. A
 					// summary response deliberately omits it, so it must never replace the
 					// selected period during normal refresh/reload.
 					await switchReportPeriod({ overrideIndex, delta: canDeltaRefresh });
@@ -266,7 +266,7 @@ async function initializeGradebookCatalogOnce() {
 			const selectedIndex = catalog.overrideIndex ?? catalog.defaultIndex;
 			// The first portal response can be a verified header-only snapshot. It is
 			// enough to show official course grades quickly, but never enough for
-			// assignment markers, what-if calculations, or checked chart estimates. Hydrate the
+			// assignment markers, what-if calculations, or chart estimates. Hydrate the
 			// same period after first paint instead of making the login wait for every
 			// mutable class-focus request.
 			if (catalog.recordCache[selectedIndex]?.detailed !== false) return;

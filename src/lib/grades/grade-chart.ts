@@ -4,7 +4,6 @@ import {
 	getCalculableAssignments,
 	getCalculableAssignmentsWithCategories,
 	getPointsByCategory,
-	gradesMatch,
 	type Assignment,
 	type Category
 } from './assignments';
@@ -17,7 +16,31 @@ export type EstimatedGradePoint = {
 	assignmentNames: string[];
 };
 
-/** Reconstruct earlier grades only when the same math reproduces the current official mark. */
+function pointsForChart(assignment: Assignment): Assignment {
+	const displayed = assignment.unscaledPoints;
+	if (
+		!displayed ||
+		assignment.pointsEarned === undefined ||
+		assignment.pointsPossible === undefined ||
+		!Number.isFinite(displayed.pointsEarned) ||
+		!Number.isFinite(displayed.pointsPossible) ||
+		displayed.pointsPossible <= 0
+	)
+		return assignment;
+
+	const rawProduct = assignment.pointsEarned * displayed.pointsPossible;
+	const displayedProduct = displayed.pointsEarned * assignment.pointsPossible;
+	const roundingTolerance =
+		Number.EPSILON * Math.max(1, Math.abs(rawProduct), Math.abs(displayedProduct)) * 8;
+	if (Math.abs(rawProduct - displayedProduct) <= roundingTolerance) return assignment;
+	return {
+		...assignment,
+		pointsEarned: displayed.pointsEarned,
+		pointsPossible: displayed.pointsPossible
+	};
+}
+
+/** Use assignment changes for the trend, anchored to the latest official StudentVUE mark. */
 export function getEstimatedGradeTrend(
 	assignments: readonly Assignment[],
 	gradeCategories: readonly Category[] | undefined,
@@ -26,9 +49,10 @@ export function getEstimatedGradeTrend(
 	if (officialCurrentPercentage === undefined || !Number.isFinite(officialCurrentPercentage))
 		return [];
 
+	const chartAssignments = assignments.map(pointsForChart);
 	const calculable = gradeCategories
-		? getCalculableAssignmentsWithCategories([...assignments])
-		: getCalculableAssignments([...assignments]);
+		? getCalculableAssignmentsWithCategories(chartAssignments)
+		: getCalculableAssignments(chartAssignments);
 	const byDate = new Map<number, Assignment[]>();
 	for (const assignment of calculable) {
 		const date = assignment.date.getTime();
@@ -56,7 +80,11 @@ export function getEstimatedGradeTrend(
 		.filter(({ percentage }) => Number.isFinite(percentage));
 
 	const latest = points.at(-1);
-	return latest && gradesMatch(latest.percentage, officialCurrentPercentage) ? points : [];
+	if (!latest) return [];
+	const adjustment = officialCurrentPercentage - latest.percentage;
+	return points
+		.map((point) => ({ ...point, percentage: point.percentage + adjustment }))
+		.filter(({ percentage }) => Number.isFinite(percentage) && percentage >= 0);
 }
 
 /**
