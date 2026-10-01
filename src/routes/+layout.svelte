@@ -9,9 +9,15 @@
 	import { browser } from '$app/environment';
 	import MaintenancePage from '$lib/components/MaintenancePage.svelte';
 	import { Toaster } from '$lib/components/ui/sonner';
+	import { onMount } from 'svelte';
 	import '../app.css';
 
 	let { children, data } = $props();
+
+	onMount(() => {
+		if (location.hostname === 'new.grademaxxing.app')
+			console.info('hi 👋 preprod grade fix is live · check 2');
+	});
 </script>
 
 <!-- svelte-sonner reads HTMLElement while rendering. Render it only after hydration so
