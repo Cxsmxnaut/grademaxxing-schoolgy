@@ -26,7 +26,7 @@
 			icon: ChartLineIcon,
 			title: 'Grade trends',
 			description:
-				'See the assignments and changes behind every percentage. One total is rarely the whole story.'
+				'Track StudentVUE grades over time. Earlier estimates appear when assignment math matches the official mark.'
 		},
 		{
 			icon: CalculatorIcon,
@@ -149,9 +149,10 @@
 					</div>
 					<div class="detail-copy">
 						<div class="detail-heading"><ChartLineIcon aria-hidden="true" /> Grade history</div>
-						<h3>See what actually moved it.</h3>
+						<h3>See how your grade changed.</h3>
 						<p>
-							Follow daily snapshots and assignment impact. Guessing from one total is optional.
+							Official StudentVUE marks anchor the chart. Earlier assignment estimates appear only
+							when they match the current mark.
 						</p>
 					</div>
 				</article>

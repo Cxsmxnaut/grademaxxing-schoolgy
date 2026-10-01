@@ -1,126 +1,49 @@
 <script lang="ts">
 	import * as Chart from '$lib/components/ui/chart';
-	import { getGradeChartDomain } from '$lib/grades/grade-chart';
-	import {
-		calculateCourseGradePercentageFromCategories,
-		calculateCourseGradePercentageFromTotals,
-		getCalculableAssignments,
-		getCalculableAssignmentsWithCategories,
-		getPointsByCategory,
-		type Assignment,
-		type Calculable,
-		type CalculableWithCategory,
-		type Category
-	} from '$lib/grades/assignments';
+	import type { Assignment, Category } from '$lib/grades/assignments';
+	import { getEstimatedGradeTrend, getGradeChartDomain } from '$lib/grades/grade-chart';
+	import type { OfficialGradeSnapshot } from '$lib/grades/official-grade-history';
 	import { Area, AreaChart, LinearGradient, Points } from 'layerchart';
-	import { SvelteMap } from 'svelte/reactivity';
 
 	interface Props {
+		snapshots: OfficialGradeSnapshot[];
 		assignments: Assignment[];
 		gradeCategories?: Category[];
-		animate: boolean;
-		officialGrade?: number;
 	}
-	let { assignments, gradeCategories, officialGrade }: Props = $props();
+	let { snapshots, assignments, gradeCategories }: Props = $props();
 
-	interface DataPointMetadata {
-		assignmentsOnDate: Assignment[];
-		label?: string;
-	}
+	const estimatedPoints = $derived(
+		snapshots.length === 1
+			? getEstimatedGradeTrend(assignments, gradeCategories, snapshots[0]?.percentage)
+			: []
+	);
 
-	type ChartPoint = {
-		date: Date;
-		grade: number;
-		metadata: DataPointMetadata;
-	};
-
-	const assignmentChartData: ChartPoint[] = $derived.by(() => {
-		if (gradeCategories) {
-			const assignmentsByDate: Map<number, CalculableWithCategory<Assignment>[]> = new SvelteMap();
-
-			const calculableAssignments = getCalculableAssignmentsWithCategories(assignments);
-
-			calculableAssignments.forEach((assignment) => {
-				const ms = assignment.date.getTime();
-				const existingAssignments = assignmentsByDate.get(ms) ?? [];
-				assignmentsByDate.set(ms, [...existingAssignments, assignment]);
-			});
-
-			const entries = [...assignmentsByDate.entries()].toSorted(([ms_a], [ms_b]) => ms_a - ms_b);
-
-			return entries
-				.map(([ms, assignments], i) => {
-					const assignmentsUntil = entries
-						.map((entry) => entry[1])
-						.slice(0, i + 1)
-						.flat();
-
-					const grade = calculateCourseGradePercentageFromCategories(
-						getPointsByCategory(assignmentsUntil),
-						gradeCategories
-					);
-
-					const metadata: DataPointMetadata = {
-						assignmentsOnDate: assignments
-					};
-
-					return { date: new Date(ms), grade, metadata };
-				})
-				.filter(({ date, grade }) => Number.isFinite(date.getTime()) && Number.isFinite(grade));
-		} else {
-			const assignmentsByDate: Map<number, Calculable<Assignment>[]> = new SvelteMap();
-
-			const calculableAssignments = getCalculableAssignments(assignments);
-
-			calculableAssignments.forEach((assignment) => {
-				const ms = assignment.date.getTime();
-				const existingAssignments = assignmentsByDate.get(ms) ?? [];
-				assignmentsByDate.set(ms, [...existingAssignments, assignment]);
-			});
-
-			const entries = [...assignmentsByDate.entries()].toSorted(([ms_a], [ms_b]) => ms_a - ms_b);
-
-			return entries
-				.map(([ms, assignments], i) => {
-					const assignmentsUntil = entries
-						.map((entry) => entry[1])
-						.slice(0, i + 1)
-						.flat();
-
-					const grade = calculateCourseGradePercentageFromTotals(assignmentsUntil);
-
-					const metadata: DataPointMetadata = {
-						assignmentsOnDate: assignments
-					};
-
-					return { date: new Date(ms), grade, metadata };
-				})
-				.filter(({ date, grade }) => Number.isFinite(date.getTime()) && Number.isFinite(grade));
-		}
+	const chartData = $derived.by(() => {
+		const firstOfficialDate = snapshots[0]?.observedAt ?? 0;
+		return [
+			...estimatedPoints
+				.filter(({ observedAt }) => observedAt < firstOfficialDate)
+				.map(({ observedAt, percentage, assignmentNames }) => ({
+					date: new Date(observedAt),
+					grade: percentage,
+					source: 'estimate' as const,
+					assignmentNames
+				})),
+			...snapshots.map(({ observedAt, percentage }) => ({
+				date: new Date(observedAt),
+				grade: percentage,
+				source: 'official' as const,
+				assignmentNames: [] as string[]
+			}))
+		].filter(({ date, grade }) => Number.isFinite(date.getTime()) && Number.isFinite(grade));
 	});
-
-	const chartData: ChartPoint[] = $derived.by(() => {
-		const points = [...assignmentChartData];
-		if (officialGrade === undefined || !Number.isFinite(officialGrade)) return points;
-		const last = points.at(-1);
-		if (last && Math.abs(last.grade - officialGrade) < 0.001) return points;
-		const date = new Date(Math.max(Date.now(), (last?.date.getTime() ?? 0) + 1));
-		points.push({
-			date,
-			grade: officialGrade,
-			metadata: { assignmentsOnDate: [], label: 'Official StudentVUE grade' }
-		});
-		return points;
-	});
-
+	const usesEstimatedHistory = $derived(chartData.some(({ source }) => source === 'estimate'));
 	const yDomain = $derived(getGradeChartDomain(chartData.map(({ grade }) => grade)));
-
 	const dayFormatter = new Intl.DateTimeFormat('en-US', {
 		weekday: 'long',
 		month: 'long',
 		day: 'numeric'
 	});
-
 	const percentFormatter = new Intl.NumberFormat('en-US', {
 		style: 'percent',
 		maximumFractionDigits: 3
@@ -133,19 +56,20 @@
 		class="m-4 aspect-auto h-[11.25rem] sm:m-5"
 		data-testid="grade-trend-chart"
 	>
-		<!-- https://techniq-docs-v2.layerchart.pages.dev/docs -->
 		<AreaChart data={chartData} x="date" y="grade" {yDomain}>
 			{#snippet tooltip()}
 				<Chart.Tooltip labelFormatter={dayFormatter.format} hideIndicator={true}>
 					{#snippet formatter({ value, item })}
 						<div>
 							<p>{percentFormatter.format(Number(value) / 100)}</p>
-							{#if (item.payload.metadata as DataPointMetadata).label}
-								<p>{(item.payload.metadata as DataPointMetadata).label}</p>
+							{#if item.payload.source === 'official'}
+								<p>Official StudentVUE grade observed on this date</p>
+							{:else}
+								<p>Estimated from StudentVUE assignments</p>
+								{#each item.payload.assignmentNames as name, index (`${name}-${index}`)}
+									<p>{name}</p>
+								{/each}
 							{/if}
-							{#each (item.payload.metadata as DataPointMetadata).assignmentsOnDate as assignment (assignment.id)}
-								<p>{assignment.name}</p>
-							{/each}
 						</div>
 					{/snippet}
 				</Chart.Tooltip>
@@ -161,11 +85,15 @@
 						<Area line={{ class: 'stroke-chart stroke-2' }} fill={gradient} />
 					{/snippet}
 				</LinearGradient>
-
 				<Points r={4} class="fill-chart" />
 			{/snippet}
 		</AreaChart>
 	</Chart.Container>
+	{#if usesEstimatedHistory}
+		<p class="text-muted-foreground -mt-2 mb-3 px-5 text-xs">
+			Earlier points are estimates from StudentVUE assignments. The latest point is official.
+		</p>
+	{/if}
 {:else if chartData.length === 1}
 	<div
 		class="bg-secondary/35 m-4 flex h-[11.25rem] flex-col items-center justify-center gap-2 rounded-xl text-center sm:m-5"
@@ -176,7 +104,7 @@
 			{percentFormatter.format(chartData[0]!.grade / 100)}
 		</p>
 		<p class="text-muted-foreground max-w-sm text-sm">
-			Only one graded date is available. Your trend graph will appear after another grade is posted.
+			This is the official StudentVUE grade. Its history will grow when a changed grade is synced.
 		</p>
 	</div>
 {:else}
@@ -185,6 +113,8 @@
 		role="status"
 		data-testid="grade-trend-empty"
 	>
-		<p class="text-muted-foreground text-sm">No graded assignments are available to chart yet.</p>
+		<p class="text-muted-foreground text-sm">
+			StudentVUE has not reported a grade for this course yet.
+		</p>
 	</div>
 {/if}

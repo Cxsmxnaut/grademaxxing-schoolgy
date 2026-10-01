@@ -104,6 +104,7 @@
 			seenAssignmentIDs.clear();
 			for (const key of [
 				LocalStorageKey.gradebook,
+				LocalStorageKey.officialGradeHistory,
 				LocalStorageKey.seenAssignmentIDs,
 				LocalStorageKey.attendance,
 				LocalStorageKey.schedule,

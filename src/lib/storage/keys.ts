@@ -4,6 +4,7 @@ export enum LocalStorageKey {
 	gradebookOwner = 'gradebookOwner',
 	seenAssignmentIDs = 'seenAssignmentIDs',
 	gradeScaleObservations = 'gradeScaleObservations',
+	officialGradeHistory = 'officialGradeHistory1',
 	attendance = 'attendance5',
 	schedule = 'schedule1',
 	documents = 'documents',

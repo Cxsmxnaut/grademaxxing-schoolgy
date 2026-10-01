@@ -1,4 +1,63 @@
+import {
+	calculateCourseGradePercentageFromCategories,
+	calculateCourseGradePercentageFromTotals,
+	getCalculableAssignments,
+	getCalculableAssignmentsWithCategories,
+	getPointsByCategory,
+	gradesMatch,
+	type Assignment,
+	type Category
+} from './assignments';
+
 const DEFAULT_GRADE_CHART_DOMAIN: readonly [number, number] = [0, 100];
+
+export type EstimatedGradePoint = {
+	observedAt: number;
+	percentage: number;
+	assignmentNames: string[];
+};
+
+/** Reconstruct earlier grades only when the same math reproduces the current official mark. */
+export function getEstimatedGradeTrend(
+	assignments: readonly Assignment[],
+	gradeCategories: readonly Category[] | undefined,
+	officialCurrentPercentage: number | undefined
+): EstimatedGradePoint[] {
+	if (officialCurrentPercentage === undefined || !Number.isFinite(officialCurrentPercentage))
+		return [];
+
+	const calculable = gradeCategories
+		? getCalculableAssignmentsWithCategories([...assignments])
+		: getCalculableAssignments([...assignments]);
+	const byDate = new Map<number, Assignment[]>();
+	for (const assignment of calculable) {
+		const date = assignment.date.getTime();
+		if (!Number.isFinite(date) || date <= 0) continue;
+		const onDate = byDate.get(date) ?? [];
+		onDate.push(assignment);
+		byDate.set(date, onDate);
+	}
+	const dates = [...byDate.keys()].sort((left, right) => left - right);
+	const points = dates
+		.map((observedAt, index) => {
+			const included = dates.slice(0, index + 1).flatMap((date) => byDate.get(date) ?? []);
+			const percentage = gradeCategories
+				? calculateCourseGradePercentageFromCategories(
+						getPointsByCategory(getCalculableAssignmentsWithCategories(included)),
+						[...gradeCategories]
+					)
+				: calculateCourseGradePercentageFromTotals(getCalculableAssignments(included));
+			return {
+				observedAt,
+				percentage,
+				assignmentNames: (byDate.get(observedAt) ?? []).map(({ name }) => name)
+			};
+		})
+		.filter(({ percentage }) => Number.isFinite(percentage));
+
+	const latest = points.at(-1);
+	return latest && gradesMatch(latest.percentage, officialCurrentPercentage) ? points : [];
+}
 
 /**
  * Returns a focused vertical domain for the course grade trend chart.

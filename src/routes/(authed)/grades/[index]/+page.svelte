@@ -32,6 +32,10 @@
 		getCourseGradeScaleObservations
 	} from '$lib/grades/grade-scale';
 	import { getActiveGradebook } from '$lib/grades/gradebook';
+	import {
+		getOfficialGradeHistory,
+		withCurrentOfficialGrade
+	} from '$lib/grades/official-grade-history';
 	import { gradebookState, switchReportPeriod } from '$lib/grades/catalog.svelte';
 	import { saveSeenAssignmentsToLocalStorage } from '$lib/grades/seenAssignments';
 	import { seenAssignmentIDs } from '$lib/grades/seenAssignments.svelte';
@@ -67,8 +71,24 @@
 		void switchReportPeriod({ forceRefresh: true, silent: true }).catch(() => undefined);
 	});
 	const synergyGradePercentage = $derived.by(() => {
-		const percentage = Number.parseFloat(mark?._CalculatedScoreRaw ?? '');
+		const raw = mark?._CalculatedScoreRaw?.trim();
+		if (!raw) return undefined;
+		const percentage = Number(raw);
 		return Number.isFinite(percentage) ? percentage : undefined;
+	});
+	const officialGradeSnapshots = $derived.by(() => {
+		gradebookState.version;
+		const catalog = gradebookState.gradebookCatalog;
+		if (!catalog || !synergyCourse) return [];
+		const reportPeriodIndex = catalog.overrideIndex ?? catalog.defaultIndex;
+		const observedAt = catalog.recordCache[reportPeriodIndex]?.lastRefresh;
+		const history = getOfficialGradeHistory(synergyCourse._CourseID, reportPeriodIndex);
+		return withCurrentOfficialGrade(
+			history,
+			synergyGradePercentage !== undefined && observedAt !== undefined
+				? { percentage: synergyGradePercentage, observedAt }
+				: undefined
+		);
 	});
 
 	const categories: Category[] | undefined = $derived(
@@ -351,22 +371,15 @@
 		</section>
 
 		<section
-			aria-label="Grade trend"
+			aria-label="Course grade history"
 			class="border-border/80 bg-card overflow-hidden rounded-lg border shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)]"
 		>
-			{@render chart()}
-		</section>
-
-		{#snippet chart()}
 			<GradeChart
-				assignments={hypotheticalMode ? reactiveAssignments : realAssignments}
+				snapshots={officialGradeSnapshots}
+				assignments={realAssignments}
 				{gradeCategories}
-				animate={!hypotheticalMode}
-				officialGrade={hypotheticalMode || !rawGradeCalcMatches
-					? undefined
-					: synergyGradePercentage}
 			/>
-		{/snippet}
+		</section>
 
 		<div class="my-[0.875rem] flex flex-wrap items-center gap-x-5 gap-y-3">
 			<div class="flex items-center gap-2">

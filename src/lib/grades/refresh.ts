@@ -1,6 +1,7 @@
 import type { ReportPeriod } from '$lib/contracts/studentvue/gradebook';
 import { parseGradebookXML } from '$lib/synergy';
 import type { GradebookCatalog, GradebookRecord } from './catalog';
+import { recordOfficialGradebookSnapshot } from './official-grade-history';
 
 export function getReportPeriodIndex(reportPeriod: ReportPeriod, fallbackIndex: number) {
 	const index = Number.parseInt(reportPeriod._Index);
@@ -19,6 +20,7 @@ export function cacheGradebookRecord(
 	}
 
 	gradebookCatalog.recordCache[receivedIndex] = gradebookRecord;
+	recordOfficialGradebookSnapshot(gradebook, gradebookRecord.lastRefresh);
 	return { gradebook, receivedIndex };
 }
 
