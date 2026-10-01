@@ -1,9 +1,4 @@
-import {
-	getCalculableAssignments,
-	getHiddenAssignmentsFromCategories,
-	getPointsByCategory,
-	parseSynergyAssignment
-} from '$lib/grades/assignments';
+import { parseSynergyAssignment } from '$lib/grades/assignments';
 import { gradebookXml } from '$lib/server/gradebook-adapter';
 import {
 	attendanceCourseRecords,
@@ -15,7 +10,11 @@ import {
 	Pxp2InputError,
 	Pxp2SessionExpiredError
 } from '$lib/server/pxp2';
-import { courseAssignment, reconcileAssignmentPoints } from '$lib/server/pxp2/parsers';
+import {
+	courseAssignment,
+	missingGradedAssignmentIds,
+	reconcileAssignmentPoints
+} from '$lib/server/pxp2/parsers';
 import { parseGradebookXML } from '$lib/synergy';
 import { afterEach, expect, test, vi } from 'vitest';
 
@@ -129,6 +128,75 @@ test('subsequent gradebook reads use the compact class control context', async (
 	expect(
 		fetchMock.mock.calls.filter(([input]) => String(input).includes('LoadControl'))
 	).toHaveLength(1);
+});
+
+test('detailed gradebook cross-checks the class grid against StudentVUE bulk assignment IDs', async () => {
+	const focus = JSON.stringify({
+		LoadParams: { ControlName: 'Gradebook_ClassDetails' },
+		FocusArgs: { classID: 'course-1' }
+	}).replaceAll('"', '&quot;');
+	const page = `<title>StudentVUE</title>
+		<script>PXP.GBCurrentFocus = {"FocusArgs":{"gradePeriodGU":"period-1","AGU":"student"}};</script>
+		<script>PXP.GBFocusData = {"GradingPeriods":[{"GU":"period-1","schoolID":"school","OrgYearGU":"year","defaultFocus":true,"Name":"Quarter 1","MarkPeriods":[{"GU":"mark-1","Name":"Quarter 1"}]}]};</script>
+		<div class="gb-class-header"><span class="course-title" data-focus="${focus}">1: Biology</span></div>
+		<div class="gb-class-row" data-guid="course-1"><span class="mark">A</span></div>`;
+	const classDetail = `<div id="current-grade"><span class="mark">A</span><span class="score">96.5%</span></div>
+		<script>{"dataSource":[{"CategoryName":"Homework","Weight":"100%","Points":"19.3","PointsPossible":"20"}]}</script>
+		<div id="AssignmentsGrid"></div><script>{"dataSource":[{"gradeBookId":1,"Date":"9/20/26","GBAssignment":"Quiz","GBAssignmentType":"Homework","GBScore":"9.5 out of 10","GBPoints":"9.5/10"}]}</script>`;
+	const recoveredDetail = `<table class="info_tbl"><tr>
+		<td><span class="tbl_label">Assignment:</span><span class="tbl_value">Notebook</span></td>
+		<td><span class="tbl_label">Assignment Type:</span><span class="tbl_value">Homework</span></td>
+		<td><span class="tbl_label">Date:</span><span class="tbl_value">9/21/2026</span></td>
+		<td><span class="tbl_label">Score:</span><span class="tbl_value">9.8</span></td>
+		<td><span class="tbl_label">Points:</span><span class="tbl_value">9.8 / 10</span></td>
+		</tr></table>`;
+	const requestedControls: string[] = [];
+	const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+		const path = String(input);
+		if (path.includes('PXP2_Gradebook.aspx')) return new Response(page);
+		if (path.includes('GradebookFocusClassInfo'))
+			return new Response(
+				JSON.stringify({ d: { Data: { Classes: [{ ID: 'course-1', Name: 'Biology' }] } } })
+			);
+		if (path.includes('PXP2Communication.asmx/LoadControl')) {
+			const body = JSON.parse(String(init?.body)) as { request: { control: string } };
+			requestedControls.push(body.request.control);
+			return new Response(
+				JSON.stringify({
+					d: {
+						Data: {
+							html:
+								body.request.control === 'Gradebook_ClassDetails' ? classDetail : recoveredDetail
+						}
+					}
+				})
+			);
+		}
+		if (path.includes('genericdata.classdata-GetClassData'))
+			return new Response(
+				JSON.stringify({
+					assignments: [
+						{ gradeBookId: 1, score: 9.5 },
+						{ gradeBookId: 2, score: 9.8 }
+					]
+				})
+			);
+		throw new Error(`Unexpected portal request: ${path}`);
+	});
+	vi.stubGlobal('fetch', fetchMock);
+	const client = Pxp2Client.resume({
+		baseUrl: 'https://ca-example-psv.edupoint.com/',
+		cookies: { ASP_NET_SessionId: 'test-session' }
+	});
+
+	const gradebook = await client.gradebook();
+
+	expect(requestedControls).toEqual(['Gradebook_ClassDetails', 'Gradebook_AssignmentDetails']);
+	expect(gradebook.courses[0]?.scoreRaw).toBe('96.5');
+	expect(gradebook.courses[0]?.assignments).toMatchObject([
+		{ AssignmentID: '2', Measure: 'Notebook', Points: '9.8 / 10' },
+		{ AssignmentID: '1', Measure: 'Quiz', Points: '9.5/10' }
+	]);
 });
 
 test('modern attendance HTML preserves SOAP-equivalent per-course events', () => {
@@ -283,24 +351,25 @@ test('a corrected upstream score replaces a stale one-point maximum throughout t
 	]);
 	const course = parseGradebookXML(xml).Courses.Course[0]!;
 	const assignment = parseSynergyAssignment(course.Marks!.Mark[0]!.Assignments!.Assignment[0]!);
-	const category = course.Marks!.Mark[0]!.GradeCalculationSummary!.AssignmentGradeCalc[0]!;
-	const hidden = getHiddenAssignmentsFromCategories(
-		[
-			{
-				name: category._Type,
-				weightPercentage: Number(category._Weight),
-				pointsEarned: Number(category._Points),
-				pointsPossible: Number(category._PointsPossible),
-				weightedPercentage: Number(category._WeightedPct),
-				gradeLetter: category._CalculatedMark
-			}
-		],
-		getPointsByCategory(getCalculableAssignments([assignment]))
-	);
 
 	expect(assignment).toMatchObject({ pointsEarned: 9.5, pointsPossible: 10 });
-	expect(hidden).toEqual([]);
 	expect(course.Marks!.Mark[0]!._CalculatedScoreRaw).toBe('95');
+});
+
+test('bulk class data identifies graded rows absent from a rendered assignment grid', () => {
+	expect(
+		missingGradedAssignmentIds(
+			{
+				assignments: [
+					{ gradeBookId: 1, score: 9.5 },
+					{ gradeBookId: 2, score: 0 },
+					{ gradeBookId: 2, score: 0 },
+					{ gradeBookId: 3, score: null }
+				]
+			},
+			[{ AssignmentID: '1' }]
+		)
+	).toEqual(['2']);
 });
 
 test('course-content fallback checks conflicting upstream values against official totals', () => {

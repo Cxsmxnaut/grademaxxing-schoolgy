@@ -16,7 +16,7 @@
 
 	onMount(() => {
 		if (location.hostname === 'new.grademaxxing.app')
-			console.info('hi 👋 preprod grade fix is live · check 2');
+			console.info('hi 👋 preprod StudentVUE grade sync is live · check 3');
 	});
 </script>
 

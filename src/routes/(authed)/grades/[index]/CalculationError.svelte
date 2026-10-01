@@ -7,14 +7,8 @@
 		hypotheticalMode?: boolean;
 		officialPercentage?: number;
 		estimatedPercentage?: number;
-		hiddenAssignmentCount?: number;
 	}
-	let {
-		hypotheticalMode = false,
-		officialPercentage,
-		estimatedPercentage,
-		hiddenAssignmentCount = 0
-	}: Props = $props();
+	let { hypotheticalMode = false, officialPercentage, estimatedPercentage }: Props = $props();
 
 	const formatPercentage = (percentage: number) =>
 		new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 }).format(percentage) + '%';
@@ -36,13 +30,9 @@
 			{#if officialPercentage !== undefined && estimatedPercentage !== undefined}
 				StudentVUE reports <strong>{formatPercentage(officialPercentage)}</strong>. Work visible to
 				{brand} estimates
-				<strong>{formatPercentage(estimatedPercentage)}</strong>{hiddenAssignmentCount > 0
-					? '; '
-					: '.'}
-			{/if}
-			{#if hiddenAssignmentCount > 0}
-				{hiddenAssignmentCount} hidden point
-				{hiddenAssignmentCount === 1 ? 'record was' : 'records were'} reconstructed from category totals.
+				<strong>{formatPercentage(estimatedPercentage)}</strong>. StudentVUE's official grade is
+				used for your course mark; the estimate may omit grading rules or work StudentVUE does not
+				list.
 			{/if}
 		</p>
 	</Alert.Description>

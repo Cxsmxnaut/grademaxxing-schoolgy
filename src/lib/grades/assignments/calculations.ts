@@ -4,7 +4,6 @@ import type {
 	CalculableWithCategory,
 	Category,
 	Flowed,
-	HiddenAssignment,
 	PointsByCategory
 } from './types';
 
@@ -179,68 +178,6 @@ export function calculateAssignmentGPCs<T extends Assignment>(
 	}
 
 	return calculateAssignmentGPCsFromCategories(assignments, gradeCategories);
-}
-
-export function getHiddenAssignmentsFromCategories(
-	categories: Category[],
-	pointsByCategory: PointsByCategory
-) {
-	return categories
-		.filter((category) => {
-			const categoryPoints = pointsByCategory[category.name] ?? {
-				pointsEarned: 0,
-				pointsPossible: 0
-			};
-			return (
-				Math.abs(category.pointsEarned - categoryPoints.pointsEarned) > 0.0001 ||
-				Math.abs(category.pointsPossible - categoryPoints.pointsPossible) > 0.0001
-			);
-		})
-		.map((category) => {
-			const categoryPoints = pointsByCategory[category.name] ?? {
-				pointsEarned: 0,
-				pointsPossible: 0
-			};
-
-			const { pointsEarned, pointsPossible } = categoryPoints;
-
-			const hiddenPointsEarned = category.pointsEarned - pointsEarned;
-			const hiddenPointsPossible = category.pointsPossible - pointsPossible;
-
-			// Calculate grade prior to the assignment
-			const priorGrade = calculateCourseGradePercentageFromCategories(pointsByCategory, categories);
-
-			pointsByCategory[category.name] = {
-				pointsEarned: pointsEarned + hiddenPointsEarned,
-				pointsPossible: pointsPossible + hiddenPointsPossible
-			};
-
-			// Calculate grade after the assignment
-			const afterGrade = calculateCourseGradePercentageFromCategories(pointsByCategory, categories);
-
-			// Calculate grade percentage change and initalize hypothetical gradebook
-			const gradePercentageChange = afterGrade - priorGrade;
-
-			if (Math.abs(gradePercentageChange) < 0.0001) return null;
-
-			const hiddenAssignment: Flowed<HiddenAssignment> = {
-				name: `Point Discrepancy in ${category.name}`,
-				id: randomAssignmentID(),
-				pointsEarned: hiddenPointsEarned,
-				pointsPossible: hiddenPointsPossible,
-				unscaledPoints: undefined,
-				extraCredit: false,
-				gradePercentageChange,
-				notForGrade: false,
-				hidden: true,
-				category: category.name,
-				date: new Date(),
-				newHypothetical: false
-			};
-
-			return hiddenAssignment;
-		})
-		.filter((x) => x !== null);
 }
 
 export const randomAssignmentID = () => Math.random().toString(36).substring(2, 15);

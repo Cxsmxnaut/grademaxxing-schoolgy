@@ -17,11 +17,9 @@
 		type Flowed,
 		getCalculableAssignments,
 		getCalculableAssignmentsWithCategories,
-		getHiddenAssignmentsFromCategories,
 		getPointsByCategory,
 		getPointsByCategoryMap,
 		gradesMatch,
-		type HiddenAssignment,
 		type NewHypotheticalAssignment,
 		parseSynergyAssignment,
 		randomAssignmentID,
@@ -87,19 +85,7 @@
 		calculateAssignmentGPCs(synergyAssignments.map(parseSynergyAssignment), gradeCategories)
 	);
 
-	const hiddenAssignments = $derived(
-		categories
-			? getHiddenAssignmentsFromCategories(
-					categories,
-					getPointsByCategory(getCalculableAssignments(realAssignments))
-				)
-			: []
-	);
-
-	const assignments: (RealAssignment | Flowed<RealAssignment | HiddenAssignment>)[] = $derived([
-		...hiddenAssignments,
-		...realAssignments
-	]);
+	const assignments: (RealAssignment | Flowed<RealAssignment>)[] = $derived(realAssignments);
 
 	let hypotheticalMode = $state(false);
 	const gradeScaleObservations = $derived(
@@ -375,7 +361,6 @@
 					{hypotheticalMode}
 					officialPercentage={synergyGradePercentage}
 					estimatedPercentage={hypotheticalMode ? hypotheticalGrade : calculatedGrade}
-					hiddenAssignmentCount={hiddenAssignments.length}
 				/>
 			</div>
 		{/if}
@@ -393,9 +378,16 @@
 				{gradeCategories}
 				animate={!hypotheticalMode}
 				error={!rawGradeCalcMatches}
-				officialGrade={hypotheticalMode ? undefined : synergyGradePercentage}
+				officialGrade={hypotheticalMode || !rawGradeCalcMatches
+					? undefined
+					: synergyGradePercentage}
 			/>
 		{/snippet}
+		{#if !rawGradeCalcMatches}
+			<p class="text-muted-foreground px-5 pb-3 text-xs">
+				Trend estimated from StudentVUE assignments; the official current grade is shown above.
+			</p>
+		{/if}
 
 		<div class="my-[0.875rem] flex flex-wrap items-center gap-x-5 gap-y-3">
 			<div class="flex items-center gap-2">

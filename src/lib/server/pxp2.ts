@@ -30,6 +30,7 @@ import {
 	isUuid,
 	jsonAssignment,
 	mdyDate,
+	missingGradedAssignmentIds,
 	normalizeCourseTitle,
 	normalizeGradebookContext,
 	numericText,
@@ -288,10 +289,40 @@ export class Pxp2Client {
 			string,
 			{ letter: string; percentage: string; categories: PortalGradeCategory[] }
 		>();
+		const recoverMissingAssignments = async (
+			classData: ClassData,
+			visibleAssignments: Array<Record<string, string>>,
+			focus: (typeof focuses)[number]
+		) =>
+			(
+				await Promise.all(
+					missingGradedAssignmentIds(classData, visibleAssignments).map(async (assignmentId) => {
+						try {
+							const detail = await this.serviceCall<{ html?: unknown }>('LoadControl', {
+								request: {
+									control: 'Gradebook_AssignmentDetails',
+									parameters: {
+										...focus.parameters,
+										viewName: null,
+										assignmentID: /^\d+$/.test(assignmentId) ? Number(assignmentId) : assignmentId
+									}
+								}
+							});
+							return parseGradebookAssignmentDetail(
+								typeof detail.html === 'string' ? detail.html : '',
+								assignmentId
+							);
+						} catch {
+							// Preserve the rest of the upstream class if one detail is unavailable.
+							return undefined;
+						}
+					})
+				)
+			).filter((assignment): assignment is Record<string, string> => assignment !== undefined);
 		// StudentVUE keeps the selected class in the server session, so these focus changes
-		// must remain serial. Gradebook_ClassDetails contains the complete category and
-		// assignment grids in one response. The newer course-content endpoint is faster to
-		// parse, but silently omits some rows that still contribute to the official grade.
+		// must remain serial. Gradebook_ClassDetails supplies the rendered category and
+		// assignment grids; GetClassData supplies the bulk ID list so omitted rows can be
+		// retrieved. The newer course-content endpoint also omits some graded rows.
 		for (const focus of safeSummary ? [] : focuses) {
 			const loaded = await this.serviceCall<{ html?: unknown }>('LoadControl', {
 				request: {
@@ -302,11 +333,42 @@ export class Pxp2Client {
 			const detailHtml = typeof loaded.html === 'string' ? loaded.html : '';
 			const detail = parseGradebookClassDetail(detailHtml);
 			if (detail.hasAssignmentGrid) {
-				assignmentsByCourse.set(focus.courseId, detail.assignments);
+				// The rendered grid can omit graded rows. The bulk class data identifies
+				// them without guessing from the difference in category totals.
+				const classData = await this.clientSideCall<ClassData>(
+					'genericdata.classdata',
+					'GetClassData',
+					{}
+				).catch(() => undefined);
+				const recovered = classData
+					? await recoverMissingAssignments(classData, detail.assignments, focus)
+					: [];
+				const categories =
+					detail.categories.length > 0 || !classData
+						? detail.categories
+						: gradeCategories(classData);
+				const authoritativeGrade = classData?.students?.[0];
+				const letter =
+					detail.letter ||
+					gradeLetter(text(authoritativeGrade?.calculatedMark)) ||
+					gradeLetter(text(authoritativeGrade?.manualMark));
+				const percentage =
+					detail.percentage || (letter ? numericText(authoritativeGrade?.percentage) : '');
+				assignmentsByCourse.set(
+					focus.courseId,
+					reconcileAssignmentPoints(
+						[...detail.assignments, ...recovered].toSorted(
+							(a, b) =>
+								(mdyDate(b.Date ?? '')?.getTime() ?? 0) - (mdyDate(a.Date ?? '')?.getTime() ?? 0)
+						),
+						categories,
+						percentage
+					)
+				);
 				gradesByCourse.set(focus.courseId, {
-					letter: detail.letter,
-					percentage: detail.percentage,
-					categories: detail.categories
+					letter,
+					percentage,
+					categories
 				});
 				continue;
 			}
@@ -340,40 +402,11 @@ export class Pxp2Client {
 			const visibleAssignments = items
 				.map((item) => courseAssignment(item, categoriesByAssignment))
 				.filter((assignment) => assignment.Date);
-			const visibleIds = new Set(visibleAssignments.map((assignment) => assignment.AssignmentID));
-			const missingGradedIds = (classData.assignments ?? []).flatMap((assignment) => {
-				const assignmentId = identifier(assignment.gradeBookId);
-				const hasScore =
-					assignment.score !== undefined &&
-					assignment.score !== null &&
-					identifier(assignment.score) !== '';
-				return assignmentId && hasScore && !visibleIds.has(assignmentId) ? [assignmentId] : [];
-			});
-			const recoveredAssignments = (
-				await Promise.all(
-					missingGradedIds.map(async (assignmentId) => {
-						try {
-							const detail = await this.serviceCall<{ html?: unknown }>('LoadControl', {
-								request: {
-									control: 'Gradebook_AssignmentDetails',
-									parameters: {
-										...focus.parameters,
-										viewName: null,
-										assignmentID: Number(assignmentId)
-									}
-								}
-							});
-							return parseGradebookAssignmentDetail(
-								typeof detail.html === 'string' ? detail.html : '',
-								assignmentId
-							);
-						} catch {
-							// One malformed or unavailable detail must not hide the rest of the class.
-							return undefined;
-						}
-					})
-				)
-			).filter((assignment): assignment is Record<string, string> => assignment !== undefined);
+			const recoveredAssignments = await recoverMissingAssignments(
+				classData,
+				visibleAssignments,
+				focus
+			);
 			const categories = classData.enabled === false ? [] : gradeCategories(classData);
 			const officialPercentage =
 				numericText(gradeCard.classPct) || numericText(classData.students?.[0]?.percentage);

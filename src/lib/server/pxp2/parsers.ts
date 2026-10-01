@@ -138,6 +138,23 @@ export function assignmentCategories(classData: ClassData) {
 		})
 	);
 }
+
+/** The class data endpoint lists graded assignment IDs even when a rendered grid omits rows. */
+export function missingGradedAssignmentIds(
+	classData: ClassData,
+	visibleAssignments: Array<Record<string, string>>
+) {
+	const visibleIds = new Set(visibleAssignments.map((assignment) => assignment.AssignmentID));
+	return [
+		...new Set(
+			(classData.assignments ?? []).flatMap((assignment) => {
+				const id = identifier(assignment.gradeBookId);
+				const score = identifier(assignment.score);
+				return id && score && !visibleIds.has(id) ? [id] : [];
+			})
+		)
+	];
+}
 export function escapeRegExp(value: string) {
 	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

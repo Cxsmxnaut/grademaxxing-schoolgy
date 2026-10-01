@@ -3,7 +3,6 @@ import {
 	calculateCourseGradePercentageFromCategories,
 	calculateCourseGradePercentageFromTotals,
 	getCalculableAssignments,
-	getHiddenAssignmentsFromCategories,
 	getPointsByCategory,
 	gradesMatch,
 	parseSynergyAssignment
@@ -34,10 +33,7 @@ const results = gradebook.Courses.Course.map((course, index) => {
 		(mark?.Assignments?.Assignment ?? []).map(parseSynergyAssignment),
 		categories
 	);
-	const visiblePoints = getPointsByCategory(getCalculableAssignments(real));
-	const hidden = categories ? getHiddenAssignmentsFromCategories(categories, visiblePoints) : [];
-	const all = [...hidden, ...real];
-	const calculable = getCalculableAssignments(all);
+	const calculable = getCalculableAssignments(real);
 	const calculated = categories
 		? calculateCourseGradePercentageFromCategories(getPointsByCategory(calculable), categories)
 		: calculateCourseGradePercentageFromTotals(calculable);
@@ -48,7 +44,6 @@ const results = gradebook.Courses.Course.map((course, index) => {
 		calculated,
 		matches: Number.isFinite(official) ? gradesMatch(calculated, official) : true,
 		visibleAssignments: real.length,
-		hiddenReconciliations: hidden.length,
 		categories:
 			categories?.map(({ name: _name, ...category }, categoryIndex) => ({
 				categoryIndex,

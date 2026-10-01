@@ -30,17 +30,6 @@ export interface RealAssignment extends Assignment {
 	newHypothetical: false;
 }
 
-export interface HiddenAssignment extends Assignment {
-	pointsEarned: number;
-	pointsPossible: number;
-	unscaledPoints: undefined;
-	extraCredit: false;
-	notForGrade: false;
-	hidden: true;
-	category: string;
-	newHypothetical: false;
-}
-
 export interface ReactiveAssignment extends Assignment {
 	reactive: true;
 }

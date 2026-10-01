@@ -4,7 +4,6 @@
 	import type {
 		Category,
 		Flowed,
-		HiddenAssignment,
 		ReactiveAssignment,
 		RealAssignment
 	} from '$lib/grades/assignments';
@@ -12,7 +11,7 @@
 
 	interface Props {
 		hypotheticalMode: boolean;
-		assignments: (RealAssignment | Flowed<RealAssignment | HiddenAssignment>)[];
+		assignments: (RealAssignment | Flowed<RealAssignment>)[];
 		reactiveAssignments: ReactiveAssignment[];
 		gradeCategories: Category[] | undefined;
 		assignmentCategoryNames: Set<string>;
@@ -157,7 +156,7 @@
 		<Tabs.Content value="all">
 			<ol class="flex flex-col items-center gap-[0.625rem]">
 				{#if hypotheticalMode}
-					{#each reactiveAssignments as { id, gradePercentageChange, hidden, newHypothetical, date, comments, category }, i (id)}
+					{#each reactiveAssignments as { id, gradePercentageChange, newHypothetical, date, comments, category }, i (id)}
 						{#if reactiveAssignments[i]}
 							<li class="w-full">
 								{#if gradeCategories && categoryDropdownOptions}
@@ -169,7 +168,6 @@
 										bind:extraCredit={reactiveAssignments[i].extraCredit}
 										gradePercentageChange={rawGradeCalcMatches ? gradePercentageChange : undefined}
 										bind:notForGrade={reactiveAssignments[i].notForGrade}
-										{hidden}
 										showHypotheticalLabel={newHypothetical}
 										bind:categoryDropdownSelected={reactiveAssignments[i].category}
 										categoryDropdown={{
@@ -191,7 +189,6 @@
 										bind:extraCredit={reactiveAssignments[i].extraCredit}
 										gradePercentageChange={rawGradeCalcMatches ? gradePercentageChange : undefined}
 										bind:notForGrade={reactiveAssignments[i].notForGrade}
-										{hidden}
 										showHypotheticalLabel={newHypothetical}
 										categoryBadge={category !== undefined
 											? {
@@ -221,7 +218,7 @@
 			<Tabs.Content value={categoryName}>
 				<ol class="flex flex-col items-center gap-[0.625rem]">
 					{#if hypotheticalMode}
-						{#each reactiveAssignments as { category, id, gradePercentageChange, hidden, newHypothetical, date, comments }, i (id)}
+						{#each reactiveAssignments as { category, id, gradePercentageChange, newHypothetical, date, comments }, i (id)}
 							{#if category === categoryName && reactiveAssignments[i]}
 								<li class="w-full">
 									{#if gradeCategories && categoryDropdownOptions && reactiveAssignments[i].category !== undefined}
@@ -235,7 +232,6 @@
 												? gradePercentageChange
 												: undefined}
 											bind:notForGrade={reactiveAssignments[i].notForGrade}
-											{hidden}
 											showHypotheticalLabel={newHypothetical}
 											bind:categoryDropdownSelected={reactiveAssignments[i].category}
 											categoryDropdown={{
@@ -261,7 +257,6 @@
 												? gradePercentageChange
 												: undefined}
 											bind:notForGrade={reactiveAssignments[i].notForGrade}
-											{hidden}
 											showHypotheticalLabel={newHypothetical}
 											date={newHypothetical ? undefined : date}
 											{comments}
@@ -298,13 +293,12 @@
 		extraCredit,
 		gradePercentageChange,
 		notForGrade,
-		hidden,
 		category,
 		date,
 		newHypothetical,
 		description,
 		comments
-	}: RealAssignment | Flowed<RealAssignment | HiddenAssignment>,
+	}: RealAssignment | Flowed<RealAssignment>,
 	showCategory = true
 )}
 	<li class="w-full">
@@ -318,14 +312,13 @@
 			{extraCredit}
 			gradePercentageChange={rawGradeCalcMatches ? gradePercentageChange : undefined}
 			{notForGrade}
-			{hidden}
 			showHypotheticalLabel={newHypothetical}
 			categoryBadge={showCategory
 				? { name: category, color: assignmentCategoryColors.get(category) ?? 'default' }
 				: undefined}
 			{date}
 			{comments}
-			unseen={seenAssignmentIDs && !seenAssignmentIDs.has(id) && !hidden && !notForGrade}
+			unseen={seenAssignmentIDs && !seenAssignmentIDs.has(id) && !notForGrade}
 		/>
 	</li>
 {/snippet}

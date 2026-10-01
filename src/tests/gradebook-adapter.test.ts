@@ -1,4 +1,3 @@
-import { getHiddenAssignmentsFromCategories } from '$lib/grades/assignments';
 import { gradebookXml } from '$lib/server/gradebook-adapter';
 import { parseGradebookXML } from '$lib/synergy';
 import { expect, test } from 'vitest';
@@ -42,46 +41,4 @@ test('course letter and percentage survive the StudentVUE adapter', () => {
 			_CalculatedMark: 'F'
 		}
 	]);
-});
-
-test('authoritative category totals synthesize a discrepancy when every graded assignment is hidden', () => {
-	const hidden = getHiddenAssignmentsFromCategories(
-		[
-			{
-				name: 'Assessments',
-				weightPercentage: 40,
-				pointsEarned: 2,
-				pointsPossible: 6,
-				weightedPercentage: 13.3333333333,
-				gradeLetter: 'F'
-			}
-		],
-		{}
-	);
-
-	expect(hidden).toHaveLength(1);
-	expect(hidden[0]).toMatchObject({
-		name: 'Point Discrepancy in Assessments',
-		pointsEarned: 2,
-		pointsPossible: 6,
-		category: 'Assessments',
-		hidden: true
-	});
-});
-
-test('rounding noise in upstream category totals does not create a discrepancy assignment', () => {
-	const hidden = getHiddenAssignmentsFromCategories(
-		[
-			{
-				name: 'Homework',
-				weightPercentage: 100,
-				pointsEarned: 0.3,
-				pointsPossible: 10,
-				weightedPercentage: 3,
-				gradeLetter: 'F'
-			}
-		],
-		{ Homework: { pointsEarned: 0.1 + 0.2, pointsPossible: 10 } }
-	);
-	expect(hidden).toEqual([]);
 });
