@@ -5,6 +5,7 @@
 		getCalculableAssignmentsWithCategories,
 		type ReactiveAssignment
 	} from '$lib/grades/assignments';
+	import { formatPercentage } from '$lib/grades/percentage-format';
 
 	interface Props {
 		initialGradePercentage?: number;
@@ -118,7 +119,7 @@
 	<p class="text-muted-foreground mt-3 text-sm">
 		{#if requiredPoints !== undefined && requiredPercentage !== undefined}
 			You need <strong class="text-grade-strong font-mono text-base"
-				>{format(requiredPercentage)}%</strong
+				>{formatPercentage(requiredPercentage)}%</strong
 			>
 			— that's
 			<strong class="text-foreground font-mono"
@@ -127,7 +128,7 @@
 			on the final.
 		{:else if initialGradePercentage !== undefined}
 			Choose valid final points to calculate what you need from your current
-			{format(initialGradePercentage)}%.
+			{formatPercentage(initialGradePercentage)}%.
 		{:else}
 			There is not enough graded work to calculate a final target yet.
 		{/if}

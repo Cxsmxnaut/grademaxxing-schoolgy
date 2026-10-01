@@ -10,6 +10,7 @@
 	import * as Popover from '$lib/components/ui/popover';
 	import { Progress } from '$lib/components/ui/progress';
 	import { calculateGradePercentage } from '$lib/grades/assignments';
+	import { formatPercentage } from '$lib/grades/percentage-format';
 	import MessageCircleIcon from '@lucide/svelte/icons/message-circle';
 	import TextAlignStartIcon from '@lucide/svelte/icons/text-align-start';
 
@@ -75,7 +76,7 @@
 		Number.isFinite(percentage) ? Math.min(Math.max(percentage, 0), 100) : 0
 	);
 	const progressValueText = $derived(
-		Number.isFinite(percentage) ? `${Number(percentage.toFixed(1))}%` : 'Percentage unavailable'
+		Number.isFinite(percentage) ? `${formatPercentage(percentage)}%` : 'Percentage unavailable'
 	);
 
 	const progressIndicatorClass = $derived.by(() => {
@@ -257,11 +258,11 @@
 			{#if gradePercentageChange !== undefined}
 				{#if gradePercentageChangeRounded < 0}
 					<span class="text-grade-risk" title="Overall grade percentage change">
-						{gradePercentageChangeRounded}%
+						{formatPercentage(gradePercentageChangeRounded)}%
 					</span>
 				{:else if gradePercentageChangeRounded > 0}
 					<span class="text-grade-strong" title="Overall grade percentage change">
-						+{gradePercentageChangeRounded}%
+						+{formatPercentage(gradePercentageChangeRounded)}%
 					</span>
 				{:else if !notForGrade && pointsEarned !== undefined && !isNaN(pointsEarned)}
 					<span class="text-grade-neutral" title="Overall grade percentage change">+0%</span>
@@ -302,7 +303,7 @@
 				</span>
 				{#if percentage && Number.isFinite(percentage)}
 					<span class={percentageTextClass} title="Assignment grade percentage"
-						>{Math.round(percentage * 100) / 100}%</span
+						>{formatPercentage(percentage)}%</span
 					>
 				{/if}
 			{/if}

@@ -266,6 +266,30 @@ test('gradebook calculator, course details, and attendance views are interactive
 	await expect(page.getByText('No records this month')).toBeVisible();
 });
 
+test('grade percentages keep two decimal places when StudentVUE provides them', async ({
+	page
+}) => {
+	const xml = gradebookXml(0, 'Semester 1', '96.534', 'A');
+	await page.route('**/api/studentvue/gradebook*', (route) =>
+		route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ xml }) })
+	);
+	await page.setViewportSize({ width: 320, height: 844 });
+	await page.goto('/grades');
+	await expect(
+		page
+			.getByRole('link', { name: /Theme Preview/ })
+			.getByText('96.53%')
+			.filter({ visible: true })
+			.first()
+	).toBeVisible();
+	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+	await page.setViewportSize({ width: 1280, height: 800 });
+	await page.goto('/grades/preview');
+	await expect(page.getByText('96.53%').first()).toBeVisible();
+	await expect(page.getByTitle('Assignment grade percentage').first()).toHaveText('96.53%');
+	await expect(page.getByText('96.534%')).toHaveCount(0);
+});
+
 test('a corrected assignment maximum leaves the chart on the official course grade', async ({
 	page
 }) => {

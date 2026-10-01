@@ -2,6 +2,7 @@
 	import * as Item from '$lib/components/ui/item';
 	import * as Table from '$lib/components/ui/table';
 	import { calculateGradePercentage, type Category } from '$lib/grades/assignments';
+	import { formatPercentage } from '$lib/grades/percentage-format';
 
 	interface Props {
 		gradeCategories: Category[];
@@ -20,8 +21,6 @@
 				])
 		)
 	);
-
-	const roundPercentage = (percentage: number) => Math.round(percentage * 1000) / 1000;
 
 	const countableCategoryWeightProportions = $derived(
 		new Map(
@@ -58,11 +57,11 @@
 			{#each gradeCategories as { name, pointsEarned, pointsPossible, gradeLetter, weightPercentage } (name)}
 				<Table.Row>
 					<Table.Cell>{name}</Table.Cell>
-					<Table.Cell>{weightPercentage}%</Table.Cell>
+					<Table.Cell>{formatPercentage(weightPercentage)}%</Table.Cell>
 					{#if totalCountedWeightProportion !== 1}
 						<Table.Cell>
 							{#if countableCategoryWeightProportions.has(name)}
-								{roundPercentage(weightPercentage / totalCountedWeightProportion)}%
+								{formatPercentage(weightPercentage / totalCountedWeightProportion)}%
 							{/if}
 						</Table.Cell>
 					{/if}
@@ -81,9 +80,9 @@
 						{#if pointsEarned !== 0 || pointsPossible !== 0}
 							{#if !hypotheticalMode}
 								{gradeLetter}
-								({roundPercentage(calculateGradePercentage(pointsEarned, pointsPossible))}%)
+								({formatPercentage(calculateGradePercentage(pointsEarned, pointsPossible))}%)
 							{:else if categoryGradePercentages.has(name)}
-								{roundPercentage(categoryGradePercentages.get(name)!)}%
+								{formatPercentage(categoryGradePercentages.get(name)!)}%
 							{/if}
 						{/if}
 					</Table.Cell>

@@ -3,6 +3,7 @@
 	import type { Assignment, Category } from '$lib/grades/assignments';
 	import { getEstimatedGradeTrend, getGradeChartDomain } from '$lib/grades/grade-chart';
 	import type { OfficialGradeSnapshot } from '$lib/grades/official-grade-history';
+	import { formatPercentage } from '$lib/grades/percentage-format';
 	import { Area, AreaChart, LinearGradient, Points } from 'layerchart';
 
 	interface Props {
@@ -55,10 +56,6 @@
 		month: 'long',
 		day: 'numeric'
 	});
-	const percentFormatter = new Intl.NumberFormat('en-US', {
-		style: 'percent',
-		maximumFractionDigits: 3
-	});
 </script>
 
 {#if chartData.length >= 2}
@@ -72,7 +69,7 @@
 				<Chart.Tooltip labelFormatter={dayFormatter.format} hideIndicator={true}>
 					{#snippet formatter({ value, item })}
 						<div>
-							<p>{percentFormatter.format(Number(value) / 100)}</p>
+							<p>{formatPercentage(Number(value))}%</p>
 							{#if item.payload.source === 'official'}
 								<p>Official StudentVUE grade</p>
 							{:else}
@@ -106,7 +103,7 @@
 		data-testid="grade-trend-insufficient"
 	>
 		<p class="font-mono text-3xl font-semibold">
-			{percentFormatter.format(chartData[0]!.grade / 100)}
+			{formatPercentage(chartData[0]!.grade)}%
 		</p>
 		<p class="text-muted-foreground max-w-sm text-sm">
 			Only one graded date is available. Your trend graph will appear after another grade is posted.

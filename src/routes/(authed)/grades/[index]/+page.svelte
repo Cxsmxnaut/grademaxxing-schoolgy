@@ -32,6 +32,7 @@
 		getCourseGradeScaleObservations
 	} from '$lib/grades/grade-scale';
 	import { getActiveGradebook } from '$lib/grades/gradebook';
+	import { formatPercentage } from '$lib/grades/percentage-format';
 	import {
 		getOfficialGradeHistory,
 		withCurrentOfficialGrade
@@ -317,10 +318,7 @@
 							>{markLabel}</span
 						>{/if}
 					{#if grade !== undefined}<span class="font-mono text-[1.375rem] font-semibold"
-							>{(grade * 100).toLocaleString(undefined, {
-								minimumFractionDigits: 1,
-								maximumFractionDigits: 1
-							})}%</span
+							>{formatPercentage(grade * 100)}%</span
 						>{/if}
 				</div>
 				<p class="text-muted-foreground mt-1 font-mono text-[0.78125rem] leading-[1.5]">

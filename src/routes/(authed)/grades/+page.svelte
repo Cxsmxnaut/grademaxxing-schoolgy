@@ -20,6 +20,7 @@
 	import { seenAssignmentIDs } from '$lib/grades/seenAssignments.svelte';
 	import { calculateCourseGpas, formatGpa } from '$lib/grades/gpa';
 	import { recordCourseGradeScaleObservation } from '$lib/grades/grade-scale';
+	import { formatPercentage } from '$lib/grades/percentage-format';
 	import { parseGradebookXML } from '$lib/synergy';
 	import type { AssignmentEntity } from '$lib/contracts/studentvue/gradebook';
 	import CalculatorIcon from '@lucide/svelte/icons/calculator';
@@ -278,7 +279,7 @@
 												class="{percentageTone(
 													score
 												)} shrink-0 font-mono text-[0.78125rem] leading-[1.5] font-semibold"
-												>{score.toFixed(1)}%</span
+												>{formatPercentage(score)}%</span
 											>{/if}
 									</div>
 									<p class="text-tertiary-foreground truncate text-[0.6875rem] leading-[1.5]">

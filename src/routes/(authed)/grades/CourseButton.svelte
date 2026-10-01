@@ -2,6 +2,7 @@
 	import Clock3Icon from '@lucide/svelte/icons/clock-3';
 	import MapPinIcon from '@lucide/svelte/icons/map-pin';
 	import UserRoundIcon from '@lucide/svelte/icons/user-round';
+	import { formatPercentage } from '$lib/grades/percentage-format';
 
 	interface Props {
 		courseId: string;
@@ -32,7 +33,7 @@
 
 <a
 	href="/grades/{encodeURIComponent(courseId)}"
-	class="group border-border bg-card hover:border-primary focus-visible:ring-ring grid grid-cols-[44px_minmax(0,1fr)_45px] items-center gap-3 rounded-lg border px-[0.875rem] py-[0.8125rem] shadow-[0_1px_2px_rgb(0_0_0_/_40%),0_8px_24px_rgb(0_0_0_/_30%)] transition-[border-color,background-color] focus-visible:ring-2 focus-visible:outline-none sm:min-h-[82px] sm:grid-cols-[56px_minmax(0,1fr)_minmax(180px,209px)] sm:gap-4 sm:px-5 sm:py-4"
+	class="group border-border bg-card hover:border-primary focus-visible:ring-ring grid grid-cols-[44px_minmax(0,1fr)_70px] items-center gap-3 rounded-lg border px-[0.875rem] py-[0.8125rem] shadow-[0_1px_2px_rgb(0_0_0_/_40%),0_8px_24px_rgb(0_0_0_/_30%)] transition-[border-color,background-color] focus-visible:ring-2 focus-visible:outline-none sm:min-h-[82px] sm:grid-cols-[56px_minmax(0,1fr)_minmax(180px,209px)] sm:gap-4 sm:px-5 sm:py-4"
 >
 	<div
 		style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;"
@@ -91,7 +92,7 @@
 				class="{gradeTone(
 					grade.percentage
 				)} h-[1.1875rem] text-right font-mono text-[0.9375rem] leading-[normal] font-semibold"
-				>{grade.percentage.toLocaleString(undefined, { maximumFractionDigits: 1 })}%</span
+				>{formatPercentage(grade.percentage)}%</span
 			>
 			<div
 				class="bg-secondary h-1.5 min-w-0 flex-1 overflow-hidden rounded-full"
@@ -99,8 +100,8 @@
 				aria-label={`${name} grade`}
 				aria-valuemin="0"
 				aria-valuemax="100"
-				aria-valuenow={Number(Math.min(Math.max(grade.percentage, 0), 100).toFixed(1))}
-				aria-valuetext={`${grade.percentage.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`}
+				aria-valuenow={Number(Math.min(Math.max(grade.percentage, 0), 100).toFixed(2))}
+				aria-valuetext={`${formatPercentage(grade.percentage)}%`}
 			>
 				<div
 					class="h-full rounded-full {indicatorTone(grade.percentage)}"
@@ -117,7 +118,7 @@
 			class="{gradeTone(
 				grade.percentage
 			)} h-[1.1875rem] text-right font-mono text-[0.9375rem] leading-[normal] font-semibold sm:hidden"
-			>{grade.percentage.toLocaleString(undefined, { maximumFractionDigits: 1 })}%</span
+			>{formatPercentage(grade.percentage)}%</span
 		>
 	{:else}
 		<span class="text-muted-foreground text-xs sm:hidden">Not graded</span>
