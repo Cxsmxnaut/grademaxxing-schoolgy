@@ -26,7 +26,7 @@
 			icon: ChartLineIcon,
 			title: 'Grade trends',
 			description:
-				'Track grade changes from dated assignments, with the latest mark anchored to StudentVUE.'
+				'See your grade changes across assignments, and try out what-if scores on the chart.'
 		},
 		{
 			icon: CalculatorIcon,
@@ -149,11 +149,8 @@
 					</div>
 					<div class="detail-copy">
 						<div class="detail-heading"><ChartLineIcon aria-hidden="true" /> Grade history</div>
-						<h3>See how your grade changed.</h3>
-						<p>
-							Official StudentVUE marks anchor the chart. Earlier points use the changes from dated
-							assignments.
-						</p>
+						<h3>See what actually moved it.</h3>
+						<p>Follow dated assignments and see how each new score changes the chart.</p>
 					</div>
 				</article>
 

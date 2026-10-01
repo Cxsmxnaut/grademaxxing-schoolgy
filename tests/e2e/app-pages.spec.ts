@@ -197,12 +197,13 @@ test('gradebook calculator, course details, and attendance views are interactive
 	await expect(page.getByTestId('grade-trend-chart')).toBeVisible();
 	await page.getByLabel('Hypothetical Mode').check();
 	await expect(page.getByTestId('hypothetical-letter')).toBeVisible();
-	await expect(page.getByTestId('grade-trend-chart')).toBeVisible();
+	await expect(page.getByTestId('grade-trend-insufficient')).toBeVisible();
 	const whatIfForm = page.getByRole('form', { name: 'Add what-if assignment' });
 	await expect(whatIfForm).toBeVisible();
 	await whatIfForm.getByLabel('What-if score').fill('10');
 	await whatIfForm.getByLabel('What-if points possible').fill('10');
 	await whatIfForm.getByRole('button', { name: 'Add' }).click();
+	await expect(page.getByTestId('grade-trend-chart')).toBeVisible();
 	await expect(
 		page.getByText('What-if 1', { exact: true }).filter({ visible: true }).first()
 	).toBeVisible();
@@ -276,9 +277,7 @@ test('a corrected assignment maximum leaves the chart on the official course gra
 	await expect(page.getByRole('heading', { level: 1, name: 'History' })).toBeVisible();
 	await expect(page.getByText('9.5/10').first()).toBeVisible();
 	await expect(page.getByTestId('grade-trend-chart')).toBeVisible();
-	await expect(
-		page.getByText('Earlier points are estimates from StudentVUE assignments.')
-	).toBeVisible();
+	await expect(page.getByText(/estimated from studentvue assignments/i)).toHaveCount(0);
 	await expect(page.getByText('Point Discrepancy')).toHaveCount(0);
 	await expect(page.getByText('950%')).toHaveCount(0);
 });
@@ -297,9 +296,7 @@ test('a StudentVUE category mismatch keeps an estimated chart anchored to the of
 	await expect(page.getByText('Official and visible-work grades differ')).toHaveCount(0);
 	await expect(page.getByText(/Trend estimated from StudentVUE assignments/)).toHaveCount(0);
 	await expect(page.getByTestId('grade-trend-chart')).toBeVisible();
-	await expect(
-		page.getByText('Earlier points are estimates from StudentVUE assignments.')
-	).toBeVisible();
+	await expect(page.getByText(/estimated from studentvue assignments/i)).toHaveCount(0);
 });
 
 test('saved official StudentVUE marks replace assignment estimates in the chart', async ({
@@ -325,9 +322,7 @@ test('saved official StudentVUE marks replace assignment estimates in the chart'
 	});
 	await page.reload();
 	await expect(page.getByTestId('grade-trend-chart')).toBeVisible();
-	await expect(
-		page.getByText('Earlier points are estimates from StudentVUE assignments.')
-	).toHaveCount(0);
+	await expect(page.getByText(/estimated from studentvue assignments/i)).toHaveCount(0);
 });
 
 test('attendance agenda shows school records and fits a phone viewport', async ({ page }) => {

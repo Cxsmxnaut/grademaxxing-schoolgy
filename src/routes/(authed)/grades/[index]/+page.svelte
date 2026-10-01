@@ -376,8 +376,10 @@
 		>
 			<GradeChart
 				snapshots={officialGradeSnapshots}
-				assignments={realAssignments}
+				assignments={hypotheticalMode ? reactiveAssignments : realAssignments}
 				{gradeCategories}
+				{hypotheticalMode}
+				{hypotheticalGrade}
 			/>
 		</section>
 

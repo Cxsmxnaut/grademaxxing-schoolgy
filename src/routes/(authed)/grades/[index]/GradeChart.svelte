@@ -9,24 +9,36 @@
 		snapshots: OfficialGradeSnapshot[];
 		assignments: Assignment[];
 		gradeCategories?: Category[];
+		hypotheticalMode: boolean;
+		hypotheticalGrade: number;
 	}
-	let { snapshots, assignments, gradeCategories }: Props = $props();
+	let { snapshots, assignments, gradeCategories, hypotheticalMode, hypotheticalGrade }: Props =
+		$props();
 
-	const estimatedPoints = $derived(
-		snapshots.length === 1
-			? getEstimatedGradeTrend(assignments, gradeCategories, snapshots[0]?.percentage)
-			: []
+	const assignmentPoints = $derived(
+		hypotheticalMode
+			? getEstimatedGradeTrend(assignments, gradeCategories, hypotheticalGrade)
+			: snapshots.length === 1
+				? getEstimatedGradeTrend(assignments, gradeCategories, snapshots[0]?.percentage)
+				: []
 	);
 
 	const chartData = $derived.by(() => {
+		if (hypotheticalMode)
+			return assignmentPoints.map(({ observedAt, percentage, assignmentNames }) => ({
+				date: new Date(observedAt),
+				grade: percentage,
+				source: 'assignment' as const,
+				assignmentNames
+			}));
 		const firstOfficialDate = snapshots[0]?.observedAt ?? 0;
 		return [
-			...estimatedPoints
+			...assignmentPoints
 				.filter(({ observedAt }) => observedAt < firstOfficialDate)
 				.map(({ observedAt, percentage, assignmentNames }) => ({
 					date: new Date(observedAt),
 					grade: percentage,
-					source: 'estimate' as const,
+					source: 'assignment' as const,
 					assignmentNames
 				})),
 			...snapshots.map(({ observedAt, percentage }) => ({
@@ -37,7 +49,6 @@
 			}))
 		].filter(({ date, grade }) => Number.isFinite(date.getTime()) && Number.isFinite(grade));
 	});
-	const usesEstimatedHistory = $derived(chartData.some(({ source }) => source === 'estimate'));
 	const yDomain = $derived(getGradeChartDomain(chartData.map(({ grade }) => grade)));
 	const dayFormatter = new Intl.DateTimeFormat('en-US', {
 		weekday: 'long',
@@ -63,9 +74,8 @@
 						<div>
 							<p>{percentFormatter.format(Number(value) / 100)}</p>
 							{#if item.payload.source === 'official'}
-								<p>Official StudentVUE grade observed on this date</p>
+								<p>Official StudentVUE grade</p>
 							{:else}
-								<p>Estimated from StudentVUE assignments</p>
 								{#each item.payload.assignmentNames as name, index (`${name}-${index}`)}
 									<p>{name}</p>
 								{/each}
@@ -89,11 +99,6 @@
 			{/snippet}
 		</AreaChart>
 	</Chart.Container>
-	{#if usesEstimatedHistory}
-		<p class="text-muted-foreground -mt-2 mb-3 px-5 text-xs">
-			Earlier points are estimates from StudentVUE assignments. The latest point is official.
-		</p>
-	{/if}
 {:else if chartData.length === 1}
 	<div
 		class="bg-secondary/35 m-4 flex h-[11.25rem] flex-col items-center justify-center gap-2 rounded-xl text-center sm:m-5"
@@ -104,7 +109,7 @@
 			{percentFormatter.format(chartData[0]!.grade / 100)}
 		</p>
 		<p class="text-muted-foreground max-w-sm text-sm">
-			This is the official StudentVUE grade. Its history will grow when a changed grade is synced.
+			Only one graded date is available. Your trend graph will appear after another grade is posted.
 		</p>
 	</div>
 {:else}
@@ -113,8 +118,6 @@
 		role="status"
 		data-testid="grade-trend-empty"
 	>
-		<p class="text-muted-foreground text-sm">
-			StudentVUE has not reported a grade for this course yet.
-		</p>
+		<p class="text-muted-foreground text-sm">No graded assignments are available to chart yet.</p>
 	</div>
 {/if}
