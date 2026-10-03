@@ -114,6 +114,7 @@ export async function loadRecord<T>(
 					}
 				}
 			} catch (error) {
+				if (!isCurrent()) return;
 				recordState.error =
 					error instanceof Error ? error.message : 'The request failed unexpectedly.';
 			}

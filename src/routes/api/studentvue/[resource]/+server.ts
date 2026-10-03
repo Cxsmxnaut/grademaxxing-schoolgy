@@ -45,8 +45,9 @@ export const GET: RequestHandler = async ({ params, cookies, request, url, platf
 							999,
 							'reportPeriod'
 						);
-						const summary = url.searchParams.get('summary') === 'true';
-						const gradebook = await session.client.gradebook(reportPeriod, summary);
+						const fresh = url.searchParams.get('fresh') === 'true';
+						const summary = !fresh && url.searchParams.get('summary') === 'true';
+						const gradebook = await session.client.gradebook(reportPeriod, summary, fresh);
 						return json({
 							xml: gradebookXml(gradebook),
 							detailed: gradebook.detailed !== false

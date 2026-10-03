@@ -119,12 +119,13 @@ export function getGradebookCacheOwner() {
 export async function getGradebookRecord(
 	onReceivingData?: () => void,
 	reportPeriod?: number,
-	summary = false
+	summary = false,
+	fresh = false
 ) {
 	const { studentAccount } = acc;
 	if (!studentAccount) throw new Error('Cannot get synergy gradebook: student account not loaded');
 
-	const res = await studentAccount.gradebookRequest(reportPeriod, summary);
+	const res = await studentAccount.gradebookRequest(reportPeriod, summary, fresh);
 
 	onReceivingData?.();
 
@@ -142,7 +143,7 @@ export async function getInitialGradebookCatalog() {
 	// A cold login has no usable local record to render. Use the same complete
 	// gradebook request as the Refresh action instead of installing a summary-only
 	// record that can leave the first screen without assignment-backed data.
-	const defaultGradebookRecord = await getGradebookRecord(undefined, undefined, false);
+	const defaultGradebookRecord = await getGradebookRecord(undefined, undefined, false, true);
 
 	const defaultGradebook = parseGradebookXML(defaultGradebookRecord.xml);
 

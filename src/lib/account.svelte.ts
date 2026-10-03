@@ -1,7 +1,10 @@
 import { LocalStorageKey } from '$lib/storage/keys';
+import { registerSessionRecoveryAccountProvider } from '$lib/studentvue/session-recovery';
 import { StudentAccount } from '$lib/synergy';
 
 export const acc: { studentAccount?: StudentAccount } = $state({});
+
+registerSessionRecoveryAccountProvider(() => acc.studentAccount);
 
 export const loadStudentAccount = () => {
 	try {

@@ -1,5 +1,6 @@
 import { acc, loadStudentAccount } from '$lib/account.svelte';
 import { LocalStorageKey } from '$lib/storage/keys';
+import { registerSessionRecoveryGradeRefresh } from '$lib/studentvue/session-recovery';
 import { parseGradebookXML, StudentVueSessionExpiredError } from '$lib/synergy';
 import { toast } from 'svelte-sonner';
 import {
@@ -37,12 +38,15 @@ export const getReportPeriodName = (index: number) =>
 export async function switchReportPeriod({
 	overrideIndex,
 	forceRefresh,
+	fresh = false,
 	silent,
 	summary = false,
 	delta = false
 }: {
 	overrideIndex?: number;
 	forceRefresh?: boolean;
+	/** Bypass summary reuse and reload the complete portal context and assignments. */
+	fresh?: boolean;
 	silent?: boolean;
 	summary?: boolean;
 	/** Check a cached detailed record with a summary before fetching assignments. */
@@ -64,7 +68,7 @@ export async function switchReportPeriod({
 	if (record) setReportPeriodIndex(requestedIndex);
 
 	try {
-		if (forceRefresh || !record || gradebookRefreshNeeded(record)) {
+		if (fresh || forceRefresh || !record || gradebookRefreshNeeded(record)) {
 			const cachedDetailedRecord = record && record.detailed !== false ? record : undefined;
 			const completeRefreshDue =
 				cachedDetailedRecord &&
@@ -76,13 +80,14 @@ export async function switchReportPeriod({
 					gradebookState.version += 1;
 				},
 				overrideIndex,
-				cachedDetailedRecord && delta && !completeRefreshDue ? true : summary
+				!fresh && cachedDetailedRecord && delta && !completeRefreshDue ? true : summary,
+				fresh
 			);
 			// A newer request owns the screen. Do not let this response overwrite it.
-			if (requestID !== requestSequence) return;
+			if (requestID !== requestSequence || gradebookState.gradebookCatalog !== catalog) return;
 
 			const canReuseCachedDetails =
-				delta && cachedDetailedRecord && gradebookRecord.detailed === false;
+				!fresh && delta && cachedDetailedRecord && gradebookRecord.detailed === false;
 			if (canReuseCachedDetails && cachedDetailedRecord) {
 				const summaryUnchanged = gradebookSummaryMatches(
 					cachedDetailedRecord.xml,
@@ -107,9 +112,10 @@ export async function switchReportPeriod({
 						gradebookState.version += 1;
 					},
 					overrideIndex,
+					false,
 					false
 				);
-				if (requestID !== requestSequence) return;
+				if (requestID !== requestSequence || gradebookState.gradebookCatalog !== catalog) return;
 			}
 
 			const { gradebook, receivedIndex } = cacheGradebookRecord(catalog, gradebookRecord);
@@ -184,7 +190,10 @@ async function getGradebookCatalog() {
 		}
 	}
 
-	return lsCache ?? (await getInitialGradebookCatalog());
+	return {
+		catalog: lsCache ?? (await getInitialGradebookCatalog()),
+		fromCache: lsCache !== undefined
+	};
 }
 
 let initializationPromise: Promise<void> | undefined;
@@ -203,15 +212,41 @@ export function initializeGradebookCatalog(): Promise<void> {
 	return initializationPromise;
 }
 
-async function initializeGradebookCatalogOnce() {
+/** Keep recovery loading until this account's selected period has fresh assignments. */
+export async function refreshGradebookAfterSessionRestore(expectedAccount = acc.studentAccount) {
+	if (!expectedAccount || acc.studentAccount !== expectedAccount) return false;
+	resetGradebookCatalog();
 	const generation = catalogGeneration;
+	initializationPromise = initializeGradebookCatalogOnce(true);
+	await initializationPromise;
+	if (generation !== catalogGeneration || acc.studentAccount !== expectedAccount) return false;
+	if (gradebookState.loadingError) throw gradebookState.loadingError;
+	if (!gradebookState.gradebookCatalog)
+		throw new Error('The restored StudentVUE account could not load its grades.');
+	return true;
+}
+
+registerSessionRecoveryGradeRefresh((expectedAccount) =>
+	acc.studentAccount === expectedAccount
+		? refreshGradebookAfterSessionRestore(acc.studentAccount)
+		: Promise.resolve(false)
+);
+
+async function initializeGradebookCatalogOnce(fresh = false) {
+	const generation = catalogGeneration;
+	if (!gradebookState.gradebookCatalog) {
+		// A retry owns the loading state immediately, including automatic retries
+		// that follow the first failure before the student presses Refresh.
+		gradebookState.loadingError = undefined;
+		gradebookState.version += 1;
+	}
 	try {
 		if (!acc.studentAccount) loadStudentAccount();
 		// Protected routes may render for one frame while the layout redirects a signed-out
 		// visitor. That is an expected navigation state, not a gradebook failure.
 		if (!acc.studentAccount) return;
 
-		const loadedCatalog = await getGradebookCatalog();
+		const { catalog: loadedCatalog, fromCache } = await getGradebookCatalog();
 		if (generation !== catalogGeneration) return;
 		gradebookState.gradebookCatalog = loadedCatalog;
 		saveGradebookCatalogToLocalStorage(loadedCatalog);
@@ -236,15 +271,25 @@ async function initializeGradebookCatalogOnce() {
 		const refreshSelectedPeriod = async () => {
 			const { overrideIndex } = catalog;
 			const selectedIndex = overrideIndex ?? catalog.defaultIndex;
-			const canDeltaRefresh = catalog.recordCache[selectedIndex]?.detailed !== false;
+			const canDeltaRefresh = !fresh && catalog.recordCache[selectedIndex]?.detailed !== false;
+			const forceRefresh = fresh && fromCache;
 			if (overrideIndex !== undefined) {
 				try {
 					// Assignment data is required for "new" markers, what-if tools, and
 					// chart estimates anchored to the official mark. A
 					// summary response deliberately omits it, so it must never replace the
 					// selected period during normal refresh/reload.
-					await switchReportPeriod({ overrideIndex, delta: canDeltaRefresh });
+					await switchReportPeriod({
+						overrideIndex,
+						delta: canDeltaRefresh,
+						forceRefresh,
+						fresh: fresh && fromCache,
+						silent: fresh
+					});
 				} catch (error) {
+					// Recovery must complete for the selected period. A temporary failure
+					// must not replace its saved context with another quarter's grades.
+					if (fresh) throw error;
 					console.error(
 						`Error loading override report period ${overrideIndex}; reverting to default`,
 						error
@@ -253,10 +298,20 @@ async function initializeGradebookCatalogOnce() {
 						`Failed to load grades from ${getReportPeriodName(overrideIndex)}; loading default period instead`,
 						{ description: error instanceof Error ? error.message : String(error), duration: 6000 }
 					);
-					await switchReportPeriod({ delta: canDeltaRefresh });
+					await switchReportPeriod({
+						delta: canDeltaRefresh,
+						forceRefresh,
+						fresh: fresh && fromCache,
+						silent: fresh
+					});
 				}
 			} else {
-				await switchReportPeriod({ delta: canDeltaRefresh });
+				await switchReportPeriod({
+					delta: canDeltaRefresh,
+					forceRefresh,
+					fresh: fresh && fromCache,
+					silent: fresh
+				});
 			}
 			gradebookState.version += 1;
 		};
@@ -283,7 +338,7 @@ async function initializeGradebookCatalogOnce() {
 			});
 		};
 
-		if (canRenderImmediately) {
+		if (canRenderImmediately && !fresh) {
 			// Stale-while-revalidate: make saved grades usable in the current frame and
 			// let a slow district portal refresh them without blocking the whole screen.
 			void refreshSelectedPeriod()

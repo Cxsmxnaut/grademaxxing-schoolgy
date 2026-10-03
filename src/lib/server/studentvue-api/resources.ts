@@ -28,7 +28,9 @@ export const capabilities = {
 			path: '/api/studentvue/gradebook?reportPeriod=0',
 			parameters: {
 				reportPeriod: 'zero-based index from ReportingPeriods',
-				summary: 'optional true: fast header-only response; falls back to complete data if unsafe'
+				summary: 'optional true: fast header-only response; falls back to complete data if unsafe',
+				fresh:
+					'optional true: reload portal context and complete assignment details; overrides summary'
 			},
 			legacySoap: 'Gradebook',
 			modernSource: [

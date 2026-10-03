@@ -13,14 +13,20 @@
 	import AuthPanelHeader from '$lib/components/auth/AuthPanelHeader.svelte';
 	import DistrictCombobox from '$lib/components/auth/DistrictCombobox.svelte';
 	import PostLoginLoadingScreen from '$lib/components/auth/PostLoginLoadingScreen.svelte';
+	import SessionRecoveryScreen from '$lib/components/auth/SessionRecoveryScreen.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
-	import { initializeGradebookCatalog, resetGradebookCatalog } from '$lib/grades/catalog.svelte';
-	import { seenAssignmentIDs } from '$lib/grades/seenAssignments.svelte';
-	import { getGradebookCacheOwnerFor, gradebookCacheBelongsTo } from '$lib/grades/refresh';
+	import {
+		initializeGradebookCatalog,
+		refreshGradebookAfterSessionRestore,
+		resetGradebookCatalog
+	} from '$lib/grades/catalog.svelte';
+	import { prepareStudentAccountCaches } from '$lib/auth/account-cache';
 	import { StudentAccount } from '$lib/synergy';
+	import { StudentVueAuthenticationError } from '$lib/studentvue/api';
+	import { resetPortalConnection } from '$lib/session.svelte';
 	import AlertCircleIcon from '@lucide/svelte/icons/alert-circle';
 	import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
 	import InfoIcon from '@lucide/svelte/icons/info';
@@ -40,6 +46,9 @@
 	let domain = $state(pleasantonDomain);
 	let loginError = $state<string | undefined>();
 	let loggingIn = $state(false);
+	let restoringSession = $state(false);
+	let recoveryStage = $state<'saving' | 'refreshing'>('saving');
+	let checkingSavedSession = $state(true);
 	let loginStage = $state('Connecting to StudentVUE…');
 	let interactive = $state(false);
 	let rememberMe = $state(true);
@@ -64,68 +73,42 @@
 
 	onMount(() => {
 		interactive = true;
-		void restoreSavedSession();
+		const controller = new AbortController();
+		void restoreSavedSession(controller.signal).finally(() => (checkingSavedSession = false));
+		const handleStorage = (event: StorageEvent) => {
+			if (
+				event.storageArea !== localStorage ||
+				(event.key !== LocalStorageKey.token && event.key !== null) ||
+				(!checkingSavedSession && !restoringSession)
+			)
+				return;
+			controller.abort();
+			resetPortalConnection();
+			resetGradebookCatalog();
+			resetNonGradeRecords();
+			loadStudentAccount();
+			if (acc.studentAccount) void goto('/grades');
+		};
+		window.addEventListener('storage', handleStorage);
+		return () => {
+			controller.abort();
+			window.removeEventListener('storage', handleStorage);
+		};
 	});
 
 	const sessionExpired = $derived(
 		browser && page.url.searchParams.get('sessionExpired') === 'true'
 	);
 
-	async function gradebookOwnerFingerprint(user: string, district: string) {
-		const identity = getGradebookCacheOwnerFor({ domain: district, userID: user })!;
-		const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(identity));
-		return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join(
-			''
-		);
-	}
-
-	async function finishLogin(loginAccount: StudentAccount, passwordToStore?: string) {
+	async function finishLogin(
+		loginAccount: StudentAccount,
+		passwordToStore?: string,
+		isCurrent = () => true
+	) {
+		if (!isCurrent()) return false;
 		resetGradebookCatalog();
 		resetNonGradeRecords();
-		const ownerFingerprint = await gradebookOwnerFingerprint(
-			loginAccount.userID,
-			loginAccount.domain
-		);
-		let sameStudent = localStorage.getItem(LocalStorageKey.gradebookOwner) === ownerFingerprint;
-		if (!sameStudent) {
-			try {
-				// Session expiry can remove the login token without removing the account-scoped
-				// grade cache. Its owner still identifies whose records may be restored.
-				const saved = JSON.parse(localStorage.getItem(LocalStorageKey.gradebook) ?? 'null');
-				sameStudent = gradebookCacheBelongsTo(saved?.owner, loginAccount);
-			} catch {
-				/* An unreadable cache never authorizes reuse. */
-			}
-		}
-		const previousToken = localStorage.getItem(LocalStorageKey.token);
-		if (!sameStudent && previousToken !== null) {
-			try {
-				const previous = JSON.parse(previousToken) as { username?: unknown; domain?: unknown };
-				sameStudent =
-					typeof previous.username === 'string' &&
-					typeof previous.domain === 'string' &&
-					getGradebookCacheOwnerFor({ domain: previous.domain, userID: previous.username }) ===
-						getGradebookCacheOwnerFor(loginAccount);
-			} catch {
-				/* Invalid identity metadata never authorizes cache reuse. */
-			}
-		}
-
-		if (!sameStudent) {
-			seenAssignmentIDs.clear();
-			for (const key of [
-				LocalStorageKey.gradebook,
-				LocalStorageKey.officialGradeHistory,
-				LocalStorageKey.seenAssignmentIDs,
-				LocalStorageKey.attendance,
-				LocalStorageKey.schedule,
-				LocalStorageKey.documents,
-				LocalStorageKey.mailData,
-				LocalStorageKey.studentInfo
-			])
-				localStorage.removeItem(key);
-		}
-		localStorage.setItem(LocalStorageKey.gradebookOwner, ownerFingerprint);
+		if (!(await prepareStudentAccountCaches(loginAccount, isCurrent))) return false;
 		persistStudentAccount(loginAccount);
 		if (rememberMe && passwordToStore) {
 			await saveStoredCredentials({
@@ -137,29 +120,47 @@
 			await clearStoredCredentials();
 		}
 		acc.studentAccount = loginAccount;
+		return true;
 	}
 
-	async function restoreSavedSession() {
+	async function restoreSavedSession(signal: AbortSignal) {
 		if (loggingIn || acc.studentAccount) return;
 		const stored = await loadStoredCredentials();
-		if (!stored || localStorage.getItem(LocalStorageKey.token) !== null) return;
+		if (!stored || signal.aborted || localStorage.getItem(LocalStorageKey.token) !== null) return;
+		const canRestore = () =>
+			!signal.aborted &&
+			!acc.studentAccount &&
+			localStorage.getItem(LocalStorageKey.token) === null;
 
 		loggingIn = true;
-		loginStage = 'Restoring your session…';
+		restoringSession = true;
+		recoveryStage = 'saving';
 		loginError = undefined;
 		const savedAccount = new StudentAccount(stored.domain, stored.username, stored.password);
 		try {
-			await savedAccount.checkLogin();
-			await finishLogin(savedAccount, stored.password);
-			loginStage = 'Loading your grades…';
-			await initializeGradebookCatalog();
-			await goto('/grades');
+			await savedAccount.checkLogin(signal);
+			if (!(await finishLogin(savedAccount, undefined, canRestore))) {
+				loggingIn = false;
+				restoringSession = false;
+				return;
+			}
 		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error);
-			if (/invalid|password|credential|unauthor/i.test(message)) await clearStoredCredentials();
+			if (error instanceof StudentVueAuthenticationError && canRestore())
+				await clearStoredCredentials();
 			loggingIn = false;
+			restoringSession = false;
+			if (signal.aborted) return;
 			loginError = 'Your saved StudentVUE sign-in needs attention. Enter your password again.';
+			return;
 		}
+		recoveryStage = 'refreshing';
+		try {
+			await refreshGradebookAfterSessionRestore();
+		} catch {
+			// Keep the restored session. The gradebook exposes saved data and retry
+			// when StudentVUE cannot complete the fresh fetch.
+		}
+		if (!signal.aborted && acc.studentAccount === savedAccount) await goto('/grades');
 	}
 
 	async function login(event: SubmitEvent) {
@@ -201,7 +202,9 @@
 	<title>Log In - {brand}</title>
 </svelte:head>
 
-{#if loggingIn}
+{#if checkingSavedSession || restoringSession}
+	<SessionRecoveryScreen stage={recoveryStage} />
+{:else if loggingIn}
 	<PostLoginLoadingScreen message={loginStage} />
 {:else}
 	{#if loginError}

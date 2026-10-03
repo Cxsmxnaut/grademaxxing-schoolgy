@@ -3,6 +3,7 @@
 	import { getRelativeTime } from '$lib/format/date-time';
 	import { removeCourseType } from '$lib/grades/course-name';
 	import { acc } from '$lib/account.svelte';
+	import { clearStoredCredentials } from '$lib/auth/credential-vault';
 	import { brandName } from '$lib/brand';
 	import ThinkingOrb from '$lib/components/ThinkingOrb.svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
@@ -11,6 +12,7 @@
 	import {
 		gradebookState,
 		initializeGradebookCatalog,
+		refreshGradebookAfterSessionRestore,
 		resetGradebookCatalog,
 		switchReportPeriod
 	} from '$lib/grades/catalog.svelte';
@@ -48,17 +50,19 @@
 	});
 
 	let refreshingAll = $state(false);
+	let backgroundRefreshPromise = $state<Promise<void> | undefined>();
 	const refreshing = $derived(
 		refreshingAll ||
+			backgroundRefreshPromise !== undefined ||
 			gradebookState.gradebookCatalog?.loadingIndex !== undefined ||
 			(gradebookState.gradebookCatalog === undefined && gradebookState.loadingError === undefined)
 	);
-	let backgroundRefreshPromise: Promise<void> | undefined;
 	let lastSuccessfulRefresh = $state<number | undefined>();
 
 	async function logOut() {
 		const response = await fetch('/api/session', { method: 'DELETE' }).catch(() => undefined);
 		await response?.arrayBuffer().catch(() => undefined);
+		await clearStoredCredentials();
 		localStorage.clear();
 		resetGradebookCatalog();
 		resetNonGradeRecords();
@@ -85,20 +89,34 @@
 	});
 
 	async function refreshAll() {
-		if (refreshing || backgroundRefreshPromise) return;
+		if (refreshing) return;
 		refreshingAll = true;
+		const account = acc.studentAccount;
+		const originalSessionId = account?.sessionId;
+		const startedAt = Date.now();
 		try {
 			// A single lightweight probe stops a dead upstream session from causing five
 			// duplicate failed requests and opens the reconnect prompt immediately.
-			await acc.studentAccount?.keepAlive();
+			await account?.keepAlive();
+			if (!account || acc.studentAccount !== account) return;
 			// Gradebook is the page's primary refresh target. StudentVUE requests for one
 			// session are serialized, so enqueue it before the lower-priority records.
-			const gradebookRefresh = gradebookState.gradebookCatalog
-				? switchReportPeriod({
-						overrideIndex: gradebookState.gradebookCatalog.overrideIndex,
-						forceRefresh: true
-					})
-				: Promise.resolve();
+			const catalog = gradebookState.gradebookCatalog;
+			const activeRecord = catalog?.recordCache[catalog.overrideIndex ?? catalog.defaultIndex];
+			const restoredFreshGrades =
+				account.sessionId !== originalSessionId &&
+				activeRecord !== undefined &&
+				activeRecord.lastRefresh >= startedAt &&
+				gradebookState.loadingError === undefined;
+			const gradebookRefresh = restoredFreshGrades
+				? Promise.resolve()
+				: catalog
+					? switchReportPeriod({
+							overrideIndex: catalog.overrideIndex,
+							forceRefresh: true,
+							fresh: true
+						})
+					: refreshGradebookAfterSessionRestore(account);
 			const backgroundRefreshes: Promise<unknown>[] = [
 				loadAttendance(true),
 				loadDocuments(true),
@@ -115,13 +133,20 @@
 					].some(Boolean);
 					// A successful secondary-record refresh must not hide a definitive
 					// gradebook session-expiry prompt from the same refresh cycle.
-					if (!recordFailed && portalConnection.state !== 'reconnect')
+					if (
+						!recordFailed &&
+						gradebookState.loadingError === undefined &&
+						acc.studentAccount === account &&
+						portalConnection.state !== 'reconnect'
+					)
 						markPortalConnected(Date.now());
 				})
 				.finally(() => {
 					backgroundRefreshPromise = undefined;
 				});
 			await gradebookRefresh;
+			if (acc.studentAccount !== account) return;
+			if (gradebookState.loadingError) throw gradebookState.loadingError;
 			lastSuccessfulRefresh = Date.now();
 			markPortalConnected(lastSuccessfulRefresh);
 		} catch (error) {
@@ -370,7 +395,7 @@
 						aria-atomic="true"
 					>
 						{refreshing
-							? refreshingAll
+							? refreshingAll || backgroundRefreshPromise
 								? 'Checking grades and records…'
 								: 'Checking grades…'
 							: lastSync !== undefined

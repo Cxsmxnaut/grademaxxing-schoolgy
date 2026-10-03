@@ -2,8 +2,13 @@
 	import { brand } from '$lib/brand';
 	import ThinkingOrb from '$lib/components/ThinkingOrb.svelte';
 
-	let { message = 'Loading your grades…' }: { message?: string } = $props();
-	const currentStep = $derived(/connect|restor/i.test(message) ? 1 : 2);
+	let {
+		message = 'Loading your grades…',
+		recoveryStage
+	}: { message?: string; recoveryStage?: 'saving' | 'refreshing' } = $props();
+	const currentStep = $derived(
+		recoveryStage ? (recoveryStage === 'saving' ? 1 : 2) : /connect|restor/i.test(message) ? 1 : 2
+	);
 </script>
 
 <div class="post-login-loading" data-testid="post-login-loading">
@@ -13,17 +18,26 @@
 		{/key}
 		<p class="loading-message">{message}</p>
 		<p class="loading-detail">
-			StudentVUE is retrieving your latest gradebook. This is the part where the portal does the
-			work.
+			{#if recoveryStage === 'saving'}
+				We’re restoring your saved session and bringing you right back.
+			{:else if recoveryStage === 'refreshing'}
+				Your session is saved. We’re getting your latest grades before you return.
+			{:else}
+				StudentVUE is retrieving your latest gradebook. This is the part where the portal does the
+				work.
+			{/if}
 		</p>
-		<ol class="loading-steps" aria-label="Sign-in progress">
+		<ol
+			class="loading-steps"
+			aria-label={recoveryStage ? 'Session recovery progress' : 'Sign-in progress'}
+		>
 			<li class:complete={currentStep > 1} class:active={currentStep === 1}>
 				<span aria-hidden="true">{currentStep > 1 ? '✓' : '1'}</span>
-				Connect to StudentVUE
+				{recoveryStage ? 'Save your session' : 'Connect to StudentVUE'}
 			</li>
 			<li class:active={currentStep === 2}>
 				<span aria-hidden="true">2</span>
-				Load your grades
+				{recoveryStage ? 'Refresh your grades' : 'Load your grades'}
 			</li>
 		</ol>
 		<span class="sr-only">{message} {brand} is preparing your gradebook.</span>

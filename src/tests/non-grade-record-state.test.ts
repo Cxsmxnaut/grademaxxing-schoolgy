@@ -148,3 +148,33 @@ test('a response finishing after account reset cannot repopulate shared student 
 	expect(state).toEqual({ data: undefined, loaded: false, refreshing: false });
 	expect(localStorage.getItem('record')).toBeNull();
 });
+
+test('a retired account rejection cannot overwrite records loaded for the replacement account', async () => {
+	let rejectOld!: (error: Error) => void;
+	const pendingOld = new Promise<{ value: string }>((_, reject) => (rejectOld = reject));
+	const state: RecordState<{ value: string }> = { loaded: false };
+	const oldRequest = loadRecord(state, () => pendingOld, 'record', 0, true);
+	expect(state.refreshing).toBe(true);
+
+	invalidateRecordState(state);
+	state.data = undefined;
+	state.loaded = false;
+	state.refreshing = false;
+	state.error = undefined;
+	acc.studentAccount = {} as StudentAccount;
+	localStorage.setItem('gradebookOwner', 'student-b');
+	await loadRecord(state, async () => ({ value: 'replacement-account' }), 'record', 0, true);
+	const currentState = { ...state };
+	const currentCache = localStorage.getItem('record');
+	expect(currentState).toMatchObject({
+		data: { value: 'replacement-account' },
+		loaded: true,
+		refreshing: false,
+		error: undefined
+	});
+
+	rejectOld(new Error('Retired StudentVUE request failed.'));
+	await oldRequest;
+	expect(state).toEqual(currentState);
+	expect(localStorage.getItem('record')).toBe(currentCache);
+});

@@ -1,5 +1,40 @@
 export type PortalConnectionState = 'idle' | 'checking' | 'connected' | 'reconnect' | 'offline';
 
+export const sessionRecovery = $state<{
+	active: boolean;
+	stage: 'saving' | 'refreshing';
+}>({ active: false, stage: 'saving' });
+
+let recoverySequence = 0;
+let recoveryController: AbortController | undefined;
+
+export function beginSessionRecovery() {
+	recoveryController?.abort();
+	recoveryController = new AbortController();
+	const recovery = ++recoverySequence;
+	sessionRecovery.active = true;
+	sessionRecovery.stage = 'saving';
+	return recovery;
+}
+
+export function isSessionRecoveryCurrent(recovery: number) {
+	return recovery === recoverySequence && sessionRecovery.active;
+}
+
+export function getSessionRecoverySignal(recovery: number) {
+	return isSessionRecoveryCurrent(recovery) ? recoveryController!.signal : AbortSignal.abort();
+}
+
+export function markSessionRecoveryRefreshing(recovery: number) {
+	if (recovery !== recoverySequence) return;
+	sessionRecovery.stage = 'refreshing';
+}
+
+export function finishSessionRecovery(recovery: number) {
+	if (recovery !== recoverySequence) return;
+	sessionRecovery.active = false;
+}
+
 export const portalConnection = $state<{
 	state: PortalConnectionState;
 	lastVerifiedAt?: number;
@@ -38,6 +73,11 @@ export function markPortalRetryScheduled(nextRetryAt: number) {
 }
 
 export function resetPortalConnection() {
+	recoveryController?.abort();
+	recoveryController = undefined;
+	recoverySequence += 1;
+	sessionRecovery.active = false;
+	sessionRecovery.stage = 'saving';
 	portalConnection.state = 'idle';
 	portalConnection.lastVerifiedAt = undefined;
 	portalConnection.message = undefined;

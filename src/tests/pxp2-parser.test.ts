@@ -359,6 +359,59 @@ test('subsequent gradebook reads use the compact class control context', async (
 	).toHaveLength(1);
 });
 
+test('explicit fresh reads reload portal context and assignment details on every request', async () => {
+	const focus = JSON.stringify({
+		LoadParams: { ControlName: 'Gradebook_ClassDetails' },
+		FocusArgs: { classID: 'course-1' }
+	}).replaceAll('"', '&quot;');
+	const page = `<title>StudentVUE</title>
+		<script>PXP.GBCurrentFocus = {"FocusArgs":{"gradePeriodGU":"period-1","AGU":"synthetic-student"}};</script>
+		<script>PXP.GBFocusData = {"GradingPeriods":[{"GU":"period-1","schoolID":"school","OrgYearGU":"year","defaultFocus":true,"Name":"Quarter 1","MarkPeriods":[{"GU":"mark-1"}]}]};</script>
+		<div class="gb-class-header"><span class="course-title" data-focus="${focus}">1: Synthetic course</span></div>
+		<div class="gb-class-row" data-guid="course-1"><span class="mark">A</span></div>`;
+	let pageCalls = 0;
+	let detailCalls = 0;
+	const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+		const path = String(input);
+		if (path.includes('PXP2_Gradebook.aspx')) {
+			pageCalls += 1;
+			return new Response(page);
+		}
+		if (path.includes('GradebookFocusClassInfo'))
+			return Response.json({
+				d: { Data: { Classes: [{ ID: 'course-1', Name: 'Synthetic course' }] } }
+			});
+		if (path.includes('PXP2Communication.asmx/LoadControl')) {
+			const body = JSON.parse(String(init?.body)) as { request?: { control?: string } };
+			if (body.request?.control !== 'Gradebook_ClassDetails')
+				throw new Error('An explicit fresh read must reload the full portal context.');
+			detailCalls += 1;
+			const points = detailCalls === 1 ? 8 : 9;
+			const grid = `<div id="current-grade"><span class="mark">A</span><span class="score">${points * 10}%</span></div>
+			<div id="AssignmentsGrid"></div><script>{"dataSource":[{"gradeBookId":"assignment-1","Date":"9/20/26","GBAssignment":"Synthetic work","GBAssignmentType":"Work","GBScore":"${points} out of 10","GBPoints":"${points}/10"}]}</script>`;
+			return Response.json({ d: { Data: { html: grid } } });
+		}
+		if (path.includes('genericdata.classdata-GetClassData')) return Response.json({});
+		throw new Error(`Unexpected synthetic portal request: ${path}`);
+	});
+	vi.stubGlobal('fetch', fetchMock);
+	const client = Pxp2Client.resume({
+		baseUrl: 'https://ca-example-psv.edupoint.com/',
+		cookies: { ASP_NET_SessionId: 'synthetic-session' }
+	});
+
+	const first = await client.gradebook(undefined, true, true);
+	const second = await client.gradebook(undefined, true, true);
+
+	expect(first.detailed).toBe(true);
+	expect(second.detailed).toBe(true);
+	expect(first.courses[0]?.scoreRaw).toBe('80');
+	expect(second.courses[0]?.scoreRaw).toBe('90');
+	expect(pageCalls).toBe(2);
+	expect(detailCalls).toBe(2);
+	for (const [, init] of fetchMock.mock.calls) expect(init?.cache).toBe('no-store');
+});
+
 test('detailed gradebook cross-checks the class grid against StudentVUE bulk assignment IDs', async () => {
 	const focus = JSON.stringify({
 		LoadParams: { ControlName: 'Gradebook_ClassDetails' },

@@ -5,27 +5,40 @@
 	import { LocalStorageKey } from '$lib/storage/keys';
 	import { acc, loadStudentAccount, persistStudentAccount } from '$lib/account.svelte';
 	import { clearStoredCredentials, loadStoredCredentials } from '$lib/auth/credential-vault';
+	import { prepareStudentAccountCaches } from '$lib/auth/account-cache';
 	import { brandName } from '$lib/brand';
 	import BoundaryFailure from '$lib/components/BoundaryFailure.svelte';
+	import SessionRecoveryScreen from '$lib/components/auth/SessionRecoveryScreen.svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Spinner } from '$lib/components/ui/spinner';
 	import {
 		gradebookState,
 		initializeGradebookCatalog,
+		refreshGradebookAfterSessionRestore,
 		resetGradebookCatalog,
 		switchReportPeriod
 	} from '$lib/grades/catalog.svelte';
 	import { gradebookRefreshNeeded } from '$lib/grades/catalog';
 	import {
+		beginSessionRecovery,
+		finishSessionRecovery,
+		getSessionRecoverySignal,
+		isSessionRecoveryCurrent,
 		markPortalChecking,
 		markPortalConnected,
 		markPortalOffline,
 		markPortalRetryScheduled,
+		markSessionRecoveryRefreshing,
 		portalConnection,
-		resetPortalConnection
+		resetPortalConnection,
+		sessionRecovery
 	} from '$lib/session.svelte';
 	import { StudentAccount, StudentVueSessionExpiredError } from '$lib/synergy';
+	import {
+		StudentVueAppSessionInvalidError,
+		StudentVueAuthenticationError
+	} from '$lib/studentvue/api';
 	import BookOpenIcon from '@lucide/svelte/icons/book-open';
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
 	import FileTextIcon from '@lucide/svelte/icons/file-text';
@@ -60,8 +73,7 @@
 	}
 
 	function isDefinitiveAppSessionFailure(error: unknown) {
-		const message = error instanceof Error ? error.message : String(error);
-		return /session has expired|sign in again|different StudentVUE session/i.test(message);
+		return error instanceof StudentVueAppSessionInvalidError;
 	}
 
 	function normalizedDomain(value: string) {
@@ -72,25 +84,47 @@
 			.toLowerCase();
 	}
 
-	async function restoreExpiredSession(current: NonNullable<typeof acc.studentAccount>) {
-		const stored = await loadStoredCredentials();
-		if (
-			!stored ||
-			stored.username.toLowerCase() !== current.userID.toLowerCase() ||
-			normalizedDomain(stored.domain) !== normalizedDomain(current.domain)
-		)
-			return false;
-
-		const replacement = new StudentAccount(stored.domain, stored.username, stored.password);
+	async function restoreExpiredSession(current?: NonNullable<typeof acc.studentAccount>) {
+		const recovery = beginSessionRecovery();
+		const originalToken = localStorage.getItem(LocalStorageKey.token);
+		const canRestore = () =>
+			isSessionRecoveryCurrent(recovery) &&
+			acc.studentAccount === current &&
+			localStorage.getItem(LocalStorageKey.token) === originalToken;
 		try {
-			await replacement.checkLogin();
+			const stored = await loadStoredCredentials();
+			if (
+				!stored ||
+				!canRestore() ||
+				(current &&
+					(stored.username.toLowerCase() !== current.userID.toLowerCase() ||
+						normalizedDomain(stored.domain) !== normalizedDomain(current.domain)))
+			)
+				return false;
+			const replacement = new StudentAccount(stored.domain, stored.username, stored.password);
+			await replacement.checkLogin(getSessionRecoverySignal(recovery));
+			if (!canRestore()) return false;
+			if (!(await prepareStudentAccountCaches(replacement, canRestore))) return false;
 			persistStudentAccount(replacement);
 			acc.studentAccount = replacement;
+			resetNonGradeRecords();
+			markSessionRecoveryRefreshing(recovery);
+			try {
+				if (await refreshGradebookAfterSessionRestore(replacement)) markPortalConnected();
+			} catch {
+				// Authentication succeeded. A grade outage must retain the renewed session
+				// and saved grades, with the gradebook's retry control available.
+				if (acc.studentAccount !== replacement || !isSessionRecoveryCurrent(recovery)) return false;
+				markPortalOffline();
+				schedulePortalRetry();
+			}
 			return true;
 		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error);
-			if (/invalid|password|credential|unauthor/i.test(message)) await clearStoredCredentials();
+			if (error instanceof StudentVueAuthenticationError && canRestore())
+				await clearStoredCredentials();
 			return false;
+		} finally {
+			finishSessionRecovery(recovery);
 		}
 	}
 
@@ -111,6 +145,7 @@
 			!acc.studentAccount ||
 			document.visibilityState !== 'visible' ||
 			!navigator.onLine ||
+			sessionRecovery.active ||
 			portalConnection.state === 'reconnect'
 		)
 			return;
@@ -126,21 +161,25 @@
 				if (acc.studentAccount !== account) return;
 				portalRetryAttempts = 0;
 				markPortalConnected();
-				await initializeGradebookCatalog();
+				if (!gradebookState.gradebookCatalog) await initializeGradebookCatalog();
+				if (acc.studentAccount !== account) return;
 				const catalog = gradebookState.gradebookCatalog;
 				if (!catalog || catalog.loadingIndex !== undefined) return;
 				const index = catalog.overrideIndex ?? catalog.defaultIndex;
 				const record = catalog.recordCache[index];
-				if (!record || gradebookRefreshNeeded(record)) {
+				const retryingGrades = gradebookState.loadingError !== undefined;
+				if (!record || retryingGrades || gradebookRefreshNeeded(record)) {
 					await switchReportPeriod({
 						overrideIndex: catalog.overrideIndex,
 						forceRefresh: true,
 						silent: true,
-						delta: true
+						delta: !retryingGrades,
+						fresh: retryingGrades
 					});
-					markPortalConnected();
+					if (acc.studentAccount === account) markPortalConnected();
 				}
 			} catch (error) {
+				if (acc.studentAccount !== account) return;
 				if (error instanceof StudentVueSessionExpiredError) return;
 				markPortalOffline(
 					!navigator.onLine
@@ -179,38 +218,45 @@
 
 	if (browser && !acc.studentAccount) {
 		loadStudentAccount();
-		if (!acc.studentAccount) void goto('/login');
+		if (!acc.studentAccount) beginSessionRecovery();
 	}
 
 	onMount(() => {
-		if (!acc.studentAccount) return;
 		const initialAccount = acc.studentAccount;
-		void initialAccount.checkLogin().then(
-			() => void maintainStudentVueSession(true),
-			async (error) => {
-				// A Worker cold start, network interruption, or temporary 5xx must never be
-				// mistaken for sign-out. Retain the local session metadata and cached records;
-				// only a confirmed invalid app session should take the student to login.
-				if (!isDefinitiveAppSessionFailure(error)) {
-					markPortalOffline();
-					schedulePortalRetry();
-					return;
+		if (!initialAccount) {
+			void restoreExpiredSession().then((restored) => {
+				if (!restored && !acc.studentAccount) void goto('/login');
+			});
+		} else
+			void initialAccount.checkLogin().then(
+				() => {
+					if (gradebookState.loadingError !== undefined) {
+						markPortalOffline();
+						schedulePortalRetry();
+					} else void maintainStudentVueSession(true);
+				},
+				async (error) => {
+					// A Worker cold start, network interruption, or temporary 5xx must never be
+					// mistaken for sign-out. Retain the local session metadata and cached records;
+					// only a confirmed invalid app session should take the student to login.
+					if (!isDefinitiveAppSessionFailure(error)) {
+						markPortalOffline();
+						schedulePortalRetry();
+						return;
+					}
+					if (await restoreExpiredSession(initialAccount)) return;
+					if (acc.studentAccount !== initialAccount) return;
+					try {
+						localStorage.removeItem(LocalStorageKey.token);
+					} catch {
+						// The active module session is still cleared when managed storage is unavailable.
+					}
+					resetGradebookCatalog();
+					resetNonGradeRecords();
+					acc.studentAccount = undefined;
+					void goto('/login');
 				}
-				if (await restoreExpiredSession(initialAccount)) {
-					location.reload();
-					return;
-				}
-				try {
-					localStorage.removeItem(LocalStorageKey.token);
-				} catch {
-					// The active module session is still cleared when managed storage is unavailable.
-				}
-				resetGradebookCatalog();
-				resetNonGradeRecords();
-				acc.studentAccount = undefined;
-				void goto('/login');
-			}
-		);
+			);
 
 		const resume = () => {
 			if (portalConnection.state === 'offline') schedulePortalRetry();
@@ -225,7 +271,6 @@
 		window.addEventListener('online', resume);
 		document.addEventListener('visibilitychange', visibility);
 
-		const currentSessionId = acc.studentAccount.sessionId;
 		const handleStorage = (event: StorageEvent) => {
 			if (
 				event.storageArea !== localStorage ||
@@ -239,7 +284,12 @@
 			} catch {
 				// Clearing or corrupting the shared login record is treated as sign-out.
 			}
-			if (replacementSessionId === currentSessionId) return;
+			if (
+				replacementSessionId !== undefined &&
+				replacementSessionId === acc.studentAccount?.sessionId
+			)
+				return;
+			resetPortalConnection();
 			resetGradebookCatalog();
 			resetNonGradeRecords();
 			acc.studentAccount = undefined;
@@ -259,90 +309,99 @@
 </script>
 
 <svelte:boundary>
-	<Sidebar.Provider class="md:h-svh md:overflow-hidden">
-		<AppSidebar />
-		<QuickJump />
+	<div inert={sessionRecovery.active} aria-hidden={sessionRecovery.active ? 'true' : undefined}>
+		<Sidebar.Provider class="md:h-svh md:overflow-hidden">
+			{#key acc.studentAccount}
+				<AppSidebar />
+				<QuickJump />
+			{/key}
 
-		<Sidebar.Inset
-			class="min-w-0 pb-[3.75rem] md:h-svh md:overflow-y-auto md:pb-0"
-			data-testid="app-content-scroll"
-		>
-			<ReconnectStudentVue />
-			<header
-				class="bg-card border-border/70 sticky top-0 z-30 flex h-[3.09375rem] shrink-0 items-center border-b px-4 md:hidden"
+			<Sidebar.Inset
+				class="min-w-0 pb-[3.75rem] md:h-svh md:overflow-y-auto md:pb-0"
+				data-testid="app-content-scroll"
 			>
-				<a
-					href="/grades"
-					class="mr-auto flex items-center gap-2 text-lg font-extrabold tracking-[-0.035em] whitespace-nowrap"
+				<ReconnectStudentVue />
+				<header
+					class="bg-card border-border/70 sticky top-0 z-30 flex h-[3.09375rem] shrink-0 items-center border-b px-4 md:hidden"
 				>
-					<img src="/grademaxxing-growth-mark.png" class="size-7" alt="" />
-					<span>{brandName}</span>
-				</a>
-				<AlertDialog.Root bind:open={confirmMobileLogOut}>
-					<AlertDialog.Trigger
-						class="text-muted-foreground hover:text-foreground flex size-9 items-center justify-center rounded-lg"
-						aria-label="Log out"
-					>
-						<LogOutIcon class="size-4" />
-					</AlertDialog.Trigger>
-					<AlertDialog.Content>
-						<AlertDialog.Header>
-							<AlertDialog.Title>Log out of Grademaxxing?</AlertDialog.Title>
-							<AlertDialog.Description>
-								This clears your saved grades and records on this device, and returns you to the
-								sign-in page. Your StudentVUE account is untouched.
-							</AlertDialog.Description>
-						</AlertDialog.Header>
-						<AlertDialog.Footer>
-							<AlertDialog.Cancel>Stay signed in</AlertDialog.Cancel>
-							<AlertDialog.Action
-								class="bg-destructive hover:bg-destructive/90 text-white"
-								onclick={() => void logOut()}
-							>
-								Log out
-							</AlertDialog.Action>
-						</AlertDialog.Footer>
-					</AlertDialog.Content>
-				</AlertDialog.Root>
-			</header>
-
-			<div class="flex flex-1 flex-col">
-				<svelte:boundary>
-					{@render children()}
-
-					{#snippet pending()}
-						<div class="flex min-h-screen w-full items-center justify-center">
-							<Spinner class="size-8" />
-						</div>
-					{/snippet}
-
-					{#snippet failed(error, reset)}
-						<BoundaryFailure {error} {reset} />
-					{/snippet}
-				</svelte:boundary>
-			</div>
-
-			<nav
-				class="bg-card border-border fixed inset-x-0 bottom-0 z-40 grid h-[3.375rem] grid-cols-4 border-t md:hidden"
-				aria-label="Mobile navigation"
-			>
-				{#each mobileNavigation as item (item.url)}
 					<a
-						href={item.url}
-						class="flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 text-[0.625rem] font-semibold {isRouteActive(
-							item.url
-						)
-							? 'text-primary'
-							: 'text-muted-foreground'}"
-						aria-current={isRouteActive(item.url) ? 'page' : undefined}
+						href="/grades"
+						class="mr-auto flex items-center gap-2 text-lg font-extrabold tracking-[-0.035em] whitespace-nowrap"
 					>
-						<item.icon class="size-[1.1rem]" />
-						<span class="truncate">{item.title}</span>
+						<img src="/grademaxxing-growth-mark.png" class="size-7" alt="" />
+						<span>{brandName}</span>
 					</a>
-				{/each}
-			</nav>
-		</Sidebar.Inset>
-	</Sidebar.Provider>
+					<AlertDialog.Root bind:open={confirmMobileLogOut}>
+						<AlertDialog.Trigger
+							class="text-muted-foreground hover:text-foreground flex size-9 items-center justify-center rounded-lg"
+							aria-label="Log out"
+						>
+							<LogOutIcon class="size-4" />
+						</AlertDialog.Trigger>
+						<AlertDialog.Content>
+							<AlertDialog.Header>
+								<AlertDialog.Title>Log out of Grademaxxing?</AlertDialog.Title>
+								<AlertDialog.Description>
+									This clears your saved grades and records on this device, and returns you to the
+									sign-in page. Your StudentVUE account is untouched.
+								</AlertDialog.Description>
+							</AlertDialog.Header>
+							<AlertDialog.Footer>
+								<AlertDialog.Cancel>Stay signed in</AlertDialog.Cancel>
+								<AlertDialog.Action
+									class="bg-destructive hover:bg-destructive/90 text-white"
+									onclick={() => void logOut()}
+								>
+									Log out
+								</AlertDialog.Action>
+							</AlertDialog.Footer>
+						</AlertDialog.Content>
+					</AlertDialog.Root>
+				</header>
+
+				<div class="flex flex-1 flex-col">
+					<svelte:boundary>
+						{#key acc.studentAccount}
+							{@render children()}
+						{/key}
+
+						{#snippet pending()}
+							<div class="flex min-h-screen w-full items-center justify-center">
+								<Spinner class="size-8" />
+							</div>
+						{/snippet}
+
+						{#snippet failed(error, reset)}
+							<BoundaryFailure {error} {reset} />
+						{/snippet}
+					</svelte:boundary>
+				</div>
+
+				<nav
+					class="bg-card border-border fixed inset-x-0 bottom-0 z-40 grid h-[3.375rem] grid-cols-4 border-t md:hidden"
+					aria-label="Mobile navigation"
+				>
+					{#each mobileNavigation as item (item.url)}
+						<a
+							href={item.url}
+							class="flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 text-[0.625rem] font-semibold {isRouteActive(
+								item.url
+							)
+								? 'text-primary'
+								: 'text-muted-foreground'}"
+							aria-current={isRouteActive(item.url) ? 'page' : undefined}
+						>
+							<item.icon class="size-[1.1rem]" />
+							<span class="truncate">{item.title}</span>
+						</a>
+					{/each}
+				</nav>
+			</Sidebar.Inset>
+		</Sidebar.Provider>
+	</div>
+	{#if sessionRecovery.active}
+		<SessionRecoveryScreen stage={sessionRecovery.stage} />
+	{/if}
 
 	{#snippet failed(error, reset)}
 		<BoundaryFailure {error} {reset} />

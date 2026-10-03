@@ -4,6 +4,12 @@ export class StudentVueSessionExpiredError extends Error {
 	readonly code = 'UPSTREAM_SESSION_EXPIRED';
 }
 
+export class StudentVueAppSessionInvalidError extends Error {
+	readonly code = 'APP_SESSION_INVALID';
+}
+
+export class StudentVueAuthenticationError extends Error {}
+
 const localSessionRequestTails = new Map<string, Promise<void>>();
 
 export function serializedStudentVueRequest<T>(sessionId: string, operation: () => Promise<T>) {
@@ -30,8 +36,7 @@ export function serializedStudentVueRequest<T>(sessionId: string, operation: () 
 export async function apiRequest<T>(
 	path: string,
 	init: RequestInit = {},
-	redirectOnUnauthorized = true,
-	expectedSessionId?: string
+	redirectOnUnauthorized = true
 ): Promise<T> {
 	const method = (init.method ?? 'GET').toUpperCase();
 	// A Worker/platform 500 is sometimes transient during a cold start or a
@@ -61,6 +66,10 @@ export async function apiRequest<T>(
 		if (response.ok) return response.json() as Promise<T>;
 		const payload = (await response.json().catch(() => undefined)) as
 			{ message?: string; code?: string } | undefined;
+		if (path === '/api/session' && method === 'POST' && response.status === 401)
+			throw new StudentVueAuthenticationError(
+				payload?.message ?? 'StudentVUE authentication failed.'
+			);
 		if (attempt < maximumRetries && retryableStatuses.has(response.status)) {
 			await retryDelay(attempt, response.headers.get('retry-after'));
 			continue;
@@ -77,14 +86,13 @@ export async function apiRequest<T>(
 		if (
 			redirectOnUnauthorized &&
 			response.status === 401 &&
-			payload?.code === 'APP_SESSION_INVALID' &&
-			typeof window !== 'undefined'
+			payload?.code === 'APP_SESSION_INVALID'
 		) {
-			// An expired or invalid portal session must clear every cached client store. Use a
-			// full navigation so module-level Svelte state cannot survive into the next account.
-			if (!expectedSessionId || storedSessionId() === expectedSessionId)
-				localStorage.removeItem('token');
-			window.location.assign('/login?sessionExpired=true');
+			// Give the matching encrypted vault a chance to restore this session before
+			// clearing identity or navigating to sign-in.
+			throw new StudentVueAppSessionInvalidError(
+				payload.message ?? 'Your StudentVUE session has expired. Please sign in again.'
+			);
 		}
 		// Unknown 401s must not erase local data. Only the explicit app-session code above
 		// proves this browser cannot resume; portal outages and proxy failures can otherwise
@@ -100,15 +108,6 @@ export function normalizedDomain(value: string) {
 		return new URL(value.includes('://') ? value : `https://${value}`).host.toLowerCase();
 	} catch {
 		return value.trim().toLowerCase();
-	}
-}
-
-function storedSessionId() {
-	try {
-		const value = JSON.parse(localStorage.getItem('token') ?? '') as { sessionId?: unknown };
-		return typeof value.sessionId === 'string' ? value.sessionId : undefined;
-	} catch {
-		return undefined;
 	}
 }
 

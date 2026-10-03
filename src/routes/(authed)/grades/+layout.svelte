@@ -53,7 +53,8 @@
 		try {
 			await switchReportPeriod({
 				overrideIndex: gradebookCatalog?.overrideIndex,
-				forceRefresh: true
+				forceRefresh: true,
+				fresh: true
 			});
 		} catch {
 			// The shared gradebook state and toast already expose the failure.

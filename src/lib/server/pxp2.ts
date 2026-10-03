@@ -165,10 +165,12 @@ export class Pxp2Client {
 		await this.pageHtml('studentInfo');
 	}
 
-	async gradebook(reportPeriod?: number, summary = false): Promise<PortalGradebook> {
+	async gradebook(reportPeriod?: number, summary = false, fresh = false): Promise<PortalGradebook> {
 		// A StudentVUE login has one mutable gradebook focus. Serialize whole gradebook
 		// reads so two tabs requesting different periods cannot corrupt one another.
-		const result = this.gradebookTail.then(() => this.loadGradebook(reportPeriod, summary));
+		const result = this.gradebookTail.then(() =>
+			this.loadGradebook(reportPeriod, fresh ? false : summary, fresh)
+		);
 		this.gradebookTail = result.then(
 			() => undefined,
 			() => undefined
@@ -176,11 +178,19 @@ export class Pxp2Client {
 		return result;
 	}
 
-	private async loadGradebook(reportPeriod?: number, summary = false): Promise<PortalGradebook> {
+	private async loadGradebook(
+		reportPeriod?: number,
+		summary = false,
+		fresh = false
+	): Promise<PortalGradebook> {
 		let html: string;
 		let focus: { FocusArgs?: Record<string, unknown> } | undefined;
 		let periods: GradingPeriod[];
-		const cached = await this.loadCachedGradebookState(reportPeriod);
+		// An explicit refresh reloads the canonical portal context as well as every
+		// class. The compact context is metadata, not a cached grade response, but
+		// its period catalog can become stale after a district changes terms.
+		if (fresh) this.gradebookContext = undefined;
+		const cached = fresh ? undefined : await this.loadCachedGradebookState(reportPeriod);
 		if (cached) {
 			html = cached.html;
 			periods = cached.context.periods.map((period) => ({
@@ -950,7 +960,12 @@ export class Pxp2Client {
 		let response: Response;
 		const startedAt = performance.now();
 		try {
-			response = await fetch(url, { ...init, headers, signal: init.signal ?? controller.signal });
+			response = await fetch(url, {
+				...init,
+				cache: 'no-store',
+				headers,
+				signal: init.signal ?? controller.signal
+			});
 		} catch (cause) {
 			const durationMs = Math.round(performance.now() - startedAt);
 			if (controller.signal.aborted) {
