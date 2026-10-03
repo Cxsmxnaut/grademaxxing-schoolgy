@@ -12,6 +12,7 @@ import {
 } from '$lib/server/pxp2';
 import {
 	courseAssignment,
+	gradeCategories,
 	missingGradedAssignmentIds,
 	reconcileAssignmentPoints
 } from '$lib/server/pxp2/parsers';
@@ -19,6 +20,234 @@ import { parseGradebookXML } from '$lib/synergy';
 import { afterEach, expect, test, vi } from 'vitest';
 
 afterEach(() => vi.unstubAllGlobals());
+
+test('category rules retain omitted zero weights and inactive future weights without inventing active totals', () => {
+	expect(
+		gradeCategories({
+			isAssignmentWeightingOn: true,
+			measureTypes: [
+				{ id: 'practice', name: 'Practice', weight: 0 },
+				{ id: 'pending-practice', name: 'Pending practice', weight: '0.00%' },
+				{ id: 'tests', name: 'Tests', weight: 85 },
+				{ id: 'final', name: 'Final', weight: 15 },
+				{ id: 'active-missing', name: 'Active missing', weight: 20 },
+				{ id: 'unused', name: 'Unused practice', weight: 0 },
+				{ id: 'unknown', name: 'Unknown' },
+				{ id: 'blank', name: 'Blank', weight: '' },
+				{ id: 'malformed', name: 'Malformed', weight: 'unknown 0' }
+			],
+			assignments: [
+				{ gradeBookId: 'practice-1', measureTypeId: 'practice', score: 9 },
+				{ gradeBookId: 'pending-1', measureTypeId: 'pending-practice' },
+				{ gradeBookId: 'test-1', measureTypeId: 'tests', score: 8 },
+				{ gradeBookId: 'active-missing-1', measureTypeId: 'active-missing', score: 5 },
+				{ gradeBookId: 'unknown-1', measureTypeId: 'unknown', score: 5 },
+				{ gradeBookId: 'blank-1', measureTypeId: 'blank', score: 5 },
+				{ gradeBookId: 'malformed-1', measureTypeId: 'malformed', score: 5 }
+			],
+			measureTypeGrades: [
+				{ measureTypeId: 'tests', measureTypeWeight: 85, points: 8, pointsPossible: 10 }
+			]
+		})
+	).toEqual([
+		{
+			name: 'Tests',
+			weight: '85',
+			points: '8',
+			pointsPossible: '10',
+			weightedPercentage: '68',
+			calculatedMark: ''
+		},
+		{
+			name: 'Practice',
+			weight: '0',
+			points: '0',
+			pointsPossible: '0',
+			weightedPercentage: '0',
+			calculatedMark: ''
+		},
+		{
+			name: 'Pending practice',
+			weight: '0',
+			points: '0',
+			pointsPossible: '0',
+			weightedPercentage: '0',
+			calculatedMark: ''
+		},
+		{
+			name: 'Final',
+			weight: '15',
+			points: '0',
+			pointsPossible: '0',
+			weightedPercentage: '0',
+			calculatedMark: ''
+		}
+	]);
+});
+
+test('zero-weight definitions preserve existing totals and do not change point-based courses', () => {
+	const classData = {
+		isAssignmentWeightingOn: true,
+		measureTypes: [{ id: 'practice', name: 'Practice', weight: 0 }],
+		assignments: [{ gradeBookId: 'practice-1', measureTypeId: 'practice', score: 9 }],
+		measureTypeGrades: [
+			{ measureTypeId: 'practice', measureTypeWeight: 0, points: 9, pointsPossible: 10 }
+		]
+	};
+	expect(gradeCategories(classData)).toMatchObject([
+		{ name: 'Practice', weight: '0', points: '9', pointsPossible: '10' }
+	]);
+	expect(gradeCategories({ ...classData, isAssignmentWeightingOn: false })).toEqual([]);
+});
+
+test.each([0, '0%', '0.00', '100.0%', '85.5'])(
+	'category summary accepts an explicit numeric weight %s',
+	(weight) => {
+		expect(
+			gradeCategories({
+				isAssignmentWeightingOn: true,
+				measureTypes: [{ id: 'tests', name: 'Tests' }],
+				assignments: [{ gradeBookId: 'test-1', measureTypeId: 'tests', score: 8 }],
+				measureTypeGrades: [
+					{ measureTypeId: 'tests', measureTypeWeight: weight, points: 8, pointsPossible: 10 }
+				]
+			})
+		).toMatchObject([
+			{
+				name: 'Tests',
+				weight: String(Number(String(weight).replace('%', ''))),
+				points: '8',
+				pointsPossible: '10'
+			}
+		]);
+	}
+);
+
+test.each(['unknown 0', 'weight 100%', '', ' ', null, -1, Infinity])(
+	'category summary cannot establish a weight from %s',
+	(weight) => {
+		expect(
+			gradeCategories({
+				isAssignmentWeightingOn: true,
+				measureTypes: [{ id: 'tests', name: 'Tests', weight: 100 }],
+				assignments: [{ gradeBookId: 'test-1', measureTypeId: 'tests', score: 8 }],
+				measureTypeGrades: [
+					{ measureTypeId: 'tests', measureTypeWeight: weight, points: 8, pointsPossible: 10 }
+				]
+			})
+		).toEqual([]);
+	}
+);
+
+test.each(['assignment-grid', 'course-content'])(
+	'complete gradebook %s path preserves omitted zero weights and posted category totals',
+	async (source) => {
+		const focus = JSON.stringify({
+			LoadParams: { ControlName: 'Gradebook_ClassDetails' },
+			FocusArgs: { classID: 'course-1' }
+		}).replaceAll('"', '&quot;');
+		const page = `<title>StudentVUE</title>
+		<script>PXP.GBCurrentFocus = {"FocusArgs":{"gradePeriodGU":"period-1","AGU":"synthetic-student"}};</script>
+		<script>PXP.GBFocusData = {"GradingPeriods":[{"GU":"period-1","schoolID":"school","OrgYearGU":"year","defaultFocus":true,"Name":"Quarter 1","MarkPeriods":[{"GU":"mark-1","Name":"Quarter 1"}]}]};</script>
+		<div class="gb-class-header"><span class="course-title" data-focus="${focus}">1: Synthetic course</span></div>
+		<div class="gb-class-row" data-guid="course-1"><span class="mark">B</span></div>`;
+		const grid = `<div id="current-grade"><span class="mark">B</span><span class="score">80%</span></div>
+		<script>{"dataSource":[{"CategoryName":"Tests","Weight":"85%","Points":"8","PointsPossible":"10"}]}</script>
+		<div id="AssignmentsGrid"></div><script>{"dataSource":[
+		{"gradeBookId":"practice-1","Date":"9/20/26","GBAssignment":"Synthetic practice","GBAssignmentType":"Practice","GBScore":"9 out of 10","GBPoints":"9/10"},
+		{"gradeBookId":"test-1","Date":"9/20/26","GBAssignment":"Synthetic test","GBAssignmentType":"Tests","GBScore":"8 out of 10","GBPoints":"8/10"}
+		]}</script>`;
+		vi.stubGlobal(
+			'fetch',
+			vi.fn<typeof fetch>().mockImplementation(async (input) => {
+				const path = String(input);
+				if (path.includes('PXP2_Gradebook.aspx')) return new Response(page);
+				if (path.includes('GradebookFocusClassInfo'))
+					return new Response(
+						JSON.stringify({
+							d: { Data: { Classes: [{ ID: 'course-1', Name: 'Synthetic course' }] } }
+						})
+					);
+				if (path.includes('PXP2Communication.asmx/LoadControl'))
+					return new Response(
+						JSON.stringify({
+							d: {
+								Data: {
+									html: source === 'assignment-grid' ? grid : '<div>Legacy class detail</div>'
+								}
+							}
+						})
+					);
+				if (path.includes('genericdata.classdata-GetClassData'))
+					return new Response(
+						JSON.stringify({
+							enabled: true,
+							isAssignmentWeightingOn: true,
+							students: [{ calculatedMark: 'B', percentage: '80' }],
+							measureTypes: [
+								{ id: 'practice', name: 'Practice', weight: 0 },
+								{ id: 'tests', name: 'Tests', weight: 85 },
+								{ id: 'final', name: 'Final', weight: 15 }
+							],
+							measureTypeGrades: [
+								{ measureTypeId: 'tests', measureTypeWeight: 85, points: 8.5, pointsPossible: 10 }
+							],
+							assignments: [
+								{ gradeBookId: 'practice-1', measureTypeId: 'practice', score: 9 },
+								{ gradeBookId: 'test-1', measureTypeId: 'tests', score: 8 }
+							]
+						})
+					);
+				if (path.includes('pxp.course.content.items-LoadWithOptions'))
+					return new Response(
+						JSON.stringify({
+							responseData: {
+								data: [
+									{
+										itemID: 'practice-1',
+										title: 'Synthetic practice',
+										date: '9/20/2026',
+										points: 9,
+										pointsPossible: 10
+									},
+									{
+										itemID: 'test-1',
+										title: 'Synthetic test',
+										date: '9/20/2026',
+										points: 8,
+										pointsPossible: 10
+									}
+								]
+							}
+						})
+					);
+				if (path.includes('pxp.course.grade.card-get'))
+					return new Response(JSON.stringify({ classGrade: 'B', classPct: '80' }));
+				throw new Error(`Unexpected portal request: ${path}`);
+			})
+		);
+		const client = Pxp2Client.resume({
+			baseUrl: 'https://ca-example-psv.edupoint.com/',
+			cookies: { ASP_NET_SessionId: 'synthetic-session' }
+		});
+		const gradebook = await client.gradebook();
+		expect(gradebook.courses[0]?.categories).toMatchObject([
+			{
+				name: 'Tests',
+				weight: '85',
+				points: source === 'assignment-grid' ? '8' : '8.5',
+				pointsPossible: '10'
+			},
+			{ name: 'Practice', weight: '0', points: '0', pointsPossible: '0' },
+			{ name: 'Final', weight: '15', points: '0', pointsPossible: '0' }
+		]);
+		expect(gradebook.courses[0]?.categories).toHaveLength(3);
+		expect(gradebook.courses[0]?.assignments.map((assignment) => assignment.Type)).toEqual([
+			'Practice',
+			'Tests'
+		]);
+	}
+);
 
 test('keep-alive touches an authenticated lightweight StudentVUE page', async () => {
 	const fetchMock = vi

@@ -343,10 +343,25 @@ export class Pxp2Client {
 				const recovered = classData
 					? await recoverMissingAssignments(classData, detail.assignments, focus)
 					: [];
+				const structuredCategories = classData ? gradeCategories(classData) : [];
+				const renderedNames = new Set(detail.categories.map((category) => category.name));
+				const usedCategoryNames = new Set(
+					classData ? assignmentCategories(classData).values() : []
+				);
 				const categories =
-					detail.categories.length > 0 || !classData
-						? detail.categories
-						: gradeCategories(classData);
+					detail.categories.length > 0
+						? [
+								...detail.categories,
+								...structuredCategories.filter(
+									(category) =>
+										!renderedNames.has(category.name) &&
+										(Number(category.weight) === 0 ||
+											(!usedCategoryNames.has(category.name) &&
+												Number(category.points) === 0 &&
+												Number(category.pointsPossible) === 0))
+								)
+							]
+						: structuredCategories;
 				const authoritativeGrade = classData?.students?.[0];
 				const letter =
 					detail.letter ||

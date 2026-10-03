@@ -27,14 +27,17 @@ export function calculateCourseGradePercentageFromCategories(
 	for (const [categoryName, categoryPoints] of Object.entries(pointsByCategory)) {
 		const category = gradeCategories.find((category) => category.name === categoryName);
 		if (!category) continue;
-		if (!Number.isFinite(category.weightPercentage)) return NaN;
-		if (category.weightPercentage <= 0) continue;
+		if (!Number.isFinite(category.weightPercentage) || category.weightPercentage < 0) return NaN;
+		if (category.weightPercentage === 0) continue;
 		if (
 			!Number.isFinite(categoryPoints.pointsEarned) ||
 			!Number.isFinite(categoryPoints.pointsPossible) ||
-			categoryPoints.pointsPossible <= 0
+			categoryPoints.pointsPossible < 0
 		)
 			return NaN;
+		// An empty or extra-credit-only category has no percentage yet. Keep its
+		// points in the model so future graded work activates the whole category.
+		if (categoryPoints.pointsPossible === 0) continue;
 
 		gradePercentage +=
 			(categoryPoints.pointsEarned / categoryPoints.pointsPossible) * category.weightPercentage;

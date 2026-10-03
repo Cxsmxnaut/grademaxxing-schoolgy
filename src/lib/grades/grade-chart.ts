@@ -7,6 +7,7 @@ import {
 	type Assignment,
 	type Category
 } from './assignments';
+import { getModelAssignments } from './calculation-coverage';
 
 const DEFAULT_GRADE_CHART_DOMAIN: readonly [number, number] = [0, 100];
 
@@ -24,27 +25,10 @@ export function getEstimatedGradeTrend(
 ): EstimatedGradePoint[] {
 	if (officialCurrentPercentage === undefined || !Number.isFinite(officialCurrentPercentage))
 		return [];
-	if (
-		assignments.some((assignment) => {
-			if (assignment.notForGrade) return false;
-			if (assignment.calculationUnavailable) return true;
-			const hasGrade =
-				assignment.pointsEarned !== undefined ||
-				assignment.officialPercentage !== undefined ||
-				assignment.unscaledPoints !== undefined;
-			if (!hasGrade) return false;
-			if (gradeCategories && !gradeCategories.some(({ name }) => name === assignment.category))
-				return true;
-			return gradeCategories
-				? getCalculableAssignmentsWithCategories([assignment]).length === 0
-				: getCalculableAssignments([assignment]).length === 0;
-		})
-	)
-		return [];
-
+	const modelAssignments = getModelAssignments(assignments, gradeCategories);
 	const calculable = gradeCategories
-		? getCalculableAssignmentsWithCategories([...assignments])
-		: getCalculableAssignments([...assignments]);
+		? getCalculableAssignmentsWithCategories(modelAssignments)
+		: getCalculableAssignments(modelAssignments);
 	const byDate = new Map<number, Assignment[]>();
 	for (const assignment of calculable) {
 		const date = assignment.date.getTime();

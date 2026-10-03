@@ -227,7 +227,7 @@ test.each(['0 / ', '2 / '])(
 				category('Bonus', 50),
 				category('Homework', 50)
 			])
-		).toBeNaN();
+		).toBe(80);
 		expect(
 			calculateAssignmentGPCsFromCategories([bonus], [category('Bonus')])[0]?.gradePercentageChange
 		).toBeUndefined();

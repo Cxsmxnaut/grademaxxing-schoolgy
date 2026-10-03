@@ -581,6 +581,143 @@ test('the finals planner reaches its target in the anchored hypothetical calcula
 	await expect(page.getByText('+3.00% vs actual')).toBeVisible();
 });
 
+test('zero-weight practice leaves planning available and an inactive final can be modeled', async ({
+	page
+}) => {
+	const rows = `<Assignment GradebookID="test" Measure="Current test" Type="Tests" Date="9/1/2026" Point="8" PointPossible="10" Points="8 / 10" AssignmentPercentage="80" DisplayScore="8 out of 10" Notes="" MeasureDescription=""/><Assignment GradebookID="practice" Measure="Practice work" Type="Practice" Date="9/2/2026" Point="0" PointPossible="10" Points="0 / 10" AssignmentPercentage="0" DisplayScore="0 out of 10" Notes="" MeasureDescription=""/>`;
+	const summary = `<GradeCalculationSummary><AssignmentGradeCalc Type="Tests" Weight="85" Points="8" PointsPossible="10" WeightedPct="68" CalculatedMark="B"/><AssignmentGradeCalc Type="Practice" Weight="0" Points="0" PointsPossible="0" WeightedPct="0" CalculatedMark=""/><AssignmentGradeCalc Type="Final" Weight="15" Points="0" PointsPossible="0" WeightedPct="0" CalculatedMark=""/></GradeCalculationSummary>`;
+	await page.route('**/api/studentvue/gradebook*', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({ xml: assignmentEvidenceXml('80', rows, summary) })
+		})
+	);
+	await page.goto('/grades/assignment-evidence');
+	await expect(page.getByLabel('Hypothetical mode')).toBeEnabled();
+	await page.getByLabel('Show category breakdown').check();
+	await expect(page.getByText('Not included in grade totals', { exact: true })).toBeVisible();
+	await expect(page.getByText('No graded points yet', { exact: true })).toBeVisible();
+	await page.getByLabel('Hypothetical mode').check();
+	const practice = page
+		.getByRole('tabpanel')
+		.filter({ visible: true })
+		.locator('li')
+		.filter({ hasText: 'Practice work' });
+	await practice.getByRole('spinbutton', { name: 'Points earned', exact: true }).fill('10');
+	await expect(page.getByText('±0.00% vs actual')).toBeVisible();
+	await expect(page.getByTestId('partial-calculation-note')).toHaveCount(0);
+	await page.getByRole('button', { name: /Finals Planner/ }).click();
+	const planner = page.getByRole('region', { name: 'Finals Planner' });
+	await expect(planner.getByLabel('Final category').locator('option')).toHaveText([
+		'Tests',
+		'Final'
+	]);
+	await planner.getByLabel('Final category').selectOption('Final');
+	await planner.getByLabel('Target grade').selectOption('83');
+	await expect(planner.getByText('100 / 100', { exact: true })).toBeVisible();
+	const form = page.getByRole('form', { name: 'Add what-if assignment' });
+	await form.getByLabel('Category for the what-if assignment').selectOption('Final');
+	await form.getByLabel('What-if score').fill('100');
+	await form.getByLabel('What-if points possible').fill('100');
+	await form.getByRole('button', { name: 'Add', exact: true }).click();
+	await expect(page.locator('header').getByText('83%', { exact: true })).toBeVisible();
+});
+
+test('one unsupported assignment preserves supported what-if tools and a labeled estimated trend', async ({
+	page
+}) => {
+	const rows = `<Assignment GradebookID="first" Measure="Earlier supported work" Type="Homework" Date="9/1/2026" Point="10" PointPossible="10" Points="10 / 10" AssignmentPercentage="100" DisplayScore="10 out of 10" Notes="" MeasureDescription=""/><Assignment GradebookID="second" Measure="Later supported work" Type="Homework" Date="9/2/2026" Point="8" PointPossible="10" Points="8 / 10" AssignmentPercentage="80" DisplayScore="8 out of 10" Notes="" MeasureDescription=""/><Assignment GradebookID="unknown" Measure="Unknown scale work" Type="Homework" Date="9/3/2026" ScoreCalValue="8" ScoreMaxValue="10" Points="Points Possible" AssignmentPercentage="80" DisplayScore="8 out of 10" CalculationUnavailable="true" Notes="" MeasureDescription=""/>`;
+	await page.route('**/api/studentvue/gradebook*', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({ xml: assignmentEvidenceXml('90', rows) })
+		})
+	);
+	await page.goto('/grades/assignment-evidence');
+	await expect(page.getByTestId('grade-trend-chart')).toBeVisible();
+	await expect(page.getByText('Estimated trend', { exact: true })).toBeVisible();
+	await expect(
+		page.getByText(/Based only on assignments with supported grading data/)
+	).toBeVisible();
+	await page.getByLabel('Hypothetical mode').check();
+	await expect(page.getByText('±0.00% vs actual')).toBeVisible();
+	await expect(page.getByTestId('partial-calculation-note')).toBeVisible();
+	const activeRows = page.getByRole('tabpanel').filter({ visible: true }).locator('li');
+	const unknown = activeRows.filter({ hasText: 'Unknown scale work' });
+	await expect(
+		unknown.getByRole('spinbutton', { name: 'Points earned', exact: true })
+	).toBeDisabled();
+	await expect(
+		unknown.getByRole('spinbutton', { name: 'Points possible', exact: true })
+	).toBeDisabled();
+	const supported = activeRows.filter({ hasText: 'Later supported work' });
+	await supported.getByRole('spinbutton', { name: 'Points earned', exact: true }).fill('10');
+	await expect(page.locator('header').getByText('100%', { exact: true })).toBeVisible();
+	await page.getByRole('button', { name: /Finals Planner/ }).click();
+	await expect(page.getByRole('region', { name: 'Finals Planner' })).toContainText(
+		'Estimated score:'
+	);
+	// Temporary invalid points must stay editable and recover, rather than silently omitting the row.
+	await supported.getByRole('spinbutton', { name: 'Points possible', exact: true }).fill('0');
+	await expect(page.getByText(/Enter valid points to update the estimate/)).toBeVisible();
+	await expect(page.getByRole('region', { name: 'Finals Planner' })).toContainText(
+		'Complete the assignment points'
+	);
+	await expect(
+		page.getByRole('region', { name: 'Finals Planner' }).getByText('Estimated score:')
+	).toHaveCount(0);
+	await expect(
+		supported.getByRole('spinbutton', { name: 'Points possible', exact: true })
+	).toBeEnabled();
+	await supported.getByRole('spinbutton', { name: 'Points possible', exact: true }).fill('10');
+	await expect(page.locator('header').getByText('100%', { exact: true })).toBeVisible();
+	const form = page.getByRole('form', { name: 'Add what-if assignment' });
+	await form.getByLabel('What-if score').fill('10');
+	await form.getByLabel('What-if points possible').fill('10');
+	await form.getByRole('button', { name: 'Add', exact: true }).click();
+	const added = activeRows.filter({ hasText: 'What-if 1' });
+	await added.getByRole('spinbutton', { name: 'Points earned', exact: true }).fill('');
+	await expect(page.getByText(/Enter valid points to update the estimate/)).toBeVisible();
+	await expect(added.getByRole('spinbutton', { name: 'Points earned', exact: true })).toBeEnabled();
+	await added.getByRole('spinbutton', { name: 'Points earned', exact: true }).fill('10');
+	await expect(page.locator('header').getByText('100%', { exact: true })).toBeVisible();
+});
+
+test('an unknown category limits its row without disabling supported categories', async ({
+	page
+}) => {
+	const rows = `<Assignment GradebookID="known" Measure="Known category work" Type="Tests" Date="9/1/2026" Point="8" PointPossible="10" Points="8 / 10" AssignmentPercentage="80" DisplayScore="8 out of 10" Notes="" MeasureDescription=""/><Assignment GradebookID="unknown" Measure="Unknown category work" Type="Unmapped" Date="9/2/2026" Point="5" PointPossible="10" Points="5 / 10" AssignmentPercentage="50" DisplayScore="5 out of 10" Notes="" MeasureDescription=""/>`;
+	const summary = `<GradeCalculationSummary><AssignmentGradeCalc Type="Tests" Weight="100" Points="8" PointsPossible="10" WeightedPct="80" CalculatedMark="B"/></GradeCalculationSummary>`;
+	await page.route('**/api/studentvue/gradebook*', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({ xml: assignmentEvidenceXml('80', rows, summary) })
+		})
+	);
+	await page.goto('/grades/assignment-evidence');
+	await expect(page.getByLabel('Hypothetical mode')).toBeEnabled();
+	await page.getByLabel('Hypothetical mode').check();
+	const unknown = page
+		.getByRole('tabpanel')
+		.filter({ visible: true })
+		.locator('li')
+		.filter({ hasText: 'Unknown category work' });
+	await expect(
+		unknown.getByRole('spinbutton', { name: 'Points earned', exact: true })
+	).toBeDisabled();
+	await expect(unknown.getByText('Category weight unavailable', { exact: true })).toBeVisible();
+	await expect(page.getByText('±0.00% vs actual')).toBeVisible();
+	await expect(page.getByTestId('partial-calculation-note')).toBeVisible();
+	await unknown.getByLabel('Category for Unknown category work').selectOption('Tests');
+	await expect(
+		unknown.getByRole('spinbutton', { name: 'Points earned', exact: true })
+	).toBeEnabled();
+	await expect(page.locator('header').getByText('65%', { exact: true })).toBeVisible();
+});
+
 test('saved official StudentVUE marks replace assignment estimates in the chart', async ({
 	page
 }) => {

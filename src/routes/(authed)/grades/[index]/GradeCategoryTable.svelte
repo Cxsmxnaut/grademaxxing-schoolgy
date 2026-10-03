@@ -72,16 +72,22 @@
 								/
 								{pointsByCategory.get(name)?.pointsPossible}
 							{/if}
+						{:else if pointsEarned === 0 && pointsPossible === 0}
+							<span class="text-muted-foreground">
+								{weightPercentage === 0 ? 'Not included in grade totals' : 'No graded points yet'}
+							</span>
 						{:else}
 							{pointsEarned} / {pointsPossible}
 						{/if}
 					</Table.Cell>
 					<Table.Cell>
 						{#if pointsEarned !== 0 || pointsPossible !== 0}
-							{#if !hypotheticalMode}
+							{#if !hypotheticalMode && pointsPossible === 0}
+								<span class="text-muted-foreground">No graded denominator yet</span>
+							{:else if !hypotheticalMode && pointsPossible > 0}
 								{gradeLetter}
 								({formatPercentage(calculateGradePercentage(pointsEarned, pointsPossible))}%)
-							{:else if categoryGradePercentages.has(name)}
+							{:else if hypotheticalMode && Number.isFinite(categoryGradePercentages.get(name))}
 								{formatPercentage(categoryGradePercentages.get(name)!)}%
 							{/if}
 						{/if}

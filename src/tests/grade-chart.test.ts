@@ -1,4 +1,4 @@
-import type { Assignment } from '$lib/grades/assignments';
+import type { Assignment, Category } from '$lib/grades/assignments';
 import { getEstimatedGradeTrend, getGradeChartDomain } from '$lib/grades/grade-chart';
 import { describe, expect, it } from 'vitest';
 
@@ -40,6 +40,14 @@ describe('estimated grade history', () => {
 		hidden: false,
 		category: 'Homework',
 		newHypothetical: false
+	});
+	const category = (name: string, weightPercentage: number): Category => ({
+		name,
+		weightPercentage,
+		pointsEarned: 1,
+		pointsPossible: 1,
+		weightedPercentage: 100,
+		gradeLetter: 'A'
 	});
 
 	it('uses corrected StudentVUE assignment points when they reproduce the official mark', () => {
@@ -100,25 +108,31 @@ describe('estimated grade history', () => {
 		expect(rounded.pointsEarned).toBe(1);
 	});
 
-	it('does not show a partial trend when a graded assignment has no weighted maximum', () => {
+	it('keeps supported dates when another graded assignment has no weighted maximum', () => {
 		const unavailable = {
 			...assignment('Unknown weight', 20, 8, 10),
 			pointsPossible: undefined,
 			unscaledPoints: { pointsEarned: 8, pointsPossible: 10 }
 		};
-		expect(
-			getEstimatedGradeTrend([assignment('Earlier', 19, 1, 1), unavailable], undefined, 90)
-		).toEqual([]);
+		const points = getEstimatedGradeTrend(
+			[assignment('Earlier', 18, 1, 1), assignment('Later', 19, 0.8, 1), unavailable],
+			undefined,
+			90
+		);
+		expect(points.map(({ percentage }) => percentage)).toEqual([100, 90]);
+		expect(points.flatMap(({ assignmentNames }) => assignmentNames)).toEqual(['Earlier', 'Later']);
 	});
 
-	it('does not show a partial trend when a complete point pair has ambiguous scale', () => {
+	it('keeps supported dates when another complete point pair has ambiguous scale', () => {
 		const unavailable = {
 			...assignment('Ambiguous scale', 20, 8, 1),
 			calculationUnavailable: true
 		};
 		expect(
-			getEstimatedGradeTrend([assignment('Earlier', 19, 1, 1), unavailable], undefined, 90)
-		).toEqual([]);
+			getEstimatedGradeTrend([assignment('Earlier', 19, 1, 1), unavailable], undefined, 90).map(
+				({ percentage }) => percentage
+			)
+		).toEqual([90]);
 	});
 
 	it('pending work does not block a trend from known graded rows', () => {
@@ -130,20 +144,76 @@ describe('estimated grade history', () => {
 		).toEqual([90]);
 	});
 
-	it('does not show a partial weighted trend when a graded row has an unknown category', () => {
+	it('keeps a supported weighted trend when a graded row has an unknown category', () => {
 		const unknownCategory = { ...assignment('Unknown category', 20, 8, 10), category: 'Other' };
-		const categories = [
-			{
-				name: 'Homework',
-				weightPercentage: 100,
-				pointsEarned: 1,
-				pointsPossible: 1,
-				weightedPercentage: 100,
-				gradeLetter: 'A'
-			}
-		];
+		const categories = [category('Homework', 100)];
 		expect(
-			getEstimatedGradeTrend([assignment('Earlier', 19, 1, 1), unknownCategory], categories, 90)
-		).toEqual([]);
+			getEstimatedGradeTrend(
+				[assignment('Earlier', 19, 1, 1), unknownCategory],
+				categories,
+				90
+			).map(({ percentage }) => percentage)
+		).toEqual([90]);
+	});
+
+	it('zero-weight practice does not add a date or change a weighted trend', () => {
+		const practice = {
+			...assignment('Practice', 19, 90, 1),
+			category: 'Practice',
+			calculationUnavailable: true
+		};
+		const known = [assignment('Earlier', 18, 1, 1), assignment('Later', 20, 0.8, 1)];
+		const categories = [category('Homework', 100), category('Practice', 0)];
+		expect(getEstimatedGradeTrend([...known, practice], categories, 90)).toEqual(
+			getEstimatedGradeTrend(known, categories, 90)
+		);
+	});
+
+	it('ignores invalid category weights while retaining supported categories', () => {
+		const invalidCategory = { ...assignment('Invalid category', 20, 8, 10), category: 'Other' };
+		for (const weight of [NaN, Infinity, -1]) {
+			const points = getEstimatedGradeTrend(
+				[assignment('Earlier', 19, 1, 1), invalidCategory],
+				[category('Homework', 100), category('Other', weight)],
+				90
+			);
+			expect(points.map(({ percentage }) => percentage)).toEqual([90]);
+		}
+	});
+
+	it('returns no estimated points when every recorded assignment is unsupported', () => {
+		const unsupported = {
+			...assignment('Unsupported', 19, 8, 1),
+			calculationUnavailable: true
+		};
+		expect(getEstimatedGradeTrend([unsupported], undefined, 90)).toEqual([]);
+	});
+
+	it('excludes non-finite points and invalid dates instead of adding invalid chart points', () => {
+		const points = getEstimatedGradeTrend(
+			[
+				assignment('Earlier', 19, 1, 1),
+				assignment('Infinite', 20, Infinity, 1),
+				assignment('Not a number', 20, 1, NaN),
+				{ ...assignment('No date', 20, 1, 1), date: new Date(NaN) }
+			],
+			undefined,
+			90
+		);
+		expect(points).toHaveLength(1);
+		expect(points[0]!.assignmentNames).toEqual(['Earlier']);
+		expect(points[0]!.percentage).toBe(90);
+		expect(
+			points.every(
+				({ observedAt, percentage }) => Number.isFinite(observedAt) && Number.isFinite(percentage)
+			)
+		).toBe(true);
+	});
+
+	it('requires a finite official anchor for any reconstructed trend', () => {
+		for (const anchor of [undefined, NaN, Infinity])
+			expect(getEstimatedGradeTrend([assignment('Earlier', 19, 1, 1)], undefined, anchor)).toEqual(
+				[]
+			);
 	});
 });

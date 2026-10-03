@@ -14,7 +14,6 @@
 		calculateCourseGradePercentageFromCategories,
 		calculateCourseGradePercentageFromTotals,
 		type AdjustmentAssignment,
-		type Assignment,
 		type Category,
 		type Flowed,
 		getCalculableAssignments,
@@ -29,6 +28,12 @@
 		type ReactiveAssignment,
 		type RealAssignment
 	} from '$lib/grades/assignments';
+	import {
+		getAssignmentCalculationIssue,
+		getCalculationCoverage,
+		getModelAssignments,
+		hasRecordedGrade
+	} from '$lib/grades/calculation-coverage';
 	import { getSynergyCourseAssignmentCategories } from '$lib/grades/course';
 	import {
 		estimateHypotheticalLetter,
@@ -130,29 +135,13 @@
 	let hypotheticalGrade = $state(NaN);
 	/** Local grade computed from the untouched gradebook; hypothetical deltas are measured from it. */
 	let baselineGrade = $state(NaN);
+	let reactiveAssignments: ReactiveAssignment[] = $state([]);
 
-	function hasRecordedGrade(assignment: Assignment) {
-		return (
-			Number.isFinite(assignment.pointsEarned) ||
-			Number.isFinite(assignment.officialPercentage) ||
-			(assignment.unscaledPoints !== undefined &&
-				Number.isFinite(assignment.unscaledPoints.pointsEarned) &&
-				Number.isFinite(assignment.unscaledPoints.pointsPossible))
-		);
-	}
-
-	function hasCompleteCalculationInputs(source: Assignment[]) {
-		return source.every((assignment) => {
-			if (assignment.notForGrade || !hasRecordedGrade(assignment)) return true;
-			if (assignment.calculationUnavailable) return false;
-			if (gradeCategories && !gradeCategories.some(({ name }) => name === assignment.category))
-				return false;
-			return getCalculableAssignments([assignment]).length > 0;
-		});
-	}
-	const completeCalculationInputs = $derived(hasCompleteCalculationInputs(realAssignments));
+	const calculationCoverage = $derived(getCalculationCoverage(realAssignments, gradeCategories));
+	const modelAssignments = $derived(getModelAssignments(reactiveAssignments, gradeCategories));
 	const calculationAvailable = $derived(
-		completeCalculationInputs && Number.isFinite(baselineGrade)
+		Number.isFinite(baselineGrade) &&
+			getCalculableAssignments(getModelAssignments(assignments, gradeCategories)).length > 0
 	);
 	const officialGradeOffset = $derived(
 		synergyGradePercentage !== undefined && Number.isFinite(baselineGrade)
@@ -166,7 +155,11 @@
 		}
 	});
 	let rawGradeCalcMatches = $derived(
-		synergyGradePercentage === undefined || gradesMatch(calculatedGrade, synergyGradePercentage)
+		calculationCoverage.complete &&
+			(synergyGradePercentage === undefined || gradesMatch(calculatedGrade, synergyGradePercentage))
+	);
+	const partialEstimate = $derived(
+		!rawGradeCalcMatches || !getCalculationCoverage(reactiveAssignments, gradeCategories).complete
 	);
 
 	/**
@@ -185,8 +178,6 @@
 		return synergyGradePercentage + (computedGrade - baselineGrade);
 	}
 
-	let reactiveAssignments: ReactiveAssignment[] = $state([]);
-
 	function initReactiveAssignments() {
 		reactiveAssignments = assignments.map((assignment) => {
 			const reactiveAssignment: ReactiveAssignment = $state({ ...assignment, reactive: true });
@@ -194,7 +185,7 @@
 			return reactiveAssignment;
 		});
 
-		const calculable = getCalculableAssignments(assignments);
+		const calculable = getCalculableAssignments(getModelAssignments(assignments, gradeCategories));
 
 		calculatedGrade = gradeCategories
 			? calculateCourseGradePercentageFromCategories(
@@ -217,14 +208,43 @@
 	});
 
 	function recalculateGradePercentage() {
-		if (!hasCompleteCalculationInputs(reactiveAssignments)) {
+		const invalidEdit = reactiveAssignments.some((assignment) => {
+			if (assignment.notForGrade || assignment.hidden) return false;
+			if (
+				gradeCategories?.some(
+					({ name, weightPercentage }) => name === assignment.category && weightPercentage === 0
+				)
+			)
+				return false;
+			const original = realAssignments.find(({ id }) => id === assignment.id);
+			if (
+				!assignment.newHypothetical &&
+				(!original ||
+					getAssignmentCalculationIssue(
+						{ ...original, category: assignment.category },
+						gradeCategories
+					))
+			)
+				return false;
+			const needsScore =
+				assignment.newHypothetical ||
+				(original && hasRecordedGrade(original)) ||
+				assignment.pointsEarned !== undefined;
+			return (
+				needsScore &&
+				(!Number.isFinite(assignment.pointsEarned) ||
+					(!assignment.extraCredit &&
+						(!Number.isFinite(assignment.pointsPossible) || assignment.pointsPossible! <= 0)))
+			);
+		});
+		if (invalidEdit) {
 			hypotheticalGrade = NaN;
 			return;
 		}
 		if (gradeCategories === undefined) {
 			reactiveAssignments = calculateAssignmentGPCsFromTotals(reactiveAssignments);
 
-			const calculable = getCalculableAssignments(reactiveAssignments);
+			const calculable = getCalculableAssignments(modelAssignments);
 
 			hypotheticalGrade = anchorToOfficialScore(
 				calculateCourseGradePercentageFromTotals(calculable)
@@ -235,7 +255,7 @@
 				gradeCategories
 			);
 
-			const calculable = getCalculableAssignmentsWithCategories(reactiveAssignments);
+			const calculable = getCalculableAssignmentsWithCategories(modelAssignments);
 
 			hypotheticalGrade = anchorToOfficialScore(
 				calculateCourseGradePercentageFromCategories(
@@ -247,7 +267,7 @@
 	}
 
 	const pointsByCategory = $derived(
-		getPointsByCategoryMap(getCalculableAssignmentsWithCategories(reactiveAssignments))
+		getPointsByCategoryMap(getCalculableAssignmentsWithCategories(modelAssignments))
 	);
 	let showAllAssignmentsRevision = $state(0);
 
@@ -313,7 +333,13 @@
 	}
 	const gradeCategoryWeightProportions: Map<string, number> | undefined = $derived(
 		gradeCategories
-			? new Map(gradeCategories.map(({ name, weightPercentage }) => [name, weightPercentage / 100]))
+			? new Map(
+					gradeCategories
+						.filter(
+							({ weightPercentage }) => Number.isFinite(weightPercentage) && weightPercentage > 0
+						)
+						.map(({ name, weightPercentage }) => [name, weightPercentage / 100])
+				)
 			: undefined
 	);
 
@@ -441,10 +467,12 @@
 				<div transition:fade={{ duration: 160 }}>
 					<TargetGradeCalculator
 						initialGradePercentage={roundedGradePercentage}
-						assignments={reactiveAssignments}
+						assignments={modelAssignments}
 						{gradeCategoryWeightProportions}
 						{officialGradeOffset}
-						{calculationAvailable}
+						calculationAvailable={calculationAvailable &&
+							(!hypotheticalMode || Number.isFinite(hypotheticalGrade))}
+						{partialEstimate}
 					/>
 				</div>
 			{/if}
@@ -498,13 +526,27 @@
 
 		{#if !calculationAvailable}
 			<p class="text-muted-foreground mb-4 text-sm" role="status">
-				StudentVUE hasn't provided enough weighted point information for what-if calculations or the
-				Finals Planner. Your official grade is still shown. Refresh grades to try again.
+				Your official grade is shown. Planning becomes available when StudentVUE provides a graded
+				point total and the weights needed to model this class.
 			</p>
 		{:else if hypotheticalMode && !Number.isFinite(hypotheticalGrade)}
 			<p class="text-muted-foreground mb-4 text-sm" role="status">
-				These inputs don't define a calculable grade. Check the points possible and included
-				assignments.
+				Enter valid points to update the estimate. Points possible must be positive unless the
+				assignment is extra credit.
+			</p>
+		{:else if partialEstimate && (hypotheticalMode || showTargetGradeCalculator)}
+			<p
+				class="text-muted-foreground mb-4 text-sm"
+				role="status"
+				data-testid="partial-calculation-note"
+			>
+				{#if !calculationCoverage.complete}
+					Some assignment details are unavailable. You can model supported assignments; predictions
+					are estimates.
+				{:else}
+					Predictions are estimates because this class has grading rules that aren't fully reflected
+					in the assignment details.
+				{/if}
 			</p>
 		{/if}
 

@@ -34,11 +34,17 @@ export function calculatePointsNeededForTargetGrade<T extends Assignment>({
 	if (categoryDependentParams.hasCategories) {
 		const { otherAssignments, gradeCategoryWeightProportions, assignmentCategoryName } =
 			categoryDependentParams;
+		if (
+			[...gradeCategoryWeightProportions.values()].some(
+				(weight) => !Number.isFinite(weight) || weight < 0
+			)
+		)
+			return NaN;
 
 		// Get the weight proportion for the target assignment's category
 		const targetCategoryWeightProportion =
 			gradeCategoryWeightProportions.get(assignmentCategoryName);
-		if (!targetCategoryWeightProportion) {
+		if (!targetCategoryWeightProportion || targetCategoryWeightProportion <= 0) {
 			console.error(
 				`Cannot calculate points needed for target grade: gradeCategories does not contain ${assignmentCategoryName}`
 			);
@@ -47,15 +53,14 @@ export function calculatePointsNeededForTargetGrade<T extends Assignment>({
 
 		// Calculate categories' respective points earned/possible (excluding points from the target assignment)
 		const otherPointsByCategory = getPointsByCategoryMap(otherAssignments);
-		// An extra-credit-only category has no defined percentage to contribute
-		// to a different category's target. It cannot be silently discarded.
+		// Empty and extra-credit-only categories remain inactive until they have
+		// a positive denominator. Retain their bonus when targeting that category.
 		for (const [name, points] of otherPointsByCategory) {
 			if (gradeCategoryWeightProportions.get(name) === 0) continue;
 			if (
 				!Number.isFinite(points.pointsEarned) ||
 				!Number.isFinite(points.pointsPossible) ||
-				points.pointsPossible < 0 ||
-				(name !== assignmentCategoryName && points.pointsPossible === 0)
+				points.pointsPossible < 0
 			)
 				return NaN;
 		}

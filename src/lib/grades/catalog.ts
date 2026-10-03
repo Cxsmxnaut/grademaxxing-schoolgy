@@ -21,8 +21,8 @@ interface GradebookCatalogLocalStorageCache {
 	owner?: string;
 }
 
-// Refetch rows previously marked unavailable by nearest-rounding-only checks.
-const gradebookCacheVersion = 5;
+// Refetch category definitions, including explicitly non-calculating practice work.
+const gradebookCacheVersion = 6;
 
 export interface GradebookCatalog {
 	recordCache: (undefined | GradebookRecord)[];

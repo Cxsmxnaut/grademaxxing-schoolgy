@@ -24,6 +24,9 @@
 		unscaledPoints?: { pointsEarned: number; pointsPossible: number };
 		officialPercentage?: number;
 		calculationUnavailable?: boolean;
+		calculationIssue?: 'points' | 'category';
+		pointsScaleUnavailable?: boolean;
+		zeroWeightCategory?: boolean;
 		extraCredit?: boolean;
 		gradePercentageChange?: number;
 		notForGrade?: boolean;
@@ -56,6 +59,9 @@
 		unscaledPoints = $bindable(),
 		officialPercentage,
 		calculationUnavailable = false,
+		calculationIssue,
+		pointsScaleUnavailable = false,
+		zeroWeightCategory = false,
 		extraCredit = $bindable(false),
 		gradePercentageChange,
 		notForGrade = $bindable(false),
@@ -88,15 +94,21 @@
 	);
 	const isGraded = $derived(pointsEarned !== undefined || hasOfficialPercentage || hasRawScore);
 	const weightedPointsUnavailable = $derived(
-		calculationUnavailable ||
-			(!hasWeightedPoints &&
-				!(hasOfficialPercentage && pointsPossible !== undefined && pointsPossible > 0))
+		!zeroWeightCategory &&
+			(calculationIssue === 'points' ||
+				calculationUnavailable ||
+				(!hasWeightedPoints &&
+					!(hasOfficialPercentage && pointsPossible !== undefined && pointsPossible > 0)))
 	);
-	const cannotIncludeInGrade = $derived(
-		calculationUnavailable ||
-			pointsPossible === undefined ||
-			!Number.isFinite(pointsPossible) ||
-			pointsPossible < 0
+	const weightedBasisUnavailable = $derived(
+		calculationUnavailable || pointsScaleUnavailable || calculationIssue === 'points'
+	);
+	const cannotEditPoints = $derived(weightedBasisUnavailable || calculationIssue !== undefined);
+	const cannotIncludeInGrade = $derived(cannotEditPoints);
+	const calculationRestriction = $derived(
+		calculationIssue === 'category'
+			? 'StudentVUE has not supplied a valid weight for this category.'
+			: 'Weighted points are needed to change this assignment in a what-if grade.'
 	);
 	const percentage = $derived(
 		hasOfficialPercentage
@@ -194,12 +206,17 @@
 					class="bg-background h-[1.4375rem] max-w-44 rounded-full border px-2 text-[0.6875rem] font-semibold outline-none focus-visible:ring-2"
 					style={`border-color:${categorySelectColor};color:${categorySelectColor}`}
 					value={categoryDropdownSelected}
+					disabled={weightedBasisUnavailable}
+					title={weightedBasisUnavailable ? calculationRestriction : undefined}
 					onchange={(event) => {
 						categoryDropdownSelected = event.currentTarget.value || undefined;
 						recalculateGradePercentage();
 					}}
 				>
 					<option value="" disabled>Select category</option>
+					{#if categoryDropdownSelected && !categoryDropdown.names.has(categoryDropdownSelected)}
+						<option value={categoryDropdownSelected} disabled>{categoryDropdownSelected}</option>
+					{/if}
 					{#each categoryDropdown.names as dropdownCategory (dropdownCategory)}
 						<option value={dropdownCategory}>{dropdownCategory}</option>
 					{/each}
@@ -222,9 +239,7 @@
 						<Checkbox
 							bind:checked={notForGrade}
 							disabled={cannotIncludeInGrade}
-							title={cannotIncludeInGrade
-								? 'Weighted points are needed to include this assignment in a what-if grade.'
-								: undefined}
+							title={cannotIncludeInGrade ? calculationRestriction : undefined}
 							onchange={recalculateAfterInput}
 							id="{id}-not-for-grade"
 						/>
@@ -245,6 +260,8 @@
 					{#if editable}
 						<Checkbox
 							bind:checked={extraCredit}
+							disabled={cannotEditPoints}
+							title={cannotEditPoints ? calculationRestriction : undefined}
 							onchange={recalculateAfterInput}
 							id="{id}-extra-credit"
 						/>
@@ -329,6 +346,7 @@
 						title="Points earned"
 						class="h-[2.1875rem] w-[3.875rem] px-0 text-center font-mono text-[0.8125rem] sm:h-[1.9375rem] sm:w-[3.25rem]"
 						bind:value={pointsEarned}
+						disabled={cannotEditPoints}
 						oninput={recalculateAfterInput}
 					/>
 					/
@@ -336,8 +354,17 @@
 						title="Points possible"
 						class="h-[2.1875rem] w-[3.875rem] px-0 text-center font-mono text-[0.8125rem] sm:h-[1.9375rem] sm:w-[3.25rem]"
 						bind:value={pointsPossible}
+						disabled={cannotEditPoints}
 						oninput={recalculateAfterInput}
 					/>
+					{#if cannotEditPoints && Number.isFinite(percentage)}
+						<span
+							class={percentageTextClass}
+							title={hasOfficialPercentage
+								? 'StudentVUE assignment percentage'
+								: 'Assignment grade percentage'}>{formatPercentage(percentage)}%</span
+						>
+					{/if}
 				</div>
 			{:else}
 				{#if pointsEarned !== undefined}
@@ -359,7 +386,9 @@
 			{/if}
 		</div>
 
-		{#if isGraded && weightedPointsUnavailable}
+		{#if isGraded && calculationIssue === 'category' && !zeroWeightCategory}
+			<p class="text-muted-foreground text-xs">Category weight unavailable</p>
+		{:else if isGraded && weightedPointsUnavailable}
 			<p class="text-muted-foreground text-xs">Weighted points unavailable</p>
 		{/if}
 

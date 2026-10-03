@@ -102,8 +102,14 @@ percentage-based earned value on the established weighted scale. Edited points u
 ratio. Rounded or truncated percentages cannot overwrite more precise posted points. Percentage
 corroboration accepts both nearest rounding and truncation toward zero at the displayed
 precision; discrepancies beyond that interval still require valid scale evidence. An unavailable weighted
-scale survives the XML adapter explicitly and prevents partial what-if or Finals Planner results;
-the official grade and any known assignment percentage remain visible. Blank or zero extra-credit
+scale survives the XML adapter explicitly and restricts edits to that assignment. Supported rows remain
+available for what-if calculations and the Finals Planner; incomplete inputs or a baseline mismatch
+label predictions as estimates. Official category totals can retain a fixed contribution for rows
+whose individual scales cannot be modeled. Unknown category weights are never assumed to be zero.
+Explicit zero-weight practice categories do not contribute or degrade coverage. Unused categories with
+an explicit positive weight remain available for future planning without activating that weight in
+today's grade. Reconstructed graph points are labeled estimates; saved official marks remain distinct.
+The official grade and any known assignment percentage remain visible. Blank or zero extra-credit
 maxima count as zero possible points, but a category with no positive denominator has no defined
 percentage and cannot supply a local estimate.
 

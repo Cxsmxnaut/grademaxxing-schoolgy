@@ -92,6 +92,13 @@ export function gradeLetter(value: string) {
 	return normalized.match(/\b[A-F][+-]?(?![A-Z])/i)?.[0] ?? '';
 }
 
+function categoryWeightText(value: unknown) {
+	const normalized = identifier(value);
+	if (!/^[-+]?(?:\d+(?:\.\d*)?|\.\d+)\s*%?$/.test(normalized)) return '';
+	const weight = Number(normalized.replace(/%$/, '').trim());
+	return Number.isFinite(weight) && weight >= 0 ? String(weight) : '';
+}
+
 export function gradeCategories(classData: ClassData): PortalGradeCategory[] {
 	if (classData.isAssignmentWeightingOn !== true) return [];
 	const names = new Map(
@@ -100,9 +107,9 @@ export function gradeCategories(classData: ClassData): PortalGradeCategory[] {
 			text(measureType.name)
 		])
 	);
-	return (classData.measureTypeGrades ?? []).flatMap((grade) => {
+	const categories = (classData.measureTypeGrades ?? []).flatMap((grade) => {
 		const name = names.get(identifier(grade.measureTypeId));
-		const weight = numericText(grade.measureTypeWeight);
+		const weight = categoryWeightText(grade.measureTypeWeight);
 		const points = numericText(grade.points);
 		const pointsPossible = numericText(grade.pointsPossible);
 		if (!name || !weight || !points || !pointsPossible) return [];
@@ -121,6 +128,33 @@ export function gradeCategories(classData: ClassData): PortalGradeCategory[] {
 			}
 		];
 	});
+	const usedCategories = new Set(
+		(classData.assignments ?? []).map((assignment) => identifier(assignment.measureTypeId))
+	);
+	const includedNames = new Set(categories.map((category) => category.name));
+	for (const measureType of classData.measureTypes ?? []) {
+		const id = identifier(measureType.id);
+		const name = text(measureType.name);
+		const definitionWeight = categoryWeightText(measureType.weight);
+		// StudentVUE omits zero-weight practice categories from calculated totals.
+		// Keep their explicit rule and future categories which have no assignments.
+		// A missing rule or an active missing summary cannot supply known totals.
+		if (!id || !name || includedNames.has(name) || !definitionWeight) continue;
+		const weight = Number(definitionWeight);
+		const used = usedCategories.has(id);
+		if (weight === 0 && !used) continue;
+		if (weight > 0 && used) continue;
+		categories.push({
+			name,
+			weight: String(weight),
+			points: '0',
+			pointsPossible: '0',
+			weightedPercentage: '0',
+			calculatedMark: ''
+		});
+		includedNames.add(name);
+	}
+	return categories;
 }
 
 export function assignmentCategories(classData: ClassData) {

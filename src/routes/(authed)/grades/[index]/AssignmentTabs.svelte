@@ -8,6 +8,7 @@
 		ReactiveAssignment,
 		RealAssignment
 	} from '$lib/grades/assignments';
+	import { getAssignmentCalculationIssue } from '$lib/grades/calculation-coverage';
 	import AssignmentCard from './AssignmentCard.svelte';
 
 	interface Props {
@@ -44,7 +45,16 @@
 	}: Props = $props();
 
 	const categoryDropdownOptions = $derived(
-		gradeCategories ? new Set(gradeCategories.map((category) => category.name)) : undefined
+		gradeCategories
+			? new Set(
+					gradeCategories
+						.filter(
+							(category) =>
+								Number.isFinite(category.weightPercentage) && category.weightPercentage >= 0
+						)
+						.map((category) => category.name)
+				)
+			: undefined
 	);
 	const originalAssignmentsById = $derived(
 		new Map(assignments.map((assignment) => [assignment.id, assignment]))
@@ -69,13 +79,60 @@
 		return untouchedOriginal(assignment)?.unscaledPoints;
 	}
 
+	function persistentCalculationUnavailable(assignment: ReactiveAssignment) {
+		return (
+			assignment.calculationUnavailable ||
+			originalAssignmentsById.get(assignment.id)?.calculationUnavailable
+		);
+	}
+
+	function calculationIssue(assignment: ReactiveAssignment) {
+		const original = originalAssignmentsById.get(assignment.id);
+		// A temporary blank input must not lock a row whose scale was established.
+		const basis = original ?? {
+			...assignment,
+			pointsEarned: undefined,
+			unscaledPoints: undefined,
+			officialPercentage: undefined
+		};
+		return getAssignmentCalculationIssue(
+			{
+				...basis,
+				category: assignment.category,
+				calculationUnavailable: persistentCalculationUnavailable(assignment)
+			},
+			gradeCategories
+		);
+	}
+
+	function pointsScaleUnavailable(assignment: ReactiveAssignment) {
+		if (assignment.newHypothetical) return false;
+		const original = originalAssignmentsById.get(assignment.id) ?? assignment;
+		return (
+			persistentCalculationUnavailable(assignment) ||
+			original.pointsPossible === undefined ||
+			!Number.isFinite(original.pointsPossible) ||
+			original.pointsPossible < 0 ||
+			(original.pointsPossible === 0 && !original.extraCredit)
+		);
+	}
+
+	function zeroWeightCategory(category: string | undefined) {
+		return gradeCategories?.some(
+			(gradeCategory) => gradeCategory.name === category && gradeCategory.weightPercentage === 0
+		);
+	}
+
 	let activeTab = $state('all');
 	let draftCategory = $state<string | undefined>(undefined);
 	let draftPointsEarned = $state<number | undefined>(undefined);
 	let draftPointsPossible = $state<number | undefined>(undefined);
 
 	$effect(() => {
-		if (draftCategory === undefined && categoryDropdownOptions?.size) {
+		if (
+			categoryDropdownOptions?.size &&
+			(draftCategory === undefined || !categoryDropdownOptions.has(draftCategory))
+		) {
 			draftCategory = categoryDropdownOptions.values().next().value;
 		}
 	});
@@ -85,8 +142,11 @@
 		if (
 			draftPointsEarned === undefined ||
 			draftPointsPossible === undefined ||
+			!Number.isFinite(draftPointsEarned) ||
+			!Number.isFinite(draftPointsPossible) ||
 			draftPointsEarned < 0 ||
-			draftPointsPossible <= 0
+			draftPointsPossible <= 0 ||
+			(gradeCategories !== undefined && !categoryDropdownOptions?.has(draftCategory ?? ''))
 		)
 			return;
 
@@ -189,8 +249,12 @@
 										bind:pointsEarned={reactiveAssignments[i].pointsEarned}
 										bind:pointsPossible={reactiveAssignments[i].pointsPossible}
 										officialPercentage={untouchedPercentage(reactiveAssignments[i])}
-										calculationUnavailable={untouchedOriginal(reactiveAssignments[i])
-											?.calculationUnavailable}
+										calculationUnavailable={persistentCalculationUnavailable(
+											reactiveAssignments[i]
+										)}
+										calculationIssue={calculationIssue(reactiveAssignments[i])}
+										pointsScaleUnavailable={pointsScaleUnavailable(reactiveAssignments[i])}
+										zeroWeightCategory={zeroWeightCategory(reactiveAssignments[i].category)}
 										unscaledPoints={untouchedRawPoints(reactiveAssignments[i])}
 										bind:extraCredit={reactiveAssignments[i].extraCredit}
 										gradePercentageChange={rawGradeCalcMatches ? gradePercentageChange : undefined}
@@ -214,8 +278,12 @@
 										bind:pointsEarned={reactiveAssignments[i].pointsEarned}
 										bind:pointsPossible={reactiveAssignments[i].pointsPossible}
 										officialPercentage={untouchedPercentage(reactiveAssignments[i])}
-										calculationUnavailable={untouchedOriginal(reactiveAssignments[i])
-											?.calculationUnavailable}
+										calculationUnavailable={persistentCalculationUnavailable(
+											reactiveAssignments[i]
+										)}
+										calculationIssue={calculationIssue(reactiveAssignments[i])}
+										pointsScaleUnavailable={pointsScaleUnavailable(reactiveAssignments[i])}
+										zeroWeightCategory={zeroWeightCategory(reactiveAssignments[i].category)}
 										unscaledPoints={untouchedRawPoints(reactiveAssignments[i])}
 										bind:extraCredit={reactiveAssignments[i].extraCredit}
 										gradePercentageChange={rawGradeCalcMatches ? gradePercentageChange : undefined}
@@ -261,8 +329,12 @@
 											bind:pointsEarned={reactiveAssignments[i].pointsEarned}
 											bind:pointsPossible={reactiveAssignments[i].pointsPossible}
 											officialPercentage={untouchedPercentage(reactiveAssignments[i])}
-											calculationUnavailable={untouchedOriginal(reactiveAssignments[i])
-												?.calculationUnavailable}
+											calculationUnavailable={persistentCalculationUnavailable(
+												reactiveAssignments[i]
+											)}
+											calculationIssue={calculationIssue(reactiveAssignments[i])}
+											pointsScaleUnavailable={pointsScaleUnavailable(reactiveAssignments[i])}
+											zeroWeightCategory={zeroWeightCategory(reactiveAssignments[i].category)}
 											unscaledPoints={untouchedRawPoints(reactiveAssignments[i])}
 											bind:extraCredit={reactiveAssignments[i].extraCredit}
 											gradePercentageChange={rawGradeCalcMatches
@@ -290,8 +362,12 @@
 											bind:pointsEarned={reactiveAssignments[i].pointsEarned}
 											bind:pointsPossible={reactiveAssignments[i].pointsPossible}
 											officialPercentage={untouchedPercentage(reactiveAssignments[i])}
-											calculationUnavailable={untouchedOriginal(reactiveAssignments[i])
-												?.calculationUnavailable}
+											calculationUnavailable={persistentCalculationUnavailable(
+												reactiveAssignments[i]
+											)}
+											calculationIssue={calculationIssue(reactiveAssignments[i])}
+											pointsScaleUnavailable={pointsScaleUnavailable(reactiveAssignments[i])}
+											zeroWeightCategory={zeroWeightCategory(reactiveAssignments[i].category)}
 											unscaledPoints={untouchedRawPoints(reactiveAssignments[i])}
 											bind:extraCredit={reactiveAssignments[i].extraCredit}
 											gradePercentageChange={rawGradeCalcMatches
@@ -325,7 +401,10 @@
 </section>
 
 {#snippet assignmentSnippet(
-	{
+	assignment: RealAssignment | Flowed<RealAssignment>,
+	showCategory = true
+)}
+	{@const {
 		name,
 		id,
 		pointsEarned,
@@ -341,9 +420,7 @@
 		newHypothetical,
 		description,
 		comments
-	}: RealAssignment | Flowed<RealAssignment>,
-	showCategory = true
-)}
+	} = assignment}
 	<li class="w-full">
 		<AssignmentCard
 			{name}
@@ -354,6 +431,8 @@
 			{unscaledPoints}
 			{officialPercentage}
 			{calculationUnavailable}
+			calculationIssue={getAssignmentCalculationIssue(assignment, gradeCategories)}
+			zeroWeightCategory={zeroWeightCategory(category)}
 			{extraCredit}
 			gradePercentageChange={rawGradeCalcMatches ? gradePercentageChange : undefined}
 			{notForGrade}

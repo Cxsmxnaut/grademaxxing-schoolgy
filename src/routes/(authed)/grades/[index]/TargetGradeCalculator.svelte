@@ -13,6 +13,7 @@
 		gradeCategoryWeightProportions?: Map<string, number>;
 		officialGradeOffset?: number;
 		calculationAvailable?: boolean;
+		partialEstimate?: boolean;
 	}
 
 	const {
@@ -20,7 +21,8 @@
 		initialGradePercentage,
 		gradeCategoryWeightProportions,
 		officialGradeOffset = 0,
-		calculationAvailable = true
+		calculationAvailable = true,
+		partialEstimate = false
 	}: Props = $props();
 
 	const gradeTargets = [
@@ -39,12 +41,19 @@
 	let finalPointsPossible = $state(100);
 	let selectedCategory = $state('');
 
-	const categories = $derived(
-		gradeCategoryWeightProportions ? [...gradeCategoryWeightProportions.keys()] : []
+	const supportedCategoryWeights = $derived(
+		gradeCategoryWeightProportions
+			? new Map(
+					[...gradeCategoryWeightProportions].filter(
+						([, weight]) => Number.isFinite(weight) && weight > 0
+					)
+				)
+			: undefined
 	);
+	const categories = $derived(supportedCategoryWeights ? [...supportedCategoryWeights.keys()] : []);
 
 	$effect(() => {
-		if (!selectedCategory && categories.length) selectedCategory = categories[0] ?? '';
+		if (!categories.includes(selectedCategory)) selectedCategory = categories[0] ?? '';
 	});
 
 	const requiredPoints = $derived.by(() => {
@@ -52,19 +61,20 @@
 			!calculationAvailable ||
 			!Number.isFinite(officialGradeOffset) ||
 			!Number.isFinite(finalPointsPossible) ||
-			finalPointsPossible <= 0
+			finalPointsPossible <= 0 ||
+			(supportedCategoryWeights !== undefined && !selectedCategory)
 		)
 			return undefined;
 		const localTargetPercentage = targetGradePercentage - officialGradeOffset;
 
 		const value =
-			gradeCategoryWeightProportions && selectedCategory
+			supportedCategoryWeights && selectedCategory
 				? calculatePointsNeededForTargetGrade({
 						targetGradePercentage: localTargetPercentage,
 						assignmentPointsPossible: finalPointsPossible,
 						hasCategories: true,
 						otherAssignments: getCalculableAssignmentsWithCategories(assignments),
-						gradeCategoryWeightProportions,
+						gradeCategoryWeightProportions: supportedCategoryWeights,
 						assignmentCategoryName: selectedCategory
 					})
 				: calculatePointsNeededForTargetGrade({
@@ -77,12 +87,14 @@
 		return Number.isFinite(value) ? value : undefined;
 	});
 
-	const requiredPercentage = $derived(
-		requiredPoints === undefined ? undefined : (requiredPoints / finalPointsPossible) * 100
-	);
+	const requiredPercentage = $derived.by(() => {
+		if (requiredPoints === undefined) return undefined;
+		const value = (requiredPoints / finalPointsPossible) * 100;
+		return Number.isFinite(value) ? value : undefined;
+	});
 
 	function format(value: number) {
-		return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
+		return formatPercentage(value);
 	}
 </script>
 
@@ -133,7 +145,8 @@
 
 	<p class="text-muted-foreground mt-3 text-sm">
 		{#if requiredPoints !== undefined && requiredPercentage !== undefined}
-			You need <strong class="text-grade-strong font-mono text-base"
+			{partialEstimate ? 'Estimated score:' : 'You need'}
+			<strong class="text-grade-strong font-mono text-base"
 				>{formatPercentage(requiredPercentage)}%</strong
 			>
 			— that's
@@ -141,6 +154,11 @@
 				>{format(requiredPoints)} / {format(finalPointsPossible)}</strong
 			>
 			on the final.
+			{#if partialEstimate}
+				Some grading information is unavailable, so the actual requirement may differ.
+			{/if}
+		{:else if !calculationAvailable}
+			Complete the assignment points to update this estimate.
 		{:else if initialGradePercentage !== undefined}
 			Choose valid final points to calculate what you need from your current
 			{formatPercentage(initialGradePercentage)}%.
