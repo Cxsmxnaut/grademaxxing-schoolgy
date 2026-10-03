@@ -103,7 +103,9 @@ test('a cold protected-route load uses the full-screen loader and persists the c
 	await page.screenshot({ path: 'test-results/cache-loading-desktop.png' });
 	await page.setViewportSize({ width: 390, height: 844 });
 	await expect(page.getByTestId('post-login-loading')).toBeVisible();
-	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+	await expect
+		.poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+		.toBeLessThanOrEqual(390);
 	await page.screenshot({ path: 'test-results/cache-loading-phone.png' });
 	responseGate.release();
 	await expect(page.getByRole('heading', { name: 'Gradebook', level: 1 })).toBeVisible();

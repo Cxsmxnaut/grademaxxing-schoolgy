@@ -15,12 +15,14 @@ function gate() {
 }
 
 async function mockPortal(page: Page) {
+	const initialKeepAlive = gate();
 	const state = {
 		loginRequests: 0,
 		rejectLogin: false,
 		expireStatus: false,
 		loginResponse: undefined as Promise<void> | undefined,
 		keepaliveError: undefined as 'APP_SESSION_INVALID' | 'UPSTREAM_SESSION_EXPIRED' | undefined,
+		initialKeepAliveReady: initialKeepAlive.promise,
 		gradebookRequests: [] as URL[],
 		gradebookResponse: undefined as
 			((route: Route, parameters: URLSearchParams) => Promise<void>) | undefined
@@ -43,8 +45,8 @@ async function mockPortal(page: Page) {
 	await page.route('**/api/session/status', (route) =>
 		route.fulfill({ json: { signedIn: !state.expireStatus, username, domain } })
 	);
-	await page.route('**/api/session/keepalive', (route) =>
-		state.keepaliveError
+	await page.route('**/api/session/keepalive', async (route) => {
+		await (state.keepaliveError
 			? route.fulfill({
 					status: 401,
 					json: {
@@ -52,8 +54,13 @@ async function mockPortal(page: Page) {
 						message: 'Reconnect to StudentVUE to update your school data.'
 					}
 				})
-			: route.fulfill({ json: { signedIn: true, updatedAt: Date.now() } })
-	);
+			: route.fulfill({ json: { signedIn: true, updatedAt: Date.now() } }));
+		const response = await route.request().response();
+		if (response?.status() === 200) {
+			await response.finished();
+			initialKeepAlive.release();
+		}
+	});
 	await page.route('**/api/studentvue/**', async (route) => {
 		const url = new URL(route.request().url());
 		const resource = url.pathname.split('/').at(-1);
@@ -223,9 +230,9 @@ for (const entry of ['/grades', '/login']) {
 		await page.screenshot({ path: 'test-results/vault-restoring-desktop.png' });
 		await page.setViewportSize({ width: 390, height: 844 });
 		await expect(loading).toBeVisible();
-		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
-			390
-		);
+		await expect
+			.poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+			.toBeLessThanOrEqual(390);
 		await page.screenshot({ path: 'test-results/vault-restoring-phone.png' });
 		responseGate.release();
 		await expect(page).toHaveURL(/\/grades$/);
@@ -245,6 +252,8 @@ for (const code of ['APP_SESSION_INVALID', 'UPSTREAM_SESSION_EXPIRED'] as const)
 		await seedSavedSession(page, { selectedPeriod: 1 });
 		await page.goto('/grades');
 		const refresh = page.getByTestId('sidebar-refresh');
+		// Do not let fault injection turn the mount probe into the manual request.
+		await portal.initialKeepAliveReady;
 		await expect(refresh).toBeEnabled();
 		const navigations: string[] = [];
 		page.on('framenavigated', (frame) => {
@@ -314,6 +323,7 @@ test('immediate repeated manual refreshes each fetch live full data and reject i
 	await seedSavedSession(page, { vault: false, selectedPeriod: 1 });
 	await page.goto('/grades');
 	const refresh = page.getByTestId('sidebar-refresh');
+	await portal.initialKeepAliveReady;
 	await expect(refresh).toBeEnabled();
 	expect(portal.gradebookRequests).toHaveLength(0);
 	for (let attempt = 1; attempt <= 3; attempt += 1) {
@@ -347,6 +357,7 @@ test('a failed manual refresh keeps saved grades and the next click retries live
 	await seedSavedSession(page, { vault: false });
 	await page.goto('/grades');
 	const refresh = page.getByTestId('sidebar-refresh');
+	await portal.initialKeepAliveReady;
 	await expect(refresh).toBeEnabled();
 	const cachedBefore = await page.evaluate(() => JSON.parse(localStorage.getItem('gradebook5')!));
 	portal.gradebookResponse = async (route, parameters) => {
@@ -499,10 +510,12 @@ test('logging out in another tab cancels a pending vault recovery and cannot res
 	const portal = await mockPortal(page);
 	await seedSavedSession(page);
 	await page.goto('/grades');
+	await portal.initialKeepAliveReady;
 	await expect(page.getByTestId('sidebar-refresh')).toBeEnabled();
 	const otherTab = await context.newPage();
-	await mockPortal(otherTab);
+	const otherPortal = await mockPortal(otherTab);
 	await otherTab.goto('/grades');
+	await otherPortal.initialKeepAliveReady;
 	await expect(otherTab.getByTestId('sidebar-log-out')).toBeVisible();
 	const loginGate = gate();
 	portal.loginResponse = loginGate.promise;
@@ -624,6 +637,7 @@ test('manual refresh remains busy while secondary records finish so the next cli
 	await seedSavedSession(page, { vault: false });
 	await page.goto('/grades');
 	const refresh = page.getByTestId('sidebar-refresh');
+	await portal.initialKeepAliveReady;
 	await expect(refresh).toBeEnabled();
 	const documentsGate = gate();
 	let documentRequests = 0;
