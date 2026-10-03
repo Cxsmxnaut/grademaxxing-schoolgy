@@ -73,7 +73,6 @@
 							{#if item.payload.source === 'official'}
 								<p>Official StudentVUE grade</p>
 							{:else}
-								<p class="text-muted-foreground text-xs">Calculated grade</p>
 								{#each item.payload.assignmentNames as name, index (`${name}-${index}`)}
 									<p>{name}</p>
 								{/each}
