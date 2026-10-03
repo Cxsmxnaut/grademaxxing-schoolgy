@@ -13,6 +13,18 @@ export interface Assignment {
 	pointsEarned: number | undefined;
 	pointsPossible: number | undefined;
 	unscaledPoints: { pointsEarned: number; pointsPossible: number } | undefined;
+	/** StudentVUE's published percentage for the untouched assignment. */
+	officialPercentage?: number;
+	/** Published display values used to recognize an untouched assignment. */
+	publishedPoints?: {
+		pointsEarned: number | undefined;
+		pointsPossible: number | undefined;
+		extraCredit: boolean;
+	};
+	/** More precise assignment evidence used only while display values are untouched. */
+	calculationPointsEarned?: number;
+	/** The portal does not establish a reliable weighted calculation basis. */
+	calculationUnavailable?: boolean;
 	extraCredit: boolean;
 	gradePercentageChange: number | undefined;
 	notForGrade: boolean;

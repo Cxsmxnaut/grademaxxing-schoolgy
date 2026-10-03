@@ -434,14 +434,37 @@ export function courseAssignment(
 	item: CourseContentItem,
 	categoriesByAssignment: Map<string, string>
 ): Record<string, string> {
-	const score = text(item.gradeMark);
-	const possible = text(item.pointsPossible);
-	const portalPoints = text(item.points);
-	const scorePair = /^\s*-?\d+(?:\.\d+)?\s*$/.test(score) ? pointPair(score, possible) : '';
-	const points = /^\s*-?\d+(?:\.\d+)?\s*\/\s*-?\d+(?:\.\d+)?\s*$/.test(portalPoints)
-		? portalPoints
-		: scorePair || portalPoints;
-	const rawPair = /^\s*(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)\s*$/.exec(scorePair);
+	const score = identifier(item.gradeMark);
+	const possible = identifier(item.pointsPossible);
+	const portalPoints = identifier(item.points);
+	const fraction = /^\s*(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)?\s*$/.exec(portalPoints);
+	const numericPoints = finitePointValue(portalPoints);
+	const percentage = explicitAssignmentPercentage(item.calcValue);
+	// `gradeMark` is the raw score, while `points` and `pointsPossible` are
+	// already weighted. Joining the raw score to the weighted maximum invents
+	// an assignment percentage whenever a teacher scales the point values.
+	const earned = fraction?.[1] ?? (numericPoints !== undefined ? portalPoints : undefined);
+	let weightedPossible = fraction ? (fraction[2] ?? '') : possible;
+	if (
+		fraction?.[2] &&
+		earned !== undefined &&
+		percentage &&
+		finitePointValue(possible) !== undefined &&
+		decimalPrecision(possible) > decimalPrecision(fraction[2]) &&
+		Math.abs(Number(possible) - Number(fraction[2])) <= pointRoundingUncertainty(fraction[2]) &&
+		pointsCorroboratePercentage(earned, possible, percentage.value, percentage.precision)
+	) {
+		// Fractions can round their denominator more aggressively than the
+		// separate weighted maximum. The assignment percentage corroborates
+		// which published maximum preserves the row's scale.
+		weightedPossible = possible;
+	}
+	const points =
+		earned !== undefined
+			? fraction && weightedPossible === (fraction[2] ?? '')
+				? portalPoints
+				: `${earned} / ${weightedPossible}`
+			: portalPoints || (possible ? `${possible} Points Possible` : '');
 	const assignmentId = identifier(item.itemID);
 	const dueDate = portalDate(text(item.due_date));
 	const assignedDate = portalDate(text(item.date)) || dueDate;
@@ -454,7 +477,16 @@ export function courseAssignment(
 		Score: score,
 		ScoreType: 'Raw Score',
 		Points: points,
-		...(rawPair ? { ScoreCalValue: rawPair[1]!, ScoreMaxValue: rawPair[2]! } : {}),
+		...(earned !== undefined ? { Point: earned } : {}),
+		...(earned !== undefined || finitePointValue(weightedPossible) !== undefined
+			? { PointPossible: weightedPossible }
+			: {}),
+		...(percentage
+			? {
+					AssignmentPercentage: String(percentage.value),
+					AssignmentPercentagePrecision: String(percentage.precision)
+				}
+			: {}),
 		Notes: [text(item.commentText), text(item.publicNote)].filter(Boolean).join(' — '),
 		Description: text(item.publicNote)
 	};
@@ -483,6 +515,7 @@ export function parseGradebookAssignmentDetail(
 		DueDate: portalDate(values['Due Date'] ?? '') || date,
 		Score: values.Score ?? '',
 		ScoreType: values['Score Type'] ?? 'Raw Score',
+		...(values['Score Type'] ? { ScoreTypeConfirmed: 'true' } : {}),
 		Points: values.Points ?? pointPair(values.Score, values.Points),
 		Notes: values.Notes ?? '',
 		Description: values.Description ?? ''
@@ -529,11 +562,7 @@ export function parseGradebookClassDetail(html: string) {
 		letter,
 		percentage,
 		categories,
-		assignments: reconcileAssignmentPoints(
-			assignmentRows.map(detailAssignment).filter((assignment) => assignment.Date),
-			categories,
-			percentage
-		)
+		assignments: assignmentRows.map(detailAssignment).filter((assignment) => assignment.Date)
 	};
 }
 
@@ -579,6 +608,7 @@ function detailAssignment(row: Record<string, unknown>): Record<string, string> 
 		'';
 	const pointsText = stripHtml(cellText(row.GBPoints));
 	const scoreText = stripHtml(cellText(row.GBScore));
+	const scoreType = stripHtml(cellText(row.GBScoreType));
 	const fraction = /^(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)$/.exec(pointsText);
 	const rawScore = /^(-?\d+(?:\.\d+)?)\s+out of\s+(-?\d+(?:\.\d+)?)$/i.exec(scoreText);
 	const barePoints = /^-?\d+(?:\.\d+)?$/.test(pointsText);
@@ -593,6 +623,7 @@ function detailAssignment(row: Record<string, unknown>): Record<string, string> 
 		if (bareScore) point = scoreText;
 	}
 	const rawDiffers = Boolean(
+		scoreType === 'Raw Score' &&
 		rawScore &&
 		(!fraction ||
 			Number(rawScore[1]) !== Number(fraction[1]) ||
@@ -605,7 +636,8 @@ function detailAssignment(row: Record<string, unknown>): Record<string, string> 
 		Date: portalDate(cellText(row.Date)),
 		DueDate: portalDate(cellText(row.DueDate) || cellText(row.Date)),
 		Score: scoreText,
-		ScoreType: stripHtml(cellText(row.GBScoreType)) || 'Raw Score',
+		ScoreType: scoreType || 'Raw Score',
+		...(scoreType ? { ScoreTypeConfirmed: 'true' } : {}),
 		Points: pointsText,
 		...(point || fraction ? { Point: point } : {}),
 		...(pointPossible ? { PointPossible: pointPossible } : {}),
@@ -615,143 +647,199 @@ function detailAssignment(row: Record<string, unknown>): Record<string, string> 
 	};
 }
 
-function pointRatiosAgree(earnedA: string, possibleA: string, earnedB: string, possibleB: string) {
-	const a = Number(earnedA) / Number(possibleA);
-	const b = Number(earnedB) / Number(possibleB);
-	return Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) <= 0.01;
+function finitePointValue(value: unknown): number | undefined {
+	const normalized = identifier(value);
+	if (!/^-?\d+(?:\.\d+)?$/.test(normalized)) return undefined;
+	const parsed = Number(normalized);
+	return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function decimalPrecision(value: string): number {
+	return /\.(\d+)$/.exec(value)?.[1]?.length ?? 0;
+}
+
+function pointRoundingUncertainty(value: string): number {
+	return 0.5 * 10 ** -decimalPrecision(value);
+}
+
+function explicitAssignmentPercentage(
+	value: unknown
+): { value: number; precision: number } | undefined {
+	if (typeof value !== 'string' && typeof value !== 'number') return undefined;
+	if (typeof value === 'number') {
+		if (!Number.isFinite(value)) return undefined;
+		const [mantissa, exponent = '0'] = String(value).split(/e/i);
+		return {
+			value,
+			precision: Math.max(0, decimalPrecision(mantissa!) - Number(exponent))
+		};
+	}
+	let normalized = identifier(value).replace(/\s*%$/, '').trim();
+	// A single comma with one or two fractional digits is an unambiguous
+	// decimal percentage. Reject comma grouping and mixed separators.
+	if (/^-?\d+,\d{1,2}$/.test(normalized)) normalized = normalized.replace(',', '.');
+	if (/^-?\.\d+$/.test(normalized)) normalized = normalized.replace('.', '0.');
+	const parsed = finitePointValue(normalized);
+	return parsed === undefined
+		? undefined
+		: { value: parsed, precision: decimalPrecision(normalized) };
+}
+
+function pointsCorroboratePercentage(
+	earnedText: string,
+	possibleText: string,
+	percentage: number,
+	percentagePrecision?: number
+) {
+	const earned = finitePointValue(earnedText);
+	const possible = finitePointValue(possibleText);
+	if (earned === undefined || possible === undefined || possible <= 0) return false;
+	const earnedUncertainty = pointRoundingUncertainty(earnedText);
+	const possibleUncertainty = pointRoundingUncertainty(possibleText);
+	const lowPossible = possible - possibleUncertainty;
+	if (lowPossible <= 0) return false;
+	const ratios = [
+		((earned - earnedUncertainty) / lowPossible) * 100,
+		((earned + earnedUncertainty) / lowPossible) * 100,
+		((earned - earnedUncertainty) / (possible + possibleUncertainty)) * 100,
+		((earned + earnedUncertainty) / (possible + possibleUncertainty)) * 100
+	];
+	const percentageUncertainty =
+		percentagePrecision === undefined ? 0 : 0.5 * 10 ** -percentagePrecision;
+	return (
+		Math.min(...ratios) <= percentage + percentageUncertainty + 0.01 &&
+		Math.max(...ratios) >= percentage - percentageUncertainty - 0.01
+	);
 }
 
 /**
- * Use the complete upstream class response as the source of truth. When its
- * displayed points and score disagree, the official category totals (or
- * official course mark for unweighted classes) resolve the ambiguity.
+ * Cross-check an assignment only against evidence for that same row. Category
+ * totals and the course mark cannot identify which assignment needs correcting.
+ * Keep the weighted maximum and raw display score distinct.
  */
 export function reconcileAssignmentPoints(
 	assignments: Array<Record<string, string>>,
-	categories: PortalGradeCategory[],
-	officialPercentage: string
+	_categories: PortalGradeCategory[],
+	_officialPercentage: string,
+	classData?: ClassData
 ) {
-	const result = assignments.map((assignment) => ({ ...assignment }));
-	const points = (assignment: Record<string, string>) => {
-		const fraction = /^\s*(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)\s*$/.exec(
+	const authoritativeRows = new Map(
+		(classData?.assignments ?? []).flatMap((row) => {
+			const id = identifier(row.gradeBookId);
+			return id ? [[id, row] as const] : [];
+		})
+	);
+	return assignments.map((input) => {
+		const assignment = { ...input };
+		const authoritative = authoritativeRows.get(assignment.AssignmentID ?? '');
+		const fraction = /^\s*(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)?\s*$/.exec(
 			assignment.Points ?? ''
 		);
-		const earned = assignment.Point ?? fraction?.[1];
-		const possible = assignment.PointPossible ?? fraction?.[2];
-		if (earned === undefined || possible === undefined || possible === '') return undefined;
-		const parsed = { earned: Number(earned), possible: Number(possible) };
-		return Number.isFinite(parsed.earned) && Number.isFinite(parsed.possible) && parsed.possible > 0
-			? parsed
-			: undefined;
-	};
-	const totals = (category?: string) =>
-		result.reduce(
-			(total, assignment) => {
-				if (category !== undefined && assignment.Type !== category) return total;
-				if (/^\s*\(\s*not\s+for\s+grading\s*\)/i.test(assignment.Notes ?? '')) return total;
-				const pair = points(assignment);
-				return pair
-					? { earned: total.earned + pair.earned, possible: total.possible + pair.possible }
-					: total;
-			},
-			{ earned: 0, possible: 0 }
-		);
+		const earnedText = assignment.Point ?? fraction?.[1];
+		const earned = finitePointValue(earnedText);
+		const possibleText = assignment.PointPossible ?? (fraction ? (fraction[2] ?? '') : undefined);
+		let selectedPossibleText = possibleText;
+		let possible = finitePointValue(selectedPossibleText);
+		const extraCredit = possibleText === '' || possible === 0;
+		let percentage = finitePointValue(assignment.AssignmentPercentage);
+		let unresolvedRawPercentage: number | undefined;
+		const providedPrecision = finitePointValue(assignment.AssignmentPercentagePrecision);
+		const percentagePrecision =
+			providedPrecision !== undefined &&
+			Number.isInteger(providedPrecision) &&
+			providedPrecision >= 0
+				? providedPrecision
+				: undefined;
 
-	for (const assignment of result) {
-		const current = points(assignment);
-		const scoreEarned = assignment.ScoreCalValue;
-		const scorePossible = assignment.ScoreMaxValue;
-		if (!current || !scoreEarned || !scorePossible) continue;
-		const alternate = { earned: Number(scoreEarned), possible: Number(scorePossible) };
+		// GetClassData supplies the actual raw maximum separately from the
+		// weighted maximum. A nonzero or unknown penalty can change the ratio,
+		// and a non-unit or unknown weight can change the point maximum. Only a
+		// confirmed unpenalized, unit-weight Raw Score may supply either value.
 		if (
-			!Number.isFinite(alternate.earned) ||
-			!Number.isFinite(alternate.possible) ||
-			alternate.possible <= 0 ||
-			pointRatiosAgree(String(current.earned), String(current.possible), scoreEarned, scorePossible)
-		)
-			continue;
-
-		const category = categories.find((entry) => entry.name === assignment.Type);
-		let useAlternate = false;
-		if (category?.points && category.pointsPossible) {
-			const target = { earned: Number(category.points), possible: Number(category.pointsPossible) };
-			const currentTotals = totals(category.name);
-			const updated = {
-				earned: currentTotals.earned - current.earned + alternate.earned,
-				possible: currentTotals.possible - current.possible + alternate.possible
-			};
-			const earnedGap = Math.abs(currentTotals.earned - target.earned);
-			const possibleGap = Math.abs(currentTotals.possible - target.possible);
-			const newEarnedGap = Math.abs(updated.earned - target.earned);
-			const newPossibleGap = Math.abs(updated.possible - target.possible);
-			useAlternate =
-				newEarnedGap <= earnedGap + 0.0001 &&
-				newPossibleGap <= possibleGap + 0.0001 &&
-				(newEarnedGap < earnedGap - 0.0001 || newPossibleGap < possibleGap - 0.0001);
-		} else if (
-			!categories.length &&
-			officialPercentage.trim() !== '' &&
-			Number.isFinite(Number(officialPercentage))
+			assignment.ScoreTypeConfirmed === 'true' &&
+			assignment.ScoreType === 'Raw Score' &&
+			authoritative
 		) {
-			const currentTotals = totals();
-			const currentGrade = (currentTotals.earned / currentTotals.possible) * 100;
-			const updatedGrade =
-				((currentTotals.earned - current.earned + alternate.earned) /
-					(currentTotals.possible - current.possible + alternate.possible)) *
-				100;
-			useAlternate =
-				Number.isFinite(updatedGrade) &&
-				Math.abs(updatedGrade - Number(officialPercentage)) <
-					Math.abs(currentGrade - Number(officialPercentage));
+			const rawEarned = finitePointValue(authoritative.score);
+			const rawPossible = finitePointValue(authoritative.maxScore);
+			if (rawEarned !== undefined && rawPossible !== undefined && rawPossible > 0) {
+				assignment.ScoreCalValue = identifier(authoritative.score);
+				assignment.ScoreMaxValue = identifier(authoritative.maxScore);
+				const weightedPossible = finitePointValue(authoritative.pointsPossible);
+				if (
+					finitePointValue(authoritative.penaltyPct) === 0 &&
+					finitePointValue(authoritative.weight) !== 1 &&
+					!extraCredit
+				) {
+					unresolvedRawPercentage = (rawEarned / rawPossible) * 100;
+				}
+				if (
+					finitePointValue(authoritative.penaltyPct) === 0 &&
+					finitePointValue(authoritative.weight) === 1 &&
+					!extraCredit &&
+					weightedPossible !== undefined &&
+					weightedPossible > 0
+				) {
+					percentage ??= (rawEarned / rawPossible) * 100;
+					if (possible !== weightedPossible || selectedPossibleText === undefined)
+						selectedPossibleText = identifier(authoritative.pointsPossible);
+					possible = weightedPossible;
+				}
+			}
 		}
-		if (!useAlternate) continue;
-		assignment.Point = scoreEarned;
-		assignment.PointPossible = scorePossible;
-		assignment.Points = `${scoreEarned} / ${scorePossible}`;
-		delete assignment.ScoreCalValue;
-		delete assignment.ScoreMaxValue;
-	}
 
-	// StudentVUE sometimes publishes a row whose score contradicts its own
-	// category total (for example 9.5/1 where the category counts 0.95/1),
-	// which would show students a phantom 950% score. When the category gap is
-	// explained by exactly one over-100% row, rewrite that row to the value the
-	// official category math used. Ambiguous gaps are left alone — the client
-	// reconciles those at the category level instead.
-	const rowsByCategory = new Map<string, Record<string, string>[]>();
-	for (const assignment of result) {
-		if (!assignment.Type) continue;
-		const rows = rowsByCategory.get(assignment.Type);
-		if (rows) rows.push(assignment);
-		else rowsByCategory.set(assignment.Type, [assignment]);
-	}
-	for (const [categoryName, rows] of rowsByCategory) {
-		const category = categories.find((entry) => entry.name === categoryName);
-		if (!category?.points || !category.pointsPossible) continue;
-		const pairs = rows
-			.filter((row) => !/^\s*\(\s*not\s+for\s+grading\s*\)/i.test(row.Notes ?? ''))
-			.map((row) => ({ row, pair: points(row) }));
-		const summedEarned = pairs.reduce((total, { pair }) => (pair ? total + pair.earned : total), 0);
-		const gap = Number(category.points) - summedEarned;
-		if (!Number.isFinite(gap) || Math.abs(gap) < 0.0001) continue;
-		const candidates = pairs.filter(
-			(
-				entry
-			): entry is { row: Record<string, string>; pair: { earned: number; possible: number } } =>
-				entry.pair !== undefined &&
-				entry.pair.earned > entry.pair.possible &&
-				entry.pair.earned + gap >= 0 &&
-				entry.pair.earned + gap <= entry.pair.possible
-		);
-		if (candidates.length !== 1) continue;
-		const { row, pair } = candidates[0]!;
-		const correctedEarned = Math.round((pair.earned + gap) * 1e6) / 1e6;
-		row.Point = String(correctedEarned);
-		row.Points = `${correctedEarned} / ${row.PointPossible ?? pair.possible}`;
-		delete row.ScoreCalValue;
-		delete row.ScoreMaxValue;
-	}
-	return result;
+		if (percentage === undefined || !Number.isFinite(percentage)) {
+			if (
+				unresolvedRawPercentage !== undefined &&
+				(earnedText === undefined ||
+					selectedPossibleText === undefined ||
+					!pointsCorroboratePercentage(earnedText, selectedPossibleText, unresolvedRawPercentage))
+			) {
+				assignment.CalculationUnavailable = 'true';
+			}
+			return assignment;
+		}
+		assignment.AssignmentPercentage = String(percentage);
+		// Blank or zero maxima represent extra credit, not a percentage-based
+		// earned-point pair. Leave those values as published by the portal.
+		if (extraCredit) return assignment;
+		if (possible === undefined || possible <= 0 || selectedPossibleText === undefined) {
+			assignment.CalculationUnavailable = 'true';
+			return assignment;
+		}
+		// A percentage and independently supplied maximum can provide a
+		// calculation basis even if the portal omitted the earned-point display.
+		// Keep the display empty rather than manufacturing a posted point score.
+		if (earned === undefined || earnedText === undefined) {
+			assignment.PointPossible = selectedPossibleText;
+			return assignment;
+		}
+		if (
+			pointsCorroboratePercentage(earnedText, selectedPossibleText, percentage, percentagePrecision)
+		) {
+			if (finitePointValue(possibleText) !== possible) {
+				assignment.PointPossible = selectedPossibleText;
+				assignment.Points = `${earnedText} / ${selectedPossibleText}`;
+			}
+			return assignment;
+		}
+		if (authoritative && finitePointValue(authoritative.weight) !== 1) {
+			// Contradictory points and a missing/non-unit weight do not identify
+			// the actual weighted maximum. Preserve all display evidence and make
+			// the unavailable calculation explicit instead of inventing a weight.
+			assignment.CalculationUnavailable = 'true';
+			return assignment;
+		}
+		const correctedEarned = Math.round((percentage / 100) * possible * 1e10) / 1e10;
+		if (!Number.isFinite(correctedEarned)) {
+			assignment.CalculationUnavailable = 'true';
+			return assignment;
+		}
+		assignment.Point = String(correctedEarned);
+		assignment.PointPossible = selectedPossibleText;
+		assignment.Points = `${correctedEarned} / ${selectedPossibleText}`;
+		return assignment;
+	});
 }
 
 function cellText(value: unknown): string {

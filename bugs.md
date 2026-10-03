@@ -25,17 +25,36 @@ This file records observed product issues and confirmed fidelity limits. It cont
   same dataset.
 - **Observed:** The headline immediately switched to a locally recomputed grade, differing
   from the official score by up to 8.2 percentage points.
-- **Root cause:** Two independent gaps between StudentVUE's published score and a local sum
-  of visible assignments: (1) an assignment row can contradict StudentVUE's own category
-  totals — one row reported a score ten times the value its category total implies — and
-  (2) StudentVUE publishes a truncated percentage, so the official score can sit just below
-  the category math. The course page had no reconciliation between the official value and
-  the recomputed hypothetical baseline.
+- **Root cause:** The course-content adapter combined a raw score with a weighted point
+  maximum. Official category totals and rounded published percentages can also differ from
+  a local sum of visible assignments. The course page had no reconciliation between the
+  official value and the recomputed hypothetical baseline.
 - **Fix:** Category adjustment records reconcile local sums with StudentVUE's category rows,
   and hypothetical results are anchored to the official score (official + simulated delta),
   so entering hypothetical mode never moves the grade. Covered by unit tests and a
   browser regression test.
 - **Status:** Fixed.
+
+## Fixed locally — assignment row mixed raw and weighted score scales
+
+- **Expected:** An assignment uses StudentVUE's weighted points for calculations and shows
+  its published percentage. Any available raw score pair remains separate display metadata.
+- **Observed:** The course-content fallback joined the raw grade mark to the weighted
+  maximum, producing an inflated percentage even when the course headline was correct.
+- **Fix:** Read the actual weighted earned points and explicit assignment percentage.
+  Reconcile discrepancies using evidence for that assignment, with confirmed raw score type,
+  penalty, weight, rounding, and extra-credit guards. Category totals never rewrite an
+  individual assignment. What-if edits use the edited point ratio; restoring the original
+  points restores the official percentage. Existing cached gradebooks are refreshed.
+- **Edge cases:** Published percentage and point precision prevent false rounding corrections.
+  Calculations use the more precise evidence while retaining the posted points for display.
+  Missing weighted maxima never borrow a raw maximum; known percentages remain visible even
+  when weighted earned points are absent. Ambiguous scales and extra-credit-only categories
+  without a denominator keep the official grade visible and disable unsupported simulations.
+  Blank-denominator extra credit counts when the surrounding calculation is defined. Finals
+  Planner targets use the same official-grade offset as hypothetical results.
+- **Verification:** Synthetic parser, client, XML adapter, chart, and browser regressions.
+- **Status:** Fixed locally; deployment is separate.
 
 ## Confirmed limitation / candidate bug — chart and hypothetical fidelity
 

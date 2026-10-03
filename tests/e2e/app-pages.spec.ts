@@ -4,6 +4,10 @@ function gradebookXml(index: number, name: string, score: string, letter: string
 	return `<Gradebook><ReportingPeriod Index="${index}" GradePeriod="${name}"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Semester 1"/><ReportPeriod Index="1" GradePeriod="Semester 2"/></ReportingPeriods><Courses><Course CourseID="preview" CourseName="Theme Preview" Period="1" Staff="Teacher Example" StaffEMail="teacher@example.edu" Room="101"><Marks><Mark MarkName="${name}" CalculatedScoreRaw="${score}" CalculatedScoreString="${letter}"><GradeCalculationSummary><AssignmentGradeCalc Type="Assessments" Weight="100%" Points="${score}" PointsPossible="100" WeightedPct="${score}%" CalculatedMark="${letter}"/></GradeCalculationSummary>							<Assignments><Assignment GradebookID="preview-assessment" Measure="Unit assessment" Type="Assessments" Date="8/20/2026" DueDate="8/20/2026" Score="${score}" DisplayScore="${score} out of 100" ScoreCalValue="${score}" ScoreMaxValue="100" ScoreType="Raw Score" Points="${score} / 100" Point="${score}" PointPossible="100" Notes="Strong reasoning. Review question 4." MeasureDescription="Cumulative unit assessment covering the first four lessons." HasDropBox="false"/><Assignment GradebookID="preview-upcoming" Measure="Upcoming quiz" Type="Quizzes" Date="9/25/2026" DueDate="9/28/2026" DisplayScore="Not Graded" ScoreType="Raw Score" Points="10 Points Possible" Notes="" MeasureDescription="" HasDropBox="false"/></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
 }
 
+function assignmentEvidenceXml(score: string, assignments: string, summary = '') {
+	return `<Gradebook><ReportingPeriod Index="0" GradePeriod="Quarter 1"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1"/></ReportingPeriods><Courses><Course CourseID="assignment-evidence" CourseName="Assignment Evidence" Period="1"><Marks><Mark MarkName="Quarter 1" CalculatedScoreRaw="${score}" CalculatedScoreString="B">${summary}<Assignments>${assignments}</Assignments></Mark></Marks></Course></Courses></Gradebook>`;
+}
+
 test.beforeEach(async ({ page }) => {
 	await page.addInitScript(() => {
 		localStorage.setItem(
@@ -290,20 +294,25 @@ test('grade percentages keep two decimal places when StudentVUE provides them', 
 	await expect(page.getByText('96.534%')).toHaveCount(0);
 });
 
-test('a corrected assignment maximum leaves the chart on the official course grade', async ({
+test('server-corrected weighted scores leave the chart on the official course grade', async ({
 	page
 }) => {
-	const xml = `<Gradebook><ReportingPeriod Index="0" GradePeriod="Quarter 1"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1"/></ReportingPeriods><Courses><Course CourseID="points-check" CourseName="History" Period="1"><Marks><Mark MarkName="Quarter 1" CalculatedScoreRaw="97.5" CalculatedScoreString="A"><GradeCalculationSummary><AssignmentGradeCalc Type="Homework" Weight="100" Points="19.5" PointsPossible="20" WeightedPct="97.5" CalculatedMark="A"/></GradeCalculationSummary><Assignments><Assignment GradebookID="earlier" Measure="Earlier quiz" Type="Homework" Date="9/19/2026" DueDate="9/19/2026" Score="10" DisplayScore="10 out of 10" ScoreCalValue="10" ScoreMaxValue="10" Points="10 / 10" Point="10" PointPossible="10" Notes="" MeasureDescription="Earlier work"/><Assignment GradebookID="corrected" Measure="Video quiz" Type="Homework" Date="9/20/2026" DueDate="9/20/2026" Score="9.5" DisplayScore="9.5 out of 10" ScoreCalValue="9.5" ScoreMaxValue="10" Points="9.5 / 1" Point="9.5" PointPossible="1" Notes="" MeasureDescription="Video work"/></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
+	const xml = `<Gradebook><ReportingPeriod Index="0" GradePeriod="Quarter 1"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1"/></ReportingPeriods><Courses><Course CourseID="points-check" CourseName="Sample Course" Period="1"><Marks><Mark MarkName="Quarter 1" CalculatedScoreRaw="90" CalculatedScoreString="A"><GradeCalculationSummary><AssignmentGradeCalc Type="Homework" Weight="100" Points="1.8" PointsPossible="2" WeightedPct="90" CalculatedMark="A"/></GradeCalculationSummary><Assignments><Assignment GradebookID="earlier" Measure="Earlier quiz" Type="Homework" Date="9/19/2026" DueDate="9/19/2026" Score="10" DisplayScore="10 out of 10" ScoreCalValue="10" ScoreMaxValue="10" Points="1 / 1" Point="1" PointPossible="1" Notes="" MeasureDescription="Earlier work"/><Assignment GradebookID="corrected" Measure="Weighted quiz" Type="Homework" Date="9/20/2026" DueDate="9/20/2026" Score="8" DisplayScore="8 out of 10" ScoreCalValue="8" ScoreMaxValue="10" AssignmentPercentage="80" Points="0.8 / 1" Point="0.8" PointPossible="1" Notes="" MeasureDescription="Sample work"/></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
 	await page.route('**/api/studentvue/gradebook*', (route) =>
 		route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ xml }) })
 	);
 	await page.goto('/grades/points-check');
-	await expect(page.getByRole('heading', { level: 1, name: 'History' })).toBeVisible();
-	await expect(page.getByText('9.5/10').first()).toBeVisible();
+	await expect(page.getByRole('heading', { level: 1, name: 'Sample Course' })).toBeVisible();
+	await expect(
+		page.getByTitle('Points earned/Points possible').filter({ hasText: '0.8/1' }).first()
+	).toBeVisible();
+	await expect(
+		page.getByTitle('Points before scaling').filter({ hasText: '(8/10)' }).first()
+	).toBeVisible();
 	await expect(page.getByTestId('grade-trend-chart')).toBeVisible();
 	await expect(page.getByText(/estimated from studentvue assignments/i)).toHaveCount(0);
 	await expect(page.getByText('Point Discrepancy')).toHaveCount(0);
-	await expect(page.getByText('950%')).toHaveCount(0);
+	await expect(page.getByText('800%')).toHaveCount(0);
 });
 
 test('a StudentVUE category mismatch keeps an estimated chart anchored to the official grade', async ({
@@ -351,6 +360,195 @@ test('entering hypothetical mode never moves the official course grade', async (
 	).toBeVisible();
 	await expect(page.getByText('±0.00% vs actual')).toHaveCount(0);
 	await expect(page.getByTestId('hypothetical-letter')).toBeVisible();
+});
+
+test('scaled assignment percentages stay official until what-if points are edited', async ({
+	page
+}) => {
+	const rows = [
+		{ id: 'weighted', name: 'Weighted quiz', earned: '0.8', raw: '7.95', percentage: '79.5' },
+		{ id: 'zero', name: 'Zero score', earned: '0', raw: '0', percentage: '0' },
+		{ id: 'bonus', name: 'Bonus score', earned: '1.25', raw: '12.5', percentage: '125' }
+	]
+		.map(
+			({ id, name, earned, raw, percentage }) =>
+				`<Assignment GradebookID="${id}" Measure="${name}" Type="Homework" Date="9/2/2026" DueDate="9/2/2026" Score="${raw}" DisplayScore="${raw} out of 10" ScoreCalValue="${raw}" ScoreMaxValue="10" ScoreType="Raw Score" AssignmentPercentage="${percentage}" Points="${earned} / 1" Point="${earned}" PointPossible="1" Notes="" MeasureDescription=""/>`
+		)
+		.join('');
+	const xml = `<Gradebook><ReportingPeriod Index="0" GradePeriod="Quarter 1"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1"/></ReportingPeriods><Courses><Course CourseID="assignment-scale-check" CourseName="Sample Course" Period="1"><Marks><Mark MarkName="Quarter 1" CalculatedScoreRaw="68.33" CalculatedScoreString="D"><GradeCalculationSummary><AssignmentGradeCalc Type="Homework" Weight="100" Points="2.05" PointsPossible="3" WeightedPct="68.33" CalculatedMark="D"/></GradeCalculationSummary><Assignments>${rows}</Assignments></Mark></Marks></Course></Courses></Gradebook>`;
+	await page.route('**/api/studentvue/gradebook*', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({ xml })
+		})
+	);
+	await page.goto('/grades/assignment-scale-check');
+	await expect(page.getByRole('heading', { level: 1, name: 'Sample Course' })).toBeVisible();
+	const activeRows = page.getByRole('tabpanel').filter({ visible: true }).locator('li');
+	const weighted = activeRows.filter({ hasText: 'Weighted quiz' });
+	await expect(weighted.locator('[title="Points earned/Points possible"]')).toHaveText('0.8/1');
+	await expect(weighted.locator('[title="Points before scaling"]')).toHaveText('(7.95/10)');
+	await expect(weighted.locator('[title="Assignment grade percentage"]')).toHaveText('79.5%');
+	await expect(
+		activeRows.filter({ hasText: 'Zero score' }).locator('[title="Assignment grade percentage"]')
+	).toHaveText('0%');
+	await expect(
+		activeRows.filter({ hasText: 'Bonus score' }).locator('[title="Assignment grade percentage"]')
+	).toHaveText('125%');
+	await page.getByLabel('Hypothetical mode').check();
+	await expect(page.getByText('±0.00% vs actual')).toBeVisible();
+	await expect(weighted.getByRole('progressbar')).toHaveAttribute('aria-valuetext', '79.5%');
+	await weighted.getByRole('spinbutton', { name: 'Points earned', exact: true }).fill('0.4');
+	await expect(weighted.getByRole('progressbar')).toHaveAttribute('aria-valuetext', '40%');
+	await page.getByRole('tab', { name: 'Homework', exact: true }).click();
+	await expect(weighted.getByRole('progressbar')).toHaveAttribute('aria-valuetext', '40%');
+	await page.getByRole('button', { name: 'Reset changes', exact: true }).click();
+	await expect(weighted.getByRole('progressbar')).toHaveAttribute('aria-valuetext', '79.5%');
+	await weighted.getByRole('spinbutton', { name: 'Points possible', exact: true }).fill('2');
+	await expect(weighted.getByRole('progressbar')).toHaveAttribute('aria-valuetext', '40%');
+});
+
+test('a coarse point display does not change the grade when edited to its official percentage', async ({
+	page
+}) => {
+	const assignment = `<Assignment GradebookID="coarse" Measure="Coarse quiz" Type="Homework" Date="9/2/2026" DueDate="9/2/2026" Score="6" DisplayScore="6 out of 10" ScoreCalValue="6" ScoreMaxValue="10" ScoreType="Raw Score" AssignmentPercentage="60" Points="1 / 1" Point="1" PointPossible="1" Notes="" MeasureDescription=""/>`;
+	const summary = `<GradeCalculationSummary><AssignmentGradeCalc Type="Homework" Weight="100" Points="0.6" PointsPossible="1" WeightedPct="60" CalculatedMark="D"/></GradeCalculationSummary>`;
+	const xml = assignmentEvidenceXml('60', assignment, summary);
+	await page.route('**/api/studentvue/gradebook*', (route) =>
+		route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ xml }) })
+	);
+	await page.goto('/grades/assignment-evidence');
+	const row = page
+		.getByRole('tabpanel')
+		.filter({ visible: true })
+		.locator('li')
+		.filter({ hasText: 'Coarse quiz' });
+	await expect(row.locator('[title="Points earned/Points possible"]')).toHaveText('1/1');
+	await expect(row.locator('[title="Assignment grade percentage"]')).toHaveText('60%');
+	await page.getByLabel('Hypothetical mode').check();
+	await expect(row.getByRole('spinbutton', { name: 'Points earned', exact: true })).toHaveValue(
+		'1'
+	);
+	await row.getByRole('spinbutton', { name: 'Points earned', exact: true }).fill('0.6');
+	await expect(row.getByRole('progressbar')).toHaveAttribute('aria-valuetext', '60%');
+	await expect(page.getByText('±0.00% vs actual')).toBeVisible();
+	await row.getByRole('spinbutton', { name: 'Points earned', exact: true }).fill('0.5');
+	await expect(page.getByText('-10.00% vs actual')).toBeVisible();
+	await row.getByRole('spinbutton', { name: 'Points earned', exact: true }).fill('');
+	await expect(row.getByRole('progressbar')).toHaveCount(0);
+	await expect(page.locator('header').getByText('NaN%', { exact: true })).toHaveCount(0);
+	await row.getByRole('spinbutton', { name: 'Points earned', exact: true }).fill('0.6');
+	await expect(page.getByText('±0.00% vs actual')).toBeVisible();
+	await page.getByRole('button', { name: 'Reset changes', exact: true }).click();
+	await expect(row.getByRole('spinbutton', { name: 'Points earned', exact: true })).toHaveValue(
+		'1'
+	);
+	await expect(row.getByRole('progressbar')).toHaveAttribute('aria-valuetext', '60%');
+	await expect(page.getByText('±0.00% vs actual')).toBeVisible();
+});
+
+test('an official percentage remains visible when weighted earned points are missing', async ({
+	page
+}) => {
+	const assignment = `<Assignment GradebookID="earned-missing" Measure="Known percentage" Type="Homework" Date="9/2/2026" DueDate="9/2/2026" Score="8" DisplayScore="8 out of 10" ScoreCalValue="8" ScoreMaxValue="10" ScoreType="Raw Score" AssignmentPercentage="80" Points="1 Points Possible" PointPossible="1" Notes="" MeasureDescription=""/>`;
+	const summary = `<GradeCalculationSummary><AssignmentGradeCalc Type="Homework" Weight="100" Points="0.8" PointsPossible="1" WeightedPct="80" CalculatedMark="B"/></GradeCalculationSummary>`;
+	const xml = assignmentEvidenceXml('80', assignment, summary);
+	await page.route('**/api/studentvue/gradebook*', (route) =>
+		route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ xml }) })
+	);
+	await page.goto('/grades/assignment-evidence');
+	const row = page
+		.getByRole('tabpanel')
+		.filter({ visible: true })
+		.locator('li')
+		.filter({ hasText: 'Known percentage' });
+	await expect(row.getByText('Not Graded', { exact: true })).toHaveCount(0);
+	await expect(row.locator('[title="StudentVUE raw score"]')).toHaveText('(8/10)');
+	await expect(row.locator('[title="Assignment grade percentage"]')).toHaveText('80%');
+	await expect(row.getByRole('progressbar')).toHaveAttribute('aria-valuetext', '80%');
+	await page.getByLabel('Hypothetical mode').check();
+	await expect(page.getByText('±0.00% vs actual')).toBeVisible();
+	await row.getByRole('spinbutton', { name: 'Points earned', exact: true }).fill('0.8');
+	await expect(page.getByText('±0.00% vs actual')).toBeVisible();
+});
+
+test('missing weighted maxima preserve official and raw evidence without guessing a percentage', async ({
+	page
+}) => {
+	const rows = `<Assignment GradebookID="maximum-missing" Measure="Unknown weighted maximum" Type="Homework" Date="9/2/2026" DueDate="9/2/2026" Score="8" DisplayScore="8 out of 10" ScoreCalValue="8" ScoreMaxValue="10" ScoreType="Raw Score" AssignmentPercentage="80" Points="Points Possible" Point="0.8" Notes="" MeasureDescription=""/><Assignment GradebookID="raw-only" Measure="Raw score only" Type="Homework" Date="9/2/2026" DueDate="9/2/2026" Score="8" DisplayScore="8 out of 10" ScoreCalValue="8" ScoreMaxValue="10" ScoreType="Raw Score" Points="Points Possible" Notes="" MeasureDescription=""/><Assignment GradebookID="pending" Measure="Pending work" Type="Homework" Date="9/2/2026" DueDate="9/2/2026" DisplayScore="Not Graded" ScoreType="Raw Score" Points="1 Points Possible" PointPossible="1" Notes="" MeasureDescription=""/>`;
+	const xml = assignmentEvidenceXml('80', rows);
+	await page.route('**/api/studentvue/gradebook*', (route) =>
+		route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ xml }) })
+	);
+	await page.goto('/grades/assignment-evidence');
+	const activeRows = page.getByRole('tabpanel').filter({ visible: true }).locator('li');
+	const known = activeRows.filter({ hasText: 'Unknown weighted maximum' });
+	await expect(known.getByText('Not Graded', { exact: true })).toHaveCount(0);
+	await expect(known.locator('[title="Points earned/Points possible"]')).toHaveText('0.8/—');
+	await expect(known.locator('[title="Assignment grade percentage"]')).toHaveText('80%');
+	await expect(known.getByText('Weighted points unavailable', { exact: true })).toBeVisible();
+	await expect(page.getByLabel('Hypothetical mode')).toBeDisabled();
+	await expect(page.getByRole('button', { name: /Finals Planner/ })).toBeDisabled();
+	const rawOnly = activeRows.filter({ hasText: 'Raw score only' });
+	await expect(rawOnly.getByText('Not Graded', { exact: true })).toHaveCount(0);
+	await expect(rawOnly.locator('[title="StudentVUE raw score"]')).toHaveText('(8/10)');
+	await expect(rawOnly.locator('[title="Assignment grade percentage"]')).toHaveCount(0);
+	await expect(rawOnly.getByRole('progressbar')).toHaveCount(0);
+	await expect(rawOnly.getByText('Weighted points unavailable', { exact: true })).toBeVisible();
+	await expect(
+		activeRows.filter({ hasText: 'Pending work' }).getByText('Not Graded', { exact: true })
+	).toBeVisible();
+});
+
+test('excluded assignments need a known weighted maximum before they can count in a what-if grade', async ({
+	page
+}) => {
+	const rows = `<Assignment GradebookID="current" Measure="Current work" Type="Homework" Date="9/2/2026" DueDate="9/2/2026" Score="80" DisplayScore="80 out of 100" ScoreType="Raw Score" AssignmentPercentage="80" Points="80 / 100" Point="80" PointPossible="100" Notes="" MeasureDescription=""/><Assignment GradebookID="excluded-unknown" Measure="Excluded unknown maximum" Type="Homework" Date="9/2/2026" DueDate="9/2/2026" Score="8" DisplayScore="8 out of 10" ScoreCalValue="8" ScoreMaxValue="10" ScoreType="Raw Score" Points="Points Possible" Notes="(Not For Grading)" MeasureDescription=""/><Assignment GradebookID="excluded-percent" Measure="Excluded known percentage" Type="Homework" Date="9/2/2026" DueDate="9/2/2026" Score="8" DisplayScore="8 out of 10" ScoreCalValue="8" ScoreMaxValue="10" ScoreType="Raw Score" AssignmentPercentage="80" Points="1 Points Possible" PointPossible="1" Notes="(Not For Grading)" MeasureDescription=""/><Assignment GradebookID="excluded-bonus" Measure="Excluded bonus" Type="Homework" Date="9/2/2026" DueDate="9/2/2026" Score="2" DisplayScore="2" ScoreType="Raw Score" Points="2 / 0" Point="2" PointPossible="0" Notes="(Not For Grading)" MeasureDescription=""/>`;
+	const xml = assignmentEvidenceXml('80', rows);
+	await page.route('**/api/studentvue/gradebook*', (route) =>
+		route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ xml }) })
+	);
+	await page.goto('/grades/assignment-evidence');
+	await page.getByLabel('Hypothetical mode').check();
+	const activeRows = page.getByRole('tabpanel').filter({ visible: true }).locator('li');
+	await expect(
+		activeRows
+			.filter({ hasText: 'Excluded unknown maximum' })
+			.getByRole('checkbox', { name: 'Not For Grade' })
+	).toBeDisabled();
+	await expect(
+		activeRows
+			.filter({ hasText: 'Excluded known percentage' })
+			.getByRole('checkbox', { name: 'Not For Grade' })
+	).toBeEnabled();
+	await expect(
+		activeRows
+			.filter({ hasText: 'Excluded bonus' })
+			.getByRole('checkbox', { name: 'Not For Grade' })
+	).toBeEnabled();
+});
+
+test('the finals planner reaches its target in the anchored hypothetical calculation', async ({
+	page
+}) => {
+	const assignment = `<Assignment GradebookID="current" Measure="Current work" Type="Homework" Date="9/2/2026" DueDate="9/2/2026" Score="80" DisplayScore="80 out of 100" ScoreCalValue="80" ScoreMaxValue="100" ScoreType="Raw Score" AssignmentPercentage="80" Points="80 / 100" Point="80" PointPossible="100" Notes="" MeasureDescription=""/>`;
+	const xml = assignmentEvidenceXml('90', assignment);
+	await page.route('**/api/studentvue/gradebook*', (route) =>
+		route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ xml }) })
+	);
+	await page.goto('/grades/assignment-evidence');
+	await page.getByRole('button', { name: /Finals Planner/ }).click();
+	const planner = page.getByRole('region', { name: 'Finals Planner' });
+	await expect(planner.getByLabel('Target grade')).toHaveValue('93');
+	await expect(planner.getByText('86 / 100', { exact: true })).toBeVisible();
+	await page.getByLabel('Hypothetical mode').check();
+	const form = page.getByRole('form', { name: 'Add what-if assignment' });
+	await form.getByLabel('What-if score').fill('86');
+	await form.getByLabel('What-if points possible').fill('100');
+	await form.getByRole('button', { name: 'Add', exact: true }).click();
+	await expect(page.locator('header').getByText('93%', { exact: true })).toBeVisible();
+	await expect(page.getByText('+3.00% vs actual')).toBeVisible();
 });
 
 test('saved official StudentVUE marks replace assignment estimates in the chart', async ({

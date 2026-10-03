@@ -14,6 +14,7 @@
 		calculateCourseGradePercentageFromCategories,
 		calculateCourseGradePercentageFromTotals,
 		type AdjustmentAssignment,
+		type Assignment,
 		type Category,
 		type Flowed,
 		getCalculableAssignments,
@@ -128,7 +129,42 @@
 	let calculatedGrade = $state(NaN);
 	let hypotheticalGrade = $state(NaN);
 	/** Local grade computed from the untouched gradebook; hypothetical deltas are measured from it. */
-	let baselineGrade = NaN;
+	let baselineGrade = $state(NaN);
+
+	function hasRecordedGrade(assignment: Assignment) {
+		return (
+			Number.isFinite(assignment.pointsEarned) ||
+			Number.isFinite(assignment.officialPercentage) ||
+			(assignment.unscaledPoints !== undefined &&
+				Number.isFinite(assignment.unscaledPoints.pointsEarned) &&
+				Number.isFinite(assignment.unscaledPoints.pointsPossible))
+		);
+	}
+
+	function hasCompleteCalculationInputs(source: Assignment[]) {
+		return source.every((assignment) => {
+			if (assignment.notForGrade || !hasRecordedGrade(assignment)) return true;
+			if (assignment.calculationUnavailable) return false;
+			if (gradeCategories && !gradeCategories.some(({ name }) => name === assignment.category))
+				return false;
+			return getCalculableAssignments([assignment]).length > 0;
+		});
+	}
+	const completeCalculationInputs = $derived(hasCompleteCalculationInputs(realAssignments));
+	const calculationAvailable = $derived(
+		completeCalculationInputs && Number.isFinite(baselineGrade)
+	);
+	const officialGradeOffset = $derived(
+		synergyGradePercentage !== undefined && Number.isFinite(baselineGrade)
+			? synergyGradePercentage - baselineGrade
+			: 0
+	);
+	$effect(() => {
+		if (!calculationAvailable) {
+			hypotheticalMode = false;
+			showTargetGradeCalculator = false;
+		}
+	});
 	let rawGradeCalcMatches = $derived(
 		synergyGradePercentage === undefined || gradesMatch(calculatedGrade, synergyGradePercentage)
 	);
@@ -181,6 +217,10 @@
 	});
 
 	function recalculateGradePercentage() {
+		if (!hasCompleteCalculationInputs(reactiveAssignments)) {
+			hypotheticalGrade = NaN;
+			return;
+		}
 		if (gradeCategories === undefined) {
 			reactiveAssignments = calculateAssignmentGPCsFromTotals(reactiveAssignments);
 
@@ -253,7 +293,9 @@
 
 	const grade = $derived(
 		hypotheticalMode
-			? hypotheticalGrade / 100
+			? Number.isFinite(hypotheticalGrade)
+				? hypotheticalGrade / 100
+				: undefined
 			: synergyGradePercentage !== undefined
 				? synergyGradePercentage / 100
 				: undefined
@@ -369,7 +411,7 @@
 								? '+'
 								: ''}{hypotheticalDelta.toFixed(2)}% vs actual
 					{:else}
-						{realAssignments.filter((assignment) => assignment.pointsEarned !== undefined).length}
+						{realAssignments.filter(hasRecordedGrade).length}
 						graded of {realAssignments.length}
 					{/if}
 				</p>
@@ -381,10 +423,11 @@
 		>
 			<button
 				type="button"
+				disabled={!calculationAvailable}
 				onclick={toggleTargetGradeCalculator}
 				aria-expanded={showTargetGradeCalculator}
 				style="font-family: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif; line-height: normal;"
-				class="hover:bg-accent/30 flex h-[3.3125rem] w-full items-center justify-between px-5 text-left text-base font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
+				class="hover:bg-accent/30 flex h-[3.3125rem] w-full items-center justify-between px-5 text-left text-base font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-50"
 			>
 				<span>Finals Planner</span><span class="text-muted-foreground flex items-center text-xs"
 					><span class="hidden sm:inline">what do I need on the final?</span><span
@@ -400,6 +443,8 @@
 						initialGradePercentage={roundedGradePercentage}
 						assignments={reactiveAssignments}
 						{gradeCategoryWeightProportions}
+						{officialGradeOffset}
+						{calculationAvailable}
 					/>
 				</div>
 			{/if}
@@ -422,6 +467,7 @@
 			<div class="flex items-center gap-2">
 				<Checkbox
 					bind:checked={hypotheticalMode}
+					disabled={!calculationAvailable}
 					id="hypothetical-mode"
 					title="Hypothetical mode allows you to see what your grade would be if you got a certain score on an assignment."
 				/>
@@ -449,6 +495,18 @@
 				</div>
 			{/if}
 		</div>
+
+		{#if !calculationAvailable}
+			<p class="text-muted-foreground mb-4 text-sm" role="status">
+				StudentVUE hasn't provided enough weighted point information for what-if calculations or the
+				Finals Planner. Your official grade is still shown. Refresh grades to try again.
+			</p>
+		{:else if hypotheticalMode && !Number.isFinite(hypotheticalGrade)}
+			<p class="text-muted-foreground mb-4 text-sm" role="status">
+				These inputs don't define a calculable grade. Check the points possible and included
+				assignments.
+			</p>
+		{/if}
 
 		{#if categories && gradeCategories && showCategoryTable && !hypotheticalMode}
 			<div class="m-4 flex justify-center" transition:fade={{ duration: 200 }}>

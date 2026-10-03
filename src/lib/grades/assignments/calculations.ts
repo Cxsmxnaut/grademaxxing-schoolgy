@@ -9,11 +9,10 @@ import type {
 } from './types';
 
 export function calculateGradePercentage(pointsEarned: number, pointsPossible: number) {
-	let gradePercentage = (pointsEarned / pointsPossible) * 100;
-
-	if (isNaN(gradePercentage)) gradePercentage = 0;
-
-	return gradePercentage;
+	if (!Number.isFinite(pointsEarned) || !Number.isFinite(pointsPossible) || pointsPossible < 0)
+		return NaN;
+	if (pointsPossible === 0) return pointsEarned === 0 ? 0 : NaN;
+	return (pointsEarned / pointsPossible) * 100;
 }
 
 export function calculateCourseGradePercentageFromCategories(
@@ -25,30 +24,33 @@ export function calculateCourseGradePercentageFromCategories(
 
 	let totalWeight = 0;
 
-	Object.entries(pointsByCategory).forEach(([categoryName, categoryPoints]) => {
+	for (const [categoryName, categoryPoints] of Object.entries(pointsByCategory)) {
 		const category = gradeCategories.find((category) => category.name === categoryName);
-		if (!category) return;
+		if (!category) continue;
+		if (!Number.isFinite(category.weightPercentage)) return NaN;
+		if (category.weightPercentage <= 0) continue;
+		if (
+			!Number.isFinite(categoryPoints.pointsEarned) ||
+			!Number.isFinite(categoryPoints.pointsPossible) ||
+			categoryPoints.pointsPossible <= 0
+		)
+			return NaN;
 
 		gradePercentage +=
 			(categoryPoints.pointsEarned / categoryPoints.pointsPossible) * category.weightPercentage;
 		totalWeight += category.weightPercentage;
-	});
+	}
 
 	gradePercentage = (gradePercentage / totalWeight) * 100;
 
-	if (!Number.isFinite(gradePercentage)) {
-		console.error('Grade percentage is not finite');
-		return 0;
-	}
-
-	return gradePercentage;
+	return Number.isFinite(gradePercentage) ? gradePercentage : NaN;
 }
 
 export function calculateCourseGradePercentageFromTotals<T extends Assignment>(
 	assignments: Calculable<T>[]
 ) {
 	const { pointsEarned, pointsPossible } = getAssignmentPointTotals(assignments);
-
+	if (assignments.length > 0 && pointsPossible <= 0) return NaN;
 	return calculateGradePercentage(pointsEarned, pointsPossible);
 }
 
@@ -112,29 +114,19 @@ export function calculateAssignmentGPCsFromCategories<T extends Assignment>(
 	const flowedAssignments: (T | Flowed<T>)[] = assignments
 		.toReversed()
 		.map((assignment) => {
-			const { pointsEarned, pointsPossible, notForGrade, category } = assignment;
-
-			if (
-				pointsEarned === undefined ||
-				pointsPossible === undefined ||
-				notForGrade ||
-				category === undefined
-			)
-				return assignment;
-
-			const calculable: CalculableWithCategory<T> = {
-				...assignment,
-				pointsEarned,
-				pointsPossible,
-				notForGrade,
-				category
-			};
+			const [calculable] = getCalculableAssignmentsWithCategories([assignment]);
+			if (!calculable) return { ...assignment, gradePercentageChange: undefined };
 
 			const flowed = flowAssignmentFromCategories(calculable, pointsByCategory, gradeCategories);
 
 			pointsByCategory = flowed.pointsByCategory;
 
-			return flowed.assignment;
+			return {
+				...assignment,
+				gradePercentageChange: Number.isFinite(flowed.assignment.gradePercentageChange)
+					? flowed.assignment.gradePercentageChange
+					: undefined
+			};
 		})
 		.toReversed();
 
@@ -148,22 +140,18 @@ export function calculateAssignmentGPCsFromTotals<T extends Assignment>(assignme
 	const flowedAssignments: (T | Flowed<T>)[] = assignments
 		.toReversed()
 		.map((assignment) => {
-			const { pointsEarned, pointsPossible, notForGrade } = assignment;
-
-			if (pointsEarned === undefined || pointsPossible === undefined || notForGrade)
-				return assignment;
-
-			const calculable: Calculable<T> = {
-				...assignment,
-				pointsEarned,
-				pointsPossible,
-				notForGrade
-			};
+			const calculable = getCalculableAssignment(assignment);
+			if (!calculable) return { ...assignment, gradePercentageChange: undefined };
 
 			const flowed = flowAssignmentFromTotals(calculable, totalPointsEarned, totalPointsPossible);
 			totalPointsEarned = flowed.totalPointsEarned;
 			totalPointsPossible = flowed.totalPointsPossible;
-			return flowed.assignment;
+			return {
+				...assignment,
+				gradePercentageChange: Number.isFinite(flowed.assignment.gradePercentageChange)
+					? flowed.assignment.gradePercentageChange
+					: undefined
+			};
 		})
 		.toReversed();
 
@@ -325,45 +313,42 @@ export function getAssignmentPointTotals<T extends Assignment>(assignments: Calc
 
 export function getCalculableAssignments<T extends Assignment>(assignments: T[]) {
 	return assignments
-		.map((assignment) => {
-			const { pointsEarned, pointsPossible, notForGrade } = assignment;
-
-			if (pointsEarned === undefined || pointsPossible === undefined || notForGrade) return null;
-
-			const calculable: Calculable<T> = {
-				...assignment,
-				pointsEarned,
-				pointsPossible,
-				notForGrade
-			};
-
-			return calculable;
-		})
-		.filter((assignments) => assignments !== null);
+		.map((assignment) => getCalculableAssignment(assignment))
+		.filter((assignment) => assignment !== null);
 }
 
 export function getCalculableAssignmentsWithCategories<T extends Assignment>(assignments: T[]) {
 	return assignments
 		.map((assignment) => {
-			const { pointsEarned, pointsPossible, notForGrade, category } = assignment;
-
-			if (
-				pointsEarned === undefined ||
-				pointsPossible === undefined ||
-				notForGrade ||
-				category === undefined
-			)
-				return null;
-
-			const calculable: CalculableWithCategory<T> = {
-				...assignment,
-				pointsEarned,
-				pointsPossible,
-				notForGrade,
-				category
-			};
-
-			return calculable;
+			const calculable = getCalculableAssignment(assignment);
+			return calculable && assignment.category !== undefined
+				? { ...calculable, category: assignment.category }
+				: null;
 		})
-		.filter((assignments) => assignments !== null);
+		.filter((assignment) => assignment !== null);
+}
+
+function getCalculableAssignment<T extends Assignment>(assignment: T): Calculable<T> | null {
+	if (assignment.notForGrade || assignment.calculationUnavailable) return null;
+	const published = assignment.publishedPoints;
+	const untouched =
+		published &&
+		!assignment.newHypothetical &&
+		assignment.pointsEarned === published.pointsEarned &&
+		assignment.pointsPossible === published.pointsPossible &&
+		assignment.extraCredit === published.extraCredit;
+	const pointsEarned =
+		untouched && !assignment.extraCredit && assignment.calculationPointsEarned !== undefined
+			? assignment.calculationPointsEarned
+			: assignment.pointsEarned;
+	const pointsPossible = assignment.extraCredit ? 0 : assignment.pointsPossible;
+	if (
+		pointsEarned === undefined ||
+		pointsPossible === undefined ||
+		!Number.isFinite(pointsEarned) ||
+		!Number.isFinite(pointsPossible) ||
+		(!assignment.hidden && !assignment.extraCredit && pointsPossible <= 0)
+	)
+		return null;
+	return { ...assignment, pointsEarned, pointsPossible, notForGrade: false };
 }

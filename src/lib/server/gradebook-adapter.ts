@@ -25,7 +25,11 @@ export function gradebookXml(input: PortalCourse[] | PortalGradebook) {
 			}
 		: input;
 	const { courses, reportingPeriods, selectedPeriod } = gradebook;
-	const builder = new XMLBuilder({ ignoreAttributes: false, attributeNamePrefix: '_' });
+	const builder = new XMLBuilder({
+		ignoreAttributes: false,
+		attributeNamePrefix: '_',
+		suppressBooleanAttributes: false
+	});
 	return builder.build({
 		Gradebook: {
 			ReportingPeriods: {
@@ -93,13 +97,12 @@ export function gradebookXml(input: PortalCourse[] | PortalGradebook) {
 											_TotalSecondsSincePost: '0',
 											_ScoreMaxValue: assignment.ScoreMaxValue ?? points.possible,
 											_ScoreType: assignment.ScoreType ?? 'Raw Score',
+											_AssignmentPercentage: assignment.AssignmentPercentage,
+											_AssignmentPercentagePrecision: assignment.AssignmentPercentagePrecision,
+											_CalculationUnavailable: assignment.CalculationUnavailable,
 											_Points: assignment.Points ?? '',
 											_Point: assignment.Point ?? points.earned,
-											_PointPossible:
-												assignment.PointPossible ??
-												(points.earned !== undefined && points.possible === undefined
-													? ''
-													: points.possible),
+											_PointPossible: points.possible,
 											_Notes: assignment.Notes ?? '',
 											_TeacherID: '',
 											_StudentID: '',
@@ -122,7 +125,11 @@ export function gradebookXml(input: PortalCourse[] | PortalGradebook) {
 }
 
 function assignmentPointValues(assignment: Record<string, string>) {
-	const pair = assignment.Points?.match(/(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)/);
-	const score = assignment.Score?.match(/-?\d+(?:\.\d+)?/)?.[0];
-	return { earned: pair?.[1] ?? score, possible: pair?.[2] };
+	const pair = assignment.Points?.match(/^\s*(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)?\s*$/);
+	// A display score can use a different scale from weighted points. Only
+	// serialize earned points when the portal actually supplied that point pair.
+	return {
+		earned: assignment.Point ?? pair?.[1],
+		possible: assignment.PointPossible ?? (pair ? (pair[2] ?? '') : undefined)
+	};
 }

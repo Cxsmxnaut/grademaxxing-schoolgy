@@ -14,75 +14,73 @@ export function parseSynergyAssignment(synergyAssignment: AssignmentEntity) {
 		_Points,
 		_ScoreCalValue,
 		_ScoreMaxValue,
+		_AssignmentPercentage,
+		_AssignmentPercentagePrecision,
+		_CalculationUnavailable,
 		_Type
 	} = synergyAssignment;
 
 	const finiteNumber = (value: string | undefined) => {
-		if (value === undefined || value === '') return undefined;
-		const parsed = Number.parseFloat(value);
+		const normalized = String(value ?? '').trim();
+		if (!normalized || !/^-?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(normalized))
+			return undefined;
+		const parsed = Number(normalized);
 		return Number.isFinite(parsed) ? parsed : undefined;
 	};
+	const fraction = /^\s*(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)?\s*$/.exec(_Points ?? '');
 	const displayedPointsPossible = _Points?.includes('/')
-		? finiteNumber(_Points.split('/')[1]?.trim())
+		? finiteNumber(fraction?.[2])
 		: finiteNumber(_Points?.split(' Points Possible')[0]);
 
-	let pointsEarned = _Point !== undefined ? (_Point === '' ? 0 : finiteNumber(_Point)) : undefined; // _Point can be empty; equivalent to 0
+	const pointsEarned =
+		_Point !== undefined ? (_Point === '' ? 0 : finiteNumber(_Point)) : finiteNumber(fraction?.[1]);
 
-	let pointsPossible =
-		_PointPossible !== undefined && _PointPossible !== ''
-			? finiteNumber(_PointPossible)
-			: _ScoreMaxValue !== undefined && _ScoreMaxValue !== ''
-				? finiteNumber(_ScoreMaxValue)
-				: _Points === undefined || _Points === 'Points Possible'
-					? undefined
-					: displayedPointsPossible;
-
-	const pointsEarnedIsScaled =
-		_Point !== undefined &&
-		_Point !== '' &&
-		_ScoreCalValue !== undefined &&
-		_Point !== _ScoreCalValue;
-
-	const pointsPossibleIsScaled =
-		_PointPossible !== undefined &&
-		_PointPossible !== '' &&
-		_ScoreMaxValue !== undefined &&
-		_PointPossible !== _ScoreMaxValue;
+	const calculationUnavailable = String(_CalculationUnavailable) === 'true';
+	const weightedMaximum = finiteNumber(_PointPossible) ?? displayedPointsPossible;
+	const extraCredit =
+		!calculationUnavailable &&
+		(_PointPossible === '' ||
+			(fraction !== null && fraction[2] === undefined) ||
+			weightedMaximum === 0);
+	// A raw score maximum describes the display scale, not assignment weight.
+	const pointsPossible = extraCredit ? 0 : weightedMaximum;
 
 	let unscaledPoints: { pointsEarned: number; pointsPossible: number } | undefined = undefined;
-
+	const rawEarned = finiteNumber(_ScoreCalValue);
+	const rawPossible = finiteNumber(_ScoreMaxValue);
 	if (
-		(pointsEarnedIsScaled || pointsPossibleIsScaled) &&
-		_ScoreCalValue !== undefined &&
-		_ScoreMaxValue !== undefined
+		rawEarned !== undefined &&
+		rawPossible !== undefined &&
+		rawPossible > 0 &&
+		(rawEarned !== pointsEarned || rawPossible !== pointsPossible)
 	) {
-		unscaledPoints = {
-			pointsEarned: parseFloat(_ScoreCalValue),
-			pointsPossible: parseFloat(_ScoreMaxValue)
-		};
+		unscaledPoints = { pointsEarned: rawEarned, pointsPossible: rawPossible };
 	}
 
-	// A true scale changes earned and possible points by the same factor. If the
-	// ratios disagree, use StudentVUE's displayed score pair instead of turning
-	// a stale point maximum into a 950% assignment.
+	// The server reconciles assignment evidence. Raw score metadata is for
+	// display; swapping it into calculations would change the assignment weight.
+	const officialPercentage = finiteNumber(_AssignmentPercentage);
+	let calculationPointsEarned: number | undefined;
 	if (
-		_PointPossible !== '' &&
-		pointsEarned !== undefined &&
+		officialPercentage !== undefined &&
 		pointsPossible !== undefined &&
-		unscaledPoints &&
-		Number.isFinite(unscaledPoints.pointsEarned) &&
-		Number.isFinite(unscaledPoints.pointsPossible) &&
-		unscaledPoints.pointsPossible > 0
+		pointsPossible > 0 &&
+		!extraCredit
 	) {
-		const rawProduct = pointsEarned * unscaledPoints.pointsPossible;
-		const displayedProduct = unscaledPoints.pointsEarned * pointsPossible;
-		const roundingTolerance =
-			Number.EPSILON * Math.max(1, Math.abs(rawProduct), Math.abs(displayedProduct)) * 8;
-		if (Math.abs(rawProduct - displayedProduct) > roundingTolerance) {
-			pointsEarned = unscaledPoints.pointsEarned;
-			pointsPossible = unscaledPoints.pointsPossible;
-			unscaledPoints = undefined;
-		}
+		const precision = finiteNumber(_AssignmentPercentagePrecision);
+		const usePercentage =
+			pointsEarned === undefined ||
+			precision === undefined ||
+			(precision >= 0 &&
+				Number.isInteger(precision) &&
+				0.5 * 10 ** -precision <
+					weightedRatioUncertainty(
+						pointsEarned,
+						pointsPossible,
+						_Point ?? fraction?.[1],
+						_PointPossible ?? fraction?.[2]
+					));
+		if (usePercentage) calculationPointsEarned = (officialPercentage / 100) * pointsPossible;
 	}
 
 	const notesFormatted = _Notes.replace(/^\s*\(\s*not\s+for\s+grading\s*\)\s*/i, '').trim();
@@ -100,7 +98,15 @@ export function parseSynergyAssignment(synergyAssignment: AssignmentEntity) {
 		pointsEarned,
 		pointsPossible,
 		unscaledPoints,
-		extraCredit: _PointPossible === '',
+		...(officialPercentage !== undefined
+			? {
+					officialPercentage,
+					publishedPoints: { pointsEarned, pointsPossible, extraCredit },
+					...(calculationPointsEarned !== undefined ? { calculationPointsEarned } : {})
+				}
+			: {}),
+		...(calculationUnavailable ? { calculationUnavailable: true } : {}),
+		extraCredit,
 		gradePercentageChange: undefined,
 		notForGrade: isNotForGrade(_Notes),
 		hidden: false,
@@ -112,4 +118,29 @@ export function parseSynergyAssignment(synergyAssignment: AssignmentEntity) {
 	};
 
 	return assignment;
+}
+
+function weightedRatioUncertainty(
+	earned: number,
+	possible: number,
+	earnedText: string | undefined,
+	possibleText: string | undefined
+) {
+	const uncertainty = (value: string | undefined) => {
+		const match = /^-?(?:\d+(?:\.(\d*))?|\.(\d+))(?:e([+-]?\d+))?$/i.exec(value?.trim() ?? '');
+		if (!match) return Infinity;
+		const decimalPlaces = (match[1] ?? match[2] ?? '').length;
+		const exponent = Number(match[3] ?? 0);
+		return 0.5 * 10 ** (exponent - decimalPlaces);
+	};
+	const earnedDelta = uncertainty(earnedText);
+	const possibleDelta = uncertainty(possibleText);
+	if (possible <= possibleDelta) return Infinity;
+	const candidates = [
+		(earned - earnedDelta) / (possible - possibleDelta),
+		(earned - earnedDelta) / (possible + possibleDelta),
+		(earned + earnedDelta) / (possible - possibleDelta),
+		(earned + earnedDelta) / (possible + possibleDelta)
+	];
+	return Math.max(...candidates.map((ratio) => Math.abs(ratio - earned / possible) * 100));
 }

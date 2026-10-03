@@ -70,8 +70,19 @@ export type CourseContentItem = Record<string, unknown> & {
 	gradeMark?: unknown;
 	points?: unknown;
 	pointsPossible?: unknown;
+	calcValue?: unknown;
 	commentText?: unknown;
 	publicNote?: unknown;
+};
+
+export type ClassDataAssignment = Record<string, unknown> & {
+	gradeBookId?: unknown;
+	measureTypeId?: unknown;
+	score?: unknown;
+	maxScore?: unknown;
+	pointsPossible?: unknown;
+	weight?: unknown;
+	penaltyPct?: unknown;
 };
 
 export type ClassData = {
@@ -79,7 +90,7 @@ export type ClassData = {
 	isAssignmentWeightingOn?: unknown;
 	students?: Array<Record<string, unknown>>;
 	measureTypes?: Array<Record<string, unknown>>;
-	assignments?: Array<Record<string, unknown>>;
+	assignments?: ClassDataAssignment[];
 	measureTypeGrades?: Array<Record<string, unknown>>;
 };
 

@@ -16,30 +16,6 @@ export type EstimatedGradePoint = {
 	assignmentNames: string[];
 };
 
-function pointsForChart(assignment: Assignment): Assignment {
-	const displayed = assignment.unscaledPoints;
-	if (
-		!displayed ||
-		assignment.pointsEarned === undefined ||
-		assignment.pointsPossible === undefined ||
-		!Number.isFinite(displayed.pointsEarned) ||
-		!Number.isFinite(displayed.pointsPossible) ||
-		displayed.pointsPossible <= 0
-	)
-		return assignment;
-
-	const rawProduct = assignment.pointsEarned * displayed.pointsPossible;
-	const displayedProduct = displayed.pointsEarned * assignment.pointsPossible;
-	const roundingTolerance =
-		Number.EPSILON * Math.max(1, Math.abs(rawProduct), Math.abs(displayedProduct)) * 8;
-	if (Math.abs(rawProduct - displayedProduct) <= roundingTolerance) return assignment;
-	return {
-		...assignment,
-		pointsEarned: displayed.pointsEarned,
-		pointsPossible: displayed.pointsPossible
-	};
-}
-
 /** Use assignment changes for the trend, anchored to the latest official StudentVUE mark. */
 export function getEstimatedGradeTrend(
 	assignments: readonly Assignment[],
@@ -48,11 +24,27 @@ export function getEstimatedGradeTrend(
 ): EstimatedGradePoint[] {
 	if (officialCurrentPercentage === undefined || !Number.isFinite(officialCurrentPercentage))
 		return [];
+	if (
+		assignments.some((assignment) => {
+			if (assignment.notForGrade) return false;
+			if (assignment.calculationUnavailable) return true;
+			const hasGrade =
+				assignment.pointsEarned !== undefined ||
+				assignment.officialPercentage !== undefined ||
+				assignment.unscaledPoints !== undefined;
+			if (!hasGrade) return false;
+			if (gradeCategories && !gradeCategories.some(({ name }) => name === assignment.category))
+				return true;
+			return gradeCategories
+				? getCalculableAssignmentsWithCategories([assignment]).length === 0
+				: getCalculableAssignments([assignment]).length === 0;
+		})
+	)
+		return [];
 
-	const chartAssignments = assignments.map(pointsForChart);
 	const calculable = gradeCategories
-		? getCalculableAssignmentsWithCategories(chartAssignments)
-		: getCalculableAssignments(chartAssignments);
+		? getCalculableAssignmentsWithCategories([...assignments])
+		: getCalculableAssignments([...assignments]);
 	const byDate = new Map<number, Assignment[]>();
 	for (const assignment of calculable) {
 		const date = assignment.date.getTime();

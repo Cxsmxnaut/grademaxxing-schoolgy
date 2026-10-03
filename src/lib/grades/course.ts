@@ -44,12 +44,13 @@ export const isNotForGrade = (notes: string | undefined) =>
 /**
  * Districts post not-yet-graded work in different shapes: some omit the score
  * fields, others send them as empty or non-numeric strings, and the portal
- * labels the display score 'Not Graded'. Only a score that actually parses to
- * a number — the same bar the percentage column uses — proves a teacher graded
- * it. Not-for-grade work never counts.
+ * labels the display score 'Not Graded'. A published assignment percentage or
+ * a numeric score provides grading evidence. Not-for-grade work never counts.
  */
 export function isGradedAssignment(assignment: AssignmentEntity) {
 	if (isNotForGrade(assignment._Notes)) return false;
+	const percentage = assignment._AssignmentPercentage?.trim();
+	if (percentage && Number.isFinite(Number(percentage))) return true;
 	if (/^\s*not\s+graded\s*$/i.test(assignment._DisplayScore)) return false;
 	const numericScore = (value: string | undefined) => {
 		if (value === undefined || value.trim() === '') return undefined;

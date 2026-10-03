@@ -231,8 +231,8 @@ test('Extra Credit Assignment', () => {
 		name: 'Ch. 3 Quiz',
 		id: '123456',
 		pointsEarned: 3,
-		pointsPossible: 4,
-		unscaledPoints: undefined,
+		pointsPossible: 0,
+		unscaledPoints: { pointsEarned: 3, pointsPossible: 4 },
 		extraCredit: true,
 		gradePercentageChange: undefined,
 		notForGrade: false,
@@ -272,7 +272,7 @@ test('Extra Credit Assignment - blank maximum never becomes NaN', () => {
 
 	const parsed = parseSynergyAssignment(synergyAssignment);
 	expect(parsed.pointsEarned).toBe(0);
-	expect(parsed.pointsPossible).toBeUndefined();
+	expect(parsed.pointsPossible).toBe(0);
 	expect(parsed.extraCredit).toBe(true);
 });
 
@@ -417,7 +417,7 @@ test('Scaled Assignment', () => {
 	});
 });
 
-test('displayed score corrects a stale point maximum', () => {
+test('raw display metadata does not replace the weighted calculation scale', () => {
 	const parsed = parseSynergyAssignment({
 		_GradebookID: 'corrected-video',
 		_Measure: 'Video quiz',
@@ -433,6 +433,6 @@ test('displayed score corrects a stale point maximum', () => {
 		_MeasureDescription: ''
 	} as AssignmentEntity);
 	expect(parsed.pointsEarned).toBe(9.5);
-	expect(parsed.pointsPossible).toBe(10);
-	expect(parsed.unscaledPoints).toBeUndefined();
+	expect(parsed.pointsPossible).toBe(1);
+	expect(parsed.unscaledPoints).toEqual({ pointsEarned: 9.5, pointsPossible: 10 });
 });

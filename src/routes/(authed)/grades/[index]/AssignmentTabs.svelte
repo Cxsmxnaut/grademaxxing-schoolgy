@@ -46,6 +46,28 @@
 	const categoryDropdownOptions = $derived(
 		gradeCategories ? new Set(gradeCategories.map((category) => category.name)) : undefined
 	);
+	const originalAssignmentsById = $derived(
+		new Map(assignments.map((assignment) => [assignment.id, assignment]))
+	);
+
+	function untouchedOriginal(assignment: ReactiveAssignment) {
+		const original = originalAssignmentsById.get(assignment.id);
+		return original &&
+			!assignment.newHypothetical &&
+			assignment.pointsEarned === original.pointsEarned &&
+			assignment.pointsPossible === original.pointsPossible &&
+			assignment.extraCredit === original.extraCredit
+			? original
+			: undefined;
+	}
+
+	function untouchedPercentage(assignment: ReactiveAssignment) {
+		return untouchedOriginal(assignment)?.officialPercentage;
+	}
+
+	function untouchedRawPoints(assignment: ReactiveAssignment) {
+		return untouchedOriginal(assignment)?.unscaledPoints;
+	}
 
 	let activeTab = $state('all');
 	let draftCategory = $state<string | undefined>(undefined);
@@ -166,6 +188,10 @@
 										{id}
 										bind:pointsEarned={reactiveAssignments[i].pointsEarned}
 										bind:pointsPossible={reactiveAssignments[i].pointsPossible}
+										officialPercentage={untouchedPercentage(reactiveAssignments[i])}
+										calculationUnavailable={untouchedOriginal(reactiveAssignments[i])
+											?.calculationUnavailable}
+										unscaledPoints={untouchedRawPoints(reactiveAssignments[i])}
 										bind:extraCredit={reactiveAssignments[i].extraCredit}
 										gradePercentageChange={rawGradeCalcMatches ? gradePercentageChange : undefined}
 										bind:notForGrade={reactiveAssignments[i].notForGrade}
@@ -187,6 +213,10 @@
 										{id}
 										bind:pointsEarned={reactiveAssignments[i].pointsEarned}
 										bind:pointsPossible={reactiveAssignments[i].pointsPossible}
+										officialPercentage={untouchedPercentage(reactiveAssignments[i])}
+										calculationUnavailable={untouchedOriginal(reactiveAssignments[i])
+											?.calculationUnavailable}
+										unscaledPoints={untouchedRawPoints(reactiveAssignments[i])}
 										bind:extraCredit={reactiveAssignments[i].extraCredit}
 										gradePercentageChange={rawGradeCalcMatches ? gradePercentageChange : undefined}
 										bind:notForGrade={reactiveAssignments[i].notForGrade}
@@ -230,6 +260,10 @@
 											{id}
 											bind:pointsEarned={reactiveAssignments[i].pointsEarned}
 											bind:pointsPossible={reactiveAssignments[i].pointsPossible}
+											officialPercentage={untouchedPercentage(reactiveAssignments[i])}
+											calculationUnavailable={untouchedOriginal(reactiveAssignments[i])
+												?.calculationUnavailable}
+											unscaledPoints={untouchedRawPoints(reactiveAssignments[i])}
 											bind:extraCredit={reactiveAssignments[i].extraCredit}
 											gradePercentageChange={rawGradeCalcMatches
 												? gradePercentageChange
@@ -255,6 +289,10 @@
 											{id}
 											bind:pointsEarned={reactiveAssignments[i].pointsEarned}
 											bind:pointsPossible={reactiveAssignments[i].pointsPossible}
+											officialPercentage={untouchedPercentage(reactiveAssignments[i])}
+											calculationUnavailable={untouchedOriginal(reactiveAssignments[i])
+												?.calculationUnavailable}
+											unscaledPoints={untouchedRawPoints(reactiveAssignments[i])}
 											bind:extraCredit={reactiveAssignments[i].extraCredit}
 											gradePercentageChange={rawGradeCalcMatches
 												? gradePercentageChange
@@ -293,6 +331,8 @@
 		pointsEarned,
 		pointsPossible,
 		unscaledPoints,
+		officialPercentage,
+		calculationUnavailable,
 		extraCredit,
 		gradePercentageChange,
 		notForGrade,
@@ -312,6 +352,8 @@
 			{pointsEarned}
 			{pointsPossible}
 			{unscaledPoints}
+			{officialPercentage}
+			{calculationUnavailable}
 			{extraCredit}
 			gradePercentageChange={rawGradeCalcMatches ? gradePercentageChange : undefined}
 			{notForGrade}

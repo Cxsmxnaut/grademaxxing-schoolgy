@@ -28,6 +28,16 @@ function assignment(overrides: Partial<AssignmentEntity> = {}): AssignmentEntity
 }
 
 describe('isGradedAssignment', () => {
+	test('accepts an official percentage when weighted earned points are unavailable', () => {
+		expect(isGradedAssignment(assignment({ _DisplayScore: '', _AssignmentPercentage: '80' }))).toBe(
+			true
+		);
+		expect(isGradedAssignment(assignment({ _DisplayScore: '', _AssignmentPercentage: '0' }))).toBe(
+			true
+		);
+		expect(isGradedAssignment(assignment({ _AssignmentPercentage: 'NaN' }))).toBe(false);
+	});
+
 	test('rejects posted-but-ungraded assignments', () => {
 		expect(isGradedAssignment(assignment())).toBe(false);
 	});

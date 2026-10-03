@@ -144,6 +144,12 @@ export interface AssignmentEntity {
 	 * ```*/
 	_ScoreMaxValue?: string;
 	_ScoreType: 'Raw Score';
+	/** Authoritative assignment percentage, separate from raw and weighted points. */
+	_AssignmentPercentage?: string;
+	/** Decimal places in a published percentage; absent for an exact derived ratio. */
+	_AssignmentPercentagePrecision?: string;
+	/** The available evidence cannot establish the assignment's weighted scale. */
+	_CalculationUnavailable?: boolean | string;
 	/**
 	 * If scaled, displays scaled points
 	 *

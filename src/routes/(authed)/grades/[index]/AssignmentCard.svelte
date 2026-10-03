@@ -13,6 +13,7 @@
 	import { formatPercentage } from '$lib/grades/percentage-format';
 	import MessageCircleIcon from '@lucide/svelte/icons/message-circle';
 	import TextAlignStartIcon from '@lucide/svelte/icons/text-align-start';
+	import { tick } from 'svelte';
 
 	type Props = {
 		name: string;
@@ -21,6 +22,8 @@
 		pointsEarned?: number;
 		pointsPossible?: number;
 		unscaledPoints?: { pointsEarned: number; pointsPossible: number };
+		officialPercentage?: number;
+		calculationUnavailable?: boolean;
 		extraCredit?: boolean;
 		gradePercentageChange?: number;
 		notForGrade?: boolean;
@@ -51,6 +54,8 @@
 		pointsEarned = $bindable(),
 		pointsPossible = $bindable(),
 		unscaledPoints = $bindable(),
+		officialPercentage,
+		calculationUnavailable = false,
 		extraCredit = $bindable(false),
 		gradePercentageChange,
 		notForGrade = $bindable(false),
@@ -66,10 +71,39 @@
 		onRemove = undefined
 	}: Props = $props();
 
+	const hasOfficialPercentage = $derived(
+		officialPercentage !== undefined && Number.isFinite(officialPercentage)
+	);
+	const hasRawScore = $derived(
+		unscaledPoints !== undefined &&
+			Number.isFinite(unscaledPoints.pointsEarned) &&
+			Number.isFinite(unscaledPoints.pointsPossible)
+	);
+	const hasWeightedPoints = $derived(
+		pointsEarned !== undefined &&
+			Number.isFinite(pointsEarned) &&
+			pointsPossible !== undefined &&
+			Number.isFinite(pointsPossible) &&
+			pointsPossible >= 0
+	);
+	const isGraded = $derived(pointsEarned !== undefined || hasOfficialPercentage || hasRawScore);
+	const weightedPointsUnavailable = $derived(
+		calculationUnavailable ||
+			(!hasWeightedPoints &&
+				!(hasOfficialPercentage && pointsPossible !== undefined && pointsPossible > 0))
+	);
+	const cannotIncludeInGrade = $derived(
+		calculationUnavailable ||
+			pointsPossible === undefined ||
+			!Number.isFinite(pointsPossible) ||
+			pointsPossible < 0
+	);
 	const percentage = $derived(
-		pointsEarned !== undefined && pointsPossible !== undefined
-			? calculateGradePercentage(pointsEarned, pointsPossible)
-			: 0
+		hasOfficialPercentage
+			? officialPercentage!
+			: hasWeightedPoints && pointsPossible! > 0
+				? calculateGradePercentage(pointsEarned!, pointsPossible!)
+				: Number.NaN
 	);
 
 	const progressValue = $derived(
@@ -122,6 +156,11 @@
 	const gradePercentageChangeRounded = $derived(
 		Math.round((gradePercentageChange ?? 0) * 100) / 100
 	);
+
+	async function recalculateAfterInput() {
+		await tick();
+		recalculateGradePercentage();
+	}
 </script>
 
 <Card.Root
@@ -173,7 +212,7 @@
 				</Badge>
 			{/if}
 
-			{#if pointsEarned === undefined}
+			{#if !isGraded}
 				<Badge color="yellow" outline={true}>Not Graded</Badge>
 			{/if}
 
@@ -182,7 +221,11 @@
 					{#if editable}
 						<Checkbox
 							bind:checked={notForGrade}
-							onchange={recalculateGradePercentage}
+							disabled={cannotIncludeInGrade}
+							title={cannotIncludeInGrade
+								? 'Weighted points are needed to include this assignment in a what-if grade.'
+								: undefined}
+							onchange={recalculateAfterInput}
 							id="{id}-not-for-grade"
 						/>
 						<Label for="{id}-not-for-grade" class="text-xs">Not For Grade</Label>
@@ -202,7 +245,7 @@
 					{#if editable}
 						<Checkbox
 							bind:checked={extraCredit}
-							onchange={recalculateGradePercentage}
+							onchange={recalculateAfterInput}
 							id="{id}-extra-credit"
 						/>
 						<Label for="{id}-extra-credit" class="text-xs">Extra Credit</Label>
@@ -212,8 +255,10 @@
 				</Badge>
 			{/if}
 
-			{#if unscaledPoints}
-				<Badge variant="secondary" outline={true}>Scaled</Badge>
+			{#if hasRawScore && unscaledPoints}
+				<Badge variant="secondary" outline={true}
+					>{hasWeightedPoints ? 'Scaled' : 'Raw score'}</Badge
+				>
 			{/if}
 
 			{#if showHypotheticalLabel}
@@ -269,8 +314,11 @@
 				{/if}
 			{/if}
 
-			{#if unscaledPoints}
-				<span class="text-muted-foreground" title="Points before scaling">
+			{#if hasRawScore && unscaledPoints}
+				<span
+					class="text-muted-foreground"
+					title={hasWeightedPoints ? 'Points before scaling' : 'StudentVUE raw score'}
+				>
 					({unscaledPoints.pointsEarned}/{unscaledPoints.pointsPossible})
 				</span>
 			{/if}
@@ -281,27 +329,29 @@
 						title="Points earned"
 						class="h-[2.1875rem] w-[3.875rem] px-0 text-center font-mono text-[0.8125rem] sm:h-[1.9375rem] sm:w-[3.25rem]"
 						bind:value={pointsEarned}
-						oninput={recalculateGradePercentage}
+						oninput={recalculateAfterInput}
 					/>
 					/
 					<NumberInput
 						title="Points possible"
 						class="h-[2.1875rem] w-[3.875rem] px-0 text-center font-mono text-[0.8125rem] sm:h-[1.9375rem] sm:w-[3.25rem]"
 						bind:value={pointsPossible}
-						oninput={recalculateGradePercentage}
+						oninput={recalculateAfterInput}
 					/>
 				</div>
-			{:else if pointsEarned === undefined}
-				<span title="Points possible">{pointsPossible}</span>
 			{:else}
-				<span title="Points earned/Points possible">
-					{pointsEarned}/{#if extraCredit}
-						<span class="text-grade-extra">{pointsPossible}</span>
-					{:else}
-						{pointsPossible}
-					{/if}
-				</span>
-				{#if percentage && Number.isFinite(percentage)}
+				{#if pointsEarned !== undefined}
+					<span title="Points earned/Points possible">
+						{pointsEarned}/{#if extraCredit}
+							<span class="text-grade-extra">{pointsPossible ?? '—'}</span>
+						{:else}
+							{pointsPossible ?? '—'}
+						{/if}
+					</span>
+				{:else if pointsPossible !== undefined || !isGraded}
+					<span title="Points possible">{pointsPossible ?? '—'}</span>
+				{/if}
+				{#if Number.isFinite(percentage)}
 					<span class={percentageTextClass} title="Assignment grade percentage"
 						>{formatPercentage(percentage)}%</span
 					>
@@ -309,7 +359,11 @@
 			{/if}
 		</div>
 
-		{#if pointsEarned !== undefined || editable}
+		{#if isGraded && weightedPointsUnavailable}
+			<p class="text-muted-foreground text-xs">Weighted points unavailable</p>
+		{/if}
+
+		{#if Number.isFinite(percentage)}
 			<Progress
 				value={progressValue}
 				aria-label={`${name} score progress`}

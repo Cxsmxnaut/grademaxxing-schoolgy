@@ -71,16 +71,79 @@ describe('estimated grade history', () => {
 		expect(points[1]!.percentage).toBeCloseTo(96.53);
 	});
 
-	it('uses the displayed StudentVUE score when a stale point maximum would create 950%', () => {
-		const incorrectPoints = {
-			...assignment('Video', 20, 9.5, 1),
-			unscaledPoints: { pointsEarned: 9.5, pointsPossible: 10 }
+	it('keeps weighted points when raw display scores use a different scale or penalty', () => {
+		const weightedAssignment = {
+			...assignment('Video', 20, 0.4, 1),
+			unscaledPoints: { pointsEarned: 8, pointsPossible: 10 }
 		};
 		const points = getEstimatedGradeTrend(
-			[assignment('Earlier', 19, 10, 10), incorrectPoints],
+			[assignment('Earlier', 19, 1, 1), weightedAssignment],
 			undefined,
-			97.5
+			70
 		);
-		expect(points.map(({ percentage }) => percentage)).toEqual([100, 97.5]);
+		expect(points.map(({ percentage }) => percentage)).toEqual([100, 70]);
+	});
+
+	it('uses the precise percentage basis while keeping rounded assignment display points', () => {
+		const rounded = {
+			...assignment('Rounded', 20, 1, 1),
+			officialPercentage: 60,
+			publishedPoints: { pointsEarned: 1, pointsPossible: 1, extraCredit: false },
+			calculationPointsEarned: 0.6
+		};
+		const points = getEstimatedGradeTrend(
+			[assignment('Earlier', 19, 1, 1), rounded],
+			undefined,
+			80
+		);
+		expect(points.map(({ percentage }) => percentage)).toEqual([100, 80]);
+		expect(rounded.pointsEarned).toBe(1);
+	});
+
+	it('does not show a partial trend when a graded assignment has no weighted maximum', () => {
+		const unavailable = {
+			...assignment('Unknown weight', 20, 8, 10),
+			pointsPossible: undefined,
+			unscaledPoints: { pointsEarned: 8, pointsPossible: 10 }
+		};
+		expect(
+			getEstimatedGradeTrend([assignment('Earlier', 19, 1, 1), unavailable], undefined, 90)
+		).toEqual([]);
+	});
+
+	it('does not show a partial trend when a complete point pair has ambiguous scale', () => {
+		const unavailable = {
+			...assignment('Ambiguous scale', 20, 8, 1),
+			calculationUnavailable: true
+		};
+		expect(
+			getEstimatedGradeTrend([assignment('Earlier', 19, 1, 1), unavailable], undefined, 90)
+		).toEqual([]);
+	});
+
+	it('pending work does not block a trend from known graded rows', () => {
+		const pending = { ...assignment('Pending', 20, 0, 10), pointsEarned: undefined };
+		expect(
+			getEstimatedGradeTrend([assignment('Earlier', 19, 1, 1), pending], undefined, 90).map(
+				({ percentage }) => percentage
+			)
+		).toEqual([90]);
+	});
+
+	it('does not show a partial weighted trend when a graded row has an unknown category', () => {
+		const unknownCategory = { ...assignment('Unknown category', 20, 8, 10), category: 'Other' };
+		const categories = [
+			{
+				name: 'Homework',
+				weightPercentage: 100,
+				pointsEarned: 1,
+				pointsPossible: 1,
+				weightedPercentage: 100,
+				gradeLetter: 'A'
+			}
+		];
+		expect(
+			getEstimatedGradeTrend([assignment('Earlier', 19, 1, 1), unknownCategory], categories, 90)
+		).toEqual([]);
 	});
 });

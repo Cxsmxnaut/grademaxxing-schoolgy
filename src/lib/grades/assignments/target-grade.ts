@@ -23,6 +23,12 @@ export function calculatePointsNeededForTargetGrade<T extends Assignment>({
 	assignmentPointsPossible,
 	...categoryDependentParams
 }: TargetGradeCalculatorOptions<T>) {
+	if (
+		!Number.isFinite(targetGradePercentage) ||
+		!Number.isFinite(assignmentPointsPossible) ||
+		assignmentPointsPossible <= 0
+	)
+		return NaN;
 	const targetGradeProportion = targetGradePercentage / 100;
 
 	if (categoryDependentParams.hasCategories) {
@@ -41,6 +47,18 @@ export function calculatePointsNeededForTargetGrade<T extends Assignment>({
 
 		// Calculate categories' respective points earned/possible (excluding points from the target assignment)
 		const otherPointsByCategory = getPointsByCategoryMap(otherAssignments);
+		// An extra-credit-only category has no defined percentage to contribute
+		// to a different category's target. It cannot be silently discarded.
+		for (const [name, points] of otherPointsByCategory) {
+			if (gradeCategoryWeightProportions.get(name) === 0) continue;
+			if (
+				!Number.isFinite(points.pointsEarned) ||
+				!Number.isFinite(points.pointsPossible) ||
+				points.pointsPossible < 0 ||
+				(name !== assignmentCategoryName && points.pointsPossible === 0)
+			)
+				return NaN;
+		}
 
 		const categoryData = new Map<
 			string,

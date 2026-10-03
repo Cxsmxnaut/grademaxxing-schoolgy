@@ -199,6 +199,206 @@ test('detailed gradebook cross-checks the class grid against StudentVUE bulk ass
 	]);
 });
 
+test.each(['assignment-grid', 'course-content'])(
+	'complete gradebook %s path preserves a scaled score through the bulk cross-check',
+	async (source) => {
+		const focus = JSON.stringify({
+			LoadParams: { ControlName: 'Gradebook_ClassDetails' },
+			FocusArgs: { classID: 'course-1' }
+		}).replaceAll('"', '&quot;');
+		const page = `<title>StudentVUE</title>
+		<script>PXP.GBCurrentFocus = {"FocusArgs":{"gradePeriodGU":"period-1","AGU":"synthetic-student"}};</script>
+		<script>PXP.GBFocusData = {"GradingPeriods":[{"GU":"period-1","schoolID":"school","OrgYearGU":"year","defaultFocus":true,"Name":"Quarter 1","MarkPeriods":[{"GU":"mark-1","Name":"Quarter 1"}]}]};</script>
+		<div class="gb-class-header"><span class="course-title" data-focus="${focus}">1: Chemistry</span></div>
+		<div class="gb-class-row" data-guid="course-1"><span class="mark">B</span></div>`;
+		const grid = `<div id="current-grade"><span class="mark">B</span><span class="score">80%</span></div>
+		<div id="AssignmentsGrid"></div><script>{"dataSource":[{"gradeBookId":"scaled-quiz","Date":"9/20/26","GBAssignment":"Synthetic quiz","GBAssignmentType":"Homework","GBScore":"8 out of 10","GBScoreType":"Raw Score","GBPoints":"8/1"}]}</script>`;
+		const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (input) => {
+			const path = String(input);
+			if (path.includes('PXP2_Gradebook.aspx')) return new Response(page);
+			if (path.includes('GradebookFocusClassInfo'))
+				return new Response(
+					JSON.stringify({ d: { Data: { Classes: [{ ID: 'course-1', Name: 'Chemistry' }] } } })
+				);
+			if (path.includes('PXP2Communication.asmx/LoadControl'))
+				return new Response(
+					JSON.stringify({
+						d: {
+							Data: { html: source === 'assignment-grid' ? grid : '<div>Legacy class detail</div>' }
+						}
+					})
+				);
+			if (path.includes('genericdata.classdata-GetClassData'))
+				return new Response(
+					JSON.stringify({
+						enabled: true,
+						isAssignmentWeightingOn: false,
+						students: [{ calculatedMark: 'B', percentage: '80' }],
+						assignments: [
+							{
+								gradeBookId: 'scaled-quiz',
+								score: '8',
+								maxScore: '10',
+								pointsPossible: 1,
+								penaltyPct: 0,
+								weight: 1
+							}
+						]
+					})
+				);
+			if (path.includes('pxp.course.content.items-LoadWithOptions'))
+				return new Response(
+					JSON.stringify({
+						responseData: {
+							data: [
+								{
+									itemID: 'scaled-quiz',
+									title: 'Synthetic quiz',
+									assignmentType: 'Homework',
+									date: '9/20/2026',
+									gradeMark: '8',
+									points: '0.8000000000',
+									pointsPossible: '1.00',
+									calcValue: '80.00%'
+								}
+							]
+						}
+					})
+				);
+			if (path.includes('pxp.course.grade.card-get'))
+				return new Response(JSON.stringify({ classGrade: 'B', classPct: '80' }));
+			throw new Error(`Unexpected portal request: ${path}`);
+		});
+		vi.stubGlobal('fetch', fetchMock);
+		const client = Pxp2Client.resume({
+			baseUrl: 'https://ca-example-psv.edupoint.com/',
+			cookies: { ASP_NET_SessionId: 'synthetic-session' }
+		});
+
+		const gradebook = await client.gradebook();
+		const assignment = gradebook.courses[0]?.assignments[0];
+
+		expect(gradebook.courses[0]?.scoreRaw).toBe('80');
+		expect(assignment).toMatchObject({ AssignmentID: 'scaled-quiz', AssignmentPercentage: '80' });
+		if (source === 'assignment-grid') {
+			expect(assignment).toMatchObject({
+				ScoreTypeConfirmed: 'true',
+				ScoreCalValue: '8',
+				ScoreMaxValue: '10'
+			});
+		} else {
+			expect(assignment?.ScoreTypeConfirmed).toBeUndefined();
+			expect(assignment?.AssignmentPercentagePrecision).toBe('2');
+			expect(assignment?.ScoreCalValue).toBeUndefined();
+			expect(assignment?.ScoreMaxValue).toBeUndefined();
+		}
+		expect(Number(assignment?.Point)).toBe(0.8);
+		expect(Number(assignment?.PointPossible)).toBe(1);
+		expect(
+			fetchMock.mock.calls.filter(([input]) => String(input).includes('GetClassData'))
+		).toHaveLength(1);
+	}
+);
+
+test.each(['assignment-grid', 'course-content'])(
+	'complete gradebook %s path signals contradictory non-unit weighting instead of guessing point values',
+	async (source) => {
+		const focus = JSON.stringify({
+			LoadParams: { ControlName: 'Gradebook_ClassDetails' },
+			FocusArgs: { classID: 'course-1' }
+		}).replaceAll('"', '&quot;');
+		const page = `<title>StudentVUE</title>
+		<script>PXP.GBCurrentFocus = {"FocusArgs":{"gradePeriodGU":"period-1","AGU":"synthetic-student"}};</script>
+		<script>PXP.GBFocusData = {"GradingPeriods":[{"GU":"period-1","schoolID":"school","OrgYearGU":"year","defaultFocus":true,"Name":"Quarter 1","MarkPeriods":[{"GU":"mark-1","Name":"Quarter 1"}]}]};</script>
+		<div class="gb-class-header"><span class="course-title" data-focus="${focus}">1: Chemistry</span></div>
+		<div class="gb-class-row" data-guid="course-1"><span class="mark">B</span></div>`;
+		const grid = `<div id="current-grade"><span class="mark">B</span><span class="score">80%</span></div>
+		<div id="AssignmentsGrid"></div><script>{"dataSource":[{"gradeBookId":"unknown-weight","Date":"9/20/26","GBAssignment":"Synthetic weight contradiction","GBAssignmentType":"Homework","GBScore":"8 out of 10","GBScoreType":"Raw Score","GBPoints":"8/1"}]}</script>`;
+		vi.stubGlobal(
+			'fetch',
+			vi.fn<typeof fetch>().mockImplementation(async (input) => {
+				const path = String(input);
+				if (path.includes('PXP2_Gradebook.aspx')) return new Response(page);
+				if (path.includes('GradebookFocusClassInfo'))
+					return new Response(
+						JSON.stringify({ d: { Data: { Classes: [{ ID: 'course-1', Name: 'Chemistry' }] } } })
+					);
+				if (path.includes('PXP2Communication.asmx/LoadControl'))
+					return new Response(
+						JSON.stringify({
+							d: {
+								Data: {
+									html: source === 'assignment-grid' ? grid : '<div>Legacy class detail</div>'
+								}
+							}
+						})
+					);
+				if (path.includes('genericdata.classdata-GetClassData'))
+					return new Response(
+						JSON.stringify({
+							enabled: true,
+							isAssignmentWeightingOn: false,
+							students: [{ calculatedMark: 'B', percentage: '80' }],
+							assignments: [
+								{
+									gradeBookId: 'unknown-weight',
+									score: '8',
+									maxScore: '10',
+									pointsPossible: 1,
+									penaltyPct: 0,
+									weight: 2
+								}
+							]
+						})
+					);
+				if (path.includes('pxp.course.content.items-LoadWithOptions'))
+					return new Response(
+						JSON.stringify({
+							responseData: {
+								data: [
+									{
+										itemID: 'unknown-weight',
+										title: 'Synthetic weight contradiction',
+										assignmentType: 'Homework',
+										date: '9/20/2026',
+										gradeMark: '8',
+										points: '8/1',
+										pointsPossible: '1',
+										calcValue: '80.00%'
+									}
+								]
+							}
+						})
+					);
+				if (path.includes('pxp.course.grade.card-get'))
+					return new Response(JSON.stringify({ classGrade: 'B', classPct: '80' }));
+				throw new Error(`Unexpected portal request: ${path}`);
+			})
+		);
+		const client = Pxp2Client.resume({
+			baseUrl: 'https://ca-example-psv.edupoint.com/',
+			cookies: { ASP_NET_SessionId: 'synthetic-session' }
+		});
+
+		const gradebook = await client.gradebook();
+		const assignment = gradebook.courses[0]?.assignments[0];
+
+		expect(assignment).toMatchObject({
+			AssignmentID: 'unknown-weight',
+			Point: '8',
+			PointPossible: '1',
+			Points: '8/1',
+			CalculationUnavailable: 'true'
+		});
+		if (source === 'course-content')
+			expect(assignment).toMatchObject({
+				AssignmentPercentage: '80',
+				AssignmentPercentagePrecision: '2'
+			});
+		else expect(assignment?.AssignmentPercentage).toBeUndefined();
+	}
+);
+
 test('modern attendance HTML preserves SOAP-equivalent per-course events', () => {
 	const html = `
 		<div id="attendance-by-course"><div class="detail-grid"><div class="school-detail">
@@ -324,16 +524,29 @@ test('complete class details recover wrapped and scaled assignment rows', () => 
 	});
 });
 
-test('a corrected upstream score replaces a stale one-point maximum throughout the gradebook', () => {
+test('bulk row evidence repairs a stale maximum without relying on category totals', () => {
 	const detail = parseGradebookClassDetail(`
-		<div id="current-grade"><span class="mark">A</span><span class="score">95%</span></div>
-		<script>{"dataSource":[{"CategoryName":"Homework","Weight":"100%","Points":"9.5","PointsPossible":"10"}]}</script>
+		<div id="current-grade"><span class="mark">B</span><span class="score">80%</span></div>
 		<div id="AssignmentsGrid"></div>
 		<script>{"dataSource":[{
-			"gradeBookId":"example-1", "Date":"9/20/26", "GBAssignment":"Video quiz",
-			"GBAssignmentType":"Homework", "GBScore":"9.5 out of 10",
-			"GBPoints":"9.5/1"
+			"gradeBookId":"example-1", "Date":"9/20/26", "GBAssignment":"Synthetic quiz",
+			"GBAssignmentType":"Homework", "GBScore":"8 out of 10", "GBScoreType":"Raw Score",
+			"GBPoints":"8/1"
 		}]}</script>`);
+	// Raw display values alone cannot resolve a weighted score or a penalty.
+	expect(detail.assignments[0]?.Points).toBe('8/1');
+	const assignments = reconcileAssignmentPoints(detail.assignments, [], detail.percentage, {
+		assignments: [
+			{
+				gradeBookId: 'example-1',
+				score: '8',
+				maxScore: '10',
+				pointsPossible: 10,
+				penaltyPct: 0,
+				weight: 1
+			}
+		]
+	});
 	const xml = gradebookXml([
 		{
 			id: 'course-1',
@@ -346,14 +559,15 @@ test('a corrected upstream score replaces a stale one-point maximum throughout t
 			scoreRaw: detail.percentage,
 			missing: '0',
 			categories: detail.categories,
-			assignments: detail.assignments
+			assignments
 		}
 	]);
 	const course = parseGradebookXML(xml).Courses.Course[0]!;
 	const assignment = parseSynergyAssignment(course.Marks!.Mark[0]!.Assignments!.Assignment[0]!);
 
-	expect(assignment).toMatchObject({ pointsEarned: 9.5, pointsPossible: 10 });
-	expect(course.Marks!.Mark[0]!._CalculatedScoreRaw).toBe('95');
+	expect(assignment).toMatchObject({ pointsEarned: 8, pointsPossible: 10 });
+	expect(assignments[0]?.AssignmentPercentage).toBe('80');
+	expect(course.Marks!.Mark[0]!._CalculatedScoreRaw).toBe('80');
 });
 
 test('bulk class data identifies graded rows absent from a rendered assignment grid', () => {
@@ -372,34 +586,677 @@ test('bulk class data identifies graded rows absent from a rendered assignment g
 	).toEqual(['2']);
 });
 
-test('course-content fallback checks conflicting upstream values against official totals', () => {
+test('course-content fallback uses weighted numeric points instead of the raw grade mark', () => {
 	const assignment = courseAssignment(
 		{
 			itemID: 'example-2',
-			title: 'Video quiz',
+			title: 'Synthetic quiz',
 			date: '9/20/2026',
-			gradeMark: '9.5',
-			pointsPossible: '10',
-			points: '9.5 / 1'
+			gradeMark: '8',
+			pointsPossible: '1.00',
+			points: '0.8000000000',
+			calcValue: '80.00%'
 		},
 		new Map()
 	);
-	expect(assignment.Points).toBe('9.5 / 1');
-	const reconciled = reconcileAssignmentPoints(
-		[{ ...assignment, Type: 'Homework' }],
+	expect(assignment).toMatchObject({
+		Score: '8',
+		Points: '0.8000000000 / 1.00',
+		Point: '0.8000000000',
+		PointPossible: '1.00',
+		AssignmentPercentage: '80'
+	});
+	expect(assignment.ScoreCalValue).toBeUndefined();
+	expect(assignment.ScoreMaxValue).toBeUndefined();
+	const [reconciled] = reconcileAssignmentPoints([assignment], [], '80', {
+		assignments: [
+			{
+				gradeBookId: 'example-2',
+				score: '8',
+				maxScore: '10',
+				pointsPossible: 1,
+				penaltyPct: 0,
+				weight: 1
+			}
+		]
+	});
+	expect(reconciled).toMatchObject({ Points: '0.8000000000 / 1.00', AssignmentPercentage: '80' });
+	expect(reconciled?.ScoreCalValue).toBeUndefined();
+	expect(reconciled?.ScoreMaxValue).toBeUndefined();
+});
+
+test.each([undefined, '75.00%'])(
+	'unconfirmed course-feed score type with calcValue %s preserves the portal point scale',
+	(calcValue) => {
+		const row = courseAssignment(
+			{
+				itemID: 'unconfirmed-scale',
+				title: 'Synthetic point scale',
+				date: '9/20/2026',
+				gradeMark: '2',
+				points: '0.7500000000',
+				pointsPossible: '1.00',
+				calcValue
+			},
+			new Map()
+		);
+		const [reconciled] = reconcileAssignmentPoints([row], [], '50', {
+			assignments: [
+				{
+					gradeBookId: 'unconfirmed-scale',
+					score: '2',
+					maxScore: '4',
+					pointsPossible: 1,
+					penaltyPct: 0,
+					weight: 1
+				}
+			]
+		});
+
+		expect(row.ScoreType).toBe('Raw Score');
+		expect(row.ScoreTypeConfirmed).toBeUndefined();
+		expect(reconciled).toMatchObject({
+			Point: '0.7500000000',
+			PointPossible: '1.00',
+			Points: '0.7500000000 / 1.00'
+		});
+		expect(reconciled?.ScoreCalValue).toBeUndefined();
+		expect(reconciled?.ScoreMaxValue).toBeUndefined();
+		expect(reconciled?.AssignmentPercentage).toBe(calcValue ? '75' : undefined);
+	}
+);
+
+test('an unlabeled assignment grid never confirms a numeric raw score by default', () => {
+	const detail = parseGradebookClassDetail(`<div id="AssignmentsGrid"></div>
+		<script>{"dataSource":[{"gradeBookId":"unlabeled","Date":"9/20/26","GBAssignment":"Synthetic scale","GBScore":"2 out of 4","GBPoints":"0.75/1"}]}</script>`);
+	const [reconciled] = reconcileAssignmentPoints(detail.assignments, [], '50', {
+		assignments: [
+			{
+				gradeBookId: 'unlabeled',
+				score: '2',
+				maxScore: '4',
+				pointsPossible: 1,
+				penaltyPct: 0,
+				weight: 1
+			}
+		]
+	});
+
+	expect(reconciled?.Points).toBe('0.75/1');
+	expect(reconciled?.ScoreTypeConfirmed).toBeUndefined();
+	expect(reconciled?.ScoreCalValue).toBeUndefined();
+	expect(reconciled?.ScoreMaxValue).toBeUndefined();
+	expect(reconciled?.AssignmentPercentage).toBeUndefined();
+});
+
+test.each([
+	[94, '94', '0'],
+	[0.8, '0.8', '1'],
+	[1e-7, '1e-7', '7'],
+	['.5%', '0.5', '1'],
+	['94.00', '94', '2'],
+	['94.44%', '94.44', '2'],
+	['94,44 %', '94.44', '2']
+])(
+	'explicit calcValue %s retains its percentage units and published precision',
+	(calcValue, expected, precision) => {
+		const row = courseAssignment(
+			{
+				itemID: 'percent-format',
+				title: 'Synthetic percentage',
+				gradeMark: '8.5',
+				points: '8.5 / 9',
+				pointsPossible: '9',
+				calcValue
+			},
+			new Map()
+		);
+
+		expect(row.AssignmentPercentage).toBe(expected);
+		expect(row.AssignmentPercentagePrecision).toBe(precision);
+	}
+);
+
+test.each(['1,234%', '94,444%', '1,234.50%', '--', ''])(
+	'ambiguous calcValue %s never becomes an invented numeric percentage',
+	(calcValue) => {
+		const row = courseAssignment(
+			{
+				itemID: 'ambiguous-percent',
+				title: 'Synthetic percentage',
+				points: '8.5 / 9',
+				pointsPossible: '9',
+				calcValue
+			},
+			new Map()
+		);
+
+		expect(row.AssignmentPercentage).toBeUndefined();
+		expect(row.AssignmentPercentagePrecision).toBeUndefined();
+	}
+);
+
+test('a rounded whole percentage cannot rewrite more precise published earned points', () => {
+	const row = courseAssignment(
+		{
+			itemID: 'rounded-percent',
+			title: 'Synthetic rounded percent',
+			gradeMark: '8.5',
+			points: '8.5000 / 9.0000',
+			pointsPossible: '9.0000',
+			calcValue: '94%'
+		},
+		new Map()
+	);
+	const [reconciled] = reconcileAssignmentPoints([row], [], '94');
+
+	expect(reconciled).toMatchObject({
+		Point: '8.5000',
+		PointPossible: '9.0000',
+		Points: '8.5000 / 9.0000',
+		AssignmentPercentage: '94',
+		AssignmentPercentagePrecision: '0'
+	});
+	expect(reconciled?.CalculationUnavailable).toBeUndefined();
+});
+
+test('a corroborated separate maximum restores denominator precision without rewriting earned points', () => {
+	const row = courseAssignment(
+		{
+			itemID: 'rounded-max',
+			title: 'Synthetic rounded denominator',
+			gradeMark: '8',
+			points: '1.00 / 1',
+			pointsPossible: '1.25',
+			calcValue: '80.00%'
+		},
+		new Map()
+	);
+	const [reconciled] = reconcileAssignmentPoints([row], [], '80');
+
+	expect(reconciled).toMatchObject({
+		Point: '1.00',
+		PointPossible: '1.25',
+		Points: '1.00 / 1.25',
+		AssignmentPercentage: '80',
+		AssignmentPercentagePrecision: '2'
+	});
+	expect(reconciled?.CalculationUnavailable).toBeUndefined();
+});
+
+test('a separate maximum that does not corroborate the percentage cannot replace the fraction maximum', () => {
+	const row = courseAssignment(
+		{
+			itemID: 'uncorroborated-max',
+			title: 'Synthetic conflicting denominator',
+			gradeMark: '8',
+			points: '0.8000 / 1',
+			pointsPossible: '1.25',
+			calcValue: '80.00%'
+		},
+		new Map()
+	);
+
+	expect(row).toMatchObject({ Point: '0.8000', PointPossible: '1', Points: '0.8000 / 1' });
+});
+
+test.each([undefined, 2])(
+	'contradictory percentage with unknown/non-unit weight %s retains evidence and marks math unavailable',
+	(weight) => {
+		const row = courseAssignment(
+			{
+				itemID: 'unknown-weight',
+				title: 'Synthetic contradictory weight',
+				gradeMark: '8',
+				points: '8 / 1',
+				pointsPossible: '1',
+				calcValue: '80.00%'
+			},
+			new Map()
+		);
+		const [reconciled] = reconcileAssignmentPoints([row], [], '80', {
+			assignments: [
+				{
+					gradeBookId: 'unknown-weight',
+					score: '8',
+					maxScore: '10',
+					pointsPossible: 1,
+					penaltyPct: 0,
+					weight
+				}
+			]
+		});
+
+		expect(reconciled).toMatchObject({
+			Point: '8',
+			PointPossible: '1',
+			Points: '8 / 1',
+			AssignmentPercentage: '80',
+			CalculationUnavailable: 'true'
+		});
+	}
+);
+
+test.each([undefined, 2])(
+	'a confirmed unpenalized raw ratio detects contradictory points with unresolved weight %s without inventing a percentage',
+	(weight) => {
+		const row = {
+			AssignmentID: 'primary-unknown-weight',
+			Score: '8 out of 10',
+			ScoreType: 'Raw Score',
+			ScoreTypeConfirmed: 'true',
+			Points: '8 / 1',
+			Point: '8',
+			PointPossible: '1'
+		};
+		const [reconciled] = reconcileAssignmentPoints([row], [], '80', {
+			assignments: [
+				{
+					gradeBookId: 'primary-unknown-weight',
+					score: '8',
+					maxScore: '10',
+					pointsPossible: 1,
+					penaltyPct: 0,
+					weight
+				}
+			]
+		});
+
+		expect(reconciled).toMatchObject({
+			Point: '8',
+			PointPossible: '1',
+			Points: '8 / 1',
+			CalculationUnavailable: 'true'
+		});
+		expect(reconciled?.AssignmentPercentage).toBeUndefined();
+	}
+);
+
+test('a percentage can keep a known independent maximum without manufacturing missing earned display points', () => {
+	const row = courseAssignment(
+		{
+			itemID: 'missing-earned',
+			title: 'Synthetic unavailable score display',
+			points: '',
+			pointsPossible: '1.2500',
+			calcValue: '80.00%'
+		},
+		new Map()
+	);
+	const [reconciled] = reconcileAssignmentPoints([row], [], '80');
+
+	expect(reconciled).toMatchObject({
+		PointPossible: '1.2500',
+		AssignmentPercentage: '80',
+		AssignmentPercentagePrecision: '2'
+	});
+	expect(reconciled?.Point).toBeUndefined();
+	expect(reconciled?.CalculationUnavailable).toBeUndefined();
+});
+
+test('a percentage without any positive weighted maximum remains visible while math is unavailable', () => {
+	const row = courseAssignment(
+		{
+			itemID: 'missing-max',
+			title: 'Synthetic unavailable maximum',
+			points: '',
+			calcValue: '80.00%'
+		},
+		new Map()
+	);
+	const [reconciled] = reconcileAssignmentPoints([row], [], '80');
+
+	expect(reconciled).toMatchObject({ AssignmentPercentage: '80', CalculationUnavailable: 'true' });
+	expect(reconciled?.Point).toBeUndefined();
+	expect(reconciled?.PointPossible).toBeUndefined();
+});
+
+test('an explicit assignment percentage corrects the weighted numerator without changing its weight', () => {
+	const row = courseAssignment(
+		{
+			itemID: 'explicit-percent',
+			title: 'Synthetic scaled quiz',
+			date: '9/20/2026',
+			gradeMark: '8',
+			points: '8 / 1',
+			pointsPossible: '1',
+			calcValue: '80%'
+		},
+		new Map()
+	);
+	const [reconciled] = reconcileAssignmentPoints([row], [], '20');
+
+	expect(reconciled).toMatchObject({
+		Point: '0.8',
+		PointPossible: '1',
+		Points: '0.8 / 1',
+		AssignmentPercentage: '80'
+	});
+	expect(reconciled?.ScoreCalValue).toBeUndefined();
+});
+
+test('confirmed bulk raw scores normalize weighted points and retain the unscaled display pair', () => {
+	const [reconciled] = reconcileAssignmentPoints(
 		[
 			{
-				name: 'Homework',
-				weight: '100',
-				points: '9.5',
-				pointsPossible: '10',
-				weightedPercentage: '95',
-				calculatedMark: 'A'
+				AssignmentID: 'scaled',
+				Score: '8',
+				ScoreType: 'Raw Score',
+				ScoreTypeConfirmed: 'true',
+				Points: '8 / 1',
+				Point: '8',
+				PointPossible: '1'
 			}
 		],
-		'95'
+		[],
+		'20',
+		{
+			assignments: [
+				{
+					gradeBookId: 'scaled',
+					score: '8',
+					maxScore: '10',
+					pointsPossible: 1,
+					penaltyPct: 0,
+					weight: 1
+				}
+			]
+		}
 	);
-	expect(reconciled[0]?.Points).toBe('9.5 / 10');
+
+	expect(reconciled).toMatchObject({
+		Point: '0.8',
+		PointPossible: '1',
+		Points: '0.8 / 1',
+		ScoreCalValue: '8',
+		ScoreMaxValue: '10',
+		AssignmentPercentage: '80'
+	});
+});
+
+test.each([undefined, 25])(
+	'unknown or nonzero penalty %s never turns raw scores into weighted percentages',
+	(penaltyPct) => {
+		const [reconciled] = reconcileAssignmentPoints(
+			[
+				{
+					AssignmentID: 'penalized',
+					Score: '8',
+					ScoreType: 'Raw Score',
+					ScoreTypeConfirmed: 'true',
+					Points: '0.6 / 1',
+					Point: '0.6',
+					PointPossible: '1'
+				}
+			],
+			[],
+			'80',
+			{
+				assignments: [
+					{
+						gradeBookId: 'penalized',
+						score: '8',
+						maxScore: '10',
+						pointsPossible: 1,
+						penaltyPct,
+						weight: 1
+					}
+				]
+			}
+		);
+
+		expect(reconciled?.Points).toBe('0.6 / 1');
+		expect(reconciled?.AssignmentPercentage).toBeUndefined();
+		expect(reconciled).toMatchObject({ ScoreCalValue: '8', ScoreMaxValue: '10' });
+	}
+);
+
+test('explicit percentages take priority over a penalized raw score without applying a guessed penalty formula', () => {
+	const row = courseAssignment(
+		{
+			itemID: 'penalized',
+			title: 'Synthetic penalized quiz',
+			date: '9/20/2026',
+			gradeMark: '8',
+			points: '8 / 1',
+			pointsPossible: '1',
+			calcValue: '60%'
+		},
+		new Map()
+	);
+	const [reconciled] = reconcileAssignmentPoints([row], [], '80', {
+		assignments: [
+			{
+				gradeBookId: 'penalized',
+				score: '8',
+				maxScore: '10',
+				pointsPossible: 1,
+				penaltyPct: 25,
+				weight: 1
+			}
+		]
+	});
+
+	expect(reconciled).toMatchObject({ Points: '0.6 / 1', AssignmentPercentage: '60' });
+	expect(reconciled?.ScoreCalValue).toBeUndefined();
+	expect(reconciled?.ScoreMaxValue).toBeUndefined();
+});
+
+test.each([undefined, 2])(
+	'missing or non-unit weight %s cannot replace the published weighted maximum',
+	(weight) => {
+		const row = {
+			AssignmentID: 'weighted',
+			Score: '8',
+			ScoreType: 'Raw Score',
+			ScoreTypeConfirmed: 'true',
+			Points: '1.6 / 2',
+			Point: '1.6',
+			PointPossible: '2'
+		};
+		const [reconciled] = reconcileAssignmentPoints([row], [], '80', {
+			assignments: [
+				{
+					gradeBookId: 'weighted',
+					score: '8',
+					maxScore: '10',
+					pointsPossible: 1,
+					penaltyPct: 0,
+					weight
+				}
+			]
+		});
+
+		expect(reconciled).toMatchObject({
+			Points: '1.6 / 2',
+			Point: '1.6',
+			PointPossible: '2',
+			ScoreCalValue: '8',
+			ScoreMaxValue: '10'
+		});
+		expect(reconciled?.AssignmentPercentage).toBeUndefined();
+		expect(reconciled?.CalculationUnavailable).toBeUndefined();
+	}
+);
+
+test.each(['7.89', '8'])(
+	'rounded weighted points %s stay published when their precision covers the raw-percentage difference',
+	(earned) => {
+		const row = {
+			AssignmentID: 'rounded',
+			Score: '15',
+			ScoreType: 'Raw Score',
+			ScoreTypeConfirmed: 'true',
+			Points: `${earned} / 10`,
+			Point: earned,
+			PointPossible: '10'
+		};
+		const [reconciled] = reconcileAssignmentPoints([row], [], '80', {
+			assignments: [
+				{
+					gradeBookId: 'rounded',
+					score: '15',
+					maxScore: '19',
+					pointsPossible: 10,
+					penaltyPct: 0,
+					weight: 1
+				}
+			]
+		});
+
+		expect(reconciled).toMatchObject({
+			Points: `${earned} / 10`,
+			Point: earned,
+			PointPossible: '10'
+		});
+		expect(Number(reconciled?.AssignmentPercentage)).toBeCloseTo((15 / 19) * 100);
+	}
+);
+
+test('decimal precision distinguishes a contradictory score from a valid integer-rounded value', () => {
+	const [reconciled] = reconcileAssignmentPoints(
+		[
+			{
+				AssignmentID: 'precise',
+				Score: '15',
+				ScoreType: 'Raw Score',
+				ScoreTypeConfirmed: 'true',
+				Points: '8.0 / 10.00',
+				Point: '8.0',
+				PointPossible: '10.00'
+			}
+		],
+		[],
+		'80',
+		{
+			assignments: [
+				{
+					gradeBookId: 'precise',
+					score: '15',
+					maxScore: '19',
+					pointsPossible: 10,
+					penaltyPct: 0,
+					weight: 1
+				}
+			]
+		}
+	);
+
+	expect(Number(reconciled?.Point)).toBeCloseTo((15 / 19) * 10);
+	expect(reconciled?.PointPossible).toBe('10.00');
+});
+
+test.each(['2 / ', '2 / 0'])(
+	'extra credit fraction %s never becomes ordinary graded points',
+	(points) => {
+		const [reconciled] = reconcileAssignmentPoints(
+			[
+				{
+					AssignmentID: 'bonus',
+					Score: '2',
+					ScoreType: 'Raw Score',
+					ScoreTypeConfirmed: 'true',
+					Points: points
+				}
+			],
+			[],
+			'80',
+			{
+				assignments: [
+					{
+						gradeBookId: 'bonus',
+						score: '2',
+						maxScore: '10',
+						pointsPossible: 10,
+						penaltyPct: 0,
+						weight: 1
+					}
+				]
+			}
+		);
+
+		expect(reconciled?.Points).toBe(points);
+		expect(reconciled?.AssignmentPercentage).toBeUndefined();
+	}
+);
+
+test('non-raw score types preserve the provided point scale without deriving a percentage', () => {
+	const row = {
+		AssignmentID: 'point-scale',
+		Score: '2',
+		ScoreType: 'Point Scale',
+		Points: '2 / 4',
+		Point: '2',
+		PointPossible: '4'
+	};
+	const [reconciled] = reconcileAssignmentPoints([row], [], '80', {
+		assignments: [
+			{
+				gradeBookId: 'point-scale',
+				score: '2',
+				maxScore: '4',
+				pointsPossible: 1,
+				penaltyPct: 0,
+				weight: 1
+			}
+		]
+	});
+
+	expect(reconciled).toEqual(row);
+});
+
+test('course feed keeps zero earned points, extra credit, and pending work distinct', () => {
+	const zero = courseAssignment(
+		{
+			itemID: 'zero',
+			title: 'Zero score',
+			gradeMark: 0,
+			points: 0,
+			pointsPossible: 10,
+			calcValue: '0%'
+		},
+		new Map()
+	);
+	const extra = courseAssignment(
+		{ itemID: 'extra', title: 'Extra credit', gradeMark: '2', points: '2', pointsPossible: '' },
+		new Map()
+	);
+	const pending = courseAssignment(
+		{
+			itemID: 'pending',
+			title: 'Pending work',
+			gradeMark: 'Not Graded',
+			points: '',
+			pointsPossible: '10',
+			calcValue: '--'
+		},
+		new Map()
+	);
+
+	expect(zero).toMatchObject({
+		Score: '0',
+		Point: '0',
+		PointPossible: '10',
+		AssignmentPercentage: '0'
+	});
+	expect(extra).toMatchObject({ Point: '2', PointPossible: '', Points: '2 / ' });
+	expect(
+		reconcileAssignmentPoints([extra], [], '80', {
+			assignments: [
+				{
+					gradeBookId: 'extra',
+					score: '2',
+					maxScore: '10',
+					pointsPossible: '',
+					penaltyPct: 0,
+					weight: 1
+				}
+			]
+		})[0]?.Points
+	).toBe('2 / ');
+	expect(pending.Point).toBeUndefined();
+	expect(pending.AssignmentPercentage).toBeUndefined();
+	expect(pending.Points).toBe('10 Points Possible');
 });
 
 test('a high assignment percentage remains when the official category supports it', () => {
@@ -429,44 +1286,27 @@ test('a high assignment percentage remains when the official category supports i
 	expect(assignment?.Points).toBe('15 / 10');
 });
 
-test('a row contradicted by its category total is rewritten to the official value', () => {
+test('a category gap cannot rewrite a legitimate bonus score alongside dropped work', () => {
+	const rows = [
+		{ Type: 'Homework', Points: '12 / 10', Point: '12', PointPossible: '10', Notes: '' },
+		{ Type: 'Homework', Points: '4 / 10', Point: '4', PointPossible: '10', Notes: '' }
+	];
 	const reconciled = reconcileAssignmentPoints(
+		rows,
 		[
 			{
-				Type: 'Classwork',
-				Points: '9.5 / 1.00',
-				Point: '9.5',
-				PointPossible: '1.00',
-				ScoreCalValue: '9.5',
-				ScoreMaxValue: '1.00',
-				Notes: ''
-			},
-			{
-				Type: 'Classwork',
-				Points: '5 / 5',
-				Point: '5',
-				PointPossible: '5',
-				Notes: ''
-			}
-		],
-		[
-			{
-				name: 'Classwork',
-				weight: '45',
-				points: '5.95',
-				pointsPossible: '6',
-				weightedPercentage: '44.6',
+				name: 'Homework',
+				weight: '100',
+				points: '12',
+				pointsPossible: '10',
+				weightedPercentage: '120',
 				calculatedMark: 'A'
 			}
 		],
-		'95'
+		'120'
 	);
 
-	expect(reconciled[0]?.Point).toBe('0.95');
-	expect(reconciled[0]?.Points).toBe('0.95 / 1.00');
-	expect(reconciled[0]?.ScoreCalValue).toBeUndefined();
-	expect(reconciled[0]?.ScoreMaxValue).toBeUndefined();
-	expect(reconciled[1]?.Points).toBe('5 / 5');
+	expect(reconciled).toEqual(rows);
 });
 
 test('an ambiguous category gap never rewrites a specific row', () => {
@@ -538,6 +1378,7 @@ test('assignment details recover graded rows omitted from the course-content fee
 		DueDate: '8/20/2026',
 		Score: '11.25',
 		ScoreType: 'Raw Score',
+		ScoreTypeConfirmed: 'true',
 		Points: '11.25 / 12.0000',
 		Notes: 'Retake available',
 		Description: ''

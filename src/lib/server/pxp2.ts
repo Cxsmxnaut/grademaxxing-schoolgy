@@ -362,7 +362,8 @@ export class Pxp2Client {
 								(mdyDate(b.Date ?? '')?.getTime() ?? 0) - (mdyDate(a.Date ?? '')?.getTime() ?? 0)
 						),
 						categories,
-						percentage
+						percentage,
+						classData
 					)
 				);
 				gradesByCourse.set(focus.courseId, {
@@ -418,7 +419,8 @@ export class Pxp2Client {
 							(mdyDate(b.Date ?? '')?.getTime() ?? 0) - (mdyDate(a.Date ?? '')?.getTime() ?? 0)
 					),
 					categories,
-					officialPercentage
+					officialPercentage,
+					classData
 				)
 			);
 			const authoritativeGrade = classData.students?.[0];

@@ -11,9 +11,17 @@
 		initialGradePercentage?: number;
 		assignments: ReactiveAssignment[];
 		gradeCategoryWeightProportions?: Map<string, number>;
+		officialGradeOffset?: number;
+		calculationAvailable?: boolean;
 	}
 
-	const { assignments, initialGradePercentage, gradeCategoryWeightProportions }: Props = $props();
+	const {
+		assignments,
+		initialGradePercentage,
+		gradeCategoryWeightProportions,
+		officialGradeOffset = 0,
+		calculationAvailable = true
+	}: Props = $props();
 
 	const gradeTargets = [
 		{ label: 'A', value: 93 },
@@ -40,12 +48,19 @@
 	});
 
 	const requiredPoints = $derived.by(() => {
-		if (!Number.isFinite(finalPointsPossible) || finalPointsPossible <= 0) return undefined;
+		if (
+			!calculationAvailable ||
+			!Number.isFinite(officialGradeOffset) ||
+			!Number.isFinite(finalPointsPossible) ||
+			finalPointsPossible <= 0
+		)
+			return undefined;
+		const localTargetPercentage = targetGradePercentage - officialGradeOffset;
 
 		const value =
 			gradeCategoryWeightProportions && selectedCategory
 				? calculatePointsNeededForTargetGrade({
-						targetGradePercentage,
+						targetGradePercentage: localTargetPercentage,
 						assignmentPointsPossible: finalPointsPossible,
 						hasCategories: true,
 						otherAssignments: getCalculableAssignmentsWithCategories(assignments),
@@ -53,7 +68,7 @@
 						assignmentCategoryName: selectedCategory
 					})
 				: calculatePointsNeededForTargetGrade({
-						targetGradePercentage,
+						targetGradePercentage: localTargetPercentage,
 						assignmentPointsPossible: finalPointsPossible,
 						hasCategories: false,
 						otherAssignments: getCalculableAssignments(assignments)

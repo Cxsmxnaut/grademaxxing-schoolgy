@@ -21,8 +21,8 @@ interface GradebookCatalogLocalStorageCache {
 	owner?: string;
 }
 
-// Refresh old XML so all available StudentVUE assignment rows are fetched again.
-const gradebookCacheVersion = 3;
+// Refetch XML with separate raw scores, weighted points, and assignment percentages.
+const gradebookCacheVersion = 4;
 
 export interface GradebookCatalog {
 	recordCache: (undefined | GradebookRecord)[];
