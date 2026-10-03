@@ -34,6 +34,29 @@ function roundTrip(assignments: Record<string, string>[]) {
 	return parseGradebookXML(xml).Courses.Course[0]!.Marks!.Mark[0]!.Assignments!.Assignment;
 }
 
+test('a truncated whole percentage cannot displace a more precise weighted numerator in calculations', () => {
+	const [row] = roundTrip([
+		{
+			AssignmentID: 'truncated',
+			Measure: 'Synthetic truncated quiz',
+			Type: 'Homework',
+			Date: '9/1/2026',
+			Point: '38.85',
+			PointPossible: '50',
+			Points: '38.85 / 50',
+			AssignmentPercentage: '77',
+			AssignmentPercentagePrecision: '0'
+		}
+	]);
+	const parsed = parseSynergyAssignment(row!);
+	expect(parsed.officialPercentage).toBe(77);
+	expect(parsed.calculationPointsEarned).toBeUndefined();
+	expect(getCalculableAssignments([parsed])[0]?.pointsEarned).toBe(38.85);
+	expect(calculateCourseGradePercentageFromTotals(getCalculableAssignments([parsed]))).toBeCloseTo(
+		77.7
+	);
+});
+
 test('weighted points, raw scores, and official assignment percentages survive the XML adapter', () => {
 	const rows = roundTrip([
 		{

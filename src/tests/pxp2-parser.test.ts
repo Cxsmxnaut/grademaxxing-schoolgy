@@ -760,6 +760,61 @@ test('a rounded whole percentage cannot rewrite more precise published earned po
 	expect(reconciled?.CalculationUnavailable).toBeUndefined();
 });
 
+test.each([
+	['7.6600', '76%', '0'],
+	['7.6590', '76.5%', '1'],
+	['12.7690', '127.6%', '1'],
+	['-7.6590', '-76.5%', '1']
+])(
+	'a truncated percentage %s/%s preserves a valid non-unit weighted pair',
+	(earned, display, precision) => {
+		const row = courseAssignment(
+			{
+				itemID: 'truncated-percent',
+				title: 'Synthetic truncated percent',
+				gradeMark: earned,
+				points: earned,
+				pointsPossible: '10.0000',
+				calcValue: display
+			},
+			new Map()
+		);
+		const [reconciled] = reconcileAssignmentPoints([row], [], '80', {
+			assignments: [
+				{
+					gradeBookId: 'truncated-percent',
+					score: earned,
+					maxScore: '10',
+					pointsPossible: 10,
+					weight: 2,
+					penaltyPct: 0
+				}
+			]
+		});
+		expect(reconciled).toMatchObject({
+			Point: earned,
+			PointPossible: '10.0000',
+			AssignmentPercentagePrecision: precision
+		});
+		expect(reconciled?.CalculationUnavailable).toBeUndefined();
+	}
+);
+
+test.each(['76.3%', '76.8%'])(
+	'a discrepancy beyond rounding or truncation of %s still blocks an unknown scale',
+	(display) => {
+		const row = courseAssignment(
+			{ itemID: 'mismatch', points: '7.6590', pointsPossible: '10.0000', calcValue: display },
+			new Map()
+		);
+		const [reconciled] = reconcileAssignmentPoints([row], [], '80', {
+			assignments: [{ gradeBookId: 'mismatch', weight: 2 }]
+		});
+		expect(reconciled?.Point).toBe('7.6590');
+		expect(reconciled?.CalculationUnavailable).toBe('true');
+	}
+);
+
 test('a corroborated separate maximum restores denominator precision without rewriting earned points', () => {
 	const row = courseAssignment(
 		{

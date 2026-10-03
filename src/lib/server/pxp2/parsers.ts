@@ -704,11 +704,13 @@ function pointsCorroboratePercentage(
 		((earned - earnedUncertainty) / (possible + possibleUncertainty)) * 100,
 		((earned + earnedUncertainty) / (possible + possibleUncertainty)) * 100
 	];
-	const percentageUncertainty =
-		percentagePrecision === undefined ? 0 : 0.5 * 10 ** -percentagePrecision;
+	// Portal percentage text can be rounded or truncated toward zero. Its
+	// final displayed digit cannot disprove a more precise posted point pair.
+	const percentageUnit = percentagePrecision === undefined ? 0 : 10 ** -percentagePrecision;
+	const percentageLow = percentage - percentageUnit * (percentage > 0 ? 0.5 : 1);
+	const percentageHigh = percentage + percentageUnit * (percentage < 0 ? 0.5 : 1);
 	return (
-		Math.min(...ratios) <= percentage + percentageUncertainty + 0.01 &&
-		Math.max(...ratios) >= percentage - percentageUncertainty - 0.01
+		Math.min(...ratios) <= percentageHigh + 0.01 && Math.max(...ratios) >= percentageLow - 0.01
 	);
 }
 

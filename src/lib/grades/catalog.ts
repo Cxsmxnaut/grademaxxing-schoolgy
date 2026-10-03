@@ -21,8 +21,8 @@ interface GradebookCatalogLocalStorageCache {
 	owner?: string;
 }
 
-// Refetch XML with separate raw scores, weighted points, and assignment percentages.
-const gradebookCacheVersion = 4;
+// Refetch rows previously marked unavailable by nearest-rounding-only checks.
+const gradebookCacheVersion = 5;
 
 export interface GradebookCatalog {
 	recordCache: (undefined | GradebookRecord)[];

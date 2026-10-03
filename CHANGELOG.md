@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Accepts truncated StudentVUE assignment percentages without rejecting valid weighted points, preserves precise point-based calculation baselines, and refreshes cached rows affected by the old rounding guard.
 - Preserves StudentVUE's weighted assignment points and separate raw score scale, cross-checks assignment percentages using evidence from the same row, and recalculates percentages after what-if edits without rewriting legitimate bonus scores.
 - Retains percentage and point precision, preserves rounded display values while using a consistent calculation baseline, shows known grades with missing weighted points, and makes unsupported weighted scales unavailable to simulations. Counts blank-denominator extra credit and keeps Finals Planner targets consistent with the official course grade.
 - Keeps the official course grade stable when entering hypothetical mode: local calculations now reconcile with StudentVUE's category totals, and hypothetical results are anchored to the official score plus the simulated change.

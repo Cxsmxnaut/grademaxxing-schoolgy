@@ -99,7 +99,9 @@ Assignment raw scores, weighted points, and published percentages are separate e
 borrow a raw maximum when a weighted maximum is missing. Preserve published point values and
 the percentage's precision; for an untouched assignment, calculations can use the more precise
 percentage-based earned value on the established weighted scale. Edited points use their own
-ratio. Rounded percentages cannot overwrite more precise posted points. An unavailable weighted
+ratio. Rounded or truncated percentages cannot overwrite more precise posted points. Percentage
+corroboration accepts both nearest rounding and truncation toward zero at the displayed
+precision; discrepancies beyond that interval still require valid scale evidence. An unavailable weighted
 scale survives the XML adapter explicitly and prevents partial what-if or Finals Planner results;
 the official grade and any known assignment percentage remain visible. Blank or zero extra-credit
 maxima count as zero possible points, but a category with no positive denominator has no defined

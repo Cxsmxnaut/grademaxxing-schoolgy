@@ -73,7 +73,8 @@ export function parseSynergyAssignment(synergyAssignment: AssignmentEntity) {
 			precision === undefined ||
 			(precision >= 0 &&
 				Number.isInteger(precision) &&
-				0.5 * 10 ** -precision <
+				// A truncated display loses a whole unit in its last shown digit.
+				10 ** -precision <
 					weightedRatioUncertainty(
 						pointsEarned,
 						pointsPossible,

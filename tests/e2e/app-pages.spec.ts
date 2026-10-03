@@ -409,6 +409,36 @@ test('scaled assignment percentages stay official until what-if points are edite
 	await expect(weighted.getByRole('progressbar')).toHaveAttribute('aria-valuetext', '40%');
 });
 
+test('truncated assignment percentages preserve weighted points and what-if deltas', async ({
+	page
+}) => {
+	const assignment = `<Assignment GradebookID="truncated" Measure="Truncated quiz" Type="Homework" Date="9/2/2026" DueDate="9/2/2026" Score="38.85" ScoreType="Raw Score" AssignmentPercentage="77" AssignmentPercentagePrecision="0" Points="38.85 / 50" Point="38.85" PointPossible="50" Notes="" MeasureDescription=""/>`;
+	await page.route('**/api/studentvue/gradebook*', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({ xml: assignmentEvidenceXml('77.7', assignment) })
+		})
+	);
+	await page.goto('/grades/assignment-evidence');
+	const row = page
+		.getByRole('tabpanel')
+		.filter({ visible: true })
+		.locator('li')
+		.filter({ hasText: 'Truncated quiz' });
+	await expect(row.locator('[title="Points earned/Points possible"]')).toHaveText('38.85/50');
+	await expect(row.locator('[title="Assignment grade percentage"]')).toHaveText('77%');
+	await expect(page.getByText('Weighted points unavailable', { exact: true })).toHaveCount(0);
+	await expect(page.getByLabel('Hypothetical mode')).toBeEnabled();
+	await page.getByLabel('Hypothetical mode').check();
+	await row.getByRole('spinbutton', { name: 'Points earned', exact: true }).fill('39.35');
+	await expect(page.getByText('+1.00% vs actual')).toBeVisible();
+	await expect(row.getByRole('progressbar')).toHaveAttribute('aria-valuetext', '78.7%');
+	await page.getByRole('button', { name: 'Reset changes', exact: true }).click();
+	await expect(row.getByRole('progressbar')).toHaveAttribute('aria-valuetext', '77%');
+	await expect(page.getByText('±0.00% vs actual')).toBeVisible();
+});
+
 test('a coarse point display does not change the grade when edited to its official percentage', async ({
 	page
 }) => {
