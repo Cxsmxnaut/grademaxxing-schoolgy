@@ -138,7 +138,9 @@ test('password-only reconnect preserves saved grades and reloads complete live g
 		await expect(page.getByTestId('studentvue-reconnect-banner')).toHaveCount(0);
 		await expect(page.getByTestId('session-recovery-loading')).toHaveCount(0);
 		await expect(page.getByText('Persistence Test', { exact: true }).first()).toBeVisible();
-		await expect(page.getByText(`${score}%`, { exact: true }).first()).toBeVisible();
+		await expect(
+			page.getByRole('link', { name: new RegExp(`Persistence Test.*\\b${score}%`) })
+		).toBeVisible();
 		const savedSessionId = await page.evaluate(() => {
 			const value = JSON.parse(localStorage.getItem('token') ?? '{}') as { sessionId?: string };
 			return value.sessionId;
