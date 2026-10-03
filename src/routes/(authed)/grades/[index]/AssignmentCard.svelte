@@ -168,6 +168,17 @@
 	const gradePercentageChangeRounded = $derived(
 		Math.round((gradePercentageChange ?? 0) * 100) / 100
 	);
+	const showGradePercentageChange = $derived(
+		gradePercentageChange !== undefined &&
+			Number.isFinite(gradePercentageChange) &&
+			!notForGrade &&
+			!cannotEditPoints &&
+			!weightedPointsUnavailable &&
+			(hasWeightedPoints || hasOfficialPercentage) &&
+			pointsPossible !== undefined &&
+			Number.isFinite(pointsPossible) &&
+			(pointsPossible > 0 || extraCredit)
+	);
 
 	async function recalculateAfterInput() {
 		await tick();
@@ -317,7 +328,7 @@
 				</Popover.Root>
 			{/if}
 
-			{#if gradePercentageChange !== undefined}
+			{#if showGradePercentageChange}
 				{#if gradePercentageChangeRounded < 0}
 					<span class="text-grade-risk" title="Overall grade percentage change">
 						{formatPercentage(gradePercentageChangeRounded)}%

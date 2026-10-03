@@ -2,11 +2,14 @@ import { expect, test } from '@playwright/test';
 
 const gradebookXml = `<Gradebook><ReportingPeriod Index="0" GradePeriod="Quarter 1"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1"/></ReportingPeriods><Courses><Course CourseID="persistence" CourseName="Persistence Test" Period="1" Staff="Teacher" Room="101"><Marks><Mark MarkName="Quarter 1" CalculatedScoreRaw="94" CalculatedScoreString="A"><Assignments></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
 
-test('an expired StudentVUE session preserves cached grades and supports password-only reconnect', async ({
+test('password-only reconnect preserves saved grades and reloads complete live grades every time', async ({
 	page
 }) => {
 	let expireGradebook = false;
 	let replacementSessionId = 'persistence-session';
+	let reconnects = 0;
+	let freshReconnectGradebookRequests = 0;
+	let currentGradebookXml = gradebookXml;
 
 	await page.addInitScript(() => {
 		if (localStorage.getItem('token') === null)
@@ -43,7 +46,12 @@ test('an expired StudentVUE session preserves cached grades and supports passwor
 			return route.fulfill({ status: 204, contentType: 'application/json', body: '' });
 		const body = route.request().postDataJSON() as { password?: string };
 		expect(body.password).toBe('correct-password');
-		replacementSessionId = 'replacement-session';
+		reconnects += 1;
+		replacementSessionId = `replacement-session-${reconnects}`;
+		currentGradebookXml = gradebookXml.replace(
+			'CalculatedScoreRaw="94"',
+			`CalculatedScoreRaw="${94 + 2 * reconnects}"`
+		);
 		expireGradebook = false;
 		return route.fulfill({
 			status: 200,
@@ -57,7 +65,8 @@ test('an expired StudentVUE session preserves cached grades and supports passwor
 	});
 
 	await page.route('**/api/studentvue/**', (route) => {
-		const resource = new URL(route.request().url()).pathname.split('/').at(-1);
+		const url = new URL(route.request().url());
+		const resource = url.pathname.split('/').at(-1);
 		if (resource === 'gradebook' && expireGradebook)
 			return route.fulfill({
 				status: 401,
@@ -67,8 +76,13 @@ test('an expired StudentVUE session preserves cached grades and supports passwor
 					message: 'Reconnect to StudentVUE to update your school data.'
 				})
 			});
+		if (resource === 'gradebook' && reconnects > 0) {
+			expect(url.searchParams.get('fresh')).toBe('true');
+			expect(url.searchParams.has('summary')).toBe(false);
+			freshReconnectGradebookRequests += 1;
+		}
 		const bodies: Record<string, unknown> = {
-			gradebook: { xml: gradebookXml },
+			gradebook: { xml: currentGradebookXml, detailed: true },
 			attendance: {
 				Absences: {},
 				DailyRecords: [],
@@ -97,33 +111,42 @@ test('an expired StudentVUE session preserves cached grades and supports passwor
 
 	await page.goto('/grades');
 	await expect(page.getByText('Persistence Test', { exact: true }).first()).toBeVisible();
-	expireGradebook = true;
-	await page.getByTestId('sidebar-refresh').click();
+	for (const score of [96, 98]) {
+		await page.setViewportSize({ width: 1440, height: 900 });
+		expireGradebook = true;
+		await page.getByTestId('sidebar-refresh').click();
 
-	await expect(page).toHaveURL(/\/grades$/);
-	await expect(page.getByTestId('studentvue-reconnect-banner')).toBeVisible();
-	await expect(page.getByText('Persistence Test', { exact: true }).first()).toBeVisible();
-	expect(await page.evaluate(() => localStorage.getItem('token'))).not.toBeNull();
+		await expect(page).toHaveURL(/\/grades$/);
+		await expect(page.getByTestId('studentvue-reconnect-banner')).toBeVisible();
+		await expect(page.getByText('Persistence Test', { exact: true }).first()).toBeVisible();
+		expect(await page.evaluate(() => localStorage.getItem('token'))).not.toBeNull();
 
-	await page.setViewportSize({ width: 390, height: 844 });
-	await page
-		.getByTestId('studentvue-reconnect-banner')
-		.getByRole('button', { name: 'Reconnect' })
-		.click();
-	const dialog = page.getByTestId('studentvue-reconnect-dialog');
-	await expect(dialog).toBeVisible();
-	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
-	await dialog.getByLabel('StudentVUE password').fill('correct-password');
-	await dialog.getByRole('button', { name: 'Reconnect' }).click();
+		await page.setViewportSize({ width: 390, height: 844 });
+		await page
+			.getByTestId('studentvue-reconnect-banner')
+			.getByRole('button', { name: 'Reconnect' })
+			.click();
+		const dialog = page.getByTestId('studentvue-reconnect-dialog');
+		await expect(dialog).toBeVisible();
+		await expect
+			.poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+			.toBeLessThanOrEqual(390);
+		await dialog.getByLabel('StudentVUE password').fill('correct-password');
+		await dialog.getByLabel('Keep me signed in on this device').uncheck();
+		await dialog.getByRole('button', { name: 'Reconnect' }).click();
 
-	await expect(page.getByTestId('studentvue-reconnect-banner')).toHaveCount(0);
-	await expect(page.getByText('Persistence Test', { exact: true }).first()).toBeVisible();
-	const savedSessionId = await page.evaluate(() => {
-		const value = JSON.parse(localStorage.getItem('token') ?? '{}') as { sessionId?: string };
-		return value.sessionId;
-	});
-	expect(savedSessionId).toBe('replacement-session');
-	expect(replacementSessionId).toBe('replacement-session');
+		await expect(page.getByTestId('studentvue-reconnect-banner')).toHaveCount(0);
+		await expect(page.getByTestId('session-recovery-loading')).toHaveCount(0);
+		await expect(page.getByText('Persistence Test', { exact: true }).first()).toBeVisible();
+		await expect(page.getByText(`${score}%`, { exact: true }).first()).toBeVisible();
+		const savedSessionId = await page.evaluate(() => {
+			const value = JSON.parse(localStorage.getItem('token') ?? '{}') as { sessionId?: string };
+			return value.sessionId;
+		});
+		expect(savedSessionId).toBe(`replacement-session-${reconnects}`);
+		expect(await page.evaluate(() => localStorage.getItem('studentvueCredentials'))).toBeNull();
+		expect(freshReconnectGradebookRequests).toBe(reconnects);
+	}
 });
 
 test('an ambiguous upstream 401 does not sign the student out or discard cached grades', async ({

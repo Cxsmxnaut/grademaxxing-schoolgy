@@ -1,6 +1,11 @@
 import { acc } from '$lib/account.svelte';
 import { clearStoredCredentials, loadStoredCredentials } from '$lib/auth/credential-vault';
-import { portalConnection, resetPortalConnection, sessionRecovery } from '$lib/session.svelte';
+import {
+	beginSessionRecovery,
+	portalConnection,
+	resetPortalConnection,
+	sessionRecovery
+} from '$lib/session.svelte';
 import { refreshGradesAfterSessionRestore as refreshGradebookAfterSessionRestore } from '$lib/studentvue/session-recovery';
 import { apiRequest, StudentAccount, StudentVueSessionExpiredError } from '$lib/synergy';
 import { afterEach, expect, test, vi } from 'vitest';
@@ -493,6 +498,52 @@ test.each([401, 502])(
 		expect(clearStoredCredentials).toHaveBeenCalledTimes(status === 401 ? 1 : 0);
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 		expect(sessionRecovery.active).toBe(false);
+	}
+);
+
+test.each(['token', 'account', 'recovery'])(
+	'bad-password cleanup stops owning the vault when its %s is replaced while queued',
+	async (replacement) => {
+		const { account, storage } = activeSyntheticAccount();
+		vi.mocked(loadStoredCredentials).mockResolvedValue({
+			domain: 'district.test',
+			username: 'synthetic-student',
+			password: 'synthetic-password'
+		});
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn<typeof fetch>()
+				.mockResolvedValueOnce(Response.json({ code: 'UPSTREAM_SESSION_EXPIRED' }, { status: 401 }))
+				.mockResolvedValueOnce(
+					Response.json({ message: 'StudentVUE authentication failed.' }, { status: 401 })
+				)
+		);
+		let cleanupCurrent: (() => boolean) | undefined;
+		let cleanupStarted!: () => void;
+		const started = new Promise<void>((resolve) => (cleanupStarted = resolve));
+		let releaseCleanup!: () => void;
+		const queued = new Promise<void>((resolve) => (releaseCleanup = resolve));
+		vi.mocked(clearStoredCredentials).mockImplementationOnce(async (isCurrent) => {
+			cleanupCurrent = isCurrent;
+			cleanupStarted();
+			await queued;
+		});
+		const result = account.gradebookRequest();
+		const rejection = expect(result).rejects.toBeInstanceOf(StudentVueSessionExpiredError);
+		await started;
+		try {
+			expect(cleanupCurrent).toBeTypeOf('function');
+			expect(cleanupCurrent?.()).toBe(true);
+			if (replacement === 'token') storage.set('token', JSON.stringify({ sessionId: 'new' }));
+			else if (replacement === 'account')
+				acc.studentAccount = new StudentAccount('district.test', 'other-student', '', 'new');
+			else beginSessionRecovery();
+			expect(cleanupCurrent?.()).toBe(false);
+		} finally {
+			releaseCleanup();
+		}
+		await rejection;
 	}
 );
 

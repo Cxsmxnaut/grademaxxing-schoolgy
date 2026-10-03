@@ -146,7 +146,7 @@
 			}
 		} catch (error) {
 			if (error instanceof StudentVueAuthenticationError && canRestore())
-				await clearStoredCredentials();
+				await clearStoredCredentials(canRestore);
 			loggingIn = false;
 			restoringSession = false;
 			if (signal.aborted) return;

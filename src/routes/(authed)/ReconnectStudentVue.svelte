@@ -1,13 +1,27 @@
 <script lang="ts">
 	import { acc, persistStudentAccount } from '$lib/account.svelte';
+	import { prepareStudentAccountCaches } from '$lib/auth/account-cache';
 	import { clearStoredCredentials, saveStoredCredentials } from '$lib/auth/credential-vault';
 	import { brand } from '$lib/brand';
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
-	import { markPortalConnected, portalConnection } from '$lib/session.svelte';
+	import { refreshGradebookAfterSessionRestore } from '$lib/grades/catalog.svelte';
+	import {
+		beginSessionRecovery,
+		finishSessionRecovery,
+		getSessionRecoverySignal,
+		isSessionRecoveryCurrent,
+		markPortalConnected,
+		markPortalOffline,
+		markSessionRecoveryRefreshing,
+		portalConnection
+	} from '$lib/session.svelte';
+	import { LocalStorageKey } from '$lib/storage/keys';
 	import { StudentAccount } from '$lib/synergy';
 	import LinkIcon from '@lucide/svelte/icons/link';
+	import { resetNonGradeRecords } from './resetNonGradeRecords.svelte';
+	let { onGradebookUnavailable }: { onGradebookUnavailable?: () => void } = $props();
 
 	let open = $state(false);
 	let password = $state('');
@@ -23,28 +37,64 @@
 		reconnectError = undefined;
 		const submittedPassword = password;
 		const replacement = new StudentAccount(current.domain, current.userID, submittedPassword);
-		try {
-			await replacement.checkLogin();
-			if (rememberMe) {
-				await saveStoredCredentials({
-					domain: replacement.domain,
-					username: replacement.userID,
-					password: submittedPassword
-				});
-			} else {
-				await clearStoredCredentials();
+		const recovery = beginSessionRecovery();
+		const storedToken = () => {
+			try {
+				return localStorage.getItem(LocalStorageKey.token);
+			} catch {
+				return undefined;
 			}
+		};
+		const originalToken = storedToken();
+		const canReconnect = () =>
+			isSessionRecoveryCurrent(recovery) &&
+			acc.studentAccount === current &&
+			storedToken() === originalToken;
+		try {
+			await replacement.checkLogin(getSessionRecoverySignal(recovery));
+			if (!canReconnect()) return;
+			if (!(await prepareStudentAccountCaches(replacement, canReconnect))) return;
+			if (rememberMe) {
+				await saveStoredCredentials(
+					{
+						domain: replacement.domain,
+						username: replacement.userID,
+						password: submittedPassword
+					},
+					canReconnect
+				);
+			} else {
+				await clearStoredCredentials(canReconnect);
+			}
+			if (!canReconnect()) return;
 			persistStudentAccount(replacement);
 			acc.studentAccount = replacement;
+			resetNonGradeRecords();
 			password = '';
 			rememberMe = true;
 			markPortalConnected();
 			open = false;
-			// Reload the current route so every data loader adopts the replacement session,
-			// while the account-scoped cache keeps grades visible immediately.
-			location.reload();
+			markSessionRecoveryRefreshing(recovery);
+			try {
+				if (
+					(await refreshGradebookAfterSessionRestore(replacement)) &&
+					acc.studentAccount === replacement &&
+					isSessionRecoveryCurrent(recovery)
+				)
+					markPortalConnected();
+			} catch {
+				// Authentication succeeded. Keep the renewed session and saved grades;
+				// the gradebook exposes a retry if its complete fresh read fails.
+				if (acc.studentAccount === replacement && isSessionRecoveryCurrent(recovery)) {
+					markPortalOffline();
+					onGradebookUnavailable?.();
+				}
+			}
 		} catch (error) {
-			reconnectError = error instanceof Error ? error.message : 'StudentVUE reconnect failed.';
+			if (canReconnect())
+				reconnectError = error instanceof Error ? error.message : 'StudentVUE reconnect failed.';
+		} finally {
+			finishSessionRecovery(recovery);
 			reconnecting = false;
 		}
 	}

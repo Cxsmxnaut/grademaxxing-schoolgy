@@ -414,6 +414,7 @@
 		<div class="flex items-center gap-1">
 			<a
 				href="/studentinfo"
+				aria-current={page.url.pathname === '/studentinfo' ? 'page' : undefined}
 				class="hover:bg-sidebar-accent active:bg-sidebar-accent focus-visible:ring-sidebar-ring flex h-11 min-w-0 flex-1 items-center gap-2 rounded-md px-2 transition-colors outline-none group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0 focus-visible:ring-2"
 				title={studentInfoState.data?.FormattedName ?? 'Student profile'}
 				data-testid="sidebar-profile"

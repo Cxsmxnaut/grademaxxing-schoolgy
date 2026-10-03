@@ -121,7 +121,7 @@
 			return true;
 		} catch (error) {
 			if (error instanceof StudentVueAuthenticationError && canRestore())
-				await clearStoredCredentials();
+				await clearStoredCredentials(canRestore);
 			return false;
 		} finally {
 			finishSessionRecovery(recovery);
@@ -320,7 +320,7 @@
 				class="min-w-0 pb-[3.75rem] md:h-svh md:overflow-y-auto md:pb-0"
 				data-testid="app-content-scroll"
 			>
-				<ReconnectStudentVue />
+				<ReconnectStudentVue onGradebookUnavailable={schedulePortalRetry} />
 				<header
 					class="bg-card border-border/70 sticky top-0 z-30 flex h-[3.09375rem] shrink-0 items-center border-b px-4 md:hidden"
 				>

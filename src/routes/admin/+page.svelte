@@ -112,6 +112,7 @@
 	let userSearch = $state('');
 	let savingId = $state<string>();
 	let replyDrafts = $state<Record<string, string>>({});
+	let replyErrors = $state<Record<string, string | undefined>>({});
 
 	let openFeedback = $derived(
 		feedback.filter((item) => !['resolved', 'dismissed'].includes(item.status)).length
@@ -301,6 +302,7 @@
 		if (!reply || savingId) return;
 		savingId = item.id;
 		message = undefined;
+		replyErrors[item.id] = undefined;
 		const response = await fetch(`/api/admin/feedback/${encodeURIComponent(item.id)}/messages`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
@@ -314,7 +316,7 @@
 			if ((replyDrafts[item.id] ?? '').trim() === reply) replyDrafts[item.id] = '';
 			feedback = [...feedback];
 		} else {
-			message = response
+			replyErrors[item.id] = response
 				? await responseMessage(response, 'Unable to send reply.')
 				: 'You appear to be offline. Reconnect and try again.';
 		}
@@ -749,10 +751,20 @@
 							</div>
 
 							<div class="conversation-composer">
+								{#if replyErrors[item.id]}
+									<div
+										class="dashboard-alert col-span-full text-sm"
+										id={`reply-error-${item.id}`}
+										role="alert"
+									>
+										{replyErrors[item.id]}
+									</div>
+								{/if}
 								<label class="sr-only" for={`reply-${item.id}`}>Reply to {item.kind}</label>
 								<textarea
 									id={`reply-${item.id}`}
 									aria-label={`Reply to ${item.kind}`}
+									aria-describedby={replyErrors[item.id] ? `reply-error-${item.id}` : undefined}
 									value={replyDrafts[item.id] ?? ''}
 									oninput={(event) => (replyDrafts[item.id] = event.currentTarget.value)}
 									maxlength="2000"
@@ -761,6 +773,7 @@
 								<button
 									class="primary-button send-button"
 									aria-label="Send reply"
+									aria-describedby={replyErrors[item.id] ? `reply-error-${item.id}` : undefined}
 									onclick={() => sendReply(item)}
 									disabled={savingId === item.id || !(replyDrafts[item.id] ?? '').trim()}
 								>

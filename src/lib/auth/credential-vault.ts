@@ -3,6 +3,38 @@ const DATABASE_VERSION = 1;
 const KEY_STORE_NAME = 'keys';
 const KEY_NAME = 'studentvue-credentials-v1';
 const STORAGE_KEY = 'studentvueCredentials';
+const MUTATION_LOCK_NAME = 'grademaxxing-credential-vault';
+const CHANGE_EVENT_NAME = 'grademaxxing-credential-vault-change';
+let mutationTail = Promise.resolve();
+
+export function subscribeStoredCredentialsChanges(listener: () => void) {
+	if (typeof window === 'undefined') return () => {};
+	const handleStorage = (event: StorageEvent) => {
+		if (event.storageArea === localStorage && (event.key === STORAGE_KEY || event.key === null))
+			listener();
+	};
+	window.addEventListener(CHANGE_EVENT_NAME, listener);
+	window.addEventListener('storage', handleStorage);
+	return () => {
+		window.removeEventListener(CHANGE_EVENT_NAME, listener);
+		window.removeEventListener('storage', handleStorage);
+	};
+}
+
+function notifyStoredCredentialsChanges() {
+	window.dispatchEvent(new Event(CHANGE_EVENT_NAME));
+}
+
+async function serializeVaultMutation<T>(operation: () => Promise<T>): Promise<T> {
+	if (typeof navigator !== 'undefined' && navigator.locks)
+		return navigator.locks.request(MUTATION_LOCK_NAME, operation);
+	const result = mutationTail.then(operation, operation);
+	mutationTail = result.then(
+		() => undefined,
+		() => undefined
+	);
+	return result;
+}
 
 export type StoredStudentVueCredentials = {
 	domain: string;
@@ -73,16 +105,19 @@ function deleteKey(database: IDBDatabase) {
 	});
 }
 
-async function getKey(create: boolean) {
+async function getKey(create: boolean, isCurrent = () => true) {
 	const database = await openDatabase();
 	try {
+		if (!isCurrent()) return undefined;
 		const existing = await readKey(database);
+		if (!isCurrent()) return undefined;
 		if (existing || !create) return existing;
 		const generated = (await window.crypto.subtle.generateKey(
 			{ name: 'AES-GCM', length: 256 },
 			false,
 			['encrypt', 'decrypt']
 		)) as CryptoKey;
+		if (!isCurrent()) return undefined;
 		await writeKey(database, generated);
 		return generated;
 	} finally {
@@ -117,21 +152,29 @@ function validCredentials(value: unknown): value is StoredStudentVueCredentials 
 	);
 }
 
-export async function saveStoredCredentials(credentials: StoredStudentVueCredentials) {
+export async function saveStoredCredentials(
+	credentials: StoredStudentVueCredentials,
+	isCurrent = () => true
+) {
 	if (!isVaultAvailable() || !validCredentials(credentials)) return false;
 	try {
-		const key = await getKey(true);
-		if (!key) return false;
-		const iv = window.crypto.getRandomValues(new Uint8Array(12));
-		const plaintext = new TextEncoder().encode(JSON.stringify(credentials));
-		const encrypted = await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext);
-		const envelope: CredentialEnvelope = {
-			v: 1,
-			iv: toBase64(iv),
-			ciphertext: toBase64(new Uint8Array(encrypted))
-		};
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(envelope));
-		return true;
+		return await serializeVaultMutation(async () => {
+			if (!isCurrent()) return false;
+			const key = await getKey(true, isCurrent);
+			if (!key || !isCurrent()) return false;
+			const iv = window.crypto.getRandomValues(new Uint8Array(12));
+			const plaintext = new TextEncoder().encode(JSON.stringify(credentials));
+			const encrypted = await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext);
+			if (!isCurrent()) return false;
+			const envelope: CredentialEnvelope = {
+				v: 1,
+				iv: toBase64(iv),
+				ciphertext: toBase64(new Uint8Array(encrypted))
+			};
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(envelope));
+			notifyStoredCredentialsChanges();
+			return true;
+		});
 	} catch {
 		return false;
 	}
@@ -163,20 +206,24 @@ export async function loadStoredCredentials(): Promise<StoredStudentVueCredentia
 	}
 }
 
-export async function clearStoredCredentials() {
+export async function clearStoredCredentials(isCurrent = () => true) {
 	try {
-		localStorage.removeItem(STORAGE_KEY);
-	} catch {
-		// Storage may be unavailable; there is nothing else to clear in that case.
-	}
-	if (!isVaultAvailable()) return;
-	try {
-		const database = await openDatabase();
-		try {
-			await deleteKey(database);
-		} finally {
-			database.close();
-		}
+		await serializeVaultMutation(async () => {
+			if (!isCurrent()) return;
+			try {
+				localStorage.removeItem(STORAGE_KEY);
+				notifyStoredCredentialsChanges();
+			} catch {
+				// Storage may be unavailable; there is nothing else to clear in that case.
+			}
+			if (!isVaultAvailable()) return;
+			const database = await openDatabase();
+			try {
+				if (isCurrent()) await deleteKey(database);
+			} finally {
+				database.close();
+			}
+		});
 	} catch {
 		// Best-effort cleanup; Clear-Site-Data still handles supported browsers on logout.
 	}

@@ -105,9 +105,9 @@
 		<p class="font-mono text-3xl font-semibold">
 			{formatPercentage(chartData[0]!.grade)}%
 		</p>
-		<p class="text-sm">
-			{chartData[0]!.source === 'official' ? 'Official StudentVUE grade' : 'Calculated grade'}
-		</p>
+		{#if chartData[0]!.source === 'official'}
+			<p class="text-sm">Official StudentVUE grade</p>
+		{/if}
 		<p class="text-muted-foreground max-w-sm text-sm">
 			Only one graded date is available. Your trend graph will appear after another grade is posted.
 		</p>

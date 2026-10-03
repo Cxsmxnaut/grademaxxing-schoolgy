@@ -103,7 +103,11 @@
 				{loadingError instanceof Error ? loadingError.message : String(loadingError)}
 			{/if}
 		</Alert.Description>
-		<Button variant="outline" onclick={() => void retryGradebook()}>
+		<Button
+			variant="outline"
+			class="col-start-2 mt-2 justify-self-start"
+			onclick={() => void retryGradebook()}
+		>
 			{portalConnection.state === 'offline' ? 'Retry now' : 'Try again'}
 		</Button>
 	</Alert.Root>

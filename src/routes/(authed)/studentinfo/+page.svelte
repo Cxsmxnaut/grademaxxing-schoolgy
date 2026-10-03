@@ -1,5 +1,9 @@
 <script lang="ts">
 	import { acc } from '$lib/account.svelte';
+	import {
+		loadStoredCredentials,
+		subscribeStoredCredentialsChanges
+	} from '$lib/auth/credential-vault';
 	import { brand } from '$lib/brand';
 	import AppPageHeader from '$lib/components/AppPageHeader.svelte';
 	import AppPageShell from '$lib/components/AppPageShell.svelte';
@@ -10,6 +14,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import { Skeleton } from '$lib/components/ui/skeleton';
+	import { normalizedDomain } from '$lib/studentvue/api';
 	import {
 		loadSchedule,
 		loadSchoolInfo,
@@ -45,6 +50,32 @@
 	loadSchedule();
 	loadSchoolInfo();
 	loadAttendance();
+
+	let hasRememberedPassword = $state<boolean | undefined>(undefined);
+	$effect(() => {
+		const account = acc.studentAccount;
+		let cancelled = false;
+		let readSequence = 0;
+		const refreshRetention = () => {
+			const read = ++readSequence;
+			hasRememberedPassword = undefined;
+			void loadStoredCredentials().then((stored) => {
+				if (cancelled || read !== readSequence) return;
+				hasRememberedPassword = Boolean(
+					account &&
+					stored &&
+					stored.username.toLowerCase() === account.userID.toLowerCase() &&
+					normalizedDomain(stored.domain) === normalizedDomain(account.domain)
+				);
+			});
+		};
+		const unsubscribe = subscribeStoredCredentialsChanges(refreshRetention);
+		refreshRetention();
+		return () => {
+			cancelled = true;
+			unsubscribe();
+		};
+	});
 
 	const now = Date.now();
 
@@ -554,11 +585,26 @@
 								</li>
 								<li class="flex items-center justify-between gap-3 py-2.5">
 									<span class="text-muted-foreground shrink-0">Password</span>
-									<span class="text-success font-medium">Encrypted on this device</span>
+									<span
+										class="{hasRememberedPassword
+											? 'text-success'
+											: 'text-muted-foreground'} font-medium"
+										>{hasRememberedPassword === undefined
+											? 'Checking device storage…'
+											: hasRememberedPassword
+												? 'Encrypted on this device'
+												: 'Not saved on this device'}</span
+									>
 								</li>
 								<li class="flex items-center justify-between gap-3 py-2.5">
 									<span class="text-muted-foreground shrink-0">Password retention</span>
-									<span class="text-muted-foreground font-medium">Not stored</span>
+									<span class="text-muted-foreground font-medium"
+										>{hasRememberedPassword === undefined
+											? 'Checking…'
+											: hasRememberedPassword
+												? 'Saved on this device'
+												: 'Not stored'}</span
+									>
 								</li>
 								<li class="flex items-center justify-between gap-3 py-2.5 last:pb-0">
 									<span class="text-muted-foreground shrink-0">District portal</span>

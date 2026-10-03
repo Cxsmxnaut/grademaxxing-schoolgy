@@ -291,7 +291,7 @@
 
 	<div class="workspace" class:schedule-only={!attendanceState.data}>
 		{#if attendanceState.data}
-			<main class="agenda" aria-label="Attendance records">
+			<section class="agenda" aria-label="Attendance records">
 				{#if view === 'day'}<div class="section-heading">
 						<CalendarDaysIcon class="size-5" />
 						<h3>{weekdayFormatter.format(selectedDate)}</h3>
@@ -361,7 +361,7 @@
 						onclick={() => chooseDate(latestRecord.dateObject!)}
 						>Go to latest record <ChevronRightIcon class="size-4" /></button
 					>{/if}
-			</main>
+			</section>
 
 			<aside class="calendar-sidebar" aria-label="Calendar and status filters">
 				<div class="mini-calendar">

@@ -346,7 +346,9 @@ export class StudentAccount {
 				this.ownsStoredSession(failedSessionId) &&
 				isSessionRecoveryCurrent(recovery)
 			)
-				await clearStoredCredentials().catch(() => undefined);
+				await clearStoredCredentials(
+					() => this.ownsStoredSession(failedSessionId) && isSessionRecoveryCurrent(recovery)
+				).catch(() => undefined);
 			finishSessionRecovery(recovery);
 			throw cause;
 		}
