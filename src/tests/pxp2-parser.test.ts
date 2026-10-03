@@ -429,6 +429,82 @@ test('a high assignment percentage remains when the official category supports i
 	expect(assignment?.Points).toBe('15 / 10');
 });
 
+test('a row contradicted by its category total is rewritten to the official value', () => {
+	const reconciled = reconcileAssignmentPoints(
+		[
+			{
+				Type: 'Classwork',
+				Points: '9.5 / 1.00',
+				Point: '9.5',
+				PointPossible: '1.00',
+				ScoreCalValue: '9.5',
+				ScoreMaxValue: '1.00',
+				Notes: ''
+			},
+			{
+				Type: 'Classwork',
+				Points: '5 / 5',
+				Point: '5',
+				PointPossible: '5',
+				Notes: ''
+			}
+		],
+		[
+			{
+				name: 'Classwork',
+				weight: '45',
+				points: '5.95',
+				pointsPossible: '6',
+				weightedPercentage: '44.6',
+				calculatedMark: 'A'
+			}
+		],
+		'95'
+	);
+
+	expect(reconciled[0]?.Point).toBe('0.95');
+	expect(reconciled[0]?.Points).toBe('0.95 / 1.00');
+	expect(reconciled[0]?.ScoreCalValue).toBeUndefined();
+	expect(reconciled[0]?.ScoreMaxValue).toBeUndefined();
+	expect(reconciled[1]?.Points).toBe('5 / 5');
+});
+
+test('an ambiguous category gap never rewrites a specific row', () => {
+	const rows = [
+		{
+			Type: 'Homework',
+			Points: '12 / 10',
+			Point: '12',
+			PointPossible: '10',
+			Notes: ''
+		},
+		{
+			Type: 'Homework',
+			Points: '11 / 10',
+			Point: '11',
+			PointPossible: '10',
+			Notes: ''
+		}
+	];
+	const reconciled = reconcileAssignmentPoints(
+		rows,
+		[
+			{
+				name: 'Homework',
+				weight: '100',
+				points: '20',
+				pointsPossible: '20',
+				weightedPercentage: '100',
+				calculatedMark: 'A'
+			}
+		],
+		'100'
+	);
+
+	expect(reconciled[0]?.Points).toBe('12 / 10');
+	expect(reconciled[1]?.Points).toBe('11 / 10');
+});
+
 test('N/A class-detail placeholders are not exposed as real zero-percent grades', () => {
 	const detail = parseGradebookClassDetail(`
 		<div id="current-grade"><span class="mark">N/A</span><span class="score">0.0%</span></div>

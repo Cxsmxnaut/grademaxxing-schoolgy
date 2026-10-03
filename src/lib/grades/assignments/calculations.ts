@@ -1,4 +1,5 @@
 import type {
+	AdjustmentAssignment,
 	Assignment,
 	Calculable,
 	CalculableWithCategory,
@@ -218,6 +219,63 @@ export function getPointsByCategoryMap<T extends Assignment>(
 	});
 
 	return pointsByCategory;
+}
+
+/** Points below this difference are floating-point noise, not a real gap. */
+const CATEGORY_RECONCILIATION_EPSILON = 1e-6;
+
+/**
+ * StudentVUE's official category rows are the source of truth for the course
+ * grade, but the assignment rows feeding them occasionally contradict them (a
+ * mistyped point maximum, hidden or dropped work, a manual override). Build
+ * one adjustment record per mismatched category so every local calculation —
+ * hypothetical grades, per-assignment impact, the finals planner, the trend
+ * chart — starts from the official totals instead of a drifted sum.
+ *
+ * Adjustments are calculation inputs only: they are marked `hidden` and never
+ * rendered as assignments.
+ */
+export function getCategoryAdjustments<T extends Assignment>(
+	assignments: T[],
+	gradeCategories: Category[]
+): AdjustmentAssignment[] {
+	const pointsByCategory = getPointsByCategoryMap(
+		getCalculableAssignmentsWithCategories(assignments)
+	);
+
+	return gradeCategories.flatMap((category) => {
+		if (
+			!Number.isFinite(category.pointsEarned) ||
+			!Number.isFinite(category.pointsPossible) ||
+			category.pointsPossible <= 0
+		)
+			return [];
+
+		const summed = pointsByCategory.get(category.name) ?? { pointsEarned: 0, pointsPossible: 0 };
+		const earnedGap = category.pointsEarned - summed.pointsEarned;
+		const possibleGap = category.pointsPossible - summed.pointsPossible;
+		if (
+			Math.abs(earnedGap) < CATEGORY_RECONCILIATION_EPSILON &&
+			Math.abs(possibleGap) < CATEGORY_RECONCILIATION_EPSILON
+		)
+			return [];
+
+		const adjustment: AdjustmentAssignment = {
+			name: `Official category totals — ${category.name}`,
+			id: `official-totals:${category.name}`,
+			pointsEarned: earnedGap,
+			pointsPossible: possibleGap,
+			unscaledPoints: undefined,
+			extraCredit: false,
+			gradePercentageChange: undefined,
+			notForGrade: false,
+			hidden: true,
+			category: category.name,
+			date: new Date(0),
+			newHypothetical: false
+		};
+		return [adjustment];
+	});
 }
 
 function countDecimalPlaces(num: number) {

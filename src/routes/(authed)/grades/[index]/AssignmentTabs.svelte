@@ -2,6 +2,7 @@
 	import { bgColorVariants, type BadgeColor } from '$lib/components/ui/badge/colors';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import type {
+		AdjustmentAssignment,
 		Category,
 		Flowed,
 		ReactiveAssignment,
@@ -11,7 +12,7 @@
 
 	interface Props {
 		hypotheticalMode: boolean;
-		assignments: (RealAssignment | Flowed<RealAssignment>)[];
+		assignments: (RealAssignment | Flowed<RealAssignment> | AdjustmentAssignment)[];
 		reactiveAssignments: ReactiveAssignment[];
 		gradeCategories: Category[] | undefined;
 		assignmentCategoryNames: Set<string>;
@@ -156,8 +157,8 @@
 		<Tabs.Content value="all">
 			<ol class="flex flex-col items-center gap-[0.625rem]">
 				{#if hypotheticalMode}
-					{#each reactiveAssignments as { id, gradePercentageChange, newHypothetical, date, comments, category }, i (id)}
-						{#if reactiveAssignments[i]}
+					{#each reactiveAssignments as { id, gradePercentageChange, newHypothetical, date, comments, category, hidden }, i (id)}
+						{#if !hidden && reactiveAssignments[i]}
 							<li class="w-full">
 								{#if gradeCategories && categoryDropdownOptions}
 									<AssignmentCard
@@ -208,7 +209,9 @@
 					{/each}
 				{:else}
 					{#each assignments as assignment (assignment.id)}
-						{@render assignmentSnippet(assignment, true)}
+						{#if !assignment.hidden}
+							{@render assignmentSnippet(assignment, true)}
+						{/if}
 					{/each}
 				{/if}
 			</ol>
@@ -218,8 +221,8 @@
 			<Tabs.Content value={categoryName}>
 				<ol class="flex flex-col items-center gap-[0.625rem]">
 					{#if hypotheticalMode}
-						{#each reactiveAssignments as { category, id, gradePercentageChange, newHypothetical, date, comments }, i (id)}
-							{#if category === categoryName && reactiveAssignments[i]}
+						{#each reactiveAssignments as { category, id, gradePercentageChange, newHypothetical, date, comments, hidden }, i (id)}
+							{#if category === categoryName && !hidden && reactiveAssignments[i]}
 								<li class="w-full">
 									{#if gradeCategories && categoryDropdownOptions && reactiveAssignments[i].category !== undefined}
 										<AssignmentCard
@@ -272,7 +275,7 @@
 						{/each}
 					{:else}
 						{#each assignments as assignment (assignment.id)}
-							{#if assignment.category === categoryName}
+							{#if !assignment.hidden && assignment.category === categoryName}
 								{@render assignmentSnippet(assignment, false)}
 							{/if}
 						{/each}

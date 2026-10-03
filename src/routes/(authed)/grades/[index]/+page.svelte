@@ -13,10 +13,12 @@
 		calculateAssignmentGPCsFromTotals,
 		calculateCourseGradePercentageFromCategories,
 		calculateCourseGradePercentageFromTotals,
+		type AdjustmentAssignment,
 		type Category,
 		type Flowed,
 		getCalculableAssignments,
 		getCalculableAssignmentsWithCategories,
+		getCategoryAdjustments,
 		getPointsByCategory,
 		getPointsByCategoryMap,
 		gradesMatch,
@@ -104,7 +106,19 @@
 		calculateAssignmentGPCs(synergyAssignments.map(parseSynergyAssignment), gradeCategories)
 	);
 
-	const assignments: (RealAssignment | Flowed<RealAssignment>)[] = $derived(realAssignments);
+	/**
+	 * Gaps between the visible assignments and StudentVUE's own category totals.
+	 * Folded into every local calculation so hypothetical results line up with
+	 * the official score; never rendered as assignments.
+	 */
+	const categoryAdjustments: AdjustmentAssignment[] = $derived(
+		gradeCategories ? getCategoryAdjustments(realAssignments, gradeCategories) : []
+	);
+
+	const assignments: (RealAssignment | Flowed<RealAssignment> | AdjustmentAssignment)[] = $derived([
+		...categoryAdjustments,
+		...realAssignments
+	]);
 
 	let hypotheticalMode = $state(false);
 	const gradeScaleObservations = $derived(
@@ -113,9 +127,27 @@
 
 	let calculatedGrade = $state(NaN);
 	let hypotheticalGrade = $state(NaN);
+	/** Local grade computed from the untouched gradebook; hypothetical deltas are measured from it. */
+	let baselineGrade = NaN;
 	let rawGradeCalcMatches = $derived(
 		synergyGradePercentage === undefined || gradesMatch(calculatedGrade, synergyGradePercentage)
 	);
+
+	/**
+	 * StudentVUE's published score is the source of truth: hypothetical results
+	 * are shown as the official score plus the simulated change, so entering
+	 * hypothetical mode never moves the displayed grade.
+	 */
+	function anchorToOfficialScore(computedGrade: number) {
+		if (
+			synergyGradePercentage === undefined ||
+			!Number.isFinite(computedGrade) ||
+			!Number.isFinite(baselineGrade)
+		)
+			return computedGrade;
+
+		return synergyGradePercentage + (computedGrade - baselineGrade);
+	}
 
 	let reactiveAssignments: ReactiveAssignment[] = $state([]);
 
@@ -135,7 +167,8 @@
 				)
 			: calculateCourseGradePercentageFromTotals(calculable);
 
-		hypotheticalGrade = calculatedGrade;
+		baselineGrade = calculatedGrade;
+		hypotheticalGrade = anchorToOfficialScore(calculatedGrade);
 
 		showTargetGradeCalculator = false;
 	}
@@ -153,7 +186,9 @@
 
 			const calculable = getCalculableAssignments(reactiveAssignments);
 
-			hypotheticalGrade = calculateCourseGradePercentageFromTotals(calculable);
+			hypotheticalGrade = anchorToOfficialScore(
+				calculateCourseGradePercentageFromTotals(calculable)
+			);
 		} else {
 			reactiveAssignments = calculateAssignmentGPCsFromCategories(
 				reactiveAssignments,
@@ -162,9 +197,11 @@
 
 			const calculable = getCalculableAssignmentsWithCategories(reactiveAssignments);
 
-			hypotheticalGrade = calculateCourseGradePercentageFromCategories(
-				getPointsByCategory(calculable),
-				gradeCategories
+			hypotheticalGrade = anchorToOfficialScore(
+				calculateCourseGradePercentageFromCategories(
+					getPointsByCategory(calculable),
+					gradeCategories
+				)
 			);
 		}
 	}

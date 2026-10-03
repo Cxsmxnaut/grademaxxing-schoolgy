@@ -711,6 +711,46 @@ export function reconcileAssignmentPoints(
 		delete assignment.ScoreCalValue;
 		delete assignment.ScoreMaxValue;
 	}
+
+	// StudentVUE sometimes publishes a row whose score contradicts its own
+	// category total (for example 9.5/1 where the category counts 0.95/1),
+	// which would show students a phantom 950% score. When the category gap is
+	// explained by exactly one over-100% row, rewrite that row to the value the
+	// official category math used. Ambiguous gaps are left alone — the client
+	// reconciles those at the category level instead.
+	const rowsByCategory = new Map<string, Record<string, string>[]>();
+	for (const assignment of result) {
+		if (!assignment.Type) continue;
+		const rows = rowsByCategory.get(assignment.Type);
+		if (rows) rows.push(assignment);
+		else rowsByCategory.set(assignment.Type, [assignment]);
+	}
+	for (const [categoryName, rows] of rowsByCategory) {
+		const category = categories.find((entry) => entry.name === categoryName);
+		if (!category?.points || !category.pointsPossible) continue;
+		const pairs = rows
+			.filter((row) => !/^\s*\(\s*not\s+for\s+grading\s*\)/i.test(row.Notes ?? ''))
+			.map((row) => ({ row, pair: points(row) }));
+		const summedEarned = pairs.reduce((total, { pair }) => (pair ? total + pair.earned : total), 0);
+		const gap = Number(category.points) - summedEarned;
+		if (!Number.isFinite(gap) || Math.abs(gap) < 0.0001) continue;
+		const candidates = pairs.filter(
+			(
+				entry
+			): entry is { row: Record<string, string>; pair: { earned: number; possible: number } } =>
+				entry.pair !== undefined &&
+				entry.pair.earned > entry.pair.possible &&
+				entry.pair.earned + gap >= 0 &&
+				entry.pair.earned + gap <= entry.pair.possible
+		);
+		if (candidates.length !== 1) continue;
+		const { row, pair } = candidates[0]!;
+		const correctedEarned = Math.round((pair.earned + gap) * 1e6) / 1e6;
+		row.Point = String(correctedEarned);
+		row.Points = `${correctedEarned} / ${row.PointPossible ?? pair.possible}`;
+		delete row.ScoreCalValue;
+		delete row.ScoreMaxValue;
+	}
 	return result;
 }
 

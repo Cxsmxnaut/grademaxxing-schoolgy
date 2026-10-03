@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Keeps the official course grade stable when entering hypothetical mode: local calculations now reconcile with StudentVUE's category totals, and hypothetical results are anchored to the official score plus the simulated change.
 - Reorganizes StudentVUE browser, server, API, grade-assignment, contract, storage, formatting, and file-handling code into responsibility-owned modules while preserving stable compatibility facades.
 - Removes 72 unreachable source files and the catch-all `$lib` barrel; adds an enforced dead-code, dependency, unresolved-import, and cycle gate.
 - Refreshes the supported dependency baseline, removes unused packages, declares direct tooling dependencies, and resolves all known npm advisories.

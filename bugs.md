@@ -18,6 +18,25 @@ This file records observed product issues and confirmed fidelity limits. It cont
 - **Verification:** The prior **3.67** result is likely stale or prior-period state, not a currently reproducible calculation defect. No personal course or grade data is recorded here.
 - **Status:** Investigated / not currently reproducible.
 
+## Fixed — entering hypothetical mode changed the displayed grade
+
+- **Expected:** Toggling hypothetical mode with no edits keeps the official StudentVUE
+  percentage and reports a ±0.00% change. Both competitor products behave this way on the
+  same dataset.
+- **Observed:** The headline immediately switched to a locally recomputed grade, differing
+  from the official score by up to 8.2 percentage points.
+- **Root cause:** Two independent gaps between StudentVUE's published score and a local sum
+  of visible assignments: (1) an assignment row can contradict StudentVUE's own category
+  totals — one row reported a score ten times the value its category total implies — and
+  (2) StudentVUE publishes a truncated percentage, so the official score can sit just below
+  the category math. The course page had no reconciliation between the official value and
+  the recomputed hypothetical baseline.
+- **Fix:** Category adjustment records reconcile local sums with StudentVUE's category rows,
+  and hypothetical results are anchored to the official score (official + simulated delta),
+  so entering hypothetical mode never moves the grade. Covered by unit tests and a
+  browser regression test.
+- **Status:** Fixed.
+
 ## Confirmed limitation / candidate bug — chart and hypothetical fidelity
 
 - **Observed:** Hidden-assignment and category-total discrepancy information can be absent from the trend input.

@@ -41,6 +41,17 @@ export interface NewHypotheticalAssignment extends ReactiveAssignment {
 	hidden: false;
 }
 
+/**
+ * Reconciles visible assignment points with StudentVUE's official category
+ * totals. Calculation input only — `hidden` records are never rendered as
+ * assignments.
+ */
+export interface AdjustmentAssignment extends Assignment {
+	hidden: true;
+	newHypothetical: false;
+	category: string;
+}
+
 export type Calculable<T extends Assignment> = T & {
 	pointsEarned: number;
 	pointsPossible: number;

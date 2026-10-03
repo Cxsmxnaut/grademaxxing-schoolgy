@@ -323,6 +323,36 @@ test('a StudentVUE category mismatch keeps an estimated chart anchored to the of
 	await expect(page.getByText(/estimated from studentvue assignments/i)).toHaveCount(0);
 });
 
+test('entering hypothetical mode never moves the official course grade', async ({ page }) => {
+	const xml = `<Gradebook><ReportingPeriod Index="0" GradePeriod="Quarter 1"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1"/></ReportingPeriods><Courses><Course CourseID="mismatch-check" CourseName="History" Period="1"><Marks><Mark MarkName="Quarter 1" CalculatedScoreRaw="96.5" CalculatedScoreString="A"><GradeCalculationSummary><AssignmentGradeCalc Type="Homework" Weight="100" Points="19.3" PointsPossible="20" WeightedPct="96.5" CalculatedMark="A"/></GradeCalculationSummary><Assignments><Assignment GradebookID="earlier" Measure="Earlier quiz" Type="Homework" Date="9/19/2026" DueDate="9/19/2026" Score="10" DisplayScore="10 out of 10" ScoreCalValue="10" ScoreMaxValue="10" Points="10 / 10" Point="10" PointPossible="10" Notes="" MeasureDescription="Earlier work"/><Assignment GradebookID="visible" Measure="Video quiz" Type="Homework" Date="9/20/2026" DueDate="9/20/2026" Score="9.5" DisplayScore="9.5 out of 10" ScoreCalValue="9.5" ScoreMaxValue="10" Points="9.5 / 10" Point="9.5" PointPossible="10" Notes="" MeasureDescription="Video work"/></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
+	await page.route('**/api/studentvue/gradebook*', (route) =>
+		route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ xml }) })
+	);
+	await page.goto('/grades/mismatch-check');
+	await expect(page.getByRole('heading', { level: 1, name: 'History' })).toBeVisible();
+	await expect(page.getByText('96.5%').first()).toBeVisible();
+
+	await page.getByLabel('Hypothetical mode').check();
+
+	// The local sums say 19.5/20 (97.5%); the official score must still win.
+	await expect(page.getByText('97.5%')).toHaveCount(0);
+	await expect(page.getByText('96.5%').first()).toBeVisible();
+	await expect(page.getByText('±0.00% vs actual')).toBeVisible();
+	await expect(page.getByText('Point Discrepancy')).toHaveCount(0);
+	await expect(page.getByText('Official category totals')).toHaveCount(0);
+
+	// A what-if edit still moves the grade by its simulated change.
+	const form = page.getByRole('form', { name: 'Add what-if assignment' });
+	await form.getByLabel('What-if score').fill('10');
+	await form.getByLabel('What-if points possible').fill('10');
+	await form.getByLabel('What-if points possible').press('Enter');
+	await expect(
+		page.getByText('What-if 1', { exact: true }).filter({ visible: true }).first()
+	).toBeVisible();
+	await expect(page.getByText('±0.00% vs actual')).toHaveCount(0);
+	await expect(page.getByTestId('hypothetical-letter')).toBeVisible();
+});
+
 test('saved official StudentVUE marks replace assignment estimates in the chart', async ({
 	page
 }) => {
