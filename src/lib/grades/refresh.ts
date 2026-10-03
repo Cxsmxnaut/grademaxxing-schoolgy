@@ -93,5 +93,21 @@ function gradeValuesMatch(left: string, right: string) {
 
 export function getGradebookCacheOwnerFor(account?: { domain: string; userID: string }) {
 	if (!account) return undefined;
-	return `${account.domain.trim().toLowerCase()}\n${account.userID.trim().toLowerCase()}`;
+	const domain = account.domain
+		.trim()
+		.replace(/^https?:\/\//i, '')
+		.replace(/\/+$/, '')
+		.toLowerCase();
+	return `${domain}\n${account.userID.trim().toLowerCase()}`;
+}
+
+export function gradebookCacheBelongsTo(
+	owner: unknown,
+	account?: { domain: string; userID: string }
+) {
+	if (typeof owner !== 'string' || !account) return false;
+	const parts = owner.split('\n');
+	const [domain, userID] = parts;
+	if (parts.length !== 2 || !domain?.trim() || !userID?.trim()) return false;
+	return getGradebookCacheOwnerFor({ domain, userID }) === getGradebookCacheOwnerFor(account);
 }

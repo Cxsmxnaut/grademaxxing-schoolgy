@@ -4,6 +4,7 @@ import { parseGradebookXML, StudentVueSessionExpiredError } from '$lib/synergy';
 import { toast } from 'svelte-sonner';
 import {
 	cacheGradebookRecord,
+	completeGradebookRefreshInterval,
 	getGradebookCatalogFromLocalStorage,
 	getGradebookRecord,
 	getInitialGradebookCatalog,
@@ -27,10 +28,6 @@ export const gradebookState = $state<{
 
 let requestSequence = 0;
 let catalogGeneration = 0;
-
-// Summary marks are cheap to validate on every reload. Assignment-only changes
-// are picked up by a complete refresh at least once per half hour.
-const completeGradebookRefreshInterval = 1000 * 60 * 30;
 
 export const getReportPeriodName = (index: number) =>
 	gradebookState.gradebookCatalog?.canonicalReportPeriodEntries?.find(
@@ -69,6 +66,9 @@ export async function switchReportPeriod({
 	try {
 		if (forceRefresh || !record || gradebookRefreshNeeded(record)) {
 			const cachedDetailedRecord = record && record.detailed !== false ? record : undefined;
+			const completeRefreshDue =
+				cachedDetailedRecord &&
+				Date.now() - cachedDetailedRecord.lastRefresh >= completeGradebookRefreshInterval;
 			let gradebookRecord = await getGradebookRecord(
 				() => {
 					if (requestID !== requestSequence || gradebookState.gradebookCatalog !== catalog) return;
@@ -76,7 +76,7 @@ export async function switchReportPeriod({
 					gradebookState.version += 1;
 				},
 				overrideIndex,
-				cachedDetailedRecord && delta ? true : summary
+				cachedDetailedRecord && delta && !completeRefreshDue ? true : summary
 			);
 			// A newer request owns the screen. Do not let this response overwrite it.
 			if (requestID !== requestSequence) return;
@@ -88,13 +88,11 @@ export async function switchReportPeriod({
 					cachedDetailedRecord.xml,
 					gradebookRecord.xml
 				);
-				const completeRefreshDue =
-					Date.now() - cachedDetailedRecord.lastRefresh >= completeGradebookRefreshInterval;
-
 				if (summaryUnchanged && !completeRefreshDue) {
 					// Keep the detailed XML and its assignment history. The summary request
 					// was only a change check, so it must not replace the usable cache.
 					setReportPeriodIndex(requestedIndex);
+					cachedDetailedRecord.lastChecked = gradebookRecord.lastRefresh;
 					saveGradebookCatalogToLocalStorage(catalog);
 					return;
 				}
@@ -208,7 +206,7 @@ export function initializeGradebookCatalog(): Promise<void> {
 async function initializeGradebookCatalogOnce() {
 	const generation = catalogGeneration;
 	try {
-		loadStudentAccount();
+		if (!acc.studentAccount) loadStudentAccount();
 		// Protected routes may render for one frame while the layout redirects a signed-out
 		// visitor. That is an expected navigation state, not a gradebook failure.
 		if (!acc.studentAccount) return;
@@ -216,6 +214,7 @@ async function initializeGradebookCatalogOnce() {
 		const loadedCatalog = await getGradebookCatalog();
 		if (generation !== catalogGeneration) return;
 		gradebookState.gradebookCatalog = loadedCatalog;
+		saveGradebookCatalogToLocalStorage(loadedCatalog);
 		gradebookState.version += 1;
 		const catalog = gradebookState.gradebookCatalog;
 		const activeIndex = catalog.overrideIndex ?? catalog.defaultIndex;

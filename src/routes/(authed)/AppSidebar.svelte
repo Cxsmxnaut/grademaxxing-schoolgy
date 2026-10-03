@@ -48,6 +48,11 @@
 	});
 
 	let refreshingAll = $state(false);
+	const refreshing = $derived(
+		refreshingAll ||
+			gradebookState.gradebookCatalog?.loadingIndex !== undefined ||
+			(gradebookState.gradebookCatalog === undefined && gradebookState.loadingError === undefined)
+	);
 	let backgroundRefreshPromise: Promise<void> | undefined;
 	let lastSuccessfulRefresh = $state<number | undefined>();
 
@@ -80,7 +85,7 @@
 	});
 
 	async function refreshAll() {
-		if (refreshingAll || backgroundRefreshPromise) return;
+		if (refreshing || backgroundRefreshPromise) return;
 		refreshingAll = true;
 		try {
 			// A single lightweight probe stops a dead upstream session from causing five
@@ -89,7 +94,10 @@
 			// Gradebook is the page's primary refresh target. StudentVUE requests for one
 			// session are serialized, so enqueue it before the lower-priority records.
 			const gradebookRefresh = gradebookState.gradebookCatalog
-				? switchReportPeriod({ forceRefresh: true, delta: true })
+				? switchReportPeriod({
+						overrideIndex: gradebookState.gradebookCatalog.overrideIndex,
+						forceRefresh: true
+					})
 				: Promise.resolve();
 			const backgroundRefreshes: Promise<unknown>[] = [
 				loadAttendance(true),
@@ -333,10 +341,10 @@
 			<button
 				type="button"
 				onclick={() => void refreshAll()}
-				disabled={refreshingAll}
+				disabled={refreshing}
 				class="hover:bg-sidebar-accent/60 active:bg-sidebar-accent focus-visible:ring-sidebar-ring flex min-h-12 w-full items-center gap-2 rounded-sm px-2 text-left transition-colors outline-none focus-visible:ring-2 disabled:cursor-wait disabled:opacity-70"
-				aria-busy={refreshingAll}
-				aria-label={refreshingAll
+				aria-busy={refreshing}
+				aria-label={refreshing
 					? 'Refreshing grades and records'
 					: portalConnection.state === 'offline'
 						? 'Retry StudentVUE connection'
@@ -344,13 +352,13 @@
 				data-testid="sidebar-refresh"
 			>
 				<span class="flex size-9 shrink-0 items-center justify-center">
-					{#key refreshingAll}
-						<ThinkingOrb state={refreshingAll ? 'searching' : 'weaving'} />
+					{#key refreshing}
+						<ThinkingOrb state={refreshing ? 'searching' : 'weaving'} />
 					{/key}
 				</span>
 				<span class="min-w-0 flex-1">
 					<span class="block text-[0.8125rem] leading-4 font-semibold"
-						>{refreshingAll
+						>{refreshing
 							? 'Refreshing'
 							: portalConnection.state === 'offline'
 								? 'Retry connection'
@@ -361,8 +369,10 @@
 						aria-live="polite"
 						aria-atomic="true"
 					>
-						{refreshingAll
-							? 'Checking grades and records…'
+						{refreshing
+							? refreshingAll
+								? 'Checking grades and records…'
+								: 'Checking grades…'
 							: lastSync !== undefined
 								? `Updated ${getRelativeTime(new Date(lastSync))}`
 								: 'Grades and records'}

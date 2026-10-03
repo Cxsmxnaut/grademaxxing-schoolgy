@@ -19,6 +19,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { initializeGradebookCatalog, resetGradebookCatalog } from '$lib/grades/catalog.svelte';
 	import { seenAssignmentIDs } from '$lib/grades/seenAssignments.svelte';
+	import { getGradebookCacheOwnerFor, gradebookCacheBelongsTo } from '$lib/grades/refresh';
 	import { StudentAccount } from '$lib/synergy';
 	import AlertCircleIcon from '@lucide/svelte/icons/alert-circle';
 	import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
@@ -71,7 +72,7 @@
 	);
 
 	async function gradebookOwnerFingerprint(user: string, district: string) {
-		const identity = `${district.trim().toLowerCase()}\n${user.trim().toLowerCase()}`;
+		const identity = getGradebookCacheOwnerFor({ domain: district, userID: user })!;
 		const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(identity));
 		return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join(
 			''
@@ -86,6 +87,16 @@
 			loginAccount.domain
 		);
 		let sameStudent = localStorage.getItem(LocalStorageKey.gradebookOwner) === ownerFingerprint;
+		if (!sameStudent) {
+			try {
+				// Session expiry can remove the login token without removing the account-scoped
+				// grade cache. Its owner still identifies whose records may be restored.
+				const saved = JSON.parse(localStorage.getItem(LocalStorageKey.gradebook) ?? 'null');
+				sameStudent = gradebookCacheBelongsTo(saved?.owner, loginAccount);
+			} catch {
+				/* An unreadable cache never authorizes reuse. */
+			}
+		}
 		const previousToken = localStorage.getItem(LocalStorageKey.token);
 		if (!sameStudent && previousToken !== null) {
 			try {
@@ -93,8 +104,8 @@
 				sameStudent =
 					typeof previous.username === 'string' &&
 					typeof previous.domain === 'string' &&
-					previous.username.toLowerCase() === loginAccount.userID.toLowerCase() &&
-					previous.domain.toLowerCase() === loginAccount.domain.toLowerCase();
+					getGradebookCacheOwnerFor({ domain: previous.domain, userID: previous.username }) ===
+						getGradebookCacheOwnerFor(loginAccount);
 			} catch {
 				/* Invalid identity metadata never authorizes cache reuse. */
 			}

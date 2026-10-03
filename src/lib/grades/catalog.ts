@@ -2,13 +2,19 @@ import { acc } from '$lib/account.svelte';
 import type { ReportPeriod } from '$lib/contracts/studentvue/gradebook';
 import { LocalStorageKey } from '$lib/storage/keys';
 import { Operation, parseGradebookXML, unwrapEnvelope } from '$lib/synergy';
-import { getGradebookCacheOwnerFor, getReportPeriodIndex } from './refresh';
+import {
+	getGradebookCacheOwnerFor,
+	getReportPeriodIndex,
+	gradebookCacheBelongsTo
+} from './refresh';
 
 export { cacheGradebookRecord, getReportPeriodIndex, gradebookSummaryMatches } from './refresh';
 
 export interface GradebookRecord {
 	xml: string;
 	lastRefresh: number;
+	/** A summary check does not reset the age of the cached assignment details. */
+	lastChecked?: number;
 	/** Summary records have official course marks but deliberately omit assignment detail. */
 	detailed?: boolean;
 }
@@ -42,9 +48,8 @@ export function getGradebookCatalogFromLocalStorage() {
 		localStorage.removeItem(LocalStorageKey.gradebook);
 		return undefined;
 	}
-	const owner = getGradebookCacheOwner();
 	// Old caches were not account-scoped. Never render one into a newly signed-in account.
-	if (!owner || cache.owner !== owner) return undefined;
+	if (!gradebookCacheBelongsTo(cache.owner, acc.studentAccount)) return undefined;
 	if (
 		!Array.isArray(cache.recordCache) ||
 		cache.recordCache.length === 0 ||
@@ -66,6 +71,8 @@ export function getGradebookCatalogFromLocalStorage() {
 					record.xml.length > 5 * 1024 * 1024 ||
 					!Number.isFinite(record.lastRefresh) ||
 					record.lastRefresh < 0 ||
+					(record.lastChecked !== undefined &&
+						(!Number.isFinite(record.lastChecked) || record.lastChecked < 0)) ||
 					(record.detailed !== undefined && typeof record.detailed !== 'boolean'))
 		)
 	)
@@ -162,6 +169,8 @@ export async function getInitialGradebookCatalog() {
 }
 
 const cacheExpirationTime = 1000 * 60 * 5;
+export const completeGradebookRefreshInterval = 1000 * 60 * 30;
 
 export const gradebookRefreshNeeded = (record: GradebookRecord) =>
-	Date.now() - record.lastRefresh > cacheExpirationTime;
+	Date.now() - (record.lastChecked ?? record.lastRefresh) > cacheExpirationTime ||
+	Date.now() - record.lastRefresh >= completeGradebookRefreshInterval;

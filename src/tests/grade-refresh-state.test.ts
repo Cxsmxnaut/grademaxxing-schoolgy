@@ -4,6 +4,7 @@ import {
 	cacheGradebookRecord,
 	getGradebookCacheOwnerFor,
 	getReportPeriodIndex,
+	gradebookCacheBelongsTo,
 	gradebookSummaryMatches
 } from '$lib/grades/refresh';
 import { gradebookXml } from '$lib/server/gradebook-adapter';
@@ -14,6 +15,16 @@ const reportPeriod = (index: string): ReportPeriod => ({
 	_Index: index,
 	_StartDate: '',
 	_EndDate: ''
+});
+
+test('grade-refresh accepts the same saved owner across domain spellings but rejects other students and districts', () => {
+	const account = { domain: 'portal.example.test/district', userID: 'StudentA' };
+	expect(
+		gradebookCacheBelongsTo('https://Portal.Example.test/district/\n StudentA ', account)
+	).toBe(true);
+	expect(gradebookCacheBelongsTo('portal.example.test/district\nstudentb', account)).toBe(false);
+	expect(gradebookCacheBelongsTo('portal.example.test/another\nstudenta', account)).toBe(false);
+	expect(gradebookCacheBelongsTo(undefined, account)).toBe(false);
 });
 
 test('grade-refresh uses the portal report-period ID instead of its display position', () => {
@@ -39,6 +50,15 @@ test('grade-refresh cache ownership is stable and account-specific', () => {
 	expect(getGradebookCacheOwnerFor({ domain: 'portal.example.test', userID: 'StudentB' })).toBe(
 		'portal.example.test\nstudentb'
 	);
+	expect(
+		getGradebookCacheOwnerFor({ domain: 'https://Portal.Example.test/', userID: ' StudentA ' })
+	).toBe('portal.example.test\nstudenta');
+	expect(
+		getGradebookCacheOwnerFor({
+			domain: 'https://portal.example.test/district/',
+			userID: 'StudentA'
+		})
+	).toBe('portal.example.test/district\nstudenta');
 });
 
 test('grade-refresh reuses details when only assignment payloads differ', () => {

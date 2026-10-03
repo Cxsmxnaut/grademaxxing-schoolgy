@@ -16,6 +16,7 @@
 		resetGradebookCatalog,
 		switchReportPeriod
 	} from '$lib/grades/catalog.svelte';
+	import { gradebookRefreshNeeded } from '$lib/grades/catalog';
 	import {
 		markPortalChecking,
 		markPortalConnected,
@@ -40,7 +41,6 @@
 
 	let confirmMobileLogOut = $state(false);
 	const KEEPALIVE_INTERVAL_MS = 8 * 60 * 1000;
-	const BACKGROUND_GRADE_REFRESH_MS = 5 * 60 * 1000;
 	const RESUME_DEBOUNCE_MS = 30 * 1000;
 	const PORTAL_RETRY_DELAYS_MS = [15_000, 30_000, 60_000, 2 * 60_000, 5 * 60_000];
 	let lastMaintenanceAttempt = 0;
@@ -130,9 +130,14 @@
 				const catalog = gradebookState.gradebookCatalog;
 				if (!catalog || catalog.loadingIndex !== undefined) return;
 				const index = catalog.overrideIndex ?? catalog.defaultIndex;
-				const lastRefresh = catalog.recordCache[index]?.lastRefresh ?? 0;
-				if (Date.now() - lastRefresh >= BACKGROUND_GRADE_REFRESH_MS) {
-					await switchReportPeriod({ forceRefresh: true, silent: true, delta: true });
+				const record = catalog.recordCache[index];
+				if (!record || gradebookRefreshNeeded(record)) {
+					await switchReportPeriod({
+						overrideIndex: catalog.overrideIndex,
+						forceRefresh: true,
+						silent: true,
+						delta: true
+					});
 					markPortalConnected();
 				}
 			} catch (error) {

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import BoundaryFailure from '$lib/components/BoundaryFailure.svelte';
+	import PostLoginLoadingScreen from '$lib/components/auth/PostLoginLoadingScreen.svelte';
 	import { acc } from '$lib/account.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
@@ -13,9 +14,7 @@
 	import AlertCircleIcon from '@lucide/svelte/icons/alert-circle';
 	import HistoryIcon from '@lucide/svelte/icons/history';
 	import { onMount } from 'svelte';
-	import { fade, fly } from 'svelte/transition';
 	import { portalConnection } from '$lib/session.svelte';
-	import GradebookLoadingBanner from './GradebookLoadingBanner.svelte';
 
 	let { children } = $props();
 	const loadingError = $derived.by(() => {
@@ -54,8 +53,7 @@
 		try {
 			await switchReportPeriod({
 				overrideIndex: gradebookCatalog?.overrideIndex,
-				forceRefresh: true,
-				delta: true
+				forceRefresh: true
 			});
 		} catch {
 			// The shared gradebook state and toast already expose the failure.
@@ -77,17 +75,10 @@
 </script>
 
 {#if gradebookCatalog === undefined && loadingError === undefined}
-	<div class="flex justify-center" in:fade out:fly={{ y: '-50%' }}>
-		<GradebookLoadingBanner status="Pending" />
-	</div>
+	<PostLoginLoadingScreen />
 {:else if loadingIndex !== undefined && !hasCachedLoadingRecord}
-	<div class="flex justify-center" in:fade out:fly={{ y: '-50%' }}>
-		{#key gradebookCatalog?.receivingData}
-			<GradebookLoadingBanner
-				{loadingReportPeriodName}
-				status={gradebookCatalog?.receivingData ? 'Receiving' : 'Pending'}
-			/>
-		{/key}
+	<div class="text-muted-foreground p-6" role="status" aria-live="polite">
+		Loading {loadingReportPeriodName} grades…
 	</div>
 {/if}
 
