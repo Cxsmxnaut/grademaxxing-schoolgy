@@ -1,7 +1,6 @@
 <script lang="ts">
 	import * as Chart from '$lib/components/ui/chart';
 	import type { Assignment, Category } from '$lib/grades/assignments';
-	import { getCalculationCoverage } from '$lib/grades/calculation-coverage';
 	import { getEstimatedGradeTrend, getGradeChartDomain } from '$lib/grades/grade-chart';
 	import type { OfficialGradeSnapshot } from '$lib/grades/official-grade-history';
 	import { formatPercentage } from '$lib/grades/percentage-format';
@@ -51,8 +50,6 @@
 			}))
 		].filter(({ date, grade }) => Number.isFinite(date.getTime()) && Number.isFinite(grade));
 	});
-	const hasEstimatedPoints = $derived(chartData.some(({ source }) => source === 'assignment'));
-	const calculationCoverage = $derived(getCalculationCoverage(assignments, gradeCategories));
 	const yDomain = $derived(getGradeChartDomain(chartData.map(({ grade }) => grade)));
 	const dayFormatter = new Intl.DateTimeFormat('en-US', {
 		weekday: 'long',
@@ -60,20 +57,6 @@
 		day: 'numeric'
 	});
 </script>
-
-{#if hasEstimatedPoints}
-	<div class="mx-4 mt-4 sm:mx-5 sm:mt-5" data-testid="grade-trend-estimate-label">
-		<p class="text-sm font-medium">Estimated trend</p>
-		<p class="text-muted-foreground text-xs">
-			{#if calculationCoverage.complete}
-				Reconstructed from assignment dates; official StudentVUE grades are labeled separately.
-			{:else}
-				Based only on assignments with supported grading data; other assignments may change the
-				trend.
-			{/if}
-		</p>
-	</div>
-{/if}
 
 {#if chartData.length >= 2}
 	<Chart.Container
@@ -90,7 +73,7 @@
 							{#if item.payload.source === 'official'}
 								<p>Official StudentVUE grade</p>
 							{:else}
-								<p>Estimated from assignments</p>
+								<p class="text-muted-foreground text-xs">Calculated grade</p>
 								{#each item.payload.assignmentNames as name, index (`${name}-${index}`)}
 									<p>{name}</p>
 								{/each}
@@ -124,9 +107,7 @@
 			{formatPercentage(chartData[0]!.grade)}%
 		</p>
 		<p class="text-sm">
-			{chartData[0]!.source === 'official'
-				? 'Official StudentVUE grade'
-				: 'Estimated from assignments'}
+			{chartData[0]!.source === 'official' ? 'Official StudentVUE grade' : 'Calculated grade'}
 		</p>
 		<p class="text-muted-foreground max-w-sm text-sm">
 			Only one graded date is available. Your trend graph will appear after another grade is posted.

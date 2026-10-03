@@ -310,6 +310,10 @@ test('server-corrected weighted scores leave the chart on the official course gr
 		page.getByTitle('Points before scaling').filter({ hasText: '(8/10)' }).first()
 	).toBeVisible();
 	await expect(page.getByTestId('grade-trend-chart')).toBeVisible();
+	await expect(page.getByTestId('grade-trend-estimate-label')).toHaveCount(0);
+	await expect(page.getByText(/Estimated trend|Reconstructed from assignment dates/)).toHaveCount(
+		0
+	);
 	await expect(page.getByText(/estimated from studentvue assignments/i)).toHaveCount(0);
 	await expect(page.getByText('Point Discrepancy')).toHaveCount(0);
 	await expect(page.getByText('800%')).toHaveCount(0);
@@ -624,7 +628,7 @@ test('zero-weight practice leaves planning available and an inactive final can b
 	await expect(page.locator('header').getByText('83%', { exact: true })).toBeVisible();
 });
 
-test('one unsupported assignment preserves supported what-if tools and a labeled estimated trend', async ({
+test('one unsupported assignment preserves supported what-if tools without a blanket chart warning', async ({
 	page
 }) => {
 	const rows = `<Assignment GradebookID="first" Measure="Earlier supported work" Type="Homework" Date="9/1/2026" Point="10" PointPossible="10" Points="10 / 10" AssignmentPercentage="100" DisplayScore="10 out of 10" Notes="" MeasureDescription=""/><Assignment GradebookID="second" Measure="Later supported work" Type="Homework" Date="9/2/2026" Point="8" PointPossible="10" Points="8 / 10" AssignmentPercentage="80" DisplayScore="8 out of 10" Notes="" MeasureDescription=""/><Assignment GradebookID="unknown" Measure="Unknown scale work" Type="Homework" Date="9/3/2026" ScoreCalValue="8" ScoreMaxValue="10" Points="Points Possible" AssignmentPercentage="80" DisplayScore="8 out of 10" CalculationUnavailable="true" Notes="" MeasureDescription=""/>`;
@@ -637,10 +641,10 @@ test('one unsupported assignment preserves supported what-if tools and a labeled
 	);
 	await page.goto('/grades/assignment-evidence');
 	await expect(page.getByTestId('grade-trend-chart')).toBeVisible();
-	await expect(page.getByText('Estimated trend', { exact: true })).toBeVisible();
+	await expect(page.getByTestId('grade-trend-estimate-label')).toHaveCount(0);
 	await expect(
-		page.getByText(/Based only on assignments with supported grading data/)
-	).toBeVisible();
+		page.getByText(/Estimated trend|Estimated from assignments|Reconstructed from assignment dates/)
+	).toHaveCount(0);
 	await page.getByLabel('Hypothetical mode').check();
 	await expect(page.getByText('±0.00% vs actual')).toBeVisible();
 	await expect(page.getByTestId('partial-calculation-note')).toBeVisible();
