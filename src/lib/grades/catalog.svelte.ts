@@ -208,6 +208,9 @@ export function resetGradebookCatalog() {
 }
 
 export function initializeGradebookCatalog(): Promise<void> {
+	// Mounting another consumer must not erase a failed refresh of saved grades.
+	// An existing catalog retries through switchReportPeriod, not initialization.
+	if (gradebookState.gradebookCatalog && !initializationPromise) return Promise.resolve();
 	initializationPromise ??= initializeGradebookCatalogOnce();
 	return initializationPromise;
 }

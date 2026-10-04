@@ -1,5 +1,13 @@
+import { acc } from '$lib/account.svelte';
 import type { ReportPeriod } from '$lib/contracts/studentvue/gradebook';
-import type { GradebookCatalog } from '$lib/grades/catalog';
+import { saveGradebookCatalogToLocalStorage, type GradebookCatalog } from '$lib/grades/catalog';
+import {
+	gradebookState,
+	initializeGradebookCatalog,
+	refreshGradebookAfterSessionRestore,
+	resetGradebookCatalog,
+	switchReportPeriod
+} from '$lib/grades/catalog.svelte';
 import {
 	cacheGradebookRecord,
 	getGradebookCacheOwnerFor,
@@ -8,7 +16,9 @@ import {
 	gradebookSummaryMatches
 } from '$lib/grades/refresh';
 import { gradebookXml } from '$lib/server/gradebook-adapter';
-import { expect, test } from 'vitest';
+import { StudentAccount } from '$lib/studentvue/account';
+import { Operation, wrapEnvelope } from '$lib/studentvue/xml';
+import { expect, test, vi } from 'vitest';
 
 const reportPeriod = (index: string): ReportPeriod => ({
 	_GradePeriod: 'Quarter',
@@ -129,4 +139,69 @@ test('grade-refresh detects changed official marks', () => {
 	]);
 
 	expect(gradebookSummaryMatches(cached, refreshed)).toBe(false);
+});
+
+test('failed fresh recovery retains saved grades and its error across consumer mounts until a live retry succeeds', async () => {
+	const storedValues = new Map<string, string>();
+	vi.stubGlobal('localStorage', {
+		getItem: (key: string) => storedValues.get(key) ?? null,
+		setItem: (key: string, value: string) => storedValues.set(key, value),
+		removeItem: (key: string) => storedValues.delete(key)
+	});
+	vi.spyOn(console, 'error').mockImplementation(() => undefined);
+	const account = new StudentAccount('portal.example.test', 'synthetic-recovery-student', '');
+	const course = {
+		id: 'synthetic-recovery-course',
+		period: '1',
+		title: 'Recovery Test',
+		room: '101',
+		teacher: 'Example Teacher',
+		teacherEmail: '',
+		score: 'A',
+		scoreRaw: '94',
+		missing: '',
+		categories: [],
+		assignments: []
+	};
+	const savedRecord = {
+		xml: gradebookXml([course]),
+		lastRefresh: Date.now(),
+		detailed: true
+	};
+	const liveXml = gradebookXml([{ ...course, scoreRaw: '98' }]);
+	const outage = new Error('Synthetic gradebook outage');
+	const request = vi
+		.spyOn(account, 'gradebookRequest')
+		.mockRejectedValueOnce(outage)
+		.mockResolvedValueOnce(new Response(wrapEnvelope(liveXml, Operation.Request)));
+	try {
+		resetGradebookCatalog();
+		acc.studentAccount = account;
+		saveGradebookCatalogToLocalStorage({ recordCache: [savedRecord], defaultIndex: 0 });
+
+		await expect(refreshGradebookAfterSessionRestore(account)).rejects.toBe(outage);
+		const savedCatalog = gradebookState.gradebookCatalog;
+		expect(savedCatalog?.recordCache[0]).toEqual(savedRecord);
+		expect(gradebookState.loadingError).toBe(outage);
+		expect(request).toHaveBeenCalledExactlyOnceWith(undefined, false, true);
+
+		// Sidebar and page mounts reuse the failed recovery's catalog, preserving
+		// the warning and retry control instead of declaring fresh cached data valid.
+		await initializeGradebookCatalog();
+		await initializeGradebookCatalog();
+		expect(gradebookState.gradebookCatalog).toBe(savedCatalog);
+		expect(gradebookState.loadingError).toBe(outage);
+		expect(request).toHaveBeenCalledTimes(1);
+
+		await switchReportPeriod({ forceRefresh: true, fresh: true, silent: true });
+		expect(request).toHaveBeenCalledTimes(2);
+		expect(request).toHaveBeenLastCalledWith(undefined, false, true);
+		expect(gradebookState.loadingError).toBeUndefined();
+		expect(gradebookState.gradebookCatalog?.recordCache[0]?.xml).toBe(liveXml);
+	} finally {
+		resetGradebookCatalog();
+		acc.studentAccount = undefined;
+		vi.restoreAllMocks();
+		vi.unstubAllGlobals();
+	}
 });

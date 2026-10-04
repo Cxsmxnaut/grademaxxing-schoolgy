@@ -5,7 +5,7 @@ const domain = 'ca-pleas-psv.edupoint.com';
 const password = 'synthetic-vault-password';
 
 function gradebookXml(index = 0, assignment = 'Saved assignment', score = 94) {
-	return `<Gradebook><ReportingPeriod Index="${index}" GradePeriod="Quarter ${index + 1}"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1"/><ReportPeriod Index="1" GradePeriod="Quarter 2"/></ReportingPeriods><Courses><Course CourseID="vault-refresh" CourseName="Vault Refresh Preview" Period="1" Staff="Example Teacher" Room="101"><Marks><Mark MarkName="Quarter ${index + 1}" CalculatedScoreRaw="${score}" CalculatedScoreString="A"><Assignments><Assignment GradebookID="vault-refresh-assignment" Measure="${assignment}" Type="Homework" Date="9/1/2026" DueDate="9/1/2026" Point="${score}" PointPossible="100"/></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
+	return `<Gradebook><ReportingPeriod Index="${index}" GradePeriod="Quarter ${index + 1}"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1"/><ReportPeriod Index="1" GradePeriod="Quarter 2"/></ReportingPeriods><Courses><Course CourseID="vault-refresh" CourseName="Vault Refresh Preview" Period="1" Staff="Example Teacher" Room="101"><Marks><Mark MarkName="Quarter ${index + 1}" CalculatedScoreRaw="${score}" CalculatedScoreString="A"><Assignments><Assignment GradebookID="vault-refresh-assignment" Measure="${assignment}" Type="Homework" Date="9/1/2026" DueDate="9/1/2026" Point="${score}" PointPossible="100" Notes="" MeasureDescription=""/></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
 }
 
 function gate() {
@@ -20,9 +20,17 @@ async function mockPortal(page: Page) {
 		loginRequests: 0,
 		rejectLogin: false,
 		expireStatus: false,
+		statusRequests: 0,
+		statusResponse: undefined as Promise<void> | undefined,
+		statusError: undefined as 503 | undefined,
 		loginResponse: undefined as Promise<void> | undefined,
+		keepaliveRequests: 0,
+		keepaliveResponse: undefined as Promise<void> | undefined,
+		keepaliveStatus: undefined as 503 | undefined,
 		keepaliveError: undefined as 'APP_SESSION_INVALID' | 'UPSTREAM_SESSION_EXPIRED' | undefined,
 		initialKeepAliveReady: initialKeepAlive.promise,
+		rejectRetiredResources: false,
+		resourceRequests: [] as string[],
 		gradebookRequests: [] as URL[],
 		gradebookResponse: undefined as
 			((route: Route, parameters: URLSearchParams) => Promise<void>) | undefined
@@ -42,10 +50,21 @@ async function mockPortal(page: Page) {
 			json: { username, domain, sessionId: `vault-refresh-session-${state.loginRequests}` }
 		});
 	});
-	await page.route('**/api/session/status', (route) =>
-		route.fulfill({ json: { signedIn: !state.expireStatus, username, domain } })
-	);
+	await page.route('**/api/session/status', async (route) => {
+		state.statusRequests += 1;
+		await state.statusResponse;
+		return state.statusError
+			? route.fulfill({ status: state.statusError, json: { message: 'Synthetic status outage.' } })
+			: route.fulfill({ json: { signedIn: !state.expireStatus, username, domain } });
+	});
 	await page.route('**/api/session/keepalive', async (route) => {
+		state.keepaliveRequests += 1;
+		await state.keepaliveResponse;
+		if (state.keepaliveStatus)
+			return route.fulfill({
+				status: state.keepaliveStatus,
+				json: { message: 'Synthetic keepalive outage.' }
+			});
 		await (state.keepaliveError
 			? route.fulfill({
 					status: 401,
@@ -64,6 +83,15 @@ async function mockPortal(page: Page) {
 	await page.route('**/api/studentvue/**', async (route) => {
 		const url = new URL(route.request().url());
 		const resource = url.pathname.split('/').at(-1);
+		state.resourceRequests.push(resource ?? 'unknown');
+		if (
+			state.rejectRetiredResources &&
+			route.request().headers()['x-grademaxxing-session'] === 'expired-preview-session'
+		)
+			return route.fulfill({
+				status: 401,
+				json: { message: 'Synthetic unauthenticated resource.' }
+			});
 		if (resource === 'gradebook') {
 			state.gradebookRequests.push(url);
 			if (state.gradebookResponse) return state.gradebookResponse(route, url.searchParams);
@@ -95,27 +123,29 @@ async function mockPortal(page: Page) {
 
 async function seedSavedSession(
 	page: Page,
-	{ token = true, vault = true, selectedPeriod = 0 } = {}
+	{ token = true, vault = true, selectedPeriod = 0, gradeCache = true } = {}
 ) {
 	await page.goto('/login');
 	await expect(page.getByLabel('StudentVUE email')).toBeVisible();
 	await page.evaluate(
-		async ({ username, domain, password, token, vault, selectedPeriod, xml }) => {
+		async ({ username, domain, password, token, vault, selectedPeriod, gradeCache, xml }) => {
 			const records = [0, 1].map((index) => ({
 				xml: xml[index],
 				lastRefresh: Date.now(),
 				detailed: true
 			}));
-			localStorage.setItem(
-				'gradebook5',
-				JSON.stringify({
-					version: 6,
-					owner: `${domain}\n${username}`,
-					defaultIndex: 0,
-					overrideIndex: selectedPeriod || null,
-					recordCache: records
-				})
-			);
+			if (gradeCache)
+				localStorage.setItem(
+					'gradebook5',
+					JSON.stringify({
+						version: 6,
+						owner: `${domain}\n${username}`,
+						defaultIndex: 0,
+						overrideIndex: selectedPeriod || null,
+						recordCache: records
+					})
+				);
+			else localStorage.removeItem('gradebook5');
 			if (token)
 				localStorage.setItem(
 					'token',
@@ -160,6 +190,7 @@ async function seedSavedSession(
 			token,
 			vault,
 			selectedPeriod,
+			gradeCache,
 			xml: [gradebookXml(0), gradebookXml(1)]
 		}
 	);
@@ -190,12 +221,298 @@ async function expectNoLoginFlash(page: Page) {
 	await expect(page.getByLabel('StudentVUE email')).toHaveCount(0);
 }
 
+async function watchForStartupFailureFlash(page: Page) {
+	await page.addInitScript(() => {
+		const phrases = [
+			'The app hit a snag. Naturally.',
+			'An error occurred while loading grades.',
+			'This class is no longer in this grading period.'
+		];
+		const previous = JSON.parse(sessionStorage.getItem('startupFailurePhrases') ?? '[]') as unknown;
+		const seen = new Set<string>(
+			Array.isArray(previous)
+				? previous.filter(
+						(value): value is string => typeof value === 'string' && phrases.includes(value)
+					)
+				: []
+		);
+		Object.assign(window, { startupFailurePhrases: [...seen] });
+		const inspectText = (text: string | null) => {
+			for (const phrase of phrases) {
+				if (!text?.includes(phrase) || seen.has(phrase)) continue;
+				seen.add(phrase);
+				// Carry fixed phrases across a hard sign-in redirect so it cannot hide a flash.
+				sessionStorage.setItem('startupFailurePhrases', JSON.stringify([...seen]));
+			}
+			// Retain only the fixed public phrases, never the inspected page content.
+			Object.assign(window, { startupFailurePhrases: [...seen] });
+		};
+		const inspectNode = (node: Node) => {
+			const element = node instanceof Element ? node : node.parentElement;
+			if (element?.closest('script, style')) return;
+			inspectText(node.textContent);
+		};
+		new MutationObserver((mutations) => {
+			if (document.body) inspectText(document.body.innerText);
+			for (const mutation of mutations) {
+				// Removed nodes catch a failure that mounts and disappears in one task.
+				for (const node of [...mutation.addedNodes, ...mutation.removedNodes]) inspectNode(node);
+				if (mutation.type === 'characterData') {
+					inspectNode(mutation.target);
+					if (!mutation.target.parentElement?.closest('script, style'))
+						inspectText(mutation.oldValue);
+				}
+			}
+		}).observe(document, {
+			subtree: true,
+			childList: true,
+			characterData: true,
+			characterDataOldValue: true
+		});
+	});
+}
+
+async function expectNoStartupFailureFlash(page: Page) {
+	expect(
+		await page.evaluate(
+			() => (window as unknown as { startupFailurePhrases: string[] }).startupFailurePhrases
+		)
+	).toEqual([]);
+}
+
+async function expectStartupGated(page: Page) {
+	const startup = page.getByTestId('session-startup-loading');
+	await expect(startup).toHaveCount(1);
+	await expect(startup.getByTestId('post-login-loading')).toBeVisible();
+	await expect(page.getByTestId('app-sidebar')).toHaveCount(0);
+	await expect(page.getByTestId('app-content-scroll')).toHaveCount(0);
+	await expectNoStartupFailureFlash(page);
+}
+
 function expectLiveFullRequest(parameters: URLSearchParams, selectedPeriod?: number) {
 	expect(parameters.get('fresh')).toBe('true');
 	expect(parameters.has('summary')).toBe(false);
 	if (selectedPeriod !== undefined)
 		expect(parameters.get('reportPeriod')).toBe(String(selectedPeriod));
 }
+
+test('saved-token startup waits for status, vault login and fresh grades before mounting resource consumers', async ({
+	page
+}) => {
+	const portal = await mockPortal(page);
+	await seedSavedSession(page, { gradeCache: false });
+	await watchForStartupFailureFlash(page);
+	await watchForLoginFlash(page);
+	const statusGate = gate();
+	const loginGate = gate();
+	const gradesGate = gate();
+	portal.expireStatus = true;
+	portal.statusResponse = statusGate.promise;
+	portal.loginResponse = loginGate.promise;
+	portal.rejectRetiredResources = true;
+	portal.gradebookResponse = async (route, parameters) => {
+		expectLiveFullRequest(parameters);
+		await gradesGate.promise;
+		await route.fulfill({
+			json: { xml: gradebookXml(0, 'Fresh after startup validation', 98), detailed: true }
+		});
+	};
+	await page.goto('/grades');
+	await expect.poll(() => portal.statusRequests).toBe(1);
+	await expectStartupGated(page);
+	expect(portal.resourceRequests).toEqual([]);
+	expect(portal.loginRequests).toBe(0);
+	statusGate.release();
+	await expect.poll(() => portal.loginRequests).toBe(1);
+	await expectStartupGated(page);
+	await expect(page.getByTestId('session-recovery-loading')).toContainText('Saving your session…');
+	expect(portal.resourceRequests).toEqual([]);
+	loginGate.release();
+	await expect.poll(() => portal.gradebookRequests.length).toBe(1);
+	await expectStartupGated(page);
+	await expect(page.getByTestId('session-recovery-loading')).toContainText(
+		'Refreshing your grades…'
+	);
+	expect(portal.resourceRequests).toEqual(['gradebook']);
+	gradesGate.release();
+	await expect(page.getByText('Fresh after startup validation', { exact: true })).toBeVisible();
+	await expect(page.getByTestId('app-sidebar')).toBeVisible();
+	await expect(page.getByTestId('session-startup-loading')).toHaveCount(0);
+	await expect(page.getByTestId('sidebar-refresh')).toBeEnabled();
+	await expectNoStartupFailureFlash(page);
+	await expectNoLoginFlash(page);
+	expect(portal.loginRequests).toBe(1);
+});
+
+test('startup keepalive expiry keeps the app unmounted through vault login and fresh-grade recovery', async ({
+	page
+}) => {
+	const portal = await mockPortal(page);
+	await seedSavedSession(page);
+	await watchForStartupFailureFlash(page);
+	await watchForLoginFlash(page);
+	const keepaliveGate = gate();
+	const loginGate = gate();
+	const gradesGate = gate();
+	portal.keepaliveError = 'UPSTREAM_SESSION_EXPIRED';
+	portal.keepaliveResponse = keepaliveGate.promise;
+	portal.loginResponse = loginGate.promise;
+	portal.rejectRetiredResources = true;
+	portal.gradebookResponse = async (route, parameters) => {
+		expectLiveFullRequest(parameters);
+		await gradesGate.promise;
+		await route.fulfill({
+			json: { xml: gradebookXml(0, 'Fresh after startup keepalive', 97), detailed: true }
+		});
+	};
+	await page.goto('/grades');
+	await expect.poll(() => portal.keepaliveRequests).toBe(1);
+	await expectStartupGated(page);
+	expect(portal.resourceRequests).toEqual([]);
+	keepaliveGate.release();
+	await expect.poll(() => portal.loginRequests).toBe(1);
+	await expectStartupGated(page);
+	await expect(page.getByTestId('session-recovery-loading')).toContainText('Saving your session…');
+	expect(portal.resourceRequests).toEqual([]);
+	loginGate.release();
+	await expect.poll(() => portal.gradebookRequests.length).toBe(1);
+	await expectStartupGated(page);
+	await expect(page.getByTestId('session-recovery-loading')).toContainText(
+		'Refreshing your grades…'
+	);
+	expect(portal.resourceRequests).toEqual(['gradebook']);
+	gradesGate.release();
+	await expect(page.getByText('Fresh after startup keepalive', { exact: true })).toBeVisible();
+	await expect(page.getByTestId('app-sidebar')).toBeVisible();
+	await expect(page.getByTestId('session-startup-loading')).toHaveCount(0);
+	await expect(page.getByTestId('studentvue-reconnect-banner')).toHaveCount(0);
+	await expect(page.getByTestId('sidebar-refresh')).toBeEnabled();
+	await expectNoStartupFailureFlash(page);
+	await expectNoLoginFlash(page);
+	expect(portal.loginRequests).toBe(1);
+});
+
+test('a deep-linked course added during startup recovery never flashes the cached missing-class message', async ({
+	page
+}) => {
+	const portal = await mockPortal(page);
+	await seedSavedSession(page);
+	await watchForStartupFailureFlash(page);
+	portal.expireStatus = true;
+	const gradesGate = gate();
+	portal.gradebookResponse = async (route, parameters) => {
+		expectLiveFullRequest(parameters);
+		await gradesGate.promise;
+		const xml = gradebookXml(0, 'Fresh deep-link assignment', 98)
+			.replace('CourseID="vault-refresh"', 'CourseID="fresh-startup-class"')
+			.replace('CourseName="Vault Refresh Preview"', 'CourseName="Fresh Startup Class"');
+		await route.fulfill({ json: { xml, detailed: true } });
+	};
+	await page.goto('/grades/fresh-startup-class');
+	await expect.poll(() => portal.gradebookRequests.length).toBe(1);
+	await expectStartupGated(page);
+	gradesGate.release();
+	await expect(page).toHaveURL(/\/grades\/fresh-startup-class$/);
+	await expect(
+		page.getByRole('heading', { name: 'Fresh Startup Class', exact: true })
+	).toBeVisible();
+	await expect(
+		page
+			.getByRole('tabpanel', { name: 'All', exact: true })
+			.getByText('Fresh deep-link assignment', { exact: true })
+	).toBeVisible();
+	await expect(page.getByTestId('session-startup-loading')).toHaveCount(0);
+	await expectNoStartupFailureFlash(page);
+	expect(portal.loginRequests).toBe(1);
+});
+
+for (const outage of ['status', 'keepalive'] as const) {
+	test(`a startup ${outage} 503 releases the gate to usable saved grades and offline state`, async ({
+		page
+	}) => {
+		const portal = await mockPortal(page);
+		await seedSavedSession(page, { vault: false });
+		await watchForStartupFailureFlash(page);
+		const responseGate = gate();
+		if (outage === 'status') {
+			portal.statusResponse = responseGate.promise;
+			portal.statusError = 503;
+		} else {
+			portal.keepaliveResponse = responseGate.promise;
+			portal.keepaliveStatus = 503;
+		}
+		await page.goto('/grades');
+		await expect
+			.poll(() => (outage === 'status' ? portal.statusRequests : portal.keepaliveRequests))
+			.toBe(1);
+		await expectStartupGated(page);
+		expect(portal.resourceRequests).toEqual([]);
+		responseGate.release();
+		await expect(page.getByText('Saved assignment', { exact: true })).toBeVisible();
+		await expect(page.getByTestId('portal-offline-indicator')).toBeVisible();
+		await expect(page.getByTestId('session-startup-loading')).toHaveCount(0);
+		await expect(page.getByTestId('sidebar-refresh')).toBeEnabled();
+		await expect(page.getByLabel('StudentVUE email')).toHaveCount(0);
+		await expect(page).toHaveURL(/\/grades$/);
+		await expectNoStartupFailureFlash(page);
+		expect(portal.loginRequests).toBe(0);
+	});
+}
+
+for (const invalidSession of ['status', 'keepalive'] as const) {
+	test(`an invalid saved app session from ${invalidSession} with no vault redirects to usable sign-in without mounting the protected app`, async ({
+		page
+	}) => {
+		const portal = await mockPortal(page);
+		await seedSavedSession(page, { vault: false });
+		await watchForStartupFailureFlash(page);
+		const responseGate = gate();
+		if (invalidSession === 'status') {
+			portal.expireStatus = true;
+			portal.statusResponse = responseGate.promise;
+		} else {
+			portal.keepaliveError = 'APP_SESSION_INVALID';
+			portal.keepaliveResponse = responseGate.promise;
+		}
+		portal.rejectRetiredResources = true;
+		await page.goto('/grades');
+		await expect
+			.poll(() => (invalidSession === 'status' ? portal.statusRequests : portal.keepaliveRequests))
+			.toBe(1);
+		await expectStartupGated(page);
+		responseGate.release();
+		await expect(page).toHaveURL(/\/login(?:\?.*)?$/);
+		await expect(page.getByLabel('StudentVUE email')).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Log in', exact: true })).toBeEnabled();
+		await expect(page.getByTestId('app-content-scroll')).toHaveCount(0);
+		await expect(page.getByTestId('post-login-loading')).toHaveCount(0);
+		await expectNoStartupFailureFlash(page);
+		expect(portal.loginRequests).toBe(0);
+		expect(portal.resourceRequests).toEqual([]);
+	});
+}
+
+test('a valid app session with upstream expiry and no vault leaves startup for saved grades and password reconnect', async ({
+	page
+}) => {
+	const portal = await mockPortal(page);
+	await seedSavedSession(page, { vault: false });
+	await watchForStartupFailureFlash(page);
+	const keepaliveGate = gate();
+	portal.keepaliveError = 'UPSTREAM_SESSION_EXPIRED';
+	portal.keepaliveResponse = keepaliveGate.promise;
+	await page.goto('/grades');
+	await expect.poll(() => portal.keepaliveRequests).toBe(1);
+	await expectStartupGated(page);
+	keepaliveGate.release();
+	await expect(page.getByText('Saved assignment', { exact: true })).toBeVisible();
+	await expect(page.getByTestId('studentvue-reconnect-banner')).toBeVisible();
+	await expect(page.getByTestId('session-startup-loading')).toHaveCount(0);
+	await expect(page).toHaveURL(/\/grades$/);
+	await expect(page.getByLabel('StudentVUE email')).toHaveCount(0);
+	await expectNoStartupFailureFlash(page);
+	expect(portal.loginRequests).toBe(0);
+});
 
 for (const entry of ['/grades', '/login']) {
 	test(`vault recovery from ${entry} without a local token waits for fresh grades without flashing sign-in`, async ({
@@ -273,6 +590,8 @@ for (const code of ['APP_SESSION_INVALID', 'UPSTREAM_SESSION_EXPIRED'] as const)
 		await expect(
 			page.getByTestId('session-recovery-loading').getByTestId('post-login-loading')
 		).toBeVisible();
+		await expect(page.getByTestId('app-sidebar')).toHaveCount(1);
+		await expect(page.getByTestId('app-content-scroll')).toHaveCount(1);
 		await expect(page.getByLabel('StudentVUE email')).toHaveCount(0);
 		responseGate.release();
 		await expect(page.getByText(`${code} fresh assignment`, { exact: true })).toBeVisible();
