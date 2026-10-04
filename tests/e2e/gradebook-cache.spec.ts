@@ -222,7 +222,7 @@ test('a failed background refresh retains cached grades and releases the sidebar
 });
 
 for (const sameStudent of [true, false]) {
-	test(`re-login with no saved token ${sameStudent ? 'restores the same student cache immediately' : 'discards another student cache'}`, async ({
+	test(`re-login with no saved token ${sameStudent ? 'preserves the same student cache through startup validation' : 'discards another student cache'}`, async ({
 		page
 	}) => {
 		await page.setViewportSize({ width: 1440, height: 900 });
@@ -238,7 +238,9 @@ for (const sameStudent of [true, false]) {
 		}
 		const responseGate = gate();
 		const requested = gate();
+		let gradebookRequests = 0;
 		await page.route('**/api/studentvue/gradebook*', async (route) => {
+			gradebookRequests += 1;
 			expect(new URL(route.request().url()).searchParams.get('summary')).toBe(
 				sameStudent ? 'true' : null
 			);
@@ -259,14 +261,40 @@ for (const sameStudent of [true, false]) {
 		await requested.promise;
 		if (sameStudent) {
 			await expect(page).toHaveURL(/\/grades$/);
-			await expectSavedGrades(page);
+			const startup = page.getByTestId('session-startup-loading');
+			await expect(startup).toHaveCount(1);
+			await expect(startup.getByTestId('post-login-loading')).toBeVisible();
+			await expect(page.getByTestId('app-content-scroll')).toHaveCount(0);
+			const savedCache = await page.evaluate(() =>
+				JSON.parse(localStorage.getItem('gradebook5') ?? 'null')
+			);
+			expect(savedCache.owner).toBe(`${domain}\n${username}`);
+			expect(savedCache.recordCache[0].xml).toBe(xml);
 		} else {
 			await expect(page).toHaveURL(/\/login$/);
 			await expect(page.getByTestId('post-login-loading')).toBeVisible();
 			await expect(page.getByText('Cache Preview', { exact: true })).toHaveCount(0);
+			expect(await page.evaluate(() => localStorage.getItem('gradebook5'))).toBeNull();
 		}
 		responseGate.release();
 		await expect(page).toHaveURL(/\/grades$/);
 		await expect(page.getByTestId('sidebar-refresh')).toHaveAttribute('aria-busy', 'false');
+		const cache = await page.evaluate(() =>
+			JSON.parse(localStorage.getItem('gradebook5') ?? 'null')
+		);
+		if (sameStudent) {
+			await expectSavedGrades(page);
+			expect(cache.owner).toBe(`${domain}\n${username}`);
+			expect(cache.recordCache[0].xml).toBe(xml);
+			expect(cache.recordCache[0].lastChecked).toBeGreaterThan(cache.recordCache[0].lastRefresh);
+		} else {
+			await expect(page.getByRole('heading', { level: 2, name: 'Other Preview' })).toBeVisible();
+			await expect(
+				page.getByRole('heading', { level: 2, name: 'Cache Preview', exact: true })
+			).toHaveCount(0);
+			expect(cache.owner).toBe(`${domain}\nother-preview`);
+			expect(cache.recordCache[0].xml).toContain('Other Preview');
+		}
+		expect(gradebookRequests).toBe(1);
 	});
 }
