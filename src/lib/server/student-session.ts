@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from 'node:crypto';
 import { deflateRawSync, inflateRawSync } from 'node:zlib';
-import { Pxp2Client, type Pxp2SessionState } from './pxp2';
+import { Pxp2Client, type Pxp2SessionState, type Pxp2TimingSpan } from './pxp2';
 
 const SESSION_TTL_MS =
 	positiveIntegerEnvironment('GRADEMAXXING_SESSION_TTL_HOURS', 12, 24) * 60 * 60 * 1000;
@@ -187,14 +187,17 @@ export async function createStudentSession(
 	return { token, clientSessionId, username, domain };
 }
 
-export function getStudentSession(token: string | undefined) {
+export function getStudentSession(
+	token: string | undefined,
+	onTimingSpan?: (span: Pxp2TimingSpan) => void
+) {
 	if (!token) throw new Error('Sign in to StudentVUE first.');
 	try {
 		const stored = decryptStoredSession(token);
 		if (stored.expiresAt <= Date.now())
 			throw new Error('Your StudentVUE session has expired. Please sign in again.');
 		return {
-			client: Pxp2Client.resume(stored.client),
+			client: Pxp2Client.resume(stored.client, undefined, onTimingSpan),
 			clientSessionId: stored.clientSessionId,
 			username: stored.username,
 			domain: stored.domain,

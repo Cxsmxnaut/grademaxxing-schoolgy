@@ -53,7 +53,8 @@ import type {
 	PortalGradeCategory,
 	PortalScheduleClass,
 	Pxp2RequestMetric,
-	Pxp2SessionState
+	Pxp2SessionState,
+	Pxp2TimingSpan
 } from './pxp2/types';
 import { normalizeDistrictUrl } from './pxp2/url';
 
@@ -66,7 +67,8 @@ export type {
 	PortalReportingPeriod,
 	PortalScheduleClass,
 	Pxp2RequestMetric,
-	Pxp2SessionState
+	Pxp2SessionState,
+	Pxp2TimingSpan
 } from './pxp2/types';
 export {
 	attendanceCourseRecords,
@@ -106,7 +108,8 @@ export class Pxp2Client {
 
 	private constructor(
 		private readonly baseUrl: URL,
-		private readonly onRequestMetric?: (metric: Pxp2RequestMetric) => void
+		private readonly onRequestMetric?: (metric: Pxp2RequestMetric) => void,
+		private readonly onTimingSpan?: (span: Pxp2TimingSpan) => void
 	) {}
 
 	static async login(
@@ -119,9 +122,13 @@ export class Pxp2Client {
 		return client;
 	}
 
-	static resume(state: Pxp2SessionState, onRequestMetric?: (metric: Pxp2RequestMetric) => void) {
+	static resume(
+		state: Pxp2SessionState,
+		onRequestMetric?: (metric: Pxp2RequestMetric) => void,
+		onTimingSpan?: (span: Pxp2TimingSpan) => void
+	) {
 		const baseUrl = normalizeDistrictUrl(state.baseUrl);
-		const client = new Pxp2Client(baseUrl, onRequestMetric);
+		const client = new Pxp2Client(baseUrl, onRequestMetric, onTimingSpan);
 		const entries = Object.entries(state.cookies ?? {});
 		if (entries.length === 0 || entries.length > 50)
 			throw new Error('StudentVUE session cookie state is invalid.');
@@ -162,7 +169,7 @@ export class Pxp2Client {
 	 * parsed or returned; following a login redirect is treated as an expired session.
 	 */
 	async keepAlive() {
-		await this.pageHtml('studentInfo');
+		await this.pageHtml('studentInfo', 'keepalive_portal');
 	}
 
 	async gradebook(reportPeriod?: number, summary = false, fresh = false): Promise<PortalGradebook> {
@@ -185,7 +192,7 @@ export class Pxp2Client {
 	): Promise<PortalGradebook> {
 		let html: string;
 		let focus: { FocusArgs?: Record<string, unknown> } | undefined;
-		let periods: GradingPeriod[];
+		let periods: GradingPeriod[] = [];
 		// An explicit refresh reloads the canonical portal context as well as every
 		// class. The compact context is metadata, not a cached grade response, but
 		// its period catalog can become stale after a district changes terms.
@@ -203,15 +210,17 @@ export class Pxp2Client {
 				MarkPeriods: period.markPeriodGU ? [{ GU: period.markPeriodGU }] : []
 			}));
 		} else {
-			html = await this.pageHtml('gradebook');
-			focus = jsonAssignment(html, 'PXP.GBCurrentFocus') as {
-				FocusArgs?: Record<string, unknown>;
-			};
-			if (!focus?.FocusArgs) throw new Error('StudentVUE grade book context was not found.');
-			const focusData = jsonAssignment(html, 'PXP.GBFocusData') as
-				{ GradingPeriods?: GradingPeriod[] } | undefined;
-			periods = (focusData?.GradingPeriods ?? []).filter((period) => identifier(period.GU));
-			this.gradebookContext = buildGradebookContext(focus.FocusArgs, periods);
+			html = await this.pageHtml('gradebook', 'gb_context');
+			this.timedSync('gb_context_parse', () => {
+				focus = jsonAssignment(html, 'PXP.GBCurrentFocus') as {
+					FocusArgs?: Record<string, unknown>;
+				};
+				if (!focus?.FocusArgs) throw new Error('StudentVUE grade book context was not found.');
+				const focusData = jsonAssignment(html, 'PXP.GBFocusData') as
+					{ GradingPeriods?: GradingPeriod[] } | undefined;
+				periods = (focusData?.GradingPeriods ?? []).filter((period) => identifier(period.GU));
+				this.gradebookContext = buildGradebookContext(focus.FocusArgs, periods);
+			});
 		}
 		if (periods.length === 0) throw new Error('StudentVUE grading periods were not found.');
 		if (
@@ -232,18 +241,23 @@ export class Pxp2Client {
 		};
 		let gradebookHtml = html;
 		if (identifier(selected.GU) !== identifier(args.gradePeriodGU)) {
-			const loaded = await this.serviceCall<{ html?: unknown }>('LoadControl', {
-				request: {
-					control: 'Gradebook_SchoolClasses',
-					parameters: {
-						schoolID: selected.schoolID,
-						OrgYearGU: selected.OrgYearGU,
-						gradePeriodGU: selected.GU,
-						GradingPeriodGroup: selected.GroupName,
-						AGU: args.AGU
+			const loaded = await this.serviceCall<{ html?: unknown }>(
+				'LoadControl',
+				{
+					request: {
+						control: 'Gradebook_SchoolClasses',
+						parameters: {
+							schoolID: selected.schoolID,
+							OrgYearGU: selected.OrgYearGU,
+							gradePeriodGU: selected.GU,
+							GradingPeriodGroup: selected.GroupName,
+							AGU: args.AGU
+						}
 					}
-				}
-			});
+				},
+				undefined,
+				'gb_period'
+			);
 			gradebookHtml = typeof loaded.html === 'string' ? loaded.html : '';
 			if (!gradebookHtml.includes('data-focus'))
 				throw new Error('StudentVUE did not load the requested grading period.');
@@ -260,11 +274,14 @@ export class Pxp2Client {
 					markPeriodGU: markPeriod?.GU
 				}
 			},
-			'Classes'
+			'Classes',
+			'gb_classes'
 		);
 
-		const headers = extractCourseHeaders(gradebookHtml);
-		const focuses = courseFocuses(gradebookHtml);
+		const { headers, focuses } = this.timedSync('gb_headers_parse', () => ({
+			headers: extractCourseHeaders(gradebookHtml),
+			focuses: courseFocuses(gradebookHtml)
+		}));
 		// The compact class control is expected to include the same focus metadata as the
 		// full page. If a district omits it, reload once through the proven compatibility
 		// path instead of returning a misleading incomplete detailed response.
@@ -302,93 +319,122 @@ export class Pxp2Client {
 		const recoverMissingAssignments = async (
 			classData: ClassData,
 			visibleAssignments: Array<Record<string, string>>,
-			focus: (typeof focuses)[number]
+			focus: (typeof focuses)[number],
+			classOrdinal: number
 		) =>
 			(
 				await Promise.all(
-					missingGradedAssignmentIds(classData, visibleAssignments).map(async (assignmentId) => {
-						try {
-							const detail = await this.serviceCall<{ html?: unknown }>('LoadControl', {
-								request: {
-									control: 'Gradebook_AssignmentDetails',
-									parameters: {
-										...focus.parameters,
-										viewName: null,
-										assignmentID: /^\d+$/.test(assignmentId) ? Number(assignmentId) : assignmentId
-									}
-								}
-							});
-							return parseGradebookAssignmentDetail(
-								typeof detail.html === 'string' ? detail.html : '',
-								assignmentId
-							);
-						} catch {
-							// Preserve the rest of the upstream class if one detail is unavailable.
-							return undefined;
+					missingGradedAssignmentIds(classData, visibleAssignments).map(
+						async (assignmentId, index) => {
+							try {
+								const detail = await this.serviceCall<{ html?: unknown }>(
+									'LoadControl',
+									{
+										request: {
+											control: 'Gradebook_AssignmentDetails',
+											parameters: {
+												...focus.parameters,
+												viewName: null,
+												assignmentID: /^\d+$/.test(assignmentId)
+													? Number(assignmentId)
+													: assignmentId
+											}
+										}
+									},
+									undefined,
+									`gb_assignment_detail_${classOrdinal}_${index + 1}`
+								);
+								return this.timedSync(`gb_assignment_parse_${classOrdinal}_${index + 1}`, () =>
+									parseGradebookAssignmentDetail(
+										typeof detail.html === 'string' ? detail.html : '',
+										assignmentId
+									)
+								);
+							} catch {
+								// Preserve the rest of the upstream class if one detail is unavailable.
+								return undefined;
+							}
 						}
-					})
+					)
 				)
 			).filter((assignment): assignment is Record<string, string> => assignment !== undefined);
 		// StudentVUE keeps the selected class in the server session, so these focus changes
 		// must remain serial. Gradebook_ClassDetails supplies the rendered category and
 		// assignment grids; GetClassData supplies the bulk ID list so omitted rows can be
 		// retrieved. The newer course-content endpoint also omits some graded rows.
-		for (const focus of safeSummary ? [] : focuses) {
-			const loaded = await this.serviceCall<{ html?: unknown }>('LoadControl', {
-				request: {
-					control: focus.control,
-					parameters: focus.parameters
-				}
-			});
+		for (const [focusIndex, focus] of (safeSummary ? [] : focuses).entries()) {
+			const classOrdinal = focusIndex + 1;
+			const loaded = await this.serviceCall<{ html?: unknown }>(
+				'LoadControl',
+				{
+					request: {
+						control: focus.control,
+						parameters: focus.parameters
+					}
+				},
+				undefined,
+				`gb_class_detail_${classOrdinal}`
+			);
 			const detailHtml = typeof loaded.html === 'string' ? loaded.html : '';
-			const detail = parseGradebookClassDetail(detailHtml);
+			const detail = this.timedSync(`gb_class_parse_${classOrdinal}`, () =>
+				parseGradebookClassDetail(detailHtml)
+			);
 			if (detail.hasAssignmentGrid) {
 				// The rendered grid can omit graded rows. The bulk class data identifies
 				// them without guessing from the difference in category totals.
 				const classData = await this.clientSideCall<ClassData>(
 					'genericdata.classdata',
 					'GetClassData',
-					{}
+					{},
+					`gb_class_data_${classOrdinal}`
 				).catch(() => undefined);
 				const recovered = classData
-					? await recoverMissingAssignments(classData, detail.assignments, focus)
+					? await recoverMissingAssignments(classData, detail.assignments, focus, classOrdinal)
 					: [];
-				const structuredCategories = classData ? gradeCategories(classData) : [];
-				const renderedNames = new Set(detail.categories.map((category) => category.name));
-				const usedCategoryNames = new Set(
-					classData ? assignmentCategories(classData).values() : []
+				const { categories, letter, percentage } = this.timedSync(
+					`gb_class_prepare_${classOrdinal}`,
+					() => {
+						const structuredCategories = classData ? gradeCategories(classData) : [];
+						const renderedNames = new Set(detail.categories.map((category) => category.name));
+						const usedCategoryNames = new Set(
+							classData ? assignmentCategories(classData).values() : []
+						);
+						const categories =
+							detail.categories.length > 0
+								? [
+										...detail.categories,
+										...structuredCategories.filter(
+											(category) =>
+												!renderedNames.has(category.name) &&
+												(Number(category.weight) === 0 ||
+													(!usedCategoryNames.has(category.name) &&
+														Number(category.points) === 0 &&
+														Number(category.pointsPossible) === 0))
+										)
+									]
+								: structuredCategories;
+						const authoritativeGrade = classData?.students?.[0];
+						const letter =
+							detail.letter ||
+							gradeLetter(text(authoritativeGrade?.calculatedMark)) ||
+							gradeLetter(text(authoritativeGrade?.manualMark));
+						const percentage =
+							detail.percentage || (letter ? numericText(authoritativeGrade?.percentage) : '');
+						return { categories, letter, percentage };
+					}
 				);
-				const categories =
-					detail.categories.length > 0
-						? [
-								...detail.categories,
-								...structuredCategories.filter(
-									(category) =>
-										!renderedNames.has(category.name) &&
-										(Number(category.weight) === 0 ||
-											(!usedCategoryNames.has(category.name) &&
-												Number(category.points) === 0 &&
-												Number(category.pointsPossible) === 0))
-								)
-							]
-						: structuredCategories;
-				const authoritativeGrade = classData?.students?.[0];
-				const letter =
-					detail.letter ||
-					gradeLetter(text(authoritativeGrade?.calculatedMark)) ||
-					gradeLetter(text(authoritativeGrade?.manualMark));
-				const percentage =
-					detail.percentage || (letter ? numericText(authoritativeGrade?.percentage) : '');
 				assignmentsByCourse.set(
 					focus.courseId,
-					reconcileAssignmentPoints(
-						[...detail.assignments, ...recovered].toSorted(
-							(a, b) =>
-								(mdyDate(b.Date ?? '')?.getTime() ?? 0) - (mdyDate(a.Date ?? '')?.getTime() ?? 0)
-						),
-						categories,
-						percentage,
-						classData
+					this.timedSync(`gb_class_reconcile_${classOrdinal}`, () =>
+						reconcileAssignmentPoints(
+							[...detail.assignments, ...recovered].toSorted(
+								(a, b) =>
+									(mdyDate(b.Date ?? '')?.getTime() ?? 0) - (mdyDate(a.Date ?? '')?.getTime() ?? 0)
+							),
+							categories,
+							percentage,
+							classData
+						)
 					)
 				);
 				gradesByCourse.set(focus.courseId, {
@@ -414,38 +460,51 @@ export class Pxp2Client {
 							userData: {}
 						},
 						clientState: {}
-					}
+					},
+					`gb_course_items_${classOrdinal}`
 				),
 				this.clientSideCall<{ classGrade?: unknown; classPct?: unknown }>(
 					'pxp.course.grade.card',
 					'get',
-					{}
+					{},
+					`gb_grade_card_${classOrdinal}`
 				),
-				this.clientSideCall<ClassData>('genericdata.classdata', 'GetClassData', {})
+				this.clientSideCall<ClassData>(
+					'genericdata.classdata',
+					'GetClassData',
+					{},
+					`gb_class_data_${classOrdinal}`
+				)
 			]);
-			const items = flattenCourseItems(payload.responseData?.data ?? []);
-			const categoriesByAssignment = assignmentCategories(classData);
-			const visibleAssignments = items
-				.map((item) => courseAssignment(item, categoriesByAssignment))
-				.filter((assignment) => assignment.Date);
+			const visibleAssignments = this.timedSync(`gb_class_prepare_${classOrdinal}`, () => {
+				const items = flattenCourseItems(payload.responseData?.data ?? []);
+				const categoriesByAssignment = assignmentCategories(classData);
+				const visibleAssignments = items
+					.map((item) => courseAssignment(item, categoriesByAssignment))
+					.filter((assignment) => assignment.Date);
+				return visibleAssignments;
+			});
 			const recoveredAssignments = await recoverMissingAssignments(
 				classData,
 				visibleAssignments,
-				focus
+				focus,
+				classOrdinal
 			);
 			const categories = classData.enabled === false ? [] : gradeCategories(classData);
 			const officialPercentage =
 				numericText(gradeCard.classPct) || numericText(classData.students?.[0]?.percentage);
 			assignmentsByCourse.set(
 				focus.courseId,
-				reconcileAssignmentPoints(
-					[...visibleAssignments, ...recoveredAssignments].toSorted(
-						(a, b) =>
-							(mdyDate(b.Date ?? '')?.getTime() ?? 0) - (mdyDate(a.Date ?? '')?.getTime() ?? 0)
-					),
-					categories,
-					officialPercentage,
-					classData
+				this.timedSync(`gb_class_reconcile_${classOrdinal}`, () =>
+					reconcileAssignmentPoints(
+						[...visibleAssignments, ...recoveredAssignments].toSorted(
+							(a, b) =>
+								(mdyDate(b.Date ?? '')?.getTime() ?? 0) - (mdyDate(a.Date ?? '')?.getTime() ?? 0)
+						),
+						categories,
+						officialPercentage,
+						classData
+					)
 				)
 			);
 			const authoritativeGrade = classData.students?.[0];
@@ -461,39 +520,41 @@ export class Pxp2Client {
 				categories
 			});
 		}
-		const courses = classes.map((course, index) => {
-			const portalId =
-				identifier(course.ID) || identifier(course.ClassID) || identifier(course.SectionGU);
-			const id = portalId || `course-${index + 1}`;
-			const header = summaryHeaders[index] ?? headers.get(portalId);
-			const structuredGrade = gradesByCourse.get(portalId);
-			const headerScore = header?.score ?? '';
+		return this.timedSync('gb_result', () => {
+			const courses = classes.map((course, index) => {
+				const portalId =
+					identifier(course.ID) || identifier(course.ClassID) || identifier(course.SectionGU);
+				const id = portalId || `course-${index + 1}`;
+				const header = summaryHeaders[index] ?? headers.get(portalId);
+				const structuredGrade = gradesByCourse.get(portalId);
+				const headerScore = header?.score ?? '';
+				return {
+					id,
+					period: header?.period || String(index + 1),
+					title: header?.title || text(course.Name) || `Course ${index + 1}`,
+					room: header?.room ?? '',
+					teacher: text(course.TeacherName),
+					teacherEmail: text(course.TeacherEmail),
+					score: structuredGrade?.letter || gradeLetter(headerScore) || 'N/A',
+					scoreRaw: structuredGrade?.percentage || numericText(headerScore),
+					missing: header?.missing ?? '0',
+					categories: structuredGrade?.categories ?? [],
+					assignments: assignmentsByCourse.get(portalId) ?? []
+				};
+			});
+			const reportingPeriods = periods.map((period, index) => ({
+				name: text(period.Name) || text(period.MarkPeriods?.[0]?.Name) || `Period ${index + 1}`,
+				index,
+				startDate: '',
+				endDate: ''
+			}));
 			return {
-				id,
-				period: header?.period || String(index + 1),
-				title: header?.title || text(course.Name) || `Course ${index + 1}`,
-				room: header?.room ?? '',
-				teacher: text(course.TeacherName),
-				teacherEmail: text(course.TeacherEmail),
-				score: structuredGrade?.letter || gradeLetter(headerScore) || 'N/A',
-				scoreRaw: structuredGrade?.percentage || numericText(headerScore),
-				missing: header?.missing ?? '0',
-				categories: structuredGrade?.categories ?? [],
-				assignments: assignmentsByCourse.get(portalId) ?? []
+				courses,
+				reportingPeriods,
+				selectedPeriod: reportingPeriods[selectedIndex]!,
+				detailed: !safeSummary
 			};
 		});
-		const reportingPeriods = periods.map((period, index) => ({
-			name: text(period.Name) || text(period.MarkPeriods?.[0]?.Name) || `Period ${index + 1}`,
-			index,
-			startDate: '',
-			endDate: ''
-		}));
-		return {
-			courses,
-			reportingPeriods,
-			selectedPeriod: reportingPeriods[selectedIndex]!,
-			detailed: !safeSummary
-		};
 	}
 
 	private async loadCachedGradebookState(reportPeriod?: number) {
@@ -513,18 +574,23 @@ export class Pxp2Client {
 			throw new Pxp2InputError(`reportPeriod must be between 0 and ${context.periods.length - 1}.`);
 		const selected = context.periods[selectedIndex];
 		if (!selected) return undefined;
-		const loaded = await this.serviceCall<{ html?: unknown }>('LoadControl', {
-			request: {
-				control: 'Gradebook_SchoolClasses',
-				parameters: {
-					schoolID: selected.schoolID,
-					OrgYearGU: selected.OrgYearGU,
-					gradePeriodGU: selected.GU,
-					GradingPeriodGroup: selected.GroupName,
-					AGU: context.AGU
+		const loaded = await this.serviceCall<{ html?: unknown }>(
+			'LoadControl',
+			{
+				request: {
+					control: 'Gradebook_SchoolClasses',
+					parameters: {
+						schoolID: selected.schoolID,
+						OrgYearGU: selected.OrgYearGU,
+						gradePeriodGU: selected.GU,
+						GradingPeriodGroup: selected.GroupName,
+						AGU: context.AGU
+					}
 				}
-			}
-		});
+			},
+			undefined,
+			'gb_period'
+		);
 		const html = typeof loaded.html === 'string' ? loaded.html : '';
 		if (!html.includes('data-focus') || extractCourseHeaders(html).size === 0) return undefined;
 		return { html, context };
@@ -537,18 +603,20 @@ export class Pxp2Client {
 	}
 
 	async attendanceDetails() {
-		const html = await this.pageHtml('attendance');
-		const payload = jsonAssignment(html, 'PXP.StudentAttendanceData') as
-			Record<string, unknown> | undefined;
-		if (!payload) throw new Error('StudentVUE did not provide structured attendance data.');
-		const studentDetails = payload.stuAttendanceDetails as Record<string, unknown> | undefined;
-		return {
-			...payload,
-			days: attendanceDays(payload),
-			courses: attendanceCourseRecords(html),
-			periods: attendancePeriodRecords(html),
-			schoolName: text(studentDetails?.schoolName)
-		};
+		const html = await this.pageHtml('attendance', 'attendance_portal');
+		return this.timedSync('attendance_parse', () => {
+			const payload = jsonAssignment(html, 'PXP.StudentAttendanceData') as
+				Record<string, unknown> | undefined;
+			if (!payload) throw new Error('StudentVUE did not provide structured attendance data.');
+			const studentDetails = payload.stuAttendanceDetails as Record<string, unknown> | undefined;
+			return {
+				...payload,
+				days: attendanceDays(payload),
+				courses: attendanceCourseRecords(html),
+				periods: attendancePeriodRecords(html),
+				schoolName: text(studentDetails?.schoolName)
+			};
+		});
 	}
 
 	async calendar(month?: number, year?: number) {
@@ -594,16 +662,22 @@ export class Pxp2Client {
 	}
 
 	async studentInfo() {
-		const html = await this.pageHtml('studentInfo');
-		const fields = tableFields(html);
-		if (Object.keys(fields).length === 0)
-			throw new Error('StudentVUE did not provide structured student information.');
-		const $ = load(html);
-		const photoPath = $('img[alt="Student Photo"]').first().attr('src')?.trim();
+		const html = await this.pageHtml('studentInfo', 'student_profile_portal');
+		const { fields, photoPath } = this.timedSync('student_profile_parse', () => {
+			const fields = tableFields(html);
+			if (Object.keys(fields).length === 0)
+				throw new Error('StudentVUE did not provide structured student information.');
+			const $ = load(html);
+			return { fields, photoPath: $('img[alt="Student Photo"]').first().attr('src')?.trim() };
+		});
 		let photo: PortalFile | undefined;
 		if (photoPath) {
 			try {
-				const downloaded = await this.download(photoPath, 'StudentVUE student photo');
+				const downloaded = await this.download(
+					photoPath,
+					'StudentVUE student photo',
+					'student_photo'
+				);
 				if (/^image\/(?:gif|jpeg|png|webp)$/.test(downloaded.mimeType)) photo = downloaded;
 			} catch {
 				// Student information remains usable if a district blocks or omits its portrait file.
@@ -674,8 +748,8 @@ export class Pxp2Client {
 	}
 
 	async documents() {
-		const html = await this.pageHtml('documents');
-		return documentRows(html);
+		const html = await this.pageHtml('documents', 'documents_portal');
+		return this.timedSync('documents_parse', () => documentRows(html));
 	}
 
 	async document(documentId: string): Promise<PortalFile> {
@@ -687,10 +761,11 @@ export class Pxp2Client {
 	}
 
 	async messages() {
-		const html = await this.pageHtml('messages');
-		const accessToken = html.match(
-			/ST\.Authorization\s*=\s*\{\s*"access_token"\s*:\s*"([^"]+)"/m
-		)?.[1];
+		const html = await this.pageHtml('messages', 'mail_portal');
+		const accessToken = this.timedSync(
+			'mail_parse',
+			() => html.match(/ST\.Authorization\s*=\s*\{\s*"access_token"\s*:\s*"([^"]+)"/m)?.[1]
+		);
 		if (!accessToken) throw new Error('StudentVUE message authorization was not available.');
 		this.messageToken = accessToken;
 		const payload = await this.studentVueService<{
@@ -707,7 +782,8 @@ export class Pxp2Client {
 				take: 100,
 				requireTotalCount: true
 			},
-			accessToken
+			accessToken,
+			'mail_inbox'
 		);
 		// Return the inbox index immediately. Message bodies and attachments are loaded
 		// on demand so a 100-message inbox does not create 101 upstream requests.
@@ -783,39 +859,46 @@ export class Pxp2Client {
 		return token;
 	}
 
-	private async download(path: string, label: string): Promise<PortalFile> {
-		const response = await this.request(path);
-		const finalUrl = new URL(response.url);
-		if (finalUrl.origin !== this.baseUrl.origin || response.url.includes('PXP2_Login'))
-			throw new Pxp2SessionExpiredError(`${label} session expired.`);
-		if (!response.ok) throw new Error(`${label} download failed.`);
-		const bytes = await responseBytes(response, 25 * 1024 * 1024, label);
-		if (bytes.length === 0) throw new Error(`${label} has an invalid size.`);
-		const disposition = response.headers.get('content-disposition') ?? '';
-		const encodedName =
-			disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1] ??
-			disposition.match(/filename="?([^";]+)"?/i)?.[1] ??
-			'download';
-		let decodedName = encodedName;
-		try {
-			decodedName = decodeURIComponent(encodedName);
-		} catch {
-			/* Preserve malformed upstream names as plain text. */
-		}
-		const fileName =
-			decodedName
-				.split(/[\\/]/)
-				.at(-1)
-				// Upstream filenames are untrusted; strip ASCII control characters.
-				// eslint-disable-next-line no-control-regex
-				?.replace(/[\u0000-\u001f\u007f]/g, '')
-				.slice(0, 255) || 'download';
-		const upstreamMime = response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase();
-		const mimeType =
-			upstreamMime && /^[a-z0-9][a-z0-9!#$&^_.+-]*\/[a-z0-9][a-z0-9!#$&^_.+-]*$/.test(upstreamMime)
-				? upstreamMime
-				: 'application/octet-stream';
-		return { base64: Buffer.from(bytes).toString('base64'), mimeType, fileName };
+	private async download(path: string, label: string, timingName?: string): Promise<PortalFile> {
+		const response = await this.timedStage(timingName, 'network', () => this.request(path));
+		return this.timedStage(timingName, 'body', async () => {
+			const finalUrl = new URL(response.url);
+			if (finalUrl.origin !== this.baseUrl.origin || response.url.includes('PXP2_Login'))
+				throw new Pxp2SessionExpiredError(`${label} session expired.`);
+			if (!response.ok) throw new Error(`${label} download failed.`);
+			const bytes = await responseBytes(response, 25 * 1024 * 1024, label);
+			if (bytes.length === 0) throw new Error(`${label} has an invalid size.`);
+			const disposition = response.headers.get('content-disposition') ?? '';
+			const encodedName =
+				disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1] ??
+				disposition.match(/filename="?([^";]+)"?/i)?.[1] ??
+				'download';
+			let decodedName = encodedName;
+			try {
+				decodedName = decodeURIComponent(encodedName);
+			} catch {
+				/* Preserve malformed upstream names as plain text. */
+			}
+			const fileName =
+				decodedName
+					.split(/[\\/]/)
+					.at(-1)
+					// Upstream filenames are untrusted; strip ASCII control characters.
+					// eslint-disable-next-line no-control-regex
+					?.replace(/[\u0000-\u001f\u007f]/g, '')
+					.slice(0, 255) || 'download';
+			const upstreamMime = response.headers
+				.get('content-type')
+				?.split(';')[0]
+				?.trim()
+				.toLowerCase();
+			const mimeType =
+				upstreamMime &&
+				/^[a-z0-9][a-z0-9!#$&^_.+-]*\/[a-z0-9][a-z0-9!#$&^_.+-]*$/.test(upstreamMime)
+					? upstreamMime
+					: 'application/octet-stream';
+			return { base64: Buffer.from(bytes).toString('base64'), mimeType, fileName };
+		});
 	}
 
 	private async authenticate(credentials: Credentials) {
@@ -867,80 +950,131 @@ export class Pxp2Client {
 			throw new Pxp2AuthenticationError('StudentVUE authentication failed.');
 	}
 
-	private async pageHtml(name: PageName) {
-		const response = await this.request(pages[name]);
-		const html = await responseText(response);
-		if (response.url.includes('PXP2_Login'))
-			throw new Pxp2SessionExpiredError('StudentVUE session expired.');
-		return html;
+	private async pageHtml(name: PageName, timingName?: string) {
+		const response = await this.timedStage(timingName, 'network', () => this.request(pages[name]));
+		return this.timedStage(timingName, 'body', async () => {
+			const html = await responseText(response);
+			if (response.url.includes('PXP2_Login'))
+				throw new Pxp2SessionExpiredError('StudentVUE session expired.');
+			return html;
+		});
 	}
 
-	private async serviceCall<T>(method: string, body: unknown, property?: string): Promise<T> {
-		const response = await this.request(`service/PXP2Communication.asmx/${method}`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-			body: JSON.stringify(body)
-		});
-		const payload = await responseJson<{ d?: { Data?: unknown; Error?: { Message?: string } } }>(
-			response
+	private async serviceCall<T>(
+		method: string,
+		body: unknown,
+		property?: string,
+		timingName?: string
+	): Promise<T> {
+		const response = await this.timedStage(timingName, 'network', () =>
+			this.request(`service/PXP2Communication.asmx/${method}`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+				body: JSON.stringify(body)
+			})
 		);
-		if (payload.d?.Error || payload.d?.Data === undefined)
-			throw new Error(payload.d?.Error?.Message ?? 'StudentVUE did not return the requested data.');
-		const data = payload.d.Data as Record<string, unknown>;
-		return (property ? data[property] : data) as T;
+		return this.timedStage(timingName, 'body', async () => {
+			const payload = await responseJson<{ d?: { Data?: unknown; Error?: { Message?: string } } }>(
+				response
+			);
+			if (payload.d?.Error || payload.d?.Data === undefined)
+				throw new Error(
+					payload.d?.Error?.Message ?? 'StudentVUE did not return the requested data.'
+				);
+			const data = payload.d.Data as Record<string, unknown>;
+			return (property ? data[property] : data) as T;
+		});
 	}
 
 	private async studentVueService<T>(
 		service: string,
 		method: string,
 		body: Record<string, unknown>,
-		accessToken: string
+		accessToken: string,
+		timingName?: string
 	): Promise<T> {
-		const response = await this.request(`st_api/${service}/${method}?PORTAL=StudentVUE`, {
-			method: 'POST',
-			headers: {
-				Authorization: `Bearer ${accessToken}`,
-				'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-			},
-			body: new URLSearchParams({ data: JSON.stringify(body) })
+		const response = await this.timedStage(timingName, 'network', () =>
+			this.request(`st_api/${service}/${method}?PORTAL=StudentVUE`, {
+				method: 'POST',
+				headers: {
+					Authorization: `Bearer ${accessToken}`,
+					'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+				},
+				body: new URLSearchParams({ data: JSON.stringify(body) })
+			})
+		);
+		return this.timedStage(timingName, 'body', async () => {
+			const html = await responseText(response);
+			const encoded = elementInnerHtml(html, 'json-result');
+			if (!encoded) throw new Error('StudentVUE service returned an unexpected response.');
+			try {
+				return JSON.parse(decodeHtml(encoded)) as T;
+			} catch {
+				throw new Error('StudentVUE service returned invalid JSON.');
+			}
 		});
-		const html = await responseText(response);
-		const encoded = elementInnerHtml(html, 'json-result');
-		if (!encoded) throw new Error('StudentVUE service returned an unexpected response.');
-		try {
-			return JSON.parse(decodeHtml(encoded)) as T;
-		} catch {
-			throw new Error('StudentVUE service returned invalid JSON.');
-		}
 	}
 
 	private async clientSideCall<T>(
 		friendlyName: string,
 		method: string,
-		parameters: Record<string, unknown>
+		parameters: Record<string, unknown>,
+		timingName?: string
 	): Promise<T> {
 		const action = encodeURIComponent(`${friendlyName}-${method}`);
-		const response = await this.request(`api/GB/ClientSideData/Transfer?action=${action}`, {
-			method: 'POST',
-			headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				FriendlyName: friendlyName,
-				Method: method,
-				Parameters: JSON.stringify(parameters)
+		const response = await this.timedStage(timingName, 'network', () =>
+			this.request(`api/GB/ClientSideData/Transfer?action=${action}`, {
+				method: 'POST',
+				headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					FriendlyName: friendlyName,
+					Method: method,
+					Parameters: JSON.stringify(parameters)
+				})
 			})
+		);
+		return this.timedStage(timingName, 'body', async () => {
+			if (!response.ok) throw new Error('StudentVUE grade book data request failed.');
+			const payload = await responseJson<
+				T & { errorMessage?: unknown; Error?: { Message?: unknown } }
+			>(response);
+			if (text(payload.errorMessage) || payload.Error) {
+				throw new Error(
+					text(payload.errorMessage) ||
+						text(payload.Error?.Message) ||
+						'StudentVUE grade book data request failed.'
+				);
+			}
+			return payload;
 		});
-		if (!response.ok) throw new Error('StudentVUE grade book data request failed.');
-		const payload = await responseJson<
-			T & { errorMessage?: unknown; Error?: { Message?: unknown } }
-		>(response);
-		if (text(payload.errorMessage) || payload.Error) {
-			throw new Error(
-				text(payload.errorMessage) ||
-					text(payload.Error?.Message) ||
-					'StudentVUE grade book data request failed.'
-			);
+	}
+
+	private timedStage<T>(
+		name: string | undefined,
+		stage: 'network' | 'body',
+		operation: () => Promise<T>
+	) {
+		return this.timed(name ? `${name}_${stage}` : undefined, operation);
+	}
+
+	private async timed<T>(name: string | undefined, operation: () => Promise<T>): Promise<T> {
+		if (!name || !this.onTimingSpan) return operation();
+		const startedAt = performance.now();
+		try {
+			return await operation();
+		} finally {
+			this.onTimingSpan({ name, durationMs: performance.now() - startedAt });
 		}
-		return payload;
+	}
+
+	private timedSync<T>(name: string, operation: () => T): T {
+		if (!this.onTimingSpan) return operation();
+		const startedAt = performance.now();
+		try {
+			return operation();
+		} finally {
+			this.onTimingSpan({ name, durationMs: performance.now() - startedAt });
+		}
 	}
 
 	private async request(path: string, init: RequestInit = {}) {

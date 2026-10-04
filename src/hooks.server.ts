@@ -1,3 +1,4 @@
+import { appendServerTiming } from '$lib/server/request-timing';
 import { error, type Handle, type HandleServerError } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 
@@ -18,7 +19,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const response = await resolve(event);
 	const durationMs = performance.now() - startedAt;
 	response.headers.set('X-Request-ID', event.locals.requestId);
-	response.headers.set('Server-Timing', `app;dur=${durationMs.toFixed(1)}`);
+	appendServerTiming(response.headers, `app;dur=${durationMs.toFixed(1)}`);
+	event.locals.requestTiming?.append(response.headers);
 	response.headers.set('X-Content-Type-Options', 'nosniff');
 	response.headers.set('Referrer-Policy', 'no-referrer');
 	response.headers.set('X-Frame-Options', 'DENY');

@@ -8,6 +8,7 @@ declare global {
 		}
 		interface Locals {
 			requestId: string;
+			requestTiming?: import('$lib/server/request-timing').RequestTiming;
 		}
 		// interface PageData {}
 		// interface PageState {}

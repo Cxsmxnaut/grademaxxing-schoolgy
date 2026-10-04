@@ -16,6 +16,9 @@ export type Pxp2RequestMetric = {
 	outcome: 'response' | 'network-error' | 'timeout';
 };
 
+/** Fixed operation labels only; never includes portal identifiers or payloads. */
+export type Pxp2TimingSpan = { name: string; durationMs: number };
+
 export type PortalDocument = { id: string; title: string; date: string; category: string };
 export type PortalFile = { base64: string; mimeType: string; fileName: string };
 export type PortalCalendarEvent = {

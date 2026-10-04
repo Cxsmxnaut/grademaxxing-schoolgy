@@ -2,6 +2,7 @@ import { dev } from '$app/environment';
 import { recordStudentVueUpstreamFailure } from '$lib/server/analytics/usage';
 import { gradebookXml } from '$lib/server/gradebook-adapter';
 import { Pxp2InputError, Pxp2SessionExpiredError, Pxp2TimeoutError } from '$lib/server/pxp2';
+import { RequestTiming, timingRequestHeader } from '$lib/server/request-timing';
 import {
 	clientSessionHeader,
 	getStudentSession,
@@ -21,23 +22,38 @@ import { capabilities, resources, type Resource } from '$lib/server/studentvue-a
 import { error, isHttpError, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = async ({ params, cookies, request, url, platform }) => {
+export const GET: RequestHandler = async ({ params, cookies, request, url, platform, locals }) => {
 	if (!resources.includes(params.resource as Resource))
 		throw error(404, 'Unknown StudentVUE API resource.');
 	let session: ReturnType<typeof getStudentSession>;
+	const wantsTiming = request.headers.get(timingRequestHeader) === 'true';
+	let timing: RequestTiming | undefined;
+	const sessionStartedAt = wantsTiming ? performance.now() : 0;
 	try {
-		session = getStudentSession(cookies.get(sessionCookie));
+		session = getStudentSession(
+			cookies.get(sessionCookie),
+			wantsTiming ? (span) => timing?.record(span) : undefined
+		);
 		requireStudentSessionContext(session, request.headers.get(clientSessionHeader));
 	} catch (cause) {
 		throw error(401, cause instanceof Error ? cause.message : 'Sign in to StudentVUE first.');
 	}
+	if (wantsTiming) {
+		timing = new RequestTiming();
+		timing.record({ name: 'session_decode', durationMs: performance.now() - sessionStartedAt });
+		locals.requestTiming = timing;
+	}
+	const respond: typeof json = (data, init) =>
+		timing ? timing.measureSync('response_encode', () => json(data, init)) : json(data, init);
+	const finishQueue = timing?.start('queue');
 	try {
 		const response = await runStudentOperation(
 			session,
 			async () => {
+				finishQueue?.();
 				switch (params.resource as Resource) {
 					case 'capabilities':
-						return json(capabilities);
+						return respond(capabilities);
 					case 'gradebook': {
 						const reportPeriod = optionalInteger(
 							url.searchParams.get('reportPeriod'),
@@ -48,33 +64,35 @@ export const GET: RequestHandler = async ({ params, cookies, request, url, platf
 						const fresh = url.searchParams.get('fresh') === 'true';
 						const summary = !fresh && url.searchParams.get('summary') === 'true';
 						const gradebook = await session.client.gradebook(reportPeriod, summary, fresh);
-						return json({
-							xml: gradebookXml(gradebook),
+						return respond({
+							xml: timing
+								? timing.measureSync('gradebook_xml', () => gradebookXml(gradebook))
+								: gradebookXml(gradebook),
 							detailed: gradebook.detailed !== false
 						});
 					}
 					case 'attendance':
-						return json(adaptAttendance(await session.client.attendanceDetails()));
+						return respond(adaptAttendance(await session.client.attendanceDetails()));
 					case 'attendance-details':
-						return json(await session.client.attendanceDetails());
+						return respond(await session.client.attendanceDetails());
 					case 'calendar': {
 						const month = optionalInteger(url.searchParams.get('month'), 1, 12, 'month');
 						const year = optionalInteger(url.searchParams.get('year'), 2000, 2200, 'year');
 						if ((month === undefined) !== (year === undefined))
 							throw error(400, 'month and year must be supplied together.');
-						return json(await session.client.calendar(month, year));
+						return respond(await session.client.calendar(month, year));
 					}
 					case 'student-info':
-						return json(adaptStudentInfo(await session.client.studentInfo()));
+						return respond(adaptStudentInfo(await session.client.studentInfo()));
 					case 'student-profile':
-						return json(await session.client.studentInfo());
+						return respond(await session.client.studentInfo());
 					case 'documents':
-						return json(adaptDocuments(await session.client.documents()));
+						return respond(adaptDocuments(await session.client.documents()));
 					case 'document': {
 						const id = url.searchParams.get('id');
 						if (!id) throw error(400, 'A document identifier is required.');
 						const file = await session.client.document(id);
-						return json({
+						return respond({
 							Base64Code: file.base64,
 							_DocumentGU: id,
 							_FileName: file.fileName,
@@ -83,15 +101,15 @@ export const GET: RequestHandler = async ({ params, cookies, request, url, platf
 						});
 					}
 					case 'report-cards':
-						return json(await session.client.reportCards());
+						return respond(await session.client.reportCards());
 					case 'schedule':
-						return json(await session.client.schedule());
+						return respond(await session.client.schedule());
 					case 'school-info':
-						return json(await session.client.schoolInfo());
+						return respond(await session.client.schoolInfo());
 					case 'messages':
-						return json(adaptMessages(await session.client.messages()));
+						return respond(adaptMessages(await session.client.messages()));
 					case 'mailbox':
-						return json(await session.client.mailbox());
+						return respond(await session.client.mailbox());
 					case 'message': {
 						const id = url.searchParams.get('id');
 						if (!id) throw error(400, 'A message identifier is required.');
@@ -99,7 +117,7 @@ export const GET: RequestHandler = async ({ params, cookies, request, url, platf
 							id,
 							url.searchParams.get('system') === 'true'
 						);
-						return json(
+						return respond(
 							url.searchParams.get('legacy') === 'true'
 								? adaptMessages([detail]).InboxItemListings.MessageXML[0]
 								: detail
@@ -109,7 +127,7 @@ export const GET: RequestHandler = async ({ params, cookies, request, url, platf
 						const id = url.searchParams.get('id');
 						if (!id) throw error(400, 'An attachment identifier is required.');
 						const file = await session.client.attachment(id);
-						return json({
+						return respond({
 							Base64Code: file.base64,
 							_SmAttachmentGU: id,
 							_DocumentName: file.fileName,
@@ -121,7 +139,10 @@ export const GET: RequestHandler = async ({ params, cookies, request, url, platf
 			},
 			request.signal
 		);
-		cookies.set(sessionCookie, serializeStudentSession(session), {
+		const token = timing
+			? timing.measureSync('session_encode', () => serializeStudentSession(session))
+			: serializeStudentSession(session);
+		cookies.set(sessionCookie, token, {
 			path: '/',
 			httpOnly: true,
 			sameSite: 'lax',
@@ -138,7 +159,7 @@ export const GET: RequestHandler = async ({ params, cookies, request, url, platf
 		if (cause instanceof Pxp2SessionExpiredError) {
 			// Preserve the encrypted app identity long enough to offer a password-only
 			// reconnect. It contains StudentVUE cookies, never the student's password.
-			return json(
+			return respond(
 				{
 					code: 'UPSTREAM_SESSION_EXPIRED',
 					message: 'Reconnect to StudentVUE to update your school data.'
@@ -152,5 +173,7 @@ export const GET: RequestHandler = async ({ params, cookies, request, url, platf
 		}
 		recordStudentVueUpstreamFailure(platform, params.resource, 'portal_error');
 		throw error(502, cause instanceof Error ? cause.message : 'StudentVUE request failed.');
+	} finally {
+		finishQueue?.();
 	}
 };

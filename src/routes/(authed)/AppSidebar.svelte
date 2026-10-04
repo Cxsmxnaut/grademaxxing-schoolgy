@@ -23,6 +23,7 @@
 		resetPortalConnection
 	} from '$lib/session.svelte';
 	import { StudentVueSessionExpiredError } from '$lib/synergy';
+	import { beginRefreshTiming } from '$lib/studentvue/refresh-timing';
 	import AppWindowMacIcon from '@lucide/svelte/icons/app-window-mac';
 	import BookIcon from '@lucide/svelte/icons/book';
 	import CommandIcon from '@lucide/svelte/icons/command';
@@ -94,11 +95,16 @@
 		const account = acc.studentAccount;
 		const originalSessionId = account?.sessionId;
 		const startedAt = Date.now();
+		const timing =
+			page.url.searchParams.get('refreshTiming') === '1' ? beginRefreshTiming() : undefined;
+		const startedTiming = timing?.now() ?? 0;
 		try {
 			// A single lightweight probe stops a dead upstream session from causing five
 			// duplicate failed requests and opens the reconnect prompt immediately.
 			await account?.keepAlive();
+			if (timing) timing.phase('session', startedTiming);
 			if (!account || acc.studentAccount !== account) return;
+			const gradesStartedTiming = timing?.now() ?? 0;
 			// Gradebook is the page's primary refresh target. StudentVUE requests for one
 			// session are serialized, so enqueue it before the lower-priority records.
 			const catalog = gradebookState.gradebookCatalog;
@@ -145,6 +151,7 @@
 					backgroundRefreshPromise = undefined;
 				});
 			await gradebookRefresh;
+			if (timing) timing.phase('grades', gradesStartedTiming);
 			if (acc.studentAccount !== account) return;
 			if (gradebookState.loadingError) throw gradebookState.loadingError;
 			lastSuccessfulRefresh = Date.now();
@@ -157,6 +164,7 @@
 				});
 		} finally {
 			refreshingAll = false;
+			if (timing) void Promise.resolve(backgroundRefreshPromise).finally(() => timing.finish());
 		}
 	}
 

@@ -27,6 +27,7 @@ import {
 	StudentVueAuthenticationError,
 	StudentVueSessionExpiredError
 } from './api';
+import { captureRequestTiming } from './refresh-timing';
 import {
 	isActiveSessionRecoveryAccount,
 	refreshGradesAfterSessionRestore
@@ -188,6 +189,7 @@ export class StudentAccount {
 				new Error('Your StudentVUE session has expired. Please sign in again.')
 			);
 		const initialSessionId = this.sessionId;
+		const timing = captureRequestTiming(path);
 		try {
 			return await serializedStudentVueRequest(initialSessionId, async () => {
 				const requestWithCurrentSession = () => {
@@ -196,15 +198,18 @@ export class StudentAccount {
 						return Promise.reject(
 							new Error('Your StudentVUE session has expired. Please sign in again.')
 						);
-					const operation = () =>
-						apiRequest<T>(
+					const operation = () => {
+						timing?.ready();
+						return apiRequest<T>(
 							path,
 							{
 								...init,
 								headers: { 'X-Grademaxxing-Session': sessionId, ...init.headers }
 							},
-							true
+							true,
+							timing
 						);
+					};
 					// A queued operation may still hold the retired session's lock after
 					// vault renewal. Join the current session queue before touching focus.
 					return sessionId === initialSessionId
@@ -240,6 +245,7 @@ export class StudentAccount {
 		} finally {
 			// Release the old session's Web Lock before issuing the recovery grade read.
 			await this.refreshRecoveredSessionGrades();
+			timing?.finish();
 		}
 	}
 

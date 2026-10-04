@@ -1,5 +1,7 @@
 <script lang="ts">
 	import BoundaryFailure from '$lib/components/BoundaryFailure.svelte';
+	import RefreshTiming from '$lib/components/RefreshTiming.svelte';
+	import { page } from '$app/state';
 	import PostLoginLoadingScreen from '$lib/components/auth/PostLoginLoadingScreen.svelte';
 	import { acc } from '$lib/account.svelte';
 	import * as Alert from '$lib/components/ui/alert';
@@ -74,6 +76,10 @@
 		void initializeGradebookCatalog();
 	});
 </script>
+
+{#if page.url.searchParams.get('refreshTiming') === '1'}
+	<RefreshTiming />
+{/if}
 
 {#if gradebookCatalog === undefined && loadingError === undefined}
 	<PostLoginLoadingScreen />
