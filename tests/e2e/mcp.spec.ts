@@ -193,3 +193,64 @@ test('authorize endpoint renders the sign-in and consent page without scripts', 
 	expect(locationParams.get('state')).toBe('state-123');
 	expect(locationParams.get('iss')).toBe(origin);
 });
+
+test('authorize accepts ChatGPT-style cross-site form posts', async ({ request, baseURL }) => {
+	const register = await request.post('/mcp/register', {
+		data: {
+			redirect_uris: ['https://chatgpt.com/connector/oauth/callback'],
+			client_name: 'ChatGPT'
+		}
+	});
+	expect(register.status()).toBe(201);
+	const { client_id: clientId } = await register.json();
+	const params = {
+		client_id: clientId,
+		redirect_uri: 'https://chatgpt.com/connector/oauth/callback',
+		response_type: 'code',
+		code_challenge: CHALLENGE,
+		code_challenge_method: 'S256',
+		state: 'state-456',
+		resource: `${new URL(baseURL!).origin}/mcp`
+	};
+
+	// ChatGPT posts the sign-in form with its own Origin and a cross-site
+	// Sec-Fetch-Site. The endpoint must reach credential validation instead of
+	// rejecting the navigation: missing credentials re-render the form (400).
+	const posted = await request.post('/mcp/authorize', {
+		headers: {
+			'Content-Type': 'application/x-www-form-urlencoded',
+			Origin: 'https://chatgpt.com',
+			'Sec-Fetch-Site': 'cross-site',
+			'Sec-Fetch-Mode': 'navigate',
+			'Sec-Fetch-Dest': 'document'
+		},
+		data: new URLSearchParams({
+			...params,
+			domain: '',
+			username: '',
+			password: ''
+		}).toString()
+	});
+	expect(posted.status()).toBe(400);
+	const body = await posted.text();
+	expect(body).not.toContain('Cross-site request blocked');
+	expect(body).toContain('Enter your district StudentVUE URL');
+
+	// Cross-site posts still fail protocol validation correctly (400, not 403).
+	const invalid = await request.post('/mcp/authorize', {
+		headers: {
+			'Content-Type': 'application/x-www-form-urlencoded',
+			Origin: 'https://chatgpt.com',
+			'Sec-Fetch-Site': 'cross-site'
+		},
+		data: new URLSearchParams({
+			...params,
+			client_id: 'gmcp1_zzz',
+			domain: 'example.test',
+			username: 'student',
+			password: 'irrelevant'
+		}).toString()
+	});
+	expect(invalid.status()).toBe(400);
+	expect(await invalid.text()).toContain('not valid');
+});

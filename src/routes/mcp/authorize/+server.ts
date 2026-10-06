@@ -137,17 +137,14 @@ export const POST: RequestHandler = async ({ request, url, getClientAddress }) =
 			}),
 			415
 		);
-	const origin = request.headers.get('origin');
-	const fetchSite = request.headers.get('sec-fetch-site');
-	if ((origin && origin !== url.origin) || fetchSite === 'cross-site')
-		return html(
-			renderAuthorizeErrorPage({
-				status: 403,
-				title: 'Cross-site request blocked',
-				detail: 'Sign in directly from this page.'
-			}),
-			403
-		);
+	// Cross-site form posts are accepted on purpose: OAuth clients (ChatGPT,
+	// Claude) drive this authorization page from their own origin, so the
+	// browser legitimately sends their Origin and Sec-Fetch-Site on the submit.
+	// CSRF safety does not depend on same-origin checks here: the response sets
+	// no cookies (the issued code carries the session), redirect URIs pass a
+	// strict allowlist, client IDs are sealed, PKCE S256 is mandatory, sign-in
+	// attempts are rate limited per IP and account, and frame-ancestors 'none'
+	// blocks clickjacking.
 	const raw = await request.text();
 	if (new TextEncoder().encode(raw).byteLength > MAX_FORM_BYTES)
 		return html(
