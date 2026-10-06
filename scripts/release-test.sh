@@ -6,6 +6,14 @@ npm run lint
 npm test
 npm run build
 
+# Production mode requires GRADEMAXXING_SESSION_SECRET; generate a throwaway
+# key so the release server exercises the real crypto path without ever
+# committing or configuring a secret in CI.
+if [ -z "${GRADEMAXXING_SESSION_SECRET:-}" ]; then
+	GRADEMAXXING_SESSION_SECRET="$(node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('hex'))")"
+	export GRADEMAXXING_SESSION_SECRET
+fi
+
 release_host="127.0.0.1"
 release_port="${GRADEMAXXING_RELEASE_PORT:-5180}"
 release_origin="http://${release_host}:${release_port}"
