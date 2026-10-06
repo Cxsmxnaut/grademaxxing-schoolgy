@@ -1,3 +1,4 @@
+import { wellKnownResponse } from '$lib/server/mcp/metadata';
 import { appendServerTiming } from '$lib/server/request-timing';
 import { error, type Handle, type HandleServerError } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
@@ -11,6 +12,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 	if (event.url.hostname === 'admin.grademaxxing.app' && event.url.pathname === '/') {
 		return Response.redirect(new URL('/admin', event.url), 302);
 	}
+
+	// MCP OAuth discovery documents are answered before application routing so
+	// ChatGPT and Claude can find the authorization server on every adapter.
+	const wellKnown = wellKnownResponse(event.url);
+	if (wellKnown) return wellKnown;
 
 	if (event.url.pathname.startsWith('/api/')) {
 		guardApiRequest(event.request, event.url);

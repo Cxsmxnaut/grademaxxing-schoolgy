@@ -20,14 +20,15 @@ The repository can be dirty. Treat every existing uncommitted change as user-own
 
 ## Read next
 
-| Need                                                 | Document                                                                                                          |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Orientation, routes, data flow, state                | [Codebase architecture](docs/codebase-architecture.md)                                                            |
-| StudentVUE login/session/API behavior                | [StudentVUE integration](docs/studentvue-integration.md) and [modern API contract](docs/studentvue-modern-api.md) |
-| Cloudflare, domain, deployment, rollback             | [Operations runbook](docs/operations-runbook.md)                                                                  |
-| UI, fonts, visual parity, and testing                | [Design system and visual QA](docs/design-system.md)                                                              |
-| Commands and release testing                         | [Release checklist](docs/release-checklist.md)                                                                    |
-| Privacy, school authorization, and student-data risk | [Student-data compliance audit](docs/student-data-compliance-audit.md)                                            |
+| Need                                                  | Document                                                                                                          |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Orientation, routes, data flow, state                 | [Codebase architecture](docs/codebase-architecture.md)                                                            |
+| StudentVUE login/session/API behavior                 | [StudentVUE integration](docs/studentvue-integration.md) and [modern API contract](docs/studentvue-modern-api.md) |
+| Cloudflare, domain, deployment, rollback              | [Operations runbook](docs/operations-runbook.md)                                                                  |
+| UI, fonts, visual parity, and testing                 | [Design system and visual QA](docs/design-system.md)                                                              |
+| ChatGPT/Claude MCP connector, OAuth, and tool surface | [MCP server](docs/mcp-server.md)                                                                                  |
+| Commands and release testing                          | [Release checklist](docs/release-checklist.md)                                                                    |
+| Privacy, school authorization, and student-data risk  | [Student-data compliance audit](docs/student-data-compliance-audit.md)                                            |
 
 ## Non-negotiable working rules
 

@@ -17,6 +17,12 @@ const config = {
 	preprocess: vitePreprocess(),
 
 	kit: {
+		// The MCP OAuth token endpoint must accept RFC 6749
+		// application/x-www-form-urlencoded POSTs from ChatGPT/Claude servers, which
+		// send no Origin header; SvelteKit's built-in form CSRF check rejects those.
+		// Browser-form protection is unchanged: hooks.server.ts guards /api/* and
+		// /mcp/authorize enforces its own origin + sec-fetch-site checks.
+		csrf: { trustedOrigins: ['*'] },
 		csp: {
 			mode: 'auto',
 			directives: {

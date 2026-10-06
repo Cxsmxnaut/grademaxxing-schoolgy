@@ -60,6 +60,7 @@ import { normalizeDistrictUrl } from './pxp2/url';
 
 export type {
 	PortalCalendarEvent,
+	PortalCourse,
 	PortalDocument,
 	PortalFile,
 	PortalGradebook,
@@ -760,7 +761,32 @@ export class Pxp2Client {
 		return this.download(`PXP_ShowDocument.aspx?${query}`, 'StudentVUE document');
 	}
 
-	async messages() {
+	async folders() {
+		const html = await this.pageHtml('messages', 'mail_portal');
+		const accessToken = this.timedSync(
+			'mail_parse',
+			() => html.match(/ST\.Authorization\s*=\s*\{\s*"access_token"\s*:\s*"([^"]+)"/m)?.[1]
+		);
+		if (!accessToken) throw new Error('StudentVUE message authorization was not available.');
+		this.messageToken = accessToken;
+		const payload = await this.studentVueService<{ Result?: Array<Record<string, unknown>> }>(
+			'ST.Messaging',
+			'GetFolders',
+			{},
+			accessToken
+		);
+		return payload.Result ?? [];
+	}
+
+	/**
+	 * List message previews for one folder. Defaults preserve the original inbox
+	 * behavior; folder ids come from `folders()`.
+	 */
+	async messages(folderId: string | null = null, folderType = 0) {
+		if (folderId !== null && (typeof folderId !== 'string' || folderId.length > 128))
+			throw new Pxp2InputError('Invalid folder identifier.');
+		if (!Number.isSafeInteger(folderType) || folderType < 0 || folderType > 64)
+			throw new Pxp2InputError('Invalid folder type.');
 		const html = await this.pageHtml('messages', 'mail_portal');
 		const accessToken = this.timedSync(
 			'mail_parse',
@@ -774,8 +800,8 @@ export class Pxp2Client {
 			'ST.Messaging',
 			'GetMessages',
 			{
-				folderId: null,
-				folderType: 0,
+				folderId,
+				folderType,
 				languageCode: 'en',
 				showDeleted: false,
 				skip: 0,
