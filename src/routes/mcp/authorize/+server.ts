@@ -21,11 +21,21 @@ const MAX_ATTEMPTS_PER_ACCOUNT = 20;
 const MAX_ATTEMPTS_PER_IP = 50;
 const attempts = new Map<string, { count: number; resetAt: number }>();
 
+// Deliberately no `form-action` directive. Browsers enforce form-action on
+// every redirect that follows a form submission (CSP3 §6.4), not only the
+// first hop, so `form-action 'self'` here cancelled the 302 back to
+// chatgpt.com/connector_platform_oauth_redirect — and its onward forwards,
+// e.g. platform.openai.com — after a successful sign-in: the authorization
+// code was issued but never delivered, and the consent page just sat there.
+// Script-driven tests still passed because form submissions, unlike fetch,
+// are what form-action governs. This page runs no scripts, its form posts
+// only to itself (action=""), and every redirect target is constrained by
+// the isAllowedRedirectUri allowlist, so omitting form-action grants nothing
+// an attacker could use while letting OAuth callback chains complete.
 const AUTH_CSP = [
 	"default-src 'none'",
 	"style-src 'unsafe-inline'",
 	"img-src 'self'",
-	"form-action 'self'",
 	"base-uri 'none'",
 	"frame-ancestors 'none'"
 ].join('; ');

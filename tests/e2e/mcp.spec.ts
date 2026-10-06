@@ -153,7 +153,13 @@ test('authorize endpoint renders the sign-in and consent page without scripts', 
 	expect(page.status()).toBe(200);
 	expect(page.headers()['content-type']).toContain('text/html');
 	expect(page.headers()['cache-control']).toContain('no-store');
-	expect(page.headers()['content-security-policy']).toContain("default-src 'none'");
+	const csp = page.headers()['content-security-policy'];
+	expect(csp).toContain("default-src 'none'");
+	// No form-action: browsers enforce it on every redirect after the form
+	// POST (CSP3), which would cancel the 302 to chatgpt.com and strand the
+	// authorization code after a successful sign-in.
+	expect(csp).not.toContain('form-action');
+	expect(csp).toContain("frame-ancestors 'none'");
 	const html = await page.text();
 	expect(html).toContain('Connect Claude to your StudentVUE data');
 	expect(html).toContain('read-only');
@@ -232,6 +238,9 @@ test('authorize accepts ChatGPT-style cross-site form posts', async ({ request, 
 		}).toString()
 	});
 	expect(posted.status()).toBe(400);
+	// The re-rendered form carries the same CSP, so a later successful POST's
+	// 302 to chatgpt.com is not cancelled by the CSP3 redirect-chain rule.
+	expect(posted.headers()['content-security-policy'] ?? '').not.toContain('form-action');
 	const body = await posted.text();
 	expect(body).not.toContain('Cross-site request blocked');
 	expect(body).toContain('Enter your district StudentVUE URL');
