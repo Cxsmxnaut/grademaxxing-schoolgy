@@ -36,6 +36,10 @@ const AUTH_CSP = [
 	"default-src 'none'",
 	"style-src 'unsafe-inline'",
 	"img-src 'self'",
+	// Same-origin @font-face files (static/fonts) so the page renders in the
+	// app's Manrope / Outfit / JetBrains Mono faces. Same-origin only: no
+	// third-party font CDNs, and nothing here widens script or form reach.
+	"font-src 'self'",
 	"base-uri 'none'",
 	"frame-ancestors 'none'"
 ].join('; ');

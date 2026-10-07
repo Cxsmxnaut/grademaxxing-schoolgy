@@ -160,6 +160,8 @@ test('authorize endpoint renders the sign-in and consent page without scripts', 
 	// authorization code after a successful sign-in.
 	expect(csp).not.toContain('form-action');
 	expect(csp).toContain("frame-ancestors 'none'");
+	// Same-origin webfonts for the consent page; never a font CDN.
+	expect(csp).toContain("font-src 'self'");
 	const html = await page.text();
 	expect(html).toContain('Connect Claude to your StudentVUE data');
 	expect(html).toContain('read-only');
