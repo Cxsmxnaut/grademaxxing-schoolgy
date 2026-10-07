@@ -169,6 +169,12 @@ test('authorize endpoint renders the sign-in and consent page without scripts', 
 	expect(html).toContain('name="code_challenge"');
 	expect(html).toContain('value="state-123"');
 	expect(html).toContain('name="password"');
+	// The district picker is the app's catalog (DistrictCombobox data) shipped
+	// as a native datalist so the page stays script-free.
+	expect(html).toContain('list="districts"');
+	expect(html).toContain('School district');
+	const districtOptions = html.match(/<option value="https:\/\//g) ?? [];
+	expect(districtOptions.length).toBeGreaterThan(800);
 	expect(html).not.toContain('<script');
 	// Credentials are never pre-filled; only the OAuth parameters are preserved.
 	expect(html).not.toContain('value="state-123" name="password"');

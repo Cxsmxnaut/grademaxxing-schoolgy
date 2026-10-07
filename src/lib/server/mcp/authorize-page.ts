@@ -1,3 +1,5 @@
+import { DISTRICTS } from '$lib/data/districts';
+
 /**
  * Self-contained HTML for the OAuth authorization step: the screen where the
  * student signs in to StudentVUE and approves the connector.
@@ -286,6 +288,9 @@ input {
 \tfont-family: inherit;
 }
 input::placeholder { color: var(--tertiary-foreground); }
+/* Room for the browser's native datalist affordance, matching the app's
+   combobox, whose search input sits left of a 2.5rem chevron area. */
+input.picker { padding-right: 2.5rem; }
 input:focus-visible {
 \tborder-color: var(--primary);
 \toutline: 2px solid var(--primary);
@@ -388,6 +393,14 @@ ${body}
 }
 
 const GROWTH_MARK = `<img src="/grademaxxing-growth-mark.png" alt="" />`;
+// The same district catalog the login picker (DistrictCombobox) searches.
+// The consent page runs no scripts, so the combobox ships as a native
+// <input list> + <datalist>: identical data, placeholder, and search-by-
+// district/state/portal behavior, powered by the browser instead of JS.
+const DISTRICT_OPTIONS = DISTRICTS.map(
+	(district) =>
+		`<option value="https://${escapeHtml(district.domain)}">${escapeHtml(district.name)}, ${escapeHtml(district.state)}</option>`
+).join('\n\t\t\t\t\t');
 const TICK_ICON = `<svg class="tick" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7.3" /><path d="M4.9 8.35 7.05 10.5 11.2 5.9" /></svg>`;
 const ALERT_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.25" /><path d="M12 7.6v5.2" /><path d="M12 16.35h.01" /></svg>`;
 
@@ -439,8 +452,9 @@ export function renderAuthorizePage(input: AuthorizePageInput) {
 ${errorBanner}				<form method="post" action="">
 					${hidden}
 					<div class="field">
-						<label for="domain">District StudentVUE URL</label>
-						<input id="domain" name="domain" type="url" inputmode="url" required maxlength="253" placeholder="https://ca-pleas-psv.edupoint.com" autocomplete="url" value="${escapeHtml(input.district ?? '')}" />
+						<label for="domain">School district</label>
+						<input id="domain" name="domain" class="picker" type="text" list="districts" required maxlength="253" placeholder="Search by district, state, or portal" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" value="${escapeHtml(input.district ?? '')}" />
+						<datalist id="districts">${DISTRICT_OPTIONS}</datalist>
 					</div>
 					<div class="field">
 						<label for="username">StudentVUE username</label>
