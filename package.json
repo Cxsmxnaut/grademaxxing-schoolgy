@@ -8,8 +8,11 @@
 	},
 	"scripts": {
 		"dev": "vite dev --host 127.0.0.1",
-		"build": "vite build",
-		"build:cloudflare": "DEPLOY_TARGET=cloudflare vite build",
+		"dev:admin": "npm --prefix admin-console run dev",
+		"admin:install": "npm --prefix admin-console install --no-audit --no-fund",
+		"build:admin": "npm run admin:install && npm --prefix admin-console run build",
+		"build": "npm run build:admin && vite build",
+		"build:cloudflare": "npm run build:admin && DEPLOY_TARGET=cloudflare vite build",
 		"preview:cloudflare": "npm run build:cloudflare && wrangler dev",
 		"deploy:cloudflare": "npm run build:cloudflare && wrangler deploy",
 		"preview": "node build",

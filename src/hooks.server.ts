@@ -1,16 +1,22 @@
 import { wellKnownResponse } from '$lib/server/mcp/metadata';
 import { appendServerTiming } from '$lib/server/request-timing';
-import { error, type Handle, type HandleServerError } from '@sveltejs/kit';
+import { error, type Handle, type HandleServerError, type RequestEvent } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 
 const MAX_API_BODY_BYTES = 32 * 1024;
 const unsafeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+// The admin console is a standalone client-side app (admin-app/) built into
+// static/admin-app and served under this base path on every host.
+const adminAppBasePath = '/admin-app';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.requestId = randomUUID();
 	const startedAt = performance.now();
-	if (event.url.hostname === 'admin.grademaxxing.app' && event.url.pathname === '/') {
-		return Response.redirect(new URL('/admin', event.url), 302);
+	if (
+		event.url.pathname === '/admin' ||
+		(event.url.hostname === 'admin.grademaxxing.app' && event.url.pathname === '/')
+	) {
+		return Response.redirect(new URL(`${adminAppBasePath}/`, event.url), 302);
 	}
 
 	// MCP OAuth discovery documents are answered before application routing so
@@ -22,7 +28,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 		guardApiRequest(event.request, event.url);
 	}
 
-	const response = await resolve(event);
+	const response = wantsAdminAppShell(event.url.pathname)
+		? await adminAppShell(event)
+		: await resolve(event);
 	const durationMs = performance.now() - startedAt;
 	response.headers.set('X-Request-ID', event.locals.requestId);
 	appendServerTiming(response.headers, `app;dur=${durationMs.toFixed(1)}`);
@@ -84,6 +92,27 @@ export const handleError: HandleServerError = ({ error: cause, event, status, me
 	});
 	return { message: status >= 500 ? 'An unexpected server error occurred.' : message, requestId };
 };
+
+/**
+ * The console routes client-side (e.g. /admin-app/feedback); extension-less
+ * paths under the base serve the app shell while real assets fall through to
+ * static serving.
+ */
+function wantsAdminAppShell(pathname: string) {
+	if (!pathname.startsWith(adminAppBasePath)) return false;
+	const rest = pathname.slice(adminAppBasePath.length);
+	if (rest === '' || rest === '/') return true;
+	return !(rest.split('/').pop() ?? '').includes('.');
+}
+
+async function adminAppShell(event: RequestEvent) {
+	const shell = await event.fetch(`${adminAppBasePath}/index.html`);
+	if (shell.ok) return shell;
+	return new Response('The admin console assets are missing. Run `npm run build:admin`.', {
+		status: 503,
+		headers: { 'content-type': 'text/plain; charset=utf-8', 'Retry-After': '30' }
+	});
+}
 
 function guardApiRequest(request: Request, url: URL) {
 	const contentLength = Number(request.headers.get('content-length') ?? '0');

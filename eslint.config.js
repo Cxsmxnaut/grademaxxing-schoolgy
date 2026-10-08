@@ -10,7 +10,7 @@ import tseslint from 'typescript-eslint';
 const gitignorePath = fileURLToPath(new URL('./.gitignore', import.meta.url));
 
 export default tseslint.config(
-	{ ignores: ['static/mockServiceWorker.js'] },
+	{ ignores: ['static/mockServiceWorker.js', 'admin-console/**', 'static/admin-app/**'] },
 	includeIgnoreFile(gitignorePath),
 	eslint.configs.recommended,
 	...tseslint.configs.recommended,

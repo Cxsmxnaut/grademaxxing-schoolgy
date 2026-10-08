@@ -26,6 +26,9 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 *.tsbuildinfo
 
+# Admin console (TailAdmin) is built from admin-console/ by `npm run build:admin`.
+/static/admin-app
+
 # Mocked data
 src/lib/mocks/data
 .env*.local

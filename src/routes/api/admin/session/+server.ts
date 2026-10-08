@@ -1,8 +1,10 @@
 import {
+	adminConsoleIdentity,
 	adminSessionCookie,
 	adminSessionMaxAge,
 	createAdminSession,
-	verifyAdminPassword
+	validAdminSession,
+	verifyAdminCredentials
 } from '$lib/server/admin/auth';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
@@ -24,16 +26,24 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 		);
 	const raw = await request.text();
 	if (new TextEncoder().encode(raw).byteLength > 2048)
-		return json({ message: 'Invalid administrator password.' }, { status: 400 });
+		return json({ message: 'Invalid administrator credentials.' }, { status: 400 });
+	let username: unknown;
 	let password: unknown;
 	try {
-		password = (JSON.parse(raw) as { password?: unknown }).password;
+		const body = JSON.parse(raw) as { username?: unknown; password?: unknown };
+		username = body.username;
+		password = body.password;
 	} catch {
-		return json({ message: 'Invalid administrator password.' }, { status: 400 });
+		return json({ message: 'Invalid administrator credentials.' }, { status: 400 });
 	}
-	if (typeof password !== 'string' || !verifyAdminPassword(password)) {
+	const normalizedUsername = typeof username === 'string' ? username : '';
+	if (
+		typeof password !== 'string' ||
+		(username !== undefined && typeof username !== 'string') ||
+		!verifyAdminCredentials(normalizedUsername, password)
+	) {
 		recordFailure(clientAddress);
-		return json({ message: 'Invalid administrator password.' }, { status: 401 });
+		return json({ message: 'Invalid administrator credentials.' }, { status: 401 });
 	}
 	attempts.delete(clientAddress);
 	const session = createAdminSession();
@@ -48,6 +58,11 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 		maxAge: adminSessionMaxAge
 	});
 	return new Response(null, { status: 204 });
+};
+
+export const GET: RequestHandler = ({ cookies }) => {
+	if (!validAdminSession(cookies.get(adminSessionCookie))) return json({ authenticated: false });
+	return json({ authenticated: true, user: adminConsoleIdentity });
 };
 
 export const DELETE: RequestHandler = ({ cookies }) => {
