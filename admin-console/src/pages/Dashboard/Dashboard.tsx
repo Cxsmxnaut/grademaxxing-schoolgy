@@ -43,16 +43,45 @@ export default function Dashboard() {
     async (nextRange: UsageRangeDays, signal?: AbortSignal) => {
       const version = ++loadVersion.current;
       try {
-        const [usage, feedbackResult, healthResult] = await Promise.all([
+        const [usage, feedbackResult, healthResult] = await Promise.allSettled([
           adminApi.usage(nextRange, signal),
           adminApi.feedback(signal),
-          adminApi.health().catch(() => ({ status: "unreachable" })),
+          adminApi.health(),
         ]);
         if (signal?.aborted || version !== loadVersion.current) return;
-        setMessage(undefined);
-        setSummary(usage);
-        setFeedback(feedbackResult.items);
-        setHealth(healthResult.status);
+        const failures = [usage, feedbackResult].flatMap((result) =>
+          result.status === "rejected" ? [result.reason] : [],
+        );
+        if (
+          failures.some(
+            (error) => error instanceof ApiError && error.status === 401,
+          )
+        ) {
+          await refresh();
+          return;
+        }
+        setMessage(
+          failures.length
+            ? failures
+                .map((error) =>
+                  error instanceof Error
+                    ? error.message
+                    : "Unable to load dashboard data.",
+                )
+                .join(" ")
+            : undefined,
+        );
+        setSummary(usage.status === "fulfilled" ? usage.value : undefined);
+        setFeedback(
+          feedbackResult.status === "fulfilled"
+            ? feedbackResult.value.items
+            : [],
+        );
+        setHealth(
+          healthResult.status === "fulfilled"
+            ? healthResult.value.status
+            : "unreachable",
+        );
       } catch (error) {
         if (signal?.aborted || version !== loadVersion.current) return;
         if (error instanceof ApiError && error.status === 401) {
@@ -181,6 +210,7 @@ export default function Dashboard() {
         <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
           <StudentsChart
             summary={summary}
+            loading={loading}
             range={range}
             onRangeChange={(nextRange) => {
               if (nextRange === range) return;

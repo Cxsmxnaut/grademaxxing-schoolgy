@@ -1,5 +1,86 @@
 import { expect, test } from '@playwright/test';
 
+for (const unavailable of ['usage', 'feedback']) {
+	test(`dashboard keeps healthy panels usable when ${unavailable} is unavailable and recovers`, async ({
+		page
+	}) => {
+		let failed = true;
+		await page.route('**/api/admin/session', (route) =>
+			route.fulfill({
+				json: {
+					authenticated: true,
+					user: { username: 'operator', displayName: 'Test Operator', role: 'Administrator' }
+				}
+			})
+		);
+		await page.route('**/api/admin/usage?*', (route) =>
+			failed && unavailable === 'usage'
+				? route.fulfill({ status: 503, json: { message: 'Usage storage unavailable.' } })
+				: route.fulfill({
+						json: {
+							generatedAt: '2026-10-08T12:00:00Z',
+							rangeDays: 30,
+							uniqueStudents: 18,
+							activeStudents: 1,
+							previousActiveStudents: 1,
+							newStudents: 0,
+							previousNewStudents: 0,
+							returningStudents: 0,
+							returningStudentsInRange: 0,
+							activeToday: 1,
+							trackingStartedAt: null,
+							dailyTrackingStartedAt: null,
+							lastActivityAt: null,
+							dailyUsage: [],
+							users: []
+						}
+					})
+		);
+		await page.route('**/api/admin/feedback', (route) =>
+			failed && unavailable === 'feedback'
+				? route.fulfill({ status: 503, json: { message: 'Feedback storage unavailable.' } })
+				: route.fulfill({
+						json: {
+							items: [
+								{
+									id: 'synthetic-feedback',
+									kind: 'Bug report',
+									message: 'Synthetic feedback remains visible',
+									status: 'new',
+									createdAt: '2026-10-08T12:00:00Z'
+								}
+							]
+						}
+					})
+		);
+		await page.route('**/api/health', (route) => route.fulfill({ json: { status: 'ok' } }));
+		await page.goto('/admin-app/');
+		await expect(page.getByRole('alert')).toContainText('storage unavailable');
+		await expect(page.getByRole('status', { name: 'Loading usage chart' })).toHaveCount(0);
+		await expect(page.getByText('API health', { exact: true }).locator('..')).toContainText('ok');
+		const total = page
+			.getByText('Total students', { exact: true })
+			.locator('..')
+			.getByRole('heading');
+		if (unavailable === 'usage') {
+			await expect(page.getByText('Usage chart unavailable. Try refreshing.')).toBeVisible();
+			await expect(page.getByText('Synthetic feedback remains visible')).toBeVisible();
+		} else {
+			await expect(total).toHaveText('18');
+		}
+		failed = false;
+		await page.getByRole('button', { name: 'Refresh', exact: true }).click();
+		await expect(page.getByRole('alert')).toHaveCount(0);
+		await expect(total).toHaveText('18');
+		await expect(page.getByText('Synthetic feedback remains visible')).toBeVisible();
+		await expect(page.getByText('Usage chart unavailable. Try refreshing.')).toHaveCount(0);
+		await page.getByRole('button', { name: 'Switch to dark theme' }).click();
+		await expect(page.locator('html')).toHaveAttribute('data-color-scheme', 'dark');
+		await page.getByRole('button', { name: 'Switch to light theme' }).click();
+		await expect(page.locator('html')).toHaveAttribute('data-color-scheme', 'light');
+	});
+}
+
 test('configured admin login persists after reload and sign-out removes access', async ({
 	page,
 	baseURL

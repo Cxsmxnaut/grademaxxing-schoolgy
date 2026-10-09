@@ -12,10 +12,12 @@ const rangeOptions: Array<{ value: UsageRangeDays; label: string }> = [
 
 export default function StudentsChart({
   summary,
+  loading,
   range,
   onRangeChange,
 }: {
   summary: UsageSummary | undefined;
+  loading: boolean;
   range: UsageRangeDays;
   onRangeChange: (range: UsageRangeDays) => void;
 }) {
@@ -114,12 +116,16 @@ export default function StudentsChart({
             type="area"
             height={340}
           />
-        ) : (
+        ) : loading ? (
           <div
             className="h-[340px] animate-pulse rounded-xl bg-gray-100 dark:bg-white/5"
             role="status"
             aria-label="Loading usage chart"
           />
+        ) : (
+          <p className="flex h-[340px] items-center justify-center text-sm text-gray-500 dark:text-gray-400">
+            Usage chart unavailable. Try refreshing.
+          </p>
         )}
       </div>
     </div>
