@@ -75,6 +75,13 @@ See `src/lib/server/mcp/oauth.ts` and `grants.ts`.
 
 Before deploying these changes, apply `migrations/0007_mcp_oauth_grants.sql` to
 the configured `GRADEMAXXING_USAGE_DB` with the normal migration workflow.
+The GitHub deployment job deploys the Worker only. Apply schema migrations
+before pushing to `main`, using a Cloudflare login or token with D1 access:
+
+```sh
+npx wrangler d1 migrations apply GRADEMAXXING_USAGE_DB --remote --config wrangler.jsonc
+```
+
 Production MCP redemption and access fail closed without that shared store.
 Cloudflare uses the existing D1 binding; Node/Vercel require an equivalent
 platform database binding before production MCP can be enabled. Development

@@ -43,8 +43,5 @@ jobs:
       - name: Build Cloudflare Worker
         run: npm run build:cloudflare
 
-      - name: Apply database migrations
-        run: npm exec -- wrangler d1 migrations apply GRADEMAXXING_USAGE_DB --remote
-
       - name: Deploy Worker
         run: npm exec -- wrangler deploy
