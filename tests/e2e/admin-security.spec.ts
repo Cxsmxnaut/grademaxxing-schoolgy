@@ -128,6 +128,10 @@ test('admin sign-in stays usable when browser storage is blocked', async ({ page
 	await expect(page.getByRole('heading', { name: 'Sign In' })).toBeVisible({ timeout: 2000 });
 	await page.getByRole('button', { name: 'Show password' }).click();
 	await expect(page.getByLabel(/^Password/)).toHaveAttribute('type', 'text');
+	await page.getByRole('button', { name: 'Switch to dark theme' }).click();
+	await expect(page.locator('html')).toHaveAttribute('data-color-scheme', 'dark');
+	await page.getByRole('button', { name: 'Switch to light theme' }).click();
+	await expect(page.locator('html')).toHaveAttribute('data-color-scheme', 'light');
 	expect(errors).toEqual([]);
 });
 
