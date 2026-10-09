@@ -1,3 +1,5 @@
+import { McpBodyTooLargeError, readMcpBody } from '$lib/server/mcp/body';
+import { requireActiveRefreshFamily, withMcpSessionLease } from '$lib/server/mcp/grants';
 import { CORS_HEADERS, mcpResource, wwwAuthenticateChallenge } from '$lib/server/mcp/metadata';
 import { McpOAuthError, verifyAccessToken } from '$lib/server/mcp/oauth';
 import {
@@ -45,7 +47,7 @@ function parseBody(raw: string) {
 	}
 }
 
-export const POST: RequestHandler = async ({ request, url }) => {
+export const POST: RequestHandler = async ({ request, url, platform }) => {
 	const resource = mcpResource(url.origin);
 	const authorization = request.headers.get('authorization');
 	if (!authorization || !/^Bearer\s+/i.test(authorization))
@@ -53,7 +55,10 @@ export const POST: RequestHandler = async ({ request, url }) => {
 	let access;
 	try {
 		access = verifyAccessToken(authorization.replace(/^Bearer\s+/i, '').trim(), resource);
+		await requireActiveRefreshFamily(platform, access.familyId);
 	} catch (cause) {
+		if (cause instanceof McpOAuthError && cause.code === 'temporarily_unavailable')
+			return jsonResponse({ error: cause.code }, 503);
 		return unauthorized(
 			url,
 			'invalid_token',
@@ -70,12 +75,14 @@ export const POST: RequestHandler = async ({ request, url }) => {
 			status: 413,
 			headers: baseHeaders
 		});
-	const raw = await request.text();
-	if (new TextEncoder().encode(raw).byteLength > MAX_BODY_BYTES)
-		return new Response(JSON.stringify({ error: 'Request body is too large.' }), {
-			status: 413,
-			headers: baseHeaders
-		});
+	let raw: string;
+	try {
+		raw = await readMcpBody(request, MAX_BODY_BYTES);
+	} catch (cause) {
+		if (cause instanceof McpBodyTooLargeError)
+			return jsonResponse({ error: 'Request body is too large.' }, 413);
+		throw cause;
+	}
 	const parsed = parseBody(raw);
 	if ('parseError' in parsed)
 		return jsonResponse(
@@ -114,8 +121,12 @@ export const POST: RequestHandler = async ({ request, url }) => {
 
 	let response;
 	try {
-		response = await handleMcpPayload(parsed.value, { session, signal: request.signal });
+		response = await withMcpSessionLease(platform, session.clientSessionId, () =>
+			handleMcpPayload(parsed.value, { session, signal: request.signal })
+		);
 	} catch (cause) {
+		if (cause instanceof McpOAuthError && cause.code === 'temporarily_unavailable')
+			return jsonResponse({ error: cause.code }, 503);
 		if (cause instanceof McpAuthRequiredError)
 			return unauthorized(
 				url,

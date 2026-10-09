@@ -38,13 +38,17 @@ export default function NotificationDropdown() {
       >
         <BellAltIcon className="size-6" />
         {items.length > 0 && (
-          <span className="absolute top-2.5 end-2.5 size-2 rounded-full bg-error-500">
+          <span className="absolute end-2.5 top-2.5 size-2 rounded-full bg-error-500">
             <span className="absolute inset-0 animate-ping rounded-full bg-error-500 opacity-50" />
           </span>
         )}
       </button>
 
-      <Dropdown isOpen={isOpen} onClose={() => setIsOpen(false)} className="w-80">
+      <Dropdown
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        className="w-80"
+      >
         <div className="flex items-center justify-between px-4 py-3">
           <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
             Open feedback

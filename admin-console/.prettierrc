@@ -1,5 +1,7 @@
 {
   "plugins": ["prettier-plugin-tailwindcss"],
   "tailwindStylesheet": "./src/index.css",
-  "tailwindFunctions": ["cn"]
+  "tailwindFunctions": ["cn"],
+  "useTabs": false,
+  "tabWidth": 2
 }

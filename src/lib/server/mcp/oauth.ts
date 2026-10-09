@@ -3,21 +3,21 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID }
 import { deflateRawSync, inflateRawSync } from 'node:zlib';
 
 /**
- * A stateless OAuth 2.1 authorization server for the Grademaxxing MCP resource.
+ * An OAuth authorization server with self-contained encrypted credentials for the Grademaxxing MCP resource.
  *
  * Every credential is a self-contained encrypted payload instead of a row in a
  * database: the StudentVUE app already ships its portal session as an encrypted
  * token, so MCP credentials embed the same never-plain session blob. That keeps
  * the "no student-record database" posture intact on every adapter (Cloudflare,
- * Node, Vercel) and means a Worker restart cannot orphan a connection.
+ * Node, Vercel). A durable hash-only grant ledger enforces one-time code
+ * redemption, refresh rotation and family revocation across Worker restarts.
  *
  * Properties encoded here, matching the MCP authorization specification and the
  * documented Claude/ChatGPT client behaviors:
  * - Dynamic client registration (RFC 7591) with a strict redirect-URI allowlist.
  * - Authorization code + PKCE (S256 only; verifiers validated per RFC 7636).
  * - Access/refresh tokens bound to the MCP resource audience (RFC 8707).
- * - Rotating refresh tokens (the rotated-in token supersedes the rotated-out
- *   one, which expires with its embedded session).
+ * - Rotating refresh tokens enforced by the durable grant ledger.
  * - `iss` is returned in authorization and token responses (RFC 9207).
  */
 
@@ -73,6 +73,7 @@ type CodePayload = {
 type AccessPayload = {
 	v: 1;
 	typ: 'access';
+	familyId: string;
 	clientId: string;
 	resource: string;
 	scope: string;
@@ -82,6 +83,7 @@ type AccessPayload = {
 type RefreshPayload = {
 	v: 1;
 	typ: 'refresh';
+	familyId: string;
 	clientId: string;
 	resource: string;
 	scope: string;
@@ -166,10 +168,16 @@ export function registerClient(metadata: unknown): ClientRegistration {
 		name,
 		iat: Math.floor(Date.now() / 1_000)
 	};
+	const clientId = seal(payload, 'gmcp1_');
+	if (Buffer.byteLength(clientId) > MAX_CLIENT_ID_BYTES)
+		throw new McpOAuthError(
+			'invalid_client_metadata',
+			'The registration is too large. Use fewer or shorter redirect URIs.'
+		);
 	return {
 		// The version segment doubles as the public prefix so an access or refresh
 		// token can never be confused for a client_id (and vice versa).
-		clientId: seal(payload, 'gmcp1_'),
+		clientId,
 		redirectUris,
 		name,
 		issuedAt: payload.iat
@@ -234,14 +242,14 @@ export function validateAuthorizeParams(
 			redirectable: true
 		};
 	const challenge = params.get('code_challenge') ?? '';
-	if (!/^[A-Za-z0-9\-._~]{43,128}$/.test(challenge))
+	if (!/^[A-Za-z0-9_-]{43}$/.test(challenge))
 		return {
 			ok: false,
 			error: 'invalid_request',
 			errorDescription: 'A PKCE code_challenge is required.',
 			redirectable: true
 		};
-	if ((params.get('code_challenge_method') ?? 'S256') !== 'S256')
+	if (params.get('code_challenge_method') !== 'S256')
 		return {
 			ok: false,
 			error: 'invalid_request',
@@ -299,14 +307,14 @@ export function issueAuthorizationCode(request: AuthorizeRequest, sessionToken: 
 
 export function verifyAuthorizationCode(
 	code: string,
-	expect: { clientId?: string; redirectUri: string; verifier: string; resource?: string }
+	expect: { clientId: string; redirectUri: string; verifier: string; resource?: string }
 ): CodePayload {
 	const payload = open<CodePayload>(code, TOKEN_VERSION, 'invalid_grant');
 	if (payload.v !== 1 || payload.typ !== 'code')
 		throw new McpOAuthError('invalid_grant', 'The authorization code is not valid.');
 	if (payload.exp <= Math.floor(Date.now() / 1_000))
 		throw new McpOAuthError('invalid_grant', 'The authorization code has expired.');
-	if (expect.clientId && payload.clientId !== expect.clientId)
+	if (payload.clientId !== expect.clientId)
 		throw new McpOAuthError(
 			'invalid_grant',
 			'The authorization code was issued to another client.'
@@ -324,6 +332,8 @@ export function verifyAuthorizationCode(
 }
 
 export type IssuedTokens = {
+	familyId: string;
+	refreshExpiresAt: number;
 	accessToken: string;
 	expiresIn: number;
 	refreshToken: string;
@@ -335,15 +345,21 @@ export function issueTokens(input: {
 	resource: string;
 	scope: string;
 	sessionToken: string;
+	familyId?: string;
 }): IssuedTokens {
 	const issuedAt = Math.floor(Date.now() / 1_000);
+	const familyId = input.familyId ?? randomUUID();
+	const refreshExpiresAt = issuedAt + sessionMaxAge;
 	const shared = {
+		familyId,
 		clientId: input.clientId,
 		resource: input.resource,
 		scope: input.scope,
 		session: input.sessionToken
 	};
 	return {
+		familyId,
+		refreshExpiresAt,
 		accessToken: seal({
 			v: 1,
 			typ: 'access',
@@ -357,7 +373,7 @@ export function issueTokens(input: {
 			v: 1,
 			typ: 'refresh',
 			...shared,
-			exp: issuedAt + sessionMaxAge
+			exp: refreshExpiresAt
 		} satisfies RefreshPayload),
 		scope: input.scope
 	};
@@ -365,7 +381,7 @@ export function issueTokens(input: {
 
 export function verifyAccessToken(token: string, expectedResource: string): AccessPayload {
 	const payload = open<AccessPayload>(token, TOKEN_VERSION, 'invalid_token');
-	if (payload.v !== 1 || payload.typ !== 'access')
+	if (payload.v !== 1 || payload.typ !== 'access' || typeof payload.familyId !== 'string')
 		throw new McpOAuthError('invalid_token', 'The access token is not valid.');
 	if (payload.exp <= Math.floor(Date.now() / 1_000))
 		throw new McpOAuthError('invalid_token', 'The access token has expired.');
@@ -378,7 +394,7 @@ export function verifyAccessToken(token: string, expectedResource: string): Acce
 
 export function verifyRefreshToken(token: string): RefreshPayload {
 	const payload = open<RefreshPayload>(token, TOKEN_VERSION, 'invalid_grant');
-	if (payload.v !== 1 || payload.typ !== 'refresh')
+	if (payload.v !== 1 || payload.typ !== 'refresh' || typeof payload.familyId !== 'string')
 		throw new McpOAuthError('invalid_grant', 'The refresh token is not valid.');
 	if (payload.exp <= Math.floor(Date.now() / 1_000))
 		throw new McpOAuthError('invalid_grant', 'The refresh token has expired.');

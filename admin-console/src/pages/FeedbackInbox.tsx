@@ -1,9 +1,8 @@
+import { useRef } from "react";
 import PageMeta from "@/components/common/PageMeta";
 import Badge from "@/components/ui/badge/Badge";
 import Button from "@/components/ui/button/Button";
-import StatusBadge, {
-  statusLabel,
-} from "@/components/console/StatusBadge";
+import StatusBadge, { statusLabel } from "@/components/console/StatusBadge";
 import { useAuth } from "@/context/AuthContext";
 import {
   adminApi,
@@ -15,7 +14,12 @@ import {
   type FeedbackStatus,
 } from "@/lib/api";
 import { dateTime, relativeTime } from "@/lib/format";
-import { DownloadIcon, PaperPlaneIcon, PlusLineIcon, SearchIcon } from "@/icons";
+import {
+  DownloadIcon,
+  PaperPlaneIcon,
+  PlusLineIcon,
+  SearchIcon,
+} from "@/icons";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 
@@ -31,6 +35,7 @@ const kindColors: Record<
 };
 
 export default function FeedbackInbox() {
+  const loadVersion = useRef(0);
   const { refresh } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<FeedbackItem[]>([]);
@@ -49,35 +54,45 @@ export default function FeedbackInbox() {
   const [message, setMessage] = useState<string>();
   const [notice, setNotice] = useState<string>();
 
-  const load = useCallback(async () => {
-    setMessage(undefined);
-    try {
-      const result = await adminApi.feedback();
-      setItems(result.items);
-      setNoteDrafts(
-        Object.fromEntries(
-          result.items.map((item) => [item.id, item.adminNote ?? ""]),
-        ),
-      );
-      setLoaded(true);
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        await refresh();
-        return;
+  const load = useCallback(
+    async (signal?: AbortSignal) => {
+      const version = ++loadVersion.current;
+      try {
+        const result = await adminApi.feedback(signal);
+        if (signal?.aborted || version !== loadVersion.current) return;
+        setMessage(undefined);
+        setItems(result.items);
+        setNoteDrafts(
+          Object.fromEntries(
+            result.items.map((item) => [item.id, item.adminNote ?? ""]),
+          ),
+        );
+        setLoaded(true);
+      } catch (error) {
+        if (signal?.aborted || version !== loadVersion.current) return;
+        if (error instanceof ApiError && error.status === 401) {
+          await refresh();
+          return;
+        }
+        setMessage(
+          error instanceof ApiError && error.status === 0
+            ? "You appear to be offline. Reconnect and try again."
+            : error instanceof Error
+              ? error.message
+              : "Unable to load feedback.",
+        );
+        setLoaded(true);
       }
-      setMessage(
-        error instanceof ApiError && error.status === 0
-          ? "You appear to be offline. Reconnect and try again."
-          : error instanceof Error
-            ? error.message
-            : "Unable to load feedback.",
-      );
-      setLoaded(true);
-    }
-  }, [refresh]);
+    },
+    [refresh],
+  );
 
   useEffect(() => {
-    void load();
+    const controller = new AbortController();
+    queueMicrotask(() => {
+      if (!controller.signal.aborted) void load(controller.signal);
+    });
+    return () => controller.abort();
   }, [load]);
 
   const counts = useMemo(() => {
@@ -232,7 +247,7 @@ export default function FeedbackInbox() {
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">Support</p>
-            <h1 className="mt-1 text-title-xl font-semibold text-gray-800 dark:text-white/90">
+            <h1 className="mt-1 text-title-sm font-semibold text-gray-800 sm:text-title-md xl:text-title-xl dark:text-white/90">
               Feedback inbox
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -285,7 +300,8 @@ export default function FeedbackInbox() {
                 setSearchParams(
                   (current) => {
                     const next = new URLSearchParams(current);
-                    if (event.target.value) next.set("search", event.target.value);
+                    if (event.target.value)
+                      next.set("search", event.target.value);
                     else next.delete("search");
                     return next;
                   },

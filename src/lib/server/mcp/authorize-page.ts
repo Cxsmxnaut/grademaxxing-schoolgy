@@ -466,7 +466,7 @@ ${errorBanner}				<form method="post" action="">
 					</div>
 					<button type="submit">Sign in and connect</button>
 				</form>
-				<p class="legal">By connecting, you allow ${escapeHtml(clientName)} to read the data listed above through this connector until you remove it. See the <a href="/privacy">privacy policy</a>. Access is encrypted end to end and revokes when you remove the connector or your StudentVUE session expires.</p>`)
+				<p class="legal">By connecting, you allow ${escapeHtml(clientName)} to read the data listed above through this connector until you remove it. See the <a href="/privacy">privacy policy</a>. Grademaxxing encrypts connection credentials. Removing the connector stops that app from making requests; issued tokens remain valid until revoked or expired.</p>`)
 	);
 }
 

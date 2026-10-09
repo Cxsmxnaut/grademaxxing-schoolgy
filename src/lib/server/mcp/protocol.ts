@@ -221,8 +221,8 @@ async function dispatch(method: string, rawParams: unknown, ctx: ToolContext): P
 		case 'prompts/get': {
 			const params = asParamsObject(rawParams);
 			const name = requireString(params, 'name');
-			const rawArgs = params.arguments ?? {};
-			if (typeof rawArgs !== 'object' || Array.isArray(rawArgs))
+			const rawArgs = params.arguments === undefined ? {} : params.arguments;
+			if (!rawArgs || typeof rawArgs !== 'object' || Array.isArray(rawArgs))
 				throw new McpProtocolError(-32602, 'Invalid params: arguments must be an object.');
 			const prompt = buildPrompt(
 				name,
@@ -252,8 +252,8 @@ async function callTool(params: Record<string, unknown>, ctx: ToolContext): Prom
 	const name = requireString(params, 'name');
 	const tool = mcpToolByName.get(name);
 	if (!tool) throw new McpProtocolError(-32602, `Unknown tool: ${name}`);
-	const rawArgs = params.arguments ?? {};
-	if (typeof rawArgs !== 'object' || Array.isArray(rawArgs))
+	const rawArgs = params.arguments === undefined ? {} : params.arguments;
+	if (!rawArgs || typeof rawArgs !== 'object' || Array.isArray(rawArgs))
 		throw new McpProtocolError(-32602, 'Invalid params: arguments must be an object.');
 	let outcome: unknown;
 	try {
@@ -291,6 +291,8 @@ export async function handleMcpPayload(
 ): Promise<RpcResponse | RpcResponse[] | null> {
 	if (Array.isArray(payload)) {
 		if (payload.length === 0) throw new McpProtocolError(-32600, 'Invalid Request: empty batch.');
+		if (payload.length > 20)
+			throw new McpProtocolError(-32600, 'Invalid Request: batch exceeds 20 messages.');
 		const responses: RpcResponse[] = [];
 		for (const entry of payload) {
 			try {

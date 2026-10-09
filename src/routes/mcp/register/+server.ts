@@ -1,3 +1,4 @@
+import { McpBodyTooLargeError, readMcpBody } from '$lib/server/mcp/body';
 import { consumeAttempt, McpOAuthError, registerClient } from '$lib/server/mcp/oauth';
 import type { RequestHandler } from './$types';
 
@@ -10,6 +11,7 @@ function registerResponse(body: unknown, status = 200): Response {
 		headers: {
 			'Content-Type': 'application/json; charset=utf-8',
 			'Cache-Control': 'no-store',
+			'Access-Control-Allow-Origin': '*',
 			'X-Content-Type-Options': 'nosniff'
 		}
 	});
@@ -30,18 +32,24 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			{ error: 'invalid_client_metadata', error_description: 'Expected application/json.' },
 			415
 		);
-	const raw = await request.text();
-	if (new TextEncoder().encode(raw).byteLength > MAX_BODY_BYTES)
-		return registerResponse(
-			{ error: 'invalid_client_metadata', error_description: 'Request body is too large.' },
-			413
-		);
+	let raw: string;
+	try {
+		raw = await readMcpBody(request, MAX_BODY_BYTES);
+	} catch (cause) {
+		if (cause instanceof McpBodyTooLargeError)
+			return registerResponse(
+				{ error: 'invalid_client_metadata', error_description: 'Request body is too large.' },
+				413
+			);
+		throw cause;
+	}
 	if (!consumeAttempt(attempts, `register:${safeClientAddress(getClientAddress)}`, 30, 60_000))
 		return new Response(JSON.stringify({ error: 'slow_down' }), {
 			status: 429,
 			headers: {
 				'Content-Type': 'application/json; charset=utf-8',
 				'Cache-Control': 'no-store',
+				'Access-Control-Allow-Origin': '*',
 				'Retry-After': '30'
 			}
 		});

@@ -22,7 +22,7 @@ export default function UserProfiles() {
       <div className="mx-auto max-w-(--breakpoint-2xl) p-4 sm:p-6">
         <div className="mb-6">
           <p className="text-sm text-gray-500 dark:text-gray-400">Account</p>
-          <h1 className="mt-1 text-title-xl font-semibold text-gray-800 dark:text-white/90">
+          <h1 className="mt-1 text-title-sm font-semibold text-gray-800 sm:text-title-md xl:text-title-xl dark:text-white/90">
             Profile
           </h1>
         </div>
@@ -42,8 +42,8 @@ export default function UserProfiles() {
             </div>
             <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
               Sole operator of the Grademaxxing operations console. Everything
-              here is aggregate and privacy-safe — no student records are
-              stored or shown.
+              here is aggregate and privacy-safe — no student records are stored
+              or shown.
             </p>
           </div>
 
@@ -88,8 +88,8 @@ export default function UserProfiles() {
                     Sessions
                   </p>
                   <p className="mt-0.5 text-theme-sm text-gray-500 dark:text-gray-400">
-                    Signed, http-only cookies that expire after 8 hours.
-                    Sign-in attempts are rate-limited per address.
+                    Signed, http-only cookies that expire after 8 hours. Sign-in
+                    attempts are rate-limited per address.
                   </p>
                 </div>
               </div>

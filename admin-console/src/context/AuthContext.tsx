@@ -9,6 +9,7 @@ import {
 } from "react";
 import { Navigate, Outlet, useLocation } from "react-router";
 import { adminApi, ApiError, type AdminUser } from "@/lib/api";
+import { useTranslation } from "react-i18next";
 
 type AuthStatus = "loading" | "authenticated" | "anonymous";
 
@@ -23,23 +24,30 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const [user, setUser] = useState<AdminUser | null>(null);
   const [status, setStatus] = useState<AuthStatus>("loading");
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (signal?: AbortSignal) => {
     try {
-      const session = await adminApi.session();
+      const session = await adminApi.session(signal);
+      if (signal?.aborted) return;
       const active = session.authenticated && Boolean(session.user);
       setUser(active ? (session.user ?? null) : null);
       setStatus(active ? "authenticated" : "anonymous");
     } catch {
+      if (signal?.aborted) return;
       setUser(null);
       setStatus("anonymous");
     }
   }, []);
 
   useEffect(() => {
-    void refresh();
+    const controller = new AbortController();
+    queueMicrotask(() => {
+      if (!controller.signal.aborted) void refresh(controller.signal);
+    });
+    return () => controller.abort();
   }, [refresh]);
 
   const signIn = useCallback(
@@ -54,13 +62,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               0,
             );
       }
-      await refresh();
+      // Confirm the cookie-backed session before reporting sign-in success.
+      // A failed confirmation must reach the form so the operator can retry.
+      const session = await adminApi.session();
+      if (!session.authenticated || !session.user)
+        throw new ApiError(t("console.signInUnconfirmed"), 401);
+      setUser(session.user);
+      setStatus("authenticated");
     },
-    [refresh],
+    [t],
   );
 
   const signOut = useCallback(async () => {
-    await adminApi.signOut().catch(() => undefined);
+    await adminApi.signOut();
     setUser(null);
     setStatus("anonymous");
   }, []);

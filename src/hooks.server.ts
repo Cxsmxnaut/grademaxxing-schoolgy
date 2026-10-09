@@ -1,3 +1,4 @@
+import { adminConsoleCsp } from '$lib/server/admin/csp';
 import { wellKnownResponse } from '$lib/server/mcp/metadata';
 import { appendServerTiming } from '$lib/server/request-timing';
 import { error, type Handle, type HandleServerError, type RequestEvent } from '@sveltejs/kit';
@@ -5,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 
 const MAX_API_BODY_BYTES = 32 * 1024;
 const unsafeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+const crossOriginMcpEndpoints = new Set(['/mcp', '/mcp/register', '/mcp/token', '/mcp/revoke']);
 // The admin console is a standalone client-side app (admin-app/) built into
 // static/admin-app and served under this base path on every host.
 const adminAppBasePath = '/admin-app';
@@ -23,6 +25,25 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// ChatGPT and Claude can find the authorization server on every adapter.
 	const wellKnown = wellKnownResponse(event.url);
 	if (wellKnown) return wellKnown;
+
+	// Public registration and bearer-token MCP endpoints use no ambient cookies.
+	// The credential/consent form at /mcp/authorize still requires this origin.
+	if (unsafeMethods.has(event.request.method) && !crossOriginMcpEndpoints.has(event.url.pathname)) {
+		const contentType = event.request.headers.get('content-type')?.split(';', 1)[0]?.trim();
+		const isForm = [
+			'application/x-www-form-urlencoded',
+			'multipart/form-data',
+			'text/plain'
+		].includes(contentType ?? '');
+		const origin = event.request.headers.get('origin');
+		if (
+			event.request.headers.get('sec-fetch-site') === 'cross-site' ||
+			(origin && !sameRequestOrigin(origin, event.request, event.url)) ||
+			(isForm && !origin)
+		) {
+			throw error(403, 'Cross-site requests are not allowed.');
+		}
+	}
 
 	if (event.url.pathname.startsWith('/api/')) {
 		guardApiRequest(event.request, event.url);
@@ -99,15 +120,32 @@ export const handleError: HandleServerError = ({ error: cause, event, status, me
  * static serving.
  */
 function wantsAdminAppShell(pathname: string) {
-	if (!pathname.startsWith(adminAppBasePath)) return false;
+	if (pathname !== adminAppBasePath && !pathname.startsWith(`${adminAppBasePath}/`)) return false;
 	const rest = pathname.slice(adminAppBasePath.length);
 	if (rest === '' || rest === '/') return true;
 	return !(rest.split('/').pop() ?? '').includes('.');
 }
 
 async function adminAppShell(event: RequestEvent) {
-	const shell = await event.fetch(`${adminAppBasePath}/index.html`);
-	if (shell.ok) return shell;
+	const assets = (event.platform as { env?: { ASSETS?: { fetch: typeof fetch } } } | undefined)?.env
+		?.ASSETS;
+	const shellUrl = new URL(`${adminAppBasePath}/shell.html`, event.url);
+	const options = { headers: { 'accept-encoding': 'identity' } };
+	// Cloudflare's static assets live behind this binding; an ordinary fetch
+	// inside its Worker does not dispatch back through the local asset server.
+	const shell = assets
+		? await assets.fetch(shellUrl.href, options)
+		: await event.fetch(shellUrl, options);
+	if (shell.ok) {
+		const headers = new Headers(shell.headers);
+		// Fetch can decode a compressed asset body while retaining its wire headers.
+		// Forward headers for the returned body, rather than the compressed asset.
+		headers.delete('Content-Encoding');
+		headers.delete('Content-Length');
+		headers.delete('ETag');
+		headers.set('Content-Security-Policy', adminConsoleCsp);
+		return new Response(shell.body, { status: shell.status, headers });
+	}
 	return new Response('The admin console assets are missing. Run `npm run build:admin`.', {
 		status: 503,
 		headers: { 'content-type': 'text/plain; charset=utf-8', 'Retry-After': '30' }

@@ -1,3 +1,5 @@
+import type { AssignmentEntity } from '$lib/contracts/studentvue/gradebook';
+import { getCalculableAssignments, parseSynergyAssignment } from '$lib/grades/assignments';
 /**
  * MCP tool surface for Grademaxxing: every read-only StudentVUE ability the web
  * app exposes, plus the app's own analysis primitives (GPA policy math, what-if
@@ -221,12 +223,28 @@ type ParsedAssignment = {
 };
 
 function parseAssignment(record: Record<string, string>): ParsedAssignment {
-	const earned =
-		num(record.Point) ?? num(record.ScoreCalValue) ?? parsePointsPair(record.Points)?.earned;
-	const possible =
-		num(record.PointPossible) ??
-		num(record.ScoreMaxValue) ??
-		parsePointsPair(record.Points)?.possible;
+	// Reuse the UI's evidence rules: raw score scales are display metadata,
+	// excluded work never counts, and published percentages retain precision.
+	const domain = parseSynergyAssignment({
+		_GradebookID: record.AssignmentID ?? '',
+		_Measure: record.Measure ?? '',
+		_Type: record.Type ?? '',
+		_Date: record.Date ?? '',
+		_DueDate: record.DueDate ?? '',
+		_Notes: record.Notes ?? '',
+		_MeasureDescription: record.Description ?? '',
+		_Point: record.Point,
+		_PointPossible: record.PointPossible,
+		_Points: record.Points ?? '',
+		_ScoreCalValue: record.ScoreCalValue,
+		_ScoreMaxValue: record.ScoreMaxValue,
+		_AssignmentPercentage: record.AssignmentPercentage,
+		_AssignmentPercentagePrecision: record.AssignmentPercentagePrecision,
+		_CalculationUnavailable: record.CalculationUnavailable
+	} as AssignmentEntity);
+	const calculable = getCalculableAssignments([domain])[0];
+	const earned = calculable?.pointsEarned;
+	const possible = calculable?.pointsPossible;
 	return {
 		id: record.AssignmentID ?? '',
 		name: record.Measure || record.Description || record.AssignmentID || 'Assignment',
@@ -243,12 +261,6 @@ function parseAssignment(record: Record<string, string>): ParsedAssignment {
 		possible,
 		notes: record.Notes ?? ''
 	};
-}
-
-function parsePointsPair(value: string | undefined) {
-	const match = value?.match(/(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)/);
-	if (!match) return undefined;
-	return { earned: Number(match[1]), possible: Number(match[2]) };
 }
 
 function mapAssignment(record: Record<string, string>) {
@@ -353,7 +365,7 @@ function digestCourse(course: PortalCourse) {
 		)
 		.toSorted((a, b) => b.at - a.at);
 	const graded = parsed.filter(
-		(assignment) => assignment.earned !== undefined && (assignment.possible ?? 0) > 0
+		(assignment) => assignment.earned !== undefined && (assignment.possible ?? -1) >= 0
 	);
 	const pointsEarned = graded.reduce((sum, assignment) => sum + (assignment.earned ?? 0), 0);
 	const pointsPossible = graded.reduce((sum, assignment) => sum + (assignment.possible ?? 0), 0);
@@ -364,9 +376,9 @@ function digestCourse(course: PortalCourse) {
 	const zeroScores = graded.filter(
 		(assignment) => assignment.earned === 0 && !/missing/i.test(assignment.score)
 	);
-	const ascending = [...graded].toSorted(
-		(a, b) => a.earned! / a.possible! - b.earned! / b.possible!
-	);
+	const ascending = graded
+		.filter((assignment) => assignment.possible! > 0)
+		.toSorted((a, b) => a.earned! / a.possible! - b.earned! / b.possible!);
 	const lowest = ascending.slice(0, 5).map((assignment) => ({
 		name: assignment.name,
 		date: assignment.date,
@@ -376,7 +388,9 @@ function digestCourse(course: PortalCourse) {
 	const chronologically = [...dated].toSorted((a, b) => a.at - b.at);
 	const midpoint = Math.floor(chronologically.length / 2);
 	const averageFor = (entries: typeof chronologically) => {
-		const usable = entries.filter((entry) => (entry.assignment.possible ?? 0) > 0);
+		const usable = entries.filter(
+			(entry) => (entry.assignment.possible ?? -1) >= 0 && entry.assignment.earned !== undefined
+		);
 		if (usable.length === 0) return undefined;
 		const earned = usable.reduce((sum, entry) => sum + (entry.assignment.earned ?? 0), 0);
 		const possible = usable.reduce((sum, entry) => sum + (entry.assignment.possible ?? 0), 0);
@@ -397,9 +411,7 @@ function digestCourse(course: PortalCourse) {
 			zeroScoreCount: zeroScores.length,
 			pointsEarned: round(pointsEarned, 2),
 			pointsPossible: round(pointsPossible, 2),
-			pointsPercent: percent(pointsEarned, pointsPossible)
-				? round(percent(pointsEarned, pointsPossible)!)
-				: null,
+			pointsPercent: round(percent(pointsEarned, pointsPossible)),
 			trend:
 				earlier !== undefined && later !== undefined
 					? {
@@ -448,9 +460,9 @@ function pickMode(
 	if (requested !== 'auto') return requested;
 	if (categories.length === 0) return 'points';
 	const weights = categories.map((category) => category.weight);
-	const allPositive = weights.every((weight) => weight > 0);
+	const nonNegative = weights.every((weight) => weight >= 0);
 	const sum = weights.reduce((total, weight) => total + weight, 0);
-	return allPositive && sum >= 95 && sum <= 105 ? 'weighted' : 'points';
+	return nonNegative && sum >= 95 && sum <= 105 ? 'weighted' : 'points';
 }
 
 function computeMark(
@@ -809,6 +821,13 @@ export const mcpTools: ToolDefinition[] = [
 		annotations: { readOnlyHint: true, openWorldHint: true },
 		handler: async (rawArgs, ctx) => {
 			const args = asObject(rawArgs);
+			if (args.courses !== undefined && (!Array.isArray(args.courses) || args.courses.length > 100))
+				throw new McpToolInputError('courses must be an array of at most 100 entries.');
+			if (
+				args.hypothetical !== undefined &&
+				(!Array.isArray(args.hypothetical) || args.hypothetical.length > 100)
+			)
+				throw new McpToolInputError('hypothetical must be an array of at most 100 entries.');
 			const provided = Array.isArray(args.courses) ? args.courses : undefined;
 			const hypothetical = Array.isArray(args.hypothetical) ? args.hypothetical : undefined;
 			const basis: 'gradebook' | 'provided' = provided ? 'provided' : 'gradebook';
@@ -940,6 +959,8 @@ export const mcpTools: ToolDefinition[] = [
 			const args = asObject(rawArgs);
 			const courseId = stringArg(args, 'courseId', { required: true })!;
 			const requestedMode = (stringArg(args, 'mode') ?? 'auto') as 'auto' | 'weighted' | 'points';
+			if (!['auto', 'weighted', 'points'].includes(requestedMode))
+				throw new McpToolInputError('mode must be auto, weighted, or points.');
 			const rawChanges = args.changes;
 			if (!Array.isArray(rawChanges) || rawChanges.length < 1 || rawChanges.length > 20)
 				throw new McpToolInputError('changes must be an array of 1 to 20 entries.');
@@ -952,6 +973,7 @@ export const mcpTools: ToolDefinition[] = [
 			const course = requireCourse(gradebook, courseId);
 			const assumptions: string[] = [];
 			const apply = (categories: CategoryState[]) => {
+				const replaced = new Set<string>();
 				for (const raw of rawChanges) {
 					const change = asObject(raw);
 					const type = stringArg(change, 'type', { required: true });
@@ -961,7 +983,10 @@ export const mcpTools: ToolDefinition[] = [
 						throw new McpToolInputError('earned must be >= 0 and possible must be > 0.');
 					const categoryHint = stringArg(change, 'category');
 					if (type === 'change') {
-						const assignmentId = stringArg(change, 'assignmentId', { required: true });
+						const assignmentId = stringArg(change, 'assignmentId', { required: true })!;
+						if (replaced.has(assignmentId))
+							throw new McpToolInputError('An assignment can only be changed once per simulation.');
+						replaced.add(assignmentId);
 						const assignment = course.assignments.find(
 							(entry) => entry.AssignmentID === assignmentId
 						);
@@ -974,12 +999,12 @@ export const mcpTools: ToolDefinition[] = [
 							throw new McpToolInputError(
 								`Assignment "${assignmentId}" has no parseable current score to replace.`
 							);
-						const target = resolveCategory(
-							categories,
-							categoryHint ?? parsed.category,
-							course,
-							assumptions
-						);
+						if (
+							categoryHint &&
+							categoryHint.trim().toLowerCase() !== parsed.category.trim().toLowerCase()
+						)
+							throw new McpToolInputError('Changing an assignment category is not supported.');
+						const target = resolveCategory(categories, parsed.category, course, assumptions);
 						if (target) {
 							target.earned += earned - parsed.earned;
 							target.possible += possible - parsed.possible;
@@ -1016,7 +1041,8 @@ export const mcpTools: ToolDefinition[] = [
 				mode,
 				base.map((category) => ({ ...category }))
 			);
-			const after = computeMark(mode, apply(base.map((category) => ({ ...category }))));
+			const projectedCategories = apply(base.map((category) => ({ ...category })));
+			const after = computeMark(mode, projectedCategories);
 			if (after.percent === undefined)
 				throw new McpToolExecutionError(
 					'The course has no gradable points to simulate.',
@@ -1039,13 +1065,11 @@ export const mcpTools: ToolDefinition[] = [
 					estimatedLetter: afterLetter
 						? { letter: afterLetter.letter, basis: afterLetter.basis }
 						: null,
-					categories: base.map((category) => ({
+					categories: projectedCategories.map((category) => ({
 						name: category.name,
 						earned: round(category.earned, 2),
 						possible: round(category.possible, 2),
-						percent: percent(category.earned, category.possible)
-							? round(percent(category.earned, category.possible)!)
-							: null,
+						percent: round(percent(category.earned, category.possible)),
 						weight: category.weight
 					}))
 				},

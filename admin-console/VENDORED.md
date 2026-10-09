@@ -7,12 +7,20 @@ console served at `admin.grademaxxing.app`.
 - License: MIT (see `LICENSE.md`; keep it with this directory).
 - Upstream: `TailAdmin/free-react-tailwind-admin-dashboard`, `main` at the time
   of vendoring.
--Local modifications: Grademaxxing branding and navigation, a sign-in form
-wired to `/api/admin/session`, and real operations pages (dashboard, feedback
-inbox, referrals, protected users, profile) backed by the `/api/admin/*` API.
+- Local modifications: Grademaxxing branding and navigation, a sign-in form
+  wired to `/api/admin/session`, and real operations pages (dashboard, feedback
+  inbox, referrals, protected users, profile) backed by the `/api/admin/*` API.
 
 The build (`npm run build:admin` from the repository root) compiles this app
 into `../static/admin-app`, which the Cloudflare Worker serves under
 `/admin-app/` (see `../src/hooks.server.ts`). The source directory is named
 `admin-console` on purpose: a directory called `admin-app/` would shadow the
 `/admin-app/` URL space in the Vite dev server.
+
+The console includes only the active operations screens and their shared
+components. Unreachable template demos and their runtime dependencies were
+removed during review. The MIT license and upstream attribution are retained.
+Fonts load from the application's same-origin assets rather than Google Fonts.
+
+`npm run verify` at the repository root now includes this console's formatting
+and ESLint checks. Builds install the committed lockfile with `npm ci`.

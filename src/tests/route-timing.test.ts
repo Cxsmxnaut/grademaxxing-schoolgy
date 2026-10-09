@@ -82,6 +82,30 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
+test('Cloudflare admin deep links read the shell through the asset binding', async () => {
+	const event = syntheticEvent('/admin-app/profile', { cookie: false });
+	const assetFetch = vi.fn().mockResolvedValue(
+		new Response('<!doctype html><title>Admin</title>', {
+			headers: { 'Content-Type': 'text/html', 'Content-Encoding': 'gzip', ETag: 'asset' }
+		})
+	);
+	event.platform = { env: { ASSETS: { fetch: assetFetch } } };
+	event.fetch = vi.fn() as unknown as RequestEvent['fetch'];
+	const resolve = vi.fn();
+	const response = await handle({ event, resolve });
+	expect(assetFetch).toHaveBeenCalledWith('https://app.example/admin-app/shell.html', {
+		headers: { 'accept-encoding': 'identity' }
+	});
+	expect(event.fetch).not.toHaveBeenCalled();
+	expect(resolve).not.toHaveBeenCalled();
+	expect(response.status).toBe(200);
+	expect(response.headers.get('Content-Security-Policy')).toContain("script-src 'self'");
+	expect(response.headers.get('Cache-Control')).toContain('no-store');
+	expect(response.headers.has('Content-Encoding')).toBe(false);
+	expect(response.headers.has('ETag')).toBe(false);
+	expect(await response.text()).toContain('<title>Admin</title>');
+});
+
 test.each([undefined, 'false', 'TRUE'])(
 	'resource timing requires the exact opt-in header %s',
 	async (timing) => {

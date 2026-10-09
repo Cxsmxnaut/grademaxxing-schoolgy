@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import MetricCard from "@/components/console/MetricCard";
 import FeedbackBreakdown from "@/components/console/FeedbackBreakdown";
 import RecentFeedback from "@/components/console/RecentFeedback";
@@ -24,6 +25,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 
 export default function Dashboard() {
+  const loadVersion = useRef(0);
   const { refresh } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -38,27 +40,21 @@ export default function Dashboard() {
   const [message, setMessage] = useState<string>();
 
   const load = useCallback(
-    async (nextRange: UsageRangeDays) => {
-      setLoading(true);
-      setMessage(undefined);
+    async (nextRange: UsageRangeDays, signal?: AbortSignal) => {
+      const version = ++loadVersion.current;
       try {
         const [usage, feedbackResult, healthResult] = await Promise.all([
-          adminApi.usage(nextRange),
-          adminApi.feedback(),
+          adminApi.usage(nextRange, signal),
+          adminApi.feedback(signal),
           adminApi.health().catch(() => ({ status: "unreachable" })),
         ]);
+        if (signal?.aborted || version !== loadVersion.current) return;
+        setMessage(undefined);
         setSummary(usage);
         setFeedback(feedbackResult.items);
         setHealth(healthResult.status);
-        setSearchParams(
-          (current) => {
-            const next = new URLSearchParams(current);
-            next.set("range", String(nextRange));
-            return next;
-          },
-          { replace: true },
-        );
       } catch (error) {
+        if (signal?.aborted || version !== loadVersion.current) return;
         if (error instanceof ApiError && error.status === 401) {
           await refresh();
           return;
@@ -69,15 +65,19 @@ export default function Dashboard() {
             : "Unable to load dashboard data.",
         );
       } finally {
-        setLoading(false);
+        if (!signal?.aborted && version === loadVersion.current)
+          setLoading(false);
       }
     },
-    [refresh, setSearchParams],
+    [refresh],
   );
 
   useEffect(() => {
-    void load(range);
-    // Reload when the range changes.
+    const controller = new AbortController();
+    queueMicrotask(() => {
+      if (!controller.signal.aborted) void load(range, controller.signal);
+    });
+    return () => controller.abort();
   }, [load, range]);
 
   const activeDelta = summary
@@ -99,7 +99,7 @@ export default function Dashboard() {
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Operations
             </p>
-            <h1 className="mt-1 text-title-xl font-semibold text-gray-800 dark:text-white/90">
+            <h1 className="mt-1 text-title-sm font-semibold text-gray-800 sm:text-title-md xl:text-title-xl dark:text-white/90">
               Product overview
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -111,7 +111,10 @@ export default function Dashboard() {
             variant="outline"
             size="sm"
             disabled={loading}
-            onClick={() => void load(range)}
+            onClick={() => {
+              setLoading(true);
+              void load(range);
+            }}
             startIcon={
               <RegenerateIcon
                 className={`size-5 ${loading ? "animate-spin" : ""}`}
@@ -147,7 +150,8 @@ export default function Dashboard() {
             value={summary?.activeStudents ?? "—"}
             delta={activeDelta}
             trend={
-              summary && summary.activeStudents >= summary.previousActiveStudents
+              summary &&
+              summary.activeStudents >= summary.previousActiveStudents
                 ? "up"
                 : "down"
             }
@@ -178,7 +182,18 @@ export default function Dashboard() {
           <StudentsChart
             summary={summary}
             range={range}
-            onRangeChange={(next) => void load(next)}
+            onRangeChange={(nextRange) => {
+              if (nextRange === range) return;
+              setLoading(true);
+              setSearchParams(
+                (current) => {
+                  const next = new URLSearchParams(current);
+                  next.set("range", String(nextRange));
+                  return next;
+                },
+                { replace: true },
+              );
+            }}
           />
           <FeedbackBreakdown
             items={feedback}

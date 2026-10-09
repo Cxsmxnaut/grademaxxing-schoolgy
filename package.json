@@ -9,7 +9,7 @@
 	"scripts": {
 		"dev": "vite dev --host 127.0.0.1",
 		"dev:admin": "npm --prefix admin-console run dev",
-		"admin:install": "npm --prefix admin-console install --no-audit --no-fund",
+		"admin:install": "npm --prefix admin-console ci --no-audit --no-fund",
 		"build:admin": "npm run admin:install && npm --prefix admin-console run build",
 		"build": "npm run build:admin && vite build",
 		"build:cloudflare": "npm run build:admin && DEPLOY_TARGET=cloudflare vite build",
@@ -32,8 +32,10 @@
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"lint": "prettier --check . && eslint .",
-		"verify": "npm run check && npm run lint && npm run check:dead-code && npm test",
-		"generate-mocks": "bun run ./generate_mock_data.ts"
+		"verify": "npm run check && npm run lint && npm run lint:admin && npm run check:admin && npm run check:dead-code && npm test",
+		"check:admin": "npm --prefix admin-console run check",
+		"generate-mocks": "bun run ./generate_mock_data.ts",
+		"lint:admin": "npm run admin:install && npm --prefix admin-console run format:check && npm --prefix admin-console run lint"
 	},
 	"devDependencies": {
 		"@axe-core/playwright": "^4.13.0",

@@ -1,0 +1,10 @@
+{
+  "console": {
+    "signOutFailed": "No se pudo cerrar la sesión. Vuelve a conectarte e inténtalo de nuevo. Tu sesión sigue activa.",
+    "usernamePlaceholder": "Introduce tu nombre de operador",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña",
+    "loadingPage": "Cargando página de la consola",
+    "signInUnconfirmed": "No se pudo confirmar el inicio de sesión. Inténtalo de nuevo."
+  }
+}

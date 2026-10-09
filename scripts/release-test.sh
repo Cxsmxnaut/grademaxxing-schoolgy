@@ -3,6 +3,8 @@ set -euo pipefail
 
 npm run check
 npm run lint
+npm run lint:admin
+npm run check:admin
 npm test
 npm run build
 
@@ -12,6 +14,16 @@ npm run build
 if [ -z "${GRADEMAXXING_SESSION_SECRET:-}" ]; then
 	GRADEMAXXING_SESSION_SECRET="$(node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('hex'))")"
 	export GRADEMAXXING_SESSION_SECRET
+fi
+
+# Exercise real admin cookies using a synthetic account on the loopback server.
+# Preserve any explicitly configured account and skip this fixture in that case.
+if [ -z "${GRADEMAXXING_ADMIN_SECRET:-}" ] && [ -z "${GRADEMAXXING_ADMIN_PASSWORD_HASH:-}" ]; then
+	GRADEMAXXING_ADMIN_SECRET="$(node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('hex'))")"
+	GRADEMAXXING_ADMIN_PASSWORD_HASH="$(node -e "process.stdout.write(require('node:crypto').createHash('sha256').update('synthetic-release-admin-password').digest('hex'))")"
+	export GRADEMAXXING_ADMIN_SECRET GRADEMAXXING_ADMIN_PASSWORD_HASH
+	export GRADEMAXXING_ADMIN_USERNAME="release-test-operator"
+	export GRADEMAXXING_RELEASE_TEST_ADMIN=1
 fi
 
 release_host="127.0.0.1"

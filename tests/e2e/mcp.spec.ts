@@ -50,6 +50,7 @@ test('MCP endpoint challenges unauthenticated callers and supports CORS prefligh
 	request
 }) => {
 	const bare = await request.post('/mcp', {
+		headers: { Origin: 'https://connector.example', 'Sec-Fetch-Site': 'cross-site' },
 		data: { jsonrpc: '2.0', id: 1, method: 'ping' }
 	});
 	expect(bare.status()).toBe(401);
@@ -79,6 +80,7 @@ test('MCP endpoint challenges unauthenticated callers and supports CORS prefligh
 
 test('dynamic client registration enforces the redirect allowlist', async ({ request }) => {
 	const accepted = await request.post('/mcp/register', {
+		headers: { Origin: 'https://connector.example', 'Sec-Fetch-Site': 'cross-site' },
 		data: {
 			redirect_uris: ['https://chatgpt.com/connector/oauth/playwright'],
 			client_name: 'Playwright'
@@ -98,7 +100,7 @@ test('dynamic client registration enforces the redirect allowlist', async ({ req
 	expect(await rejected.json()).toMatchObject({ error: 'invalid_client_metadata' });
 
 	const wrongType = await request.post('/mcp/register', {
-		headers: { 'Content-Type': 'text/plain' },
+		headers: { 'Content-Type': 'text/plain', Origin: new URL(accepted.url()).origin },
 		data: '{}'
 	});
 	expect(wrongType.status()).toBe(415);
@@ -208,7 +210,10 @@ test('authorize endpoint renders the sign-in and consent page without scripts', 
 	expect(locationParams.get('iss')).toBe(origin);
 });
 
-test('authorize accepts ChatGPT-style cross-site form posts', async ({ request, baseURL }) => {
+test('authorize rejects cross-site forms and accepts its own consent form', async ({
+	request,
+	baseURL
+}) => {
 	const register = await request.post('/mcp/register', {
 		data: {
 			redirect_uris: ['https://chatgpt.com/connector/oauth/callback'],
@@ -227,9 +232,6 @@ test('authorize accepts ChatGPT-style cross-site form posts', async ({ request, 
 		resource: `${new URL(baseURL!).origin}/mcp`
 	};
 
-	// ChatGPT posts the sign-in form with its own Origin and a cross-site
-	// Sec-Fetch-Site. The endpoint must reach credential validation instead of
-	// rejecting the navigation: missing credentials re-render the form (400).
 	const posted = await request.post('/mcp/authorize', {
 		headers: {
 			'Content-Type': 'application/x-www-form-urlencoded',
@@ -245,15 +247,24 @@ test('authorize accepts ChatGPT-style cross-site form posts', async ({ request, 
 			password: ''
 		}).toString()
 	});
-	expect(posted.status()).toBe(400);
+	expect(posted.status()).toBe(403);
+	const sameOrigin = await request.post('/mcp/authorize', {
+		headers: {
+			'Content-Type': 'application/x-www-form-urlencoded',
+			Origin: new URL(baseURL!).origin,
+			'Sec-Fetch-Site': 'same-origin'
+		},
+		data: new URLSearchParams({ ...params, domain: '', username: '', password: '' }).toString()
+	});
+	expect(sameOrigin.status()).toBe(400);
 	// The re-rendered form carries the same CSP, so a later successful POST's
 	// 302 to chatgpt.com is not cancelled by the CSP3 redirect-chain rule.
-	expect(posted.headers()['content-security-policy'] ?? '').not.toContain('form-action');
-	const body = await posted.text();
+	expect(sameOrigin.headers()['content-security-policy'] ?? '').not.toContain('form-action');
+	const body = await sameOrigin.text();
 	expect(body).not.toContain('Cross-site request blocked');
 	expect(body).toContain('Enter your district StudentVUE URL');
 
-	// Cross-site posts still fail protocol validation correctly (400, not 403).
+	// Cross-site requests are rejected before protocol or credential processing.
 	const invalid = await request.post('/mcp/authorize', {
 		headers: {
 			'Content-Type': 'application/x-www-form-urlencoded',
@@ -268,6 +279,5 @@ test('authorize accepts ChatGPT-style cross-site form posts', async ({ request, 
 			password: 'irrelevant'
 		}).toString()
 	});
-	expect(invalid.status()).toBe(400);
-	expect(await invalid.text()).toContain('not valid');
+	expect(invalid.status()).toBe(403);
 });

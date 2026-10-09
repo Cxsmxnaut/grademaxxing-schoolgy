@@ -38,8 +38,10 @@ export default function MetricCard({
         )}
       </div>
       <div className="mt-4">
-        <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
-        <h4 className="mt-1 font-bold text-gray-800 text-title-sm dark:text-white/90">
+        <span className="text-sm text-gray-500 dark:text-gray-400">
+          {label}
+        </span>
+        <h4 className="mt-1 text-title-sm font-bold text-gray-800 dark:text-white/90">
           {value}
         </h4>
         {hint && (

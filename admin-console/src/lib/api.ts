@@ -34,11 +34,7 @@ export type UsageSummary = {
 };
 
 export type FeedbackStatus =
-  | "new"
-  | "reviewing"
-  | "planned"
-  | "resolved"
-  | "dismissed";
+  "new" | "reviewing" | "planned" | "resolved" | "dismissed";
 
 export const feedbackStatuses: FeedbackStatus[] = [
   "new",
@@ -135,16 +131,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const adminApi = {
-  session: () => request<AdminSession>("/api/admin/session"),
+  session: (signal?: AbortSignal) =>
+    request<AdminSession>("/api/admin/session", { signal }),
   signIn: (username: string, password: string) =>
     request<void>("/api/admin/session", {
       method: "POST",
       body: JSON.stringify({ username, password }),
     }),
   signOut: () => request<void>("/api/admin/session", { method: "DELETE" }),
-  usage: (range: UsageRangeDays) =>
-    request<UsageSummary>(`/api/admin/usage?range=${range}`),
-  feedback: () => request<{ items: FeedbackItem[] }>("/api/admin/feedback"),
+  usage: (range: UsageRangeDays, signal?: AbortSignal) =>
+    request<UsageSummary>(`/api/admin/usage?range=${range}`, { signal }),
+  feedback: (signal?: AbortSignal) =>
+    request<{ items: FeedbackItem[] }>("/api/admin/feedback", { signal }),
   saveFeedback: (input: {
     id: string;
     status: FeedbackStatus;
@@ -160,8 +158,10 @@ export const adminApi = {
       `/api/admin/feedback/${encodeURIComponent(id)}/messages`,
       { method: "POST", body: JSON.stringify({ message }) },
     ),
-  referrals: () =>
-    request<{ partners: ReferralPartner[] }>("/api/admin/referrals"),
+  referrals: (signal?: AbortSignal) =>
+    request<{ partners: ReferralPartner[] }>("/api/admin/referrals", {
+      signal,
+    }),
   createReferral: (input: {
     firstName: string;
     lastName: string;
@@ -194,7 +194,10 @@ export function downloadJson(fileName: string, data: unknown) {
   URL.revokeObjectURL(url);
 }
 
-export function downloadCsv(fileName: string, rows: Array<Array<string | number | boolean>>) {
+export function downloadCsv(
+  fileName: string,
+  rows: Array<Array<string | number | boolean>>,
+) {
   const encode = (value: string | number | boolean) =>
     `"${String(value).replaceAll('"', '""')}"`;
   const csv = rows.map((row) => row.map(encode).join(",")).join("\r\n");

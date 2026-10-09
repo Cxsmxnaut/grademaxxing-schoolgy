@@ -18,6 +18,7 @@ same Cloudflare Worker route — no new deployment surface.
 | `GET /.well-known/oauth-authorization-server` and `/.well-known/openid-configuration` | RFC 8414 / OIDC discovery for the built-in authorization server.                                                       |
 | `POST /mcp/register`                                                                  | RFC 7591 dynamic client registration (public clients only).                                                            |
 | `GET/POST /mcp/authorize`                                                             | Authorization endpoint: renders the StudentVUE sign-in + consent page, then redirects back with an authorization code. |
+| `POST /mcp/revoke`                                                                    | RFC 7009 connection-family revocation.                                                                                 |
 | `POST /mcp/token`                                                                     | Authorization-code + PKCE exchange and refresh-token rotation (`application/x-www-form-urlencoded`).                   |
 
 Discovery is served from `src/lib/server/mcp/metadata.ts` via an early
@@ -63,10 +64,23 @@ an official grade.
 ## Authentication design
 
 The app has no user database and never retains StudentVUE passwords, so the MCP
-authorization server is **stateless**: every credential is a self-contained
+authorization credentials are **self-contained**: every credential is a self-contained
 AES-256-GCM payload (key material derived from `GRADEMAXXING_SESSION_SECRET`
 with a separate AAD domain) that embeds the same encrypted portal session the
-browser cookie uses. See `src/lib/server/mcp/oauth.ts`.
+browser cookie uses. A small durable grant ledger stores only SHA-256 token/family
+hashes, expiry, and revocation status; it prevents code replay and revokes a
+refresh family when a used refresh token is replayed. It never stores student
+records, account identifiers, portal sessions, or bearer tokens.
+See `src/lib/server/mcp/oauth.ts` and `grants.ts`.
+
+Before deploying these changes, apply `migrations/0007_mcp_oauth_grants.sql` to
+the configured `GRADEMAXXING_USAGE_DB` with the normal migration workflow.
+Production MCP redemption and access fail closed without that shared store.
+Cloudflare uses the existing D1 binding; Node/Vercel require an equivalent
+platform database binding before production MCP can be enabled. Development
+uses a bounded in-memory ledger; it is not a production fallback.
+Connections created before the ledger was introduced must reconnect once after
+this upgrade, because their old credentials have no revocable family binding.
 
 Flow:
 
@@ -74,7 +88,7 @@ Flow:
    `WWW-Authenticate: Bearer resource_metadata=…`, which is required for Claude
    to start sign-in).
 2. The host registers once via DCR. `client_id` is the encrypted registration
-   itself, so nothing is stored and a Worker restart cannot orphan a
+   itself, so registration metadata remains self-contained and a Worker restart cannot orphan a
    connection. Redirect URIs are restricted to `chatgpt.com`, `openai.com`,
    `claude.ai`, `claude.com`, `anthropic.com` (https) and RFC 8252 loopback
    addresses (http://localhost, http://127.0.0.1).
@@ -91,8 +105,8 @@ Flow:
 5. Each `POST /mcp` verifies the token (signature/audience/expiry/scope), then
    resumes the embedded portal session. If the StudentVUE session has expired,
    the request returns 401 with the discovery challenge, which makes ChatGPT
-   and Claude restart OAuth so the student can sign in again — the reconnect
-   path is deliberately password-only, matching the app's rules.
+   and Claude restart OAuth so the student can sign in again. Reconnecting
+   requires the student's district, username, password, and consent again.
 
 Supported protocol versions: `2026-07-28` (stateless `server/discover`),
 `2025-11-25`, `2025-06-18`, plus header validation for `2025-03-26` and
@@ -120,21 +134,32 @@ header checks are handled.
 
 - **Read-only.** There is intentionally no tool for sending mail, editing
   records, or changing grades; the admin and feedback surfaces are excluded.
-- **Rate limits.** Sign-in attempts share the web login's per-IP/per-account
+- **Rate limits.** Sign-in attempts have per-IP/per-account
   limits inside `/mcp/authorize`; registration and token endpoints have
   per-IP sliding windows.
+- **Portal serialization.** A shared lease prevents separate MCP HTTP calls
+  from racing a session's mutable reporting-period/class focus. Concurrent
+  calls get a retryable 503; leases expire after ten minutes if a Worker dies.
+- **Bounded inputs.** Streaming body readers enforce limits even without
+  Content-Length. JSON-RPC batches are capped at twenty messages.
 - **Bounded outputs.** Assignment lists, mail listings, message bodies
   (20 KB), and binaries (500 KB base64) are capped with explicit truncation
   flags.
-- **No server-side state.** There is no revocation endpoint; removing the
-  connector plus token expiry bounds access, and the embedded portal session
-  still dies on its own TTL (`GRADEMAXXING_SESSION_TTL_HOURS`, default 12 h).
+- **Revocation.** `POST /mcp/revoke` accepts an access or refresh token and
+  revokes that token's entire connection family. Hosts may call this when a
+  connector is removed; removal alone does not revoke credentials already
+  issued. Access checks honor family revocation. The embedded portal session
+  still has its own TTL (`GRADEMAXXING_SESSION_TTL_HOURS`, default 12 h).
 - **CSRF configuration.** `svelte.config.js` sets `csrf.trustedOrigins: ['*']`
   because SvelteKit's built-in form-CSRF check rejects the no-`Origin`
   `application/x-www-form-urlencoded` POSTs that RFC 6749 requires at the token
   endpoint. Browser-form protection is unchanged: `hooks.server.ts` guards
-  `/api/*`, and `/mcp/authorize` enforces its own Origin + `Sec-Fetch-Site`
-  checks before touching credentials.
+  `/api/*`, and the hook enforces Origin + `Sec-Fetch-Site` checks for every unsafe route
+  except the public/bearer-token endpoints `/mcp`, `/mcp/register`, `/mcp/token`,
+  and `/mcp/revoke`. These endpoints use CORS and do not authenticate with cookies.
+  OAuth hosts navigate to the consent
+  page, whose native form submits from the app origin. Cross-site credential
+  submissions are rejected before login.
 - **Headers.** `/mcp` and the OAuth endpoints answer with `Cache-Control:
 no-store`, `nosniff`, and CORS `*` (bearer-token only, no cookies are used by
   the MCP surface).

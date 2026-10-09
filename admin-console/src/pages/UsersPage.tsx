@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import PageMeta from "@/components/common/PageMeta";
 import Badge from "@/components/ui/badge/Badge";
 import Button from "@/components/ui/button/Button";
@@ -9,46 +10,53 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/context/AuthContext";
-import {
-  adminApi,
-  ApiError,
-  downloadCsv,
-  type UsageSummary,
-} from "@/lib/api";
+import { adminApi, ApiError, downloadCsv, type UsageSummary } from "@/lib/api";
 import { dateTime } from "@/lib/format";
 import { DownloadIcon, SearchIcon, TableIcon } from "@/icons";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export default function UsersPage() {
+  const loadVersion = useRef(0);
   const { refresh } = useAuth();
   const [summary, setSummary] = useState<UsageSummary>();
   const [loaded, setLoaded] = useState(false);
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState<string>();
 
-  const load = useCallback(async () => {
-    setMessage(undefined);
-    try {
-      setSummary(await adminApi.usage(30));
-      setLoaded(true);
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        await refresh();
-        return;
+  const load = useCallback(
+    async (signal?: AbortSignal) => {
+      const version = ++loadVersion.current;
+      try {
+        const usage = await adminApi.usage(30, signal);
+        if (signal?.aborted || version !== loadVersion.current) return;
+        setMessage(undefined);
+        setSummary(usage);
+        setLoaded(true);
+      } catch (error) {
+        if (signal?.aborted || version !== loadVersion.current) return;
+        if (error instanceof ApiError && error.status === 401) {
+          await refresh();
+          return;
+        }
+        setMessage(
+          error instanceof ApiError && error.status === 0
+            ? "You appear to be offline. Reconnect and try again."
+            : error instanceof Error
+              ? error.message
+              : "Unable to load the protected user registry.",
+        );
+        setLoaded(true);
       }
-      setMessage(
-        error instanceof ApiError && error.status === 0
-          ? "You appear to be offline. Reconnect and try again."
-          : error instanceof Error
-            ? error.message
-            : "Unable to load the protected user registry.",
-      );
-      setLoaded(true);
-    }
-  }, [refresh]);
+    },
+    [refresh],
+  );
 
   useEffect(() => {
-    void load();
+    const controller = new AbortController();
+    queueMicrotask(() => {
+      if (!controller.signal.aborted) void load(controller.signal);
+    });
+    return () => controller.abort();
   }, [load]);
 
   const users = useMemo(
@@ -90,7 +98,7 @@ export default function UsersPage() {
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Privacy-safe registry
             </p>
-            <h1 className="mt-1 text-title-xl font-semibold text-gray-800 dark:text-white/90">
+            <h1 className="mt-1 text-title-sm font-semibold text-gray-800 sm:text-title-md xl:text-title-xl dark:text-white/90">
               Protected user registry
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -174,7 +182,7 @@ export default function UsersPage() {
               <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {users.map((user) => (
                   <TableRow key={user.studentKey}>
-                    <TableCell className="whitespace-nowrap px-6 py-4">
+                    <TableCell className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         <div className="flex size-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-gray-400">
                           <TableIcon className="size-5" />
@@ -184,10 +192,10 @@ export default function UsersPage() {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap px-6 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
+                    <TableCell className="px-6 py-4 text-theme-sm whitespace-nowrap text-gray-500 dark:text-gray-400">
                       {dateTime(user.firstSeenAt)}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap px-6 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
+                    <TableCell className="px-6 py-4 text-theme-sm whitespace-nowrap text-gray-500 dark:text-gray-400">
                       {dateTime(user.lastSeenAt)}
                     </TableCell>
                     <TableCell className="px-6 py-4 text-theme-sm font-medium text-gray-800 dark:text-white/90">

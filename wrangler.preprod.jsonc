@@ -5,7 +5,9 @@
 	"main": ".svelte-kit/cloudflare/_worker.js",
 	"assets": {
 		"directory": ".svelte-kit/cloudflare",
-		"binding": "ASSETS"
+		"binding": "ASSETS",
+		// SvelteKit handles page routes. Keep internal HTML assets directly readable.
+		"html_handling": "none"
 	},
 	"compatibility_date": "2026-09-05",
 	"workers_dev": true,

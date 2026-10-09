@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Button from "@/components/ui/button/Button";
@@ -8,6 +9,7 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 
 export default function SignInForm() {
+  const { t } = useTranslation();
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -73,20 +75,27 @@ export default function SignInForm() {
             <div className="space-y-6">
               <div>
                 <Label htmlFor="username">
-                  Username <span className="text-error-500">*</span>
+                  Username{" "}
+                  <span aria-hidden="true" className="text-error-500">
+                    *
+                  </span>
                 </Label>
                 <Input
                   id="username"
                   name="username"
                   autoComplete="username"
-                  placeholder="bhavith lolakapuri"
+                  placeholder={t("console.usernamePlaceholder")}
+                  required
                   value={username}
                   onChange={(event) => setUsername(event.target.value)}
                 />
               </div>
               <div>
                 <Label htmlFor="password">
-                  Password <span className="text-error-500">*</span>
+                  Password{" "}
+                  <span aria-hidden="true" className="text-error-500">
+                    *
+                  </span>
                 </Label>
                 <div className="relative">
                   <Input
@@ -94,11 +103,19 @@ export default function SignInForm() {
                     name="password"
                     type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
+                    required
                     placeholder="Enter your password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                   />
-                  <span
+                  <button
+                    type="button"
+                    aria-label={t(
+                      showPassword
+                        ? "console.hidePassword"
+                        : "console.showPassword",
+                    )}
+                    aria-pressed={showPassword}
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-e-4 top-1/2 z-30 -translate-y-1/2 cursor-pointer"
                   >
@@ -107,7 +124,7 @@ export default function SignInForm() {
                     ) : (
                       <EyeCloseIcon className="size-5 fill-gray-500 dark:fill-gray-400" />
                     )}
-                  </span>
+                  </button>
                 </div>
               </div>
               <div>

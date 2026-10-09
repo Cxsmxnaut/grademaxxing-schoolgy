@@ -876,5 +876,13 @@
         "inProgress": "In Progress"
       }
     }
+  },
+  "console": {
+    "signOutFailed": "Sign-out failed. Reconnect and try again. Your session is still active.",
+    "usernamePlaceholder": "Enter your operator username",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "loadingPage": "Loading console page",
+    "signInUnconfirmed": "The sign-in could not be confirmed. Please try again."
   }
 }

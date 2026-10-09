@@ -94,7 +94,7 @@ export default function RecentFeedback({
                 <TableCell className="px-6 py-4">
                   <StatusBadge status={item.status} />
                 </TableCell>
-                <TableCell className="whitespace-nowrap px-6 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
+                <TableCell className="px-6 py-4 text-theme-sm whitespace-nowrap text-gray-500 dark:text-gray-400">
                   {relativeTime(item.createdAt)}
                 </TableCell>
               </TableRow>

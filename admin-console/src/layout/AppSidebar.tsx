@@ -50,11 +50,20 @@ const accountItems: NavItem[] = [
 ];
 
 const AppSidebar: React.FC = () => {
-  const { isExpanded, isHovered, isMobileOpen, setIsHovered } = useSidebar();
+  const {
+    isExpanded,
+    isHovered,
+    isMobileOpen,
+    isMobile,
+    setIsHovered,
+    setIsMobileOpen,
+  } = useSidebar();
   const location = useLocation();
 
   const isActive = (path: string) =>
-    path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
+    path === "/"
+      ? location.pathname === "/"
+      : location.pathname.startsWith(path);
 
   const renderMenuItems = (items: NavItem[]) => (
     <ul className="mb-6 flex flex-col gap-4">
@@ -62,6 +71,7 @@ const AppSidebar: React.FC = () => {
         <li key={item.name}>
           <Link
             to={item.path}
+            onClick={() => setIsMobileOpen(false)}
             className={cn(
               "group menu-item",
               isActive(item.path) ? "menu-item-active" : "menu-item-inactive",
@@ -87,6 +97,7 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
+      inert={isMobile && !isMobileOpen}
       className={cn(
         "fixed inset-s-0 top-0 z-50 flex h-screen flex-col border-e border-gray-200 bg-white px-5 text-gray-900 transition-all duration-300 ease-in-out xl:translate-x-0 xl:rtl:translate-x-0 dark:border-gray-800 dark:bg-gray-900",
         isExpanded || isMobileOpen ? "w-72.5" : isHovered ? "w-72.5" : "w-22.5",
@@ -94,7 +105,7 @@ const AppSidebar: React.FC = () => {
           ? "translate-x-0"
           : "-translate-x-full rtl:translate-x-full",
       )}
-      onMouseEnter={() => !isExpanded && setIsHovered(true)}
+      onMouseEnter={() => !isMobile && !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div

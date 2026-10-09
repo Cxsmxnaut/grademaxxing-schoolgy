@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { useAuth } from "@/context/AuthContext";
 import { LogoutIcon, UserCircleIcon } from "@/icons";
@@ -5,6 +6,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 
 export default function UserDropdown() {
+  const { t } = useTranslation();
+  const [error, setError] = useState<string>();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
@@ -20,14 +23,28 @@ export default function UserDropdown() {
 
   async function handleSignOut() {
     setBusy(true);
-    await signOut();
-    setIsOpen(false);
-    navigate("/signin", { replace: true });
-    setBusy(false);
+    setError(undefined);
+    try {
+      await signOut();
+      setIsOpen(false);
+      navigate("/signin", { replace: true });
+    } catch {
+      setError(t("console.signOutFailed"));
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
     <div className="relative">
+      {error && (
+        <p
+          role="alert"
+          className="mb-2 text-theme-xs text-error-600 dark:text-error-400"
+        >
+          {error}
+        </p>
+      )}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="dropdown-toggle flex items-center gap-3"

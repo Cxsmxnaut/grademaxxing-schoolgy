@@ -1,0 +1,10 @@
+{
+  "console": {
+    "signOutFailed": "Abmeldung fehlgeschlagen. Stelle die Verbindung wieder her und versuche es erneut. Deine Sitzung ist noch aktiv.",
+    "usernamePlaceholder": "Operator-Benutzernamen eingeben",
+    "showPassword": "Passwort anzeigen",
+    "hidePassword": "Passwort verbergen",
+    "loadingPage": "Konsolenseite wird geladen",
+    "signInUnconfirmed": "Die Anmeldung konnte nicht bestätigt werden. Bitte versuche es erneut."
+  }
+}

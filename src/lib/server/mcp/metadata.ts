@@ -33,6 +33,7 @@ export function authorizationServerMetadata(origin: string) {
 		issuer: origin,
 		authorization_endpoint: `${origin}/mcp/authorize`,
 		token_endpoint: `${origin}/mcp/token`,
+		revocation_endpoint: `${origin}/mcp/revoke`,
 		registration_endpoint: `${origin}/mcp/register`,
 		response_types_supported: ['code'],
 		grant_types_supported: ['authorization_code', 'refresh_token'],
@@ -56,7 +57,7 @@ export const CORS_HEADERS = {
 	'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
 	'Access-Control-Allow-Headers':
 		'Authorization, Content-Type, Mcp-Protocol-Version, Mcp-Method, Mcp-Name, MCP-Protocol-Version',
-	'Access-Control-Expose-Headers': 'Mcp-Session-Id',
+	'Access-Control-Expose-Headers': 'Mcp-Session-Id, WWW-Authenticate',
 	'Access-Control-Max-Age': '600'
 } as const;
 

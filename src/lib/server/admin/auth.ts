@@ -4,39 +4,26 @@ export const adminSessionCookie =
 	process.env.NODE_ENV === 'production' ? '__Host-grademaxxing_admin' : 'grademaxxing_admin';
 const adminSessionDurationMs = 8 * 60 * 60 * 1000;
 
-/**
- * The admin console ships with one operator account. The password is stored as
- * a SHA-256 digest so the plaintext never reaches Git; the username is matched
- * case-insensitively after whitespace normalization.
- */
-const adminConsoleUser = {
-	username: 'bhavith lolakapuri',
-	displayName: 'Bhavith Lolakapuri',
-	role: 'Super Admin',
-	passwordHash: 'd676133d537460a200b050b87e60b907f6165d4c19b4702c418d7002208ff59f'
-} as const;
-
-/**
- * Fallback signing secret so the console works with no environment setup.
- * Deployments should still set GRADEMAXXING_ADMIN_SECRET (see wrangler.jsonc).
- */
-const fallbackSessionSecret = 'grademaxxing-admin-console-fallback-v1-3f9a2c7e5b8d41a6';
-
 export type AdminUser = {
 	username: string;
 	displayName: string;
 	role: string;
 };
 
-export const adminConsoleIdentity: AdminUser = {
-	username: adminConsoleUser.username,
-	displayName: adminConsoleUser.displayName,
-	role: adminConsoleUser.role
-};
+// One configured operator credential; identity is deployment configuration,
+// never inferred from an arbitrary username submitted at sign-in.
+export function adminConsoleIdentity(): AdminUser {
+	const username = process.env.GRADEMAXXING_ADMIN_USERNAME?.trim() || 'admin';
+	return {
+		username,
+		displayName: process.env.GRADEMAXXING_ADMIN_DISPLAY_NAME?.trim() || 'Administrator',
+		role: 'Administrator'
+	};
+}
 
 function configuredSessionSecret() {
 	const secret = process.env.GRADEMAXXING_ADMIN_SECRET;
-	return secret && secret.length >= 32 ? secret : fallbackSessionSecret;
+	return secret && secret.length >= 32 ? secret : undefined;
 }
 
 function configuredPasswordHash() {
@@ -61,33 +48,16 @@ function normalizeUsername(username: string) {
 }
 
 export function verifyAdminCredentials(username: string, password: string): AdminUser | undefined {
-	const normalized = normalizeUsername(username);
-	if (
-		normalized === adminConsoleUser.username &&
-		digestMatches(adminConsoleUser.passwordHash, password)
-	)
-		return {
-			username: adminConsoleUser.username,
-			displayName: adminConsoleUser.displayName,
-			role: adminConsoleUser.role
-		};
-	// An environment-configured password keeps working for operators who rotate it.
-	const passwordHash = configuredPasswordHash();
-	if (passwordHash && digestMatches(passwordHash, password))
-		return {
-			username: normalized || 'admin',
-			displayName: normalized || 'Administrator',
-			role: 'Administrator'
-		};
-	return undefined;
+	const identity = adminConsoleIdentity();
+	// Empty username preserves the original password-only API contract.
+	if (username && normalizeUsername(username) !== normalizeUsername(identity.username))
+		return undefined;
+	return verifyAdminPassword(password) ? identity : undefined;
 }
 
 export function verifyAdminPassword(password: string) {
 	const passwordHash = configuredPasswordHash();
-	return Boolean(
-		digestMatches(adminConsoleUser.passwordHash, password) ||
-		(passwordHash && digestMatches(passwordHash, password))
-	);
+	return Boolean(passwordHash && digestMatches(passwordHash, password));
 }
 
 export function createAdminSession() {
@@ -111,7 +81,7 @@ export function validAdminSession(token: string | undefined) {
 		!/^\d+$/.test(expiresAt) ||
 		!/^[0-9a-f-]{36}$/i.test(nonce) ||
 		!/^[A-Za-z0-9_-]+$/.test(signature) ||
-		Number(expiresAt) < Date.now()
+		Number(expiresAt) <= Date.now()
 	)
 		return false;
 	const payload = `${version}.${expiresAt}.${nonce}`;

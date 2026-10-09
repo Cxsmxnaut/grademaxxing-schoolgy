@@ -15,21 +15,23 @@ const AppHeader: React.FC = () => {
   function handleSearch(event: React.FormEvent) {
     event.preventDefault();
     const trimmed = query.trim();
-    navigate(trimmed ? `/feedback?search=${encodeURIComponent(trimmed)}` : "/feedback");
+    navigate(
+      trimmed ? `/feedback?search=${encodeURIComponent(trimmed)}` : "/feedback",
+    );
   }
 
   return (
-    <header className="sticky top-0 z-40 flex flex-wrap items-center justify-between gap-2 bg-white px-4 py-3 shadow-theme-xs dark:bg-gray-900 sm:px-6">
+    <header className="sticky top-0 z-40 flex flex-wrap items-center justify-between gap-2 bg-white px-4 py-3 shadow-theme-xs sm:px-6 dark:bg-gray-900">
       <div className="flex items-center gap-3">
         <button
           onClick={toggleMobileSidebar}
           aria-label="Toggle sidebar"
-          className="flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 lg:hidden"
+          className="flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 xl:hidden dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800"
         >
           <MenuIcon className="size-6" />
         </button>
 
-        <div className="hidden lg:block">
+        <div className="hidden xl:block">
           <form onSubmit={handleSearch} className="relative">
             <span className="pointer-events-none absolute inset-y-0 start-4 flex items-center">
               <SearchIcon className="size-5 fill-gray-500 dark:fill-gray-400" />

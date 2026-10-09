@@ -365,6 +365,20 @@ test('unknown tools, bad arguments, and unknown resources are protocol errors', 
 	).resolves.toMatchObject({ error: { code: -32601 } });
 });
 
+test('explicit null tool and prompt arguments are rejected instead of becoming an empty object', async () => {
+	for (const [method, name] of [
+		['tools/call', 'get_capabilities'],
+		['prompts/get', 'analyze-grades']
+	]) {
+		await expect(
+			handleMcpMessage(
+				{ jsonrpc: '2.0', id: 1, method, params: { name, arguments: null } },
+				fakeCtx({})
+			)
+		).resolves.toMatchObject({ error: { code: -32602 } });
+	}
+});
+
 test('resources and prompts are listable and readable', async () => {
 	const ctx = fakeCtx({ gradebook: vi.fn(async () => fixtureGradebook()) });
 	const listed = (await handleMcpMessage(
@@ -552,4 +566,120 @@ test('McpToolResult wraps structured output for hosts', () => {
 	const wrapped = new McpToolResult({ ok: true }, [{ data: 'abc', mimeType: 'image/png' }]);
 	expect(wrapped.structured).toEqual({ ok: true });
 	expect(wrapped.images).toHaveLength(1);
+});
+
+test('zero grades remain zero and projected category totals match the projection', async () => {
+	const gradebook = fixtureGradebook();
+	const course = gradebook.courses[0]!;
+	course.assignments = [
+		{ AssignmentID: 'zero', Type: 'Tests', Point: '0', PointPossible: '100', Score: '0' }
+	];
+	course.categories = [
+		{
+			name: 'Tests',
+			weight: '100',
+			points: '0',
+			pointsPossible: '100',
+			weightedPercentage: '100',
+			calculatedMark: '0'
+		}
+	];
+	const ctx = fakeCtx({ gradebook: vi.fn().mockResolvedValue(gradebook) });
+	const digest = resultOf(await call(ctx, 'get_gradebook_digest')).structuredContent as {
+		courses: Array<{ localCalculations: { pointsPercent: number } }>;
+	};
+	expect(digest.courses[0]!.localCalculations.pointsPercent).toBe(0);
+	const output = resultOf(
+		await call(ctx, 'project_course_grade', {
+			courseId: course.id,
+			changes: [{ type: 'change', assignmentId: 'zero', earned: 80, possible: 100 }]
+		})
+	).structuredContent as {
+		simulation: {
+			afterPercent: number;
+			categories: Array<{ earned: number; possible: number; percent: number }>;
+		};
+	};
+	expect(output.simulation.afterPercent).toBe(80);
+	expect(output.simulation.categories[0]).toMatchObject({ earned: 80, possible: 100, percent: 80 });
+});
+
+test('what-if rejects invalid modes and duplicate replacements', async () => {
+	const ctx = fakeCtx({ gradebook: vi.fn().mockResolvedValue(fixtureGradebook()) });
+	const change = { type: 'change', assignmentId: '101', earned: 95, possible: 100 };
+	for (const args of [
+		{ courseId: 'course-1', mode: 'bogus', changes: [change] },
+		{ courseId: 'course-1', changes: [change, change] }
+	]) {
+		const output = (await call(ctx, 'project_course_grade', args)) as { error: { code: number } };
+		expect(output.error.code).toBe(-32602);
+	}
+});
+
+test('zero-weight categories do not turn weighted courses into points-only simulations', async () => {
+	const gradebook = fixtureGradebook();
+	gradebook.courses[0]!.categories.push({
+		name: 'Practice',
+		weight: '0',
+		points: '0',
+		pointsPossible: '1000',
+		weightedPercentage: '0',
+		calculatedMark: '0'
+	});
+	const ctx = fakeCtx({ gradebook: vi.fn().mockResolvedValue(gradebook) });
+	const output = resultOf(
+		await call(ctx, 'project_course_grade', {
+			courseId: 'course-1',
+			changes: [{ type: 'add', category: 'Tests', earned: 80, possible: 100 }]
+		})
+	).structuredContent as { simulation: { mode: string; afterPercent: number } };
+	expect(output.simulation).toMatchObject({ mode: 'weighted', afterPercent: 80 });
+});
+
+test('MCP digest uses weighted evidence, excludes practice, and counts extra credit like the UI', async () => {
+	const gradebook = fixtureGradebook();
+	gradebook.courses[0]!.assignments = [
+		{
+			AssignmentID: 'graded',
+			Type: 'Tests',
+			Point: '8',
+			PointPossible: '10',
+			ScoreCalValue: '80',
+			ScoreMaxValue: '100',
+			Score: '80'
+		},
+		{
+			AssignmentID: 'practice',
+			Type: 'Tests',
+			Point: '0',
+			PointPossible: '1000',
+			Notes: '(Not For Grading) Practice',
+			Score: '0'
+		},
+		{
+			AssignmentID: 'unavailable',
+			Type: 'Tests',
+			ScoreCalValue: '0',
+			ScoreMaxValue: '100',
+			CalculationUnavailable: 'true',
+			Score: '0'
+		},
+		{ AssignmentID: 'extra-credit', Type: 'Tests', Point: '2', PointPossible: '', Score: '2' }
+	];
+	const ctx = fakeCtx({ gradebook: vi.fn().mockResolvedValue(gradebook) });
+	const digest = resultOf(await call(ctx, 'get_gradebook_digest')).structuredContent as {
+		courses: Array<{
+			localCalculations: { pointsEarned: number; pointsPossible: number; pointsPercent: number };
+		}>;
+	};
+	expect(digest.courses[0]!.localCalculations).toMatchObject({
+		pointsEarned: 10,
+		pointsPossible: 10,
+		pointsPercent: 100
+	});
+	const unavailable = (await call(ctx, 'project_course_grade', {
+		courseId: 'course-1',
+		changes: [{ type: 'change', assignmentId: 'unavailable', earned: 100, possible: 100 }]
+	})) as { error: { code: number } };
+	expect(unavailable.error.code).toBe(-32602);
 });

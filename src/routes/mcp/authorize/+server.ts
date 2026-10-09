@@ -1,4 +1,5 @@
 import { renderAuthorizeErrorPage, renderAuthorizePage } from '$lib/server/mcp/authorize-page';
+import { McpBodyTooLargeError, readMcpBody } from '$lib/server/mcp/body';
 import { mcpResource } from '$lib/server/mcp/metadata';
 import {
 	type AuthorizeRequest,
@@ -58,7 +59,10 @@ function html(body: string, status: number): Response {
 }
 
 function redirect(location: string): Response {
-	return new Response(null, { status: 302, headers: { Location: location } });
+	return new Response(null, {
+		status: 302,
+		headers: { Location: location, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }
+	});
 }
 
 function safeClientAddress(getClientAddress: () => string) {
@@ -151,24 +155,24 @@ export const POST: RequestHandler = async ({ request, url, getClientAddress }) =
 			}),
 			415
 		);
-	// Cross-site form posts are accepted on purpose: OAuth clients (ChatGPT,
-	// Claude) drive this authorization page from their own origin, so the
-	// browser legitimately sends their Origin and Sec-Fetch-Site on the submit.
-	// CSRF safety does not depend on same-origin checks here: the response sets
-	// no cookies (the issued code carries the session), redirect URIs pass a
-	// strict allowlist, client IDs are sealed, PKCE S256 is mandatory, sign-in
-	// attempts are rate limited per IP and account, and frame-ancestors 'none'
-	// blocks clickjacking.
-	const raw = await request.text();
-	if (new TextEncoder().encode(raw).byteLength > MAX_FORM_BYTES)
-		return html(
-			renderAuthorizeErrorPage({
-				status: 413,
-				title: 'Request too large',
-				detail: 'The form submission exceeded the size limit.'
-			}),
-			413
-		);
+	// The browser submits the form from this origin after rendering consent.
+	// OAuth hosts navigate here; they do not need to POST student credentials
+	// cross-site. hooks.server.ts validates the form origin before dispatch.
+	let raw: string;
+	try {
+		raw = await readMcpBody(request, MAX_FORM_BYTES);
+	} catch (cause) {
+		if (cause instanceof McpBodyTooLargeError)
+			return html(
+				renderAuthorizeErrorPage({
+					status: 413,
+					title: 'Request too large',
+					detail: 'The form submission exceeded the size limit.'
+				}),
+				413
+			);
+		throw cause;
+	}
 	const params = new URLSearchParams(raw);
 	const validation = validateAuthorizeParams(params, url.origin, mcpResource(url.origin));
 	if (!validation.ok) {

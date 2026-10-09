@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import PageMeta from "@/components/common/PageMeta";
 import Button from "@/components/ui/button/Button";
 import {
@@ -20,6 +21,7 @@ import { CopyIcon, CopySmIcon, PlusLineIcon, UserMoneyIcon } from "@/icons";
 import { useCallback, useEffect, useState } from "react";
 
 export default function ReferralsPage() {
+  const loadVersion = useRef(0);
   const { refresh } = useAuth();
   const [partners, setPartners] = useState<ReferralPartner[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -31,30 +33,40 @@ export default function ReferralsPage() {
   const [message, setMessage] = useState<string>();
   const [notice, setNotice] = useState<string>();
 
-  const load = useCallback(async () => {
-    setMessage(undefined);
-    try {
-      const result = await adminApi.referrals();
-      setPartners(result.partners);
-      setLoaded(true);
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        await refresh();
-        return;
+  const load = useCallback(
+    async (signal?: AbortSignal) => {
+      const version = ++loadVersion.current;
+      try {
+        const result = await adminApi.referrals(signal);
+        if (signal?.aborted || version !== loadVersion.current) return;
+        setMessage(undefined);
+        setPartners(result.partners);
+        setLoaded(true);
+      } catch (error) {
+        if (signal?.aborted || version !== loadVersion.current) return;
+        if (error instanceof ApiError && error.status === 401) {
+          await refresh();
+          return;
+        }
+        setMessage(
+          error instanceof ApiError && error.status === 0
+            ? "You appear to be offline. Reconnect and try again."
+            : error instanceof Error
+              ? error.message
+              : "Unable to load referrals.",
+        );
+        setLoaded(true);
       }
-      setMessage(
-        error instanceof ApiError && error.status === 0
-          ? "You appear to be offline. Reconnect and try again."
-          : error instanceof Error
-            ? error.message
-            : "Unable to load referrals.",
-      );
-      setLoaded(true);
-    }
-  }, [refresh]);
+    },
+    [refresh],
+  );
 
   useEffect(() => {
-    void load();
+    const controller = new AbortController();
+    queueMicrotask(() => {
+      if (!controller.signal.aborted) void load(controller.signal);
+    });
+    return () => controller.abort();
   }, [load]);
 
   async function createReferrer(event: React.FormEvent) {
@@ -92,7 +104,7 @@ export default function ReferralsPage() {
       await navigator.clipboard.writeText(referralUrl(code));
       setCopiedCode(code);
       window.setTimeout(() => {
-        if (copiedCode === code) setCopiedCode(undefined);
+        setCopiedCode((current) => (current === code ? undefined : current));
       }, 1500);
     } catch {
       setMessage(
@@ -115,7 +127,7 @@ export default function ReferralsPage() {
       <div className="mx-auto max-w-(--breakpoint-2xl) p-4 sm:p-6">
         <div className="mb-6">
           <p className="text-sm text-gray-500 dark:text-gray-400">Growth</p>
-          <h1 className="mt-1 text-title-xl font-semibold text-gray-800 dark:text-white/90">
+          <h1 className="mt-1 text-title-sm font-semibold text-gray-800 sm:text-title-md xl:text-title-xl dark:text-white/90">
             Referral leaderboard
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -219,7 +231,7 @@ export default function ReferralsPage() {
                       <TableCell className="px-6 py-4 text-theme-sm font-semibold text-gray-800 dark:text-white/90">
                         {partner.referrals}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap px-6 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
+                      <TableCell className="px-6 py-4 text-theme-sm whitespace-nowrap text-gray-500 dark:text-gray-400">
                         {partner.lastReferralAt
                           ? relativeTime(partner.lastReferralAt)
                           : "—"}

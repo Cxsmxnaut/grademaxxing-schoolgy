@@ -13,7 +13,10 @@ export default function GridShape({ className }: GridShapeProps) {
           className,
         )}
       >
-        <img src="/images/shape/grid-01.svg" alt="grid" />
+        <img
+          src={`${import.meta.env.BASE_URL}images/shape/grid-01.svg`}
+          alt="grid"
+        />
       </div>
       <div
         className={cn(
@@ -21,7 +24,10 @@ export default function GridShape({ className }: GridShapeProps) {
           className,
         )}
       >
-        <img src="/images/shape/grid-01.svg" alt="grid" />
+        <img
+          src={`${import.meta.env.BASE_URL}images/shape/grid-01.svg`}
+          alt="grid"
+        />
       </div>
     </>
   );

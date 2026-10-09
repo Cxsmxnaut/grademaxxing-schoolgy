@@ -208,7 +208,7 @@ test('the operations console presents sign-in, analytics, feedback, referrals an
 	await page.goto('/admin-app/');
 	await expect(page.getByRole('heading', { name: 'Sign In' })).toBeVisible();
 	await page.getByLabel('Username').fill('bhavith lolakapuri');
-	await page.getByLabel('Password').fill('Bhavith123@');
+	await page.getByLabel(/^Password/).fill('synthetic-admin-password');
 	await page.getByRole('button', { name: 'Open dashboard' }).click();
 
 	// Overview dashboard
@@ -262,6 +262,15 @@ test('the operations console presents sign-in, analytics, feedback, referrals an
 	).toBeVisible();
 	if (process.env.ADMIN_VISUAL_CAPTURE) {
 		await page.setViewportSize({ width: 390, height: 844 });
+		await expect
+			.poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+			.toBeLessThanOrEqual(390);
+		await expect
+			.poll(() =>
+				page.locator('aside').evaluate((sidebar) => sidebar.getBoundingClientRect().right)
+			)
+			.toBeLessThanOrEqual(0);
+		await page.evaluate(() => window.scrollTo(0, 0));
 		await page.screenshot({
 			path: '/tmp/grademaxxing-admin-feedback-mobile.png',
 			fullPage: true

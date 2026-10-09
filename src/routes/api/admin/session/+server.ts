@@ -53,8 +53,9 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 		path: '/',
 		httpOnly: true,
 		sameSite: 'strict',
-		// Local Cloudflare preview is HTTP; production custom domains are HTTPS.
-		secure: new URL(request.url).protocol === 'https:',
+		// Browsers reject a __Host- cookie unless Secure is explicitly set,
+		// including on trustworthy loopback HTTP previews.
+		secure: adminSessionCookie.startsWith('__Host-') || new URL(request.url).protocol === 'https:',
 		maxAge: adminSessionMaxAge
 	});
 	return new Response(null, { status: 204 });
@@ -62,11 +63,14 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 
 export const GET: RequestHandler = ({ cookies }) => {
 	if (!validAdminSession(cookies.get(adminSessionCookie))) return json({ authenticated: false });
-	return json({ authenticated: true, user: adminConsoleIdentity });
+	return json({ authenticated: true, user: adminConsoleIdentity() });
 };
 
-export const DELETE: RequestHandler = ({ cookies }) => {
-	cookies.delete(adminSessionCookie, { path: '/' });
+export const DELETE: RequestHandler = ({ cookies, request }) => {
+	cookies.delete(adminSessionCookie, {
+		path: '/',
+		secure: adminSessionCookie.startsWith('__Host-') || new URL(request.url).protocol === 'https:'
+	});
 	return new Response(null, { status: 204 });
 };
 
