@@ -4,6 +4,12 @@ const username = 'vault-refresh-preview';
 const domain = 'ca-pleas-psv.edupoint.com';
 const password = 'synthetic-vault-password';
 
+test.afterEach(async ({ page }) => {
+	// Some cancellation tests leave a mocked response pending deliberately.
+	// Detach those handlers before the page fixture closes underneath them.
+	await page.unrouteAll({ behavior: 'ignoreErrors' });
+});
+
 function gradebookXml(index = 0, assignment = 'Saved assignment', score = 94) {
 	return `<Gradebook><ReportingPeriod Index="${index}" GradePeriod="Quarter ${index + 1}"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1"/><ReportPeriod Index="1" GradePeriod="Quarter 2"/></ReportingPeriods><Courses><Course CourseID="vault-refresh" CourseName="Vault Refresh Preview" Period="1" Staff="Example Teacher" Room="101"><Marks><Mark MarkName="Quarter ${index + 1}" CalculatedScoreRaw="${score}" CalculatedScoreString="A"><Assignments><Assignment GradebookID="vault-refresh-assignment" Measure="${assignment}" Type="Homework" Date="9/1/2026" DueDate="9/1/2026" Point="${score}" PointPossible="100" Notes="" MeasureDescription=""/></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
 }
