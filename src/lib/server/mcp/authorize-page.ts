@@ -168,13 +168,6 @@ body {
 \tcolor: var(--muted-foreground);
 \tfont-size: 0.875rem;
 }
-.beta {
-\tcolor: var(--muted-foreground);
-\tfont-family: var(--font-body);
-\tfont-size: 0.8rem;
-\tfont-weight: 500;
-\tletter-spacing: 0;
-}
 .pane {
 \tdisplay: grid;
 \tmin-width: 0;
@@ -410,7 +403,7 @@ function frameShell(paneInner: string) {
 			<img src="/login-dunes.jpg" alt="" />
 			<div class="story-shade" aria-hidden="true"></div>
 			<div class="story-top">
-				<div class="story-brand">${GROWTH_MARK}<span>Grademaxxing</span><span class="beta">(Beta)</span></div>
+				<div class="story-brand">${GROWTH_MARK}<span>Grademaxxing</span></div>
 			</div>
 			<div class="story-bottom">
 				<h2>Your grades are complicated enough.</h2>
@@ -419,7 +412,7 @@ function frameShell(paneInner: string) {
 		</aside>
 		<main class="pane">
 			<div class="panel">
-				<header class="pane-brand">${GROWTH_MARK}<span>Grademaxxing</span><span class="beta">(Beta)</span></header>
+				<header class="pane-brand">${GROWTH_MARK}<span>Grademaxxing</span></header>
 ${paneInner}
 			</div>
 		</main>

@@ -15,7 +15,7 @@ body:
     id: issue-scope
     attributes:
       label: Issue scope
-      description: What part of Grademaxxing (Beta) is broken?
+      description: What part of Grademaxxing is broken?
       options:
         - Whole site
         - A specific page
@@ -34,6 +34,6 @@ body:
     id: error-messages
     attributes:
       label: Error messages
-      description: If Grademaxxing (Beta) shows an error screen, paste only non-sensitive error text. Never include a password, cookie, token, student ID, full name, portal URL containing identifiers, or school record. Include browser-console output only after removing all student and session data.
+      description: If Grademaxxing shows an error screen, paste only non-sensitive error text. Never include a password, cookie, token, student ID, full name, portal URL containing identifiers, or school record. Include browser-console output only after removing all student and session data.
     validations:
       required: false

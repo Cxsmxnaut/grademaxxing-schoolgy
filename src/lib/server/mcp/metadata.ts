@@ -10,8 +10,8 @@
 
 export const MCP_PATH = '/mcp';
 export const MCP_SERVER_NAME = 'grademaxxing';
-export const MCP_SERVER_TITLE = 'Grademaxxing (Beta)';
-export const MCP_SERVER_VERSION = '0.2.0-beta.1';
+export const MCP_SERVER_TITLE = 'Grademaxxing';
+export const MCP_SERVER_VERSION = '0.2.0';
 
 export function mcpResource(origin: string) {
 	return `${origin}${MCP_PATH}`;

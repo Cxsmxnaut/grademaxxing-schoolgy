@@ -1,12 +1,12 @@
-# Grademaxxing (Beta) — agent handoff
+# Grademaxxing — agent handoff
 
 This is the starting point for a fresh Codex task working on Grademaxxing. Read this file first, then use the linked documents for the requested area.
 
 ## Product and scope
 
-Grademaxxing (Beta) is a student-facing SvelteKit application for viewing StudentVUE records and exploring grades. It is a **read-only** companion: it does not send mail, change records, submit work, or report absences. Its product features include a gradebook, individual-course what-if calculations, GPA calculator, attendance/calendar, documents, StudentVUE mail reading, profile information, and a landing/sign-in flow.
+Grademaxxing is a student-facing SvelteKit application for viewing StudentVUE records and exploring grades. It is a **read-only** companion: it does not send mail, change records, submit work, or report absences. Its product features include a gradebook, individual-course what-if calculations, GPA calculator, attendance/calendar, documents, StudentVUE mail reading, profile information, and a landing/sign-in flow.
 
-The source is an AGPL-derived work. Keep the existing license and attribution/history obligations intact. The public product name is **Grademaxxing (Beta)**; do not represent it as affiliated with Edupoint or a school district.
+The source is an AGPL-derived work. Keep the existing license and attribution/history obligations intact. The public product name is **Grademaxxing**; do not represent it as affiliated with Edupoint or a school district.
 
 ## Where the project is
 

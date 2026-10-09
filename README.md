@@ -1,4 +1,4 @@
-# Grademaxxing (Beta)
+# Grademaxxing
 
 Grademaxxing is a privacy-conscious, read-only StudentVUE companion for understanding grades, planning what-if scores, and viewing attendance, documents, mail, and profile information.
 
@@ -9,6 +9,7 @@ Grademaxxing is a privacy-conscious, read-only StudentVUE companion for understa
 - StudentVUE is the source of truth; local calculations and simulations are labeled as estimates.
 - The application reads portal data but does not send messages, submit work, edit records, or report absences.
 - StudentVUE credentials are used only to establish or reconnect a session. They are never stored server-side.
+- Grademaxxing is available as a stable production service, not a beta release.
 - Raw student records, credentials, cookies, and request bodies must never enter logs, analytics, fixtures, screenshots, or source control.
 
 Read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) before making changes.

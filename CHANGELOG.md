@@ -15,11 +15,11 @@
 - Fixes a refresh race that could hide the StudentVUE reconnect prompt after a definitive upstream-session expiry.
 - Adds bounded browser file decoding and StudentVUE API resource/parameter/legacy-adapter contract tests.
 
-## 0.2.0-beta.1
+## 0.2.0
 
-- Rebrands every product-facing surface as Grademaxxing (Beta).
-- Adds a privacy-aware, prefilled beta feedback path for the controlled tester pool.
-- Publishes the beta channel and version through the health endpoint.
+- Rebrands every product-facing surface as Grademaxxing.
+- Adds a privacy-aware, prefilled feedback path for the controlled tester pool.
+- Publishes the stable release channel and version through the health endpoint.
 - Adds a portable GitHub release gate covering audit, types, lint, unit tests, build, and Playwright.
 - Adds a seven-day tester plan with daily checks, severity levels, and launch criteria.
 - Corrects the privacy page to describe the encrypted HTTP-only session cookie accurately.

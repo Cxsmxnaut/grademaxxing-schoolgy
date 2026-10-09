@@ -1,4 +1,4 @@
-name: Beta release gate
+name: Grademaxxing release gate
 
 on:
   push:

@@ -191,7 +191,7 @@
 		},
 		{
 			q: 'Is Grademaxxing free?',
-			a: 'The current Beta is free to use, including grade trends, what-if scores, attendance, documents, and mail when your portal provides them.'
+			a: 'Grademaxxing is free to use, including grade trends, what-if scores, attendance, documents, and mail when your portal provides them.'
 		},
 		{
 			q: 'What’s a what-if score?',
@@ -203,13 +203,13 @@
 		},
 		{
 			q: 'Can parents use it too?',
-			a: 'This Beta is designed for StudentVUE accounts. ParentVUE accounts and multi-student switching are not currently supported.'
+			a: 'Grademaxxing is designed for StudentVUE accounts. ParentVUE accounts and multi-student switching are not currently supported.'
 		}
 	];
 </script>
 
 <svelte:head>
-	<title>{brand} (Beta) — gradebook without the maze</title>
+	<title>{brand} — gradebook without the maze</title>
 	<meta
 		name="description"
 		content="Understand StudentVUE grades with trends, category math, what-if scores, attendance, documents, and mail."
@@ -222,7 +222,7 @@
 		<div class="landing-nav-inner">
 			<a class="wordmark" href="/" aria-label="Grademaxxing home"
 				><img src="/grademaxxing-growth-mark.png" width="24" height="24" alt="" /><span
-					>Grade<span class="accent-word">maxxing</span> <small>Beta</small></span
+					>Grade<span class="accent-word">maxxing</span></span
 				></a
 			>
 			<div class="landing-nav-links">
@@ -394,11 +394,11 @@
 			/>
 		</section>
 		<div class="landing-footer-links">
-			<span>© 2026 Grademaxxing (Beta)</span><a href="/privacy">Privacy</a>
+			<span>© 2026 Grademaxxing</span><a href="/privacy">Privacy</a>
 		</div>
 		<p class="landing-legal">
-			StudentVUE is a registered trademark of Edupoint Educational Systems LLC. Grademaxxing (Beta)
-			is not affiliated with or endorsed by Edupoint or any school district.
+			StudentVUE is a registered trademark of Edupoint Educational Systems LLC. Grademaxxing is not
+			affiliated with or endorsed by Edupoint or any school district.
 		</p>
 	</footer>
 </div>

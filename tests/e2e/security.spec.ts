@@ -48,8 +48,8 @@ test('health and unknown-resource behavior are deterministic', async ({ request 
 	expect(health.status()).toBe(200);
 	expect(await health.json()).toEqual({
 		status: 'ok',
-		release: 'beta',
-		version: '0.2.0-beta.1'
+		release: 'stable',
+		version: '0.2.0'
 	});
 	expect(health.headers()['cache-control']).toContain('no-store');
 

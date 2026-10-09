@@ -31,7 +31,7 @@ const ACCEPTED_PROTOCOL_VERSIONS = [
 const DEFAULT_PROTOCOL_VERSION = '2025-11-25';
 
 const INSTRUCTIONS = [
-	"Grademaxxing (Beta) MCP: read-only access to one student's StudentVUE records.",
+	"Grademaxxing MCP: read-only access to one student's StudentVUE records.",
 	'Start with get_gradebook_digest for grades, then drill into get_course, project_course_grade, or calculate_gpa as needed.',
 	'Official StudentVUE values are labeled official*; everything else is a local calculation or simulation and must be presented that way.',
 	'This connector cannot send mail, change records, or modify grades. If a request needs write access, say so instead of improvising.',

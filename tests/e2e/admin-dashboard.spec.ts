@@ -130,7 +130,7 @@ test('the operations console presents sign-in, analytics, feedback, referrals an
 						kind: 'Feature idea',
 						message: 'Add a weekly grade summary',
 						pagePath: '/feedback',
-						appVersion: '0.2.0-beta.1',
+						appVersion: '0.2.0',
 						status: 'new',
 						adminNote: '',
 						adminReply: '',

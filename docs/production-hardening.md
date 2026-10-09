@@ -1,6 +1,6 @@
 # Production hardening
 
-Grademaxxing (Beta) handles private student records. Every production deployment must use HTTPS and a high-entropy session secret.
+Grademaxxing handles private student records. Every production deployment must use HTTPS and a high-entropy session secret.
 
 ## Required runtime configuration
 

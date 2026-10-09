@@ -1,6 +1,6 @@
-# School release gate
+# Release gate
 
-Do not describe a Grademaxxing (Beta) build as school-ready until this checklist passes against the exact artifact that will be deployed.
+Do not describe a Grademaxxing build as school-ready until this checklist passes against the exact artifact that will be deployed.
 
 ## Automated gate
 

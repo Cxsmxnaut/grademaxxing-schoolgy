@@ -134,7 +134,12 @@ test('initialize negotiates versions and server/discover works statelessly', asy
 		ctx
 	)) as { result: Record<string, unknown> };
 	expect(older.result.protocolVersion).toBe('2025-06-18');
-	expect(older.result.serverInfo).toMatchObject({ name: 'grademaxxing' });
+	expect(older.result.serverInfo).toMatchObject({
+		name: 'grademaxxing',
+		title: 'Grademaxxing',
+		version: '0.2.0'
+	});
+	expect(older.result.instructions).not.toContain('Beta');
 	expect(older.result.instructions).toContain('read-only');
 
 	const unknown = (await handleMcpMessage(

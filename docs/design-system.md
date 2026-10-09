@@ -2,7 +2,7 @@
 
 ## Current visual direction
 
-Grademaxxing (Beta) uses a restrained dark gradebook product style. The goal is close **interaction and information hierarchy parity** with current student-grade products, not copying another product's logos, branded graphics, wording, or proprietary source/assets.
+Grademaxxing uses a restrained dark gradebook product style. The goal is close **interaction and information hierarchy parity** with current student-grade products, not copying another product's logos, branded graphics, wording, or proprietary source/assets.
 
 The main visual references used during prior work were GradeWave-style spacing, typography hierarchy, sidebar density, loading behavior, and gradebook affordances. Preserve original Grademaxxing branding and use original visual assets.
 
@@ -56,8 +56,8 @@ Playwright tests cover accessibility, responsive layouts, sidebar/navigation beh
 
 Use screenshots and pixel diffs to catch regressions, but never commit screenshots containing a real student's information. For a change touching menus, check the closed state, open state, keyboard access, dismissal, phone layout, loading state, and error state.
 
-The public landing is implemented in `src/routes/+page.svelte`, with isolated styling in `src/lib/components/landing/landing.css` and synthetic app previews in `static/landing/images/`. It uses the integrated hills/scroll presentation and a static, responsive feature-preview grid; it does not depend on the standalone Next.js prototypes. Refresh preview assets when the app layout changes; never use a student's live records for public previews. Landing links target the existing `/login` and `/privacy` routes, while saved sessions continue to `/grades`. Focused coverage lives in `tests/e2e/landing.spec.ts` and `tests/e2e/landing-animos.spec.ts`, alongside accessibility, auth-flow, and session-persistence coverage.
+The public landing is implemented in `src/routes/+page.svelte`, with isolated styling in `src/lib/components/landing/landing.css` and synthetic app previews in `static/landing/images/`. Use the current public product name `Grademaxxing` without a release-stage suffix. It uses the integrated hills/scroll presentation and a static, responsive feature-preview grid; it does not depend on the standalone Next.js prototypes. Refresh preview assets when the app layout changes; never use a student's live records for public previews. Landing links target the existing `/login` and `/privacy` routes, while saved sessions continue to `/grades`. Focused coverage lives in `tests/e2e/landing.spec.ts` and `tests/e2e/landing-animos.spec.ts`, alongside accessibility, auth-flow, and session-persistence coverage.
 
 ## Product copy and branding
 
-Use `Grademaxxing (Beta)` consistently in user-facing text. Do not claim district or Edupoint endorsement. Keep the StudentVUE trademark notice where legally appropriate. Be cautious about making claims such as "we never store grades" unless the actual deployment, caches, logs, feedback workflow, and privacy notice support it.
+Use `Grademaxxing` consistently in user-facing text. Do not claim district or Edupoint endorsement. Keep the StudentVUE trademark notice where legally appropriate. Be cautious about making claims such as "we never store grades" unless the actual deployment, caches, logs, feedback workflow, and privacy notice support it.
