@@ -75,6 +75,26 @@ test('FAQ works with a keyboard and its privacy link is wired', async ({ page })
 	await expect(page).toHaveURL(/\/privacy$/);
 });
 
+test('the scroll introduction follows the hero after a short scroll', async ({ page }) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	await page.goto('/');
+	const stage = page.locator('.landing-word-stage');
+	const stageTop = await stage.evaluate((element) => element.getBoundingClientRect().top + scrollY);
+	expect(stageTop).toBeLessThan(3000);
+	const viewportHeight = page.viewportSize()?.height ?? 900;
+	await page.evaluate((top) => scrollTo(0, top + 8), stageTop);
+	await expect(page.locator('.landing-word-sticky .sr-only')).toBeVisible();
+	const progress = await stage.evaluate((element, height) => {
+		const range = element.getBoundingClientRect().height - height;
+		return Math.max(
+			0,
+			Math.min(1, (height - element.getBoundingClientRect().top - height) / range)
+		);
+	}, viewportHeight);
+	expect(progress).toBeGreaterThan(0);
+	expect(progress).toBeLessThan(0.3);
+});
+
 test('reduced motion keeps the introduction readable and previews stationary', async ({ page }) => {
 	await page.emulateMedia({ reducedMotion: 'reduce' });
 	await page.goto('/');
