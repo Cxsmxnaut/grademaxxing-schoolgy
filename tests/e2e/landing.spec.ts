@@ -79,20 +79,34 @@ test('the scroll introduction follows the hero after a short scroll', async ({ p
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.goto('/');
 	const stage = page.locator('.landing-word-stage');
-	const stageTop = await stage.evaluate((element) => element.getBoundingClientRect().top + scrollY);
-	expect(stageTop).toBeLessThan(3000);
 	const viewportHeight = page.viewportSize()?.height ?? 900;
+	const { stageTop, heroBottom } = await page.evaluate(() => {
+		const stage = document.querySelector('.landing-word-stage')!;
+		const hero = document.querySelector('.landing-hero')!;
+		return {
+			stageTop: stage.getBoundingClientRect().top + scrollY,
+			heroBottom: hero.getBoundingClientRect().bottom + scrollY
+		};
+	});
+	expect(stageTop).toBeLessThan(3000);
+	const heroOverlap = heroBottom - stageTop;
+	expect(heroOverlap).toBeGreaterThan(viewportHeight * 0.45);
+	expect(heroOverlap).toBeLessThan(viewportHeight * 0.55);
 	await page.evaluate((top) => scrollTo(0, top + 8), stageTop);
 	await expect(page.locator('.landing-word-sticky .sr-only')).toBeVisible();
-	const progress = await stage.evaluate((element, height) => {
+	const { progress, range } = await stage.evaluate((element, height) => {
 		const range = element.getBoundingClientRect().height - height;
-		return Math.max(
-			0,
-			Math.min(1, (height - element.getBoundingClientRect().top - height) / range)
-		);
+		return {
+			range,
+			progress: Math.max(
+				0,
+				Math.min(1, (height - element.getBoundingClientRect().top - height) / range)
+			)
+		};
 	}, viewportHeight);
+	expect(range).toBeLessThan(viewportHeight * 0.06);
 	expect(progress).toBeGreaterThan(0);
-	expect(progress).toBeLessThan(0.3);
+	expect(progress).toBeLessThan(0.4);
 });
 
 test('reduced motion keeps the introduction readable and previews stationary', async ({ page }) => {
