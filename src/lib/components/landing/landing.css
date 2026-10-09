@@ -194,8 +194,7 @@
 	pointer-events: none;
 }
 .landing-word-stage {
-	height: 105vh;
-	margin-top: -50vh;
+	height: 140vh;
 }
 .landing-word-sticky {
 	position: sticky;
@@ -515,7 +514,6 @@
 	}
 	.landing-word-stage {
 		height: auto;
-		margin-top: 0;
 	}
 	.landing-word-sticky {
 		position: static;

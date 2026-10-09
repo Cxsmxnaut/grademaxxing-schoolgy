@@ -89,9 +89,8 @@ test('the scroll introduction follows the hero after a short scroll', async ({ p
 		};
 	});
 	expect(stageTop).toBeLessThan(3000);
-	const heroOverlap = heroBottom - stageTop;
-	expect(heroOverlap).toBeGreaterThan(viewportHeight * 0.45);
-	expect(heroOverlap).toBeLessThan(viewportHeight * 0.55);
+	// The intro follows the hero immediately but must never overlap it.
+	expect(Math.abs(stageTop - heroBottom)).toBeLessThan(2);
 	await page.evaluate((top) => scrollTo(0, top + 8), stageTop);
 	await expect(page.locator('.landing-word-sticky .sr-only')).toBeVisible();
 	const { progress, range } = await stage.evaluate((element, height) => {
@@ -104,7 +103,8 @@ test('the scroll introduction follows the hero after a short scroll', async ({ p
 			)
 		};
 	}, viewportHeight);
-	expect(range).toBeLessThan(viewportHeight * 0.06);
+	expect(range).toBeGreaterThan(viewportHeight * 0.35);
+	expect(range).toBeLessThan(viewportHeight * 0.45);
 	expect(progress).toBeGreaterThan(0);
 	expect(progress).toBeLessThan(0.4);
 });
