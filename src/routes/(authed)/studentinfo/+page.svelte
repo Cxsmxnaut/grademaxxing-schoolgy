@@ -87,13 +87,21 @@
 		return date.getHours() * 60 + date.getMinutes();
 	});
 	const isSchoolDay = $derived(
-		nowMinutes >= schoolDayStart && nowMinutes <= schoolDayEnd && new Date(now).getDay() >= 1
+		nowMinutes >= schoolDayStart &&
+			nowMinutes <= schoolDayEnd &&
+			new Date(now).getDay() >= 1 &&
+			new Date(now).getDay() <= 5
 	);
 
 	function toMinutes(time: unknown) {
 		if (typeof time !== 'string') return null;
-		const match = time.match(/^(\d{1,2}):(\d{2})/);
-		return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+		const match = time.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i);
+		if (!match) return null;
+		let hours = Number(match[1]);
+		const minutes = Number(match[2]);
+		if (minutes > 59 || hours > (match[3] ? 12 : 23) || (match[3] && hours < 1)) return null;
+		if (match[3]) hours = (hours % 12) + (match[3].toUpperCase() === 'PM' ? 12 : 0);
+		return hours * 60 + minutes;
 	}
 
 	const upcomingClasses = $derived.by(() => {

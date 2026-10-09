@@ -244,6 +244,17 @@ test('mail behaves like an inbox and safely opens message links and attachments'
 
 test('record pages retain their layout and controls on a phone viewport', async ({ page }) => {
 	await page.setViewportSize({ width: 390, height: 844 });
+	const longLink = `https://example.edu/${'a'.repeat(180)}`;
+	await page.route('**/api/studentvue/message?*', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				...message,
+				_MessageText: `<p><a href="${longLink}">${longLink}</a></p>`
+			})
+		})
+	);
 	await page.goto('/documents');
 	await expect(page.getByRole('navigation', { name: 'Mobile navigation' })).toBeVisible();
 	await expect(page.getByTestId('document-row').filter({ visible: true })).toHaveCount(2);
@@ -277,6 +288,14 @@ test('record pages retain their layout and controls on a phone viewport', async 
 	}
 	await page.getByTestId('mail-message').click();
 	await expect(page.getByRole('dialog')).toBeVisible();
+	const messageBody = page
+		.getByRole('dialog')
+		.frameLocator('iframe[title="Message Content"]')
+		.locator('body');
+	await expect(messageBody.getByRole('link', { name: longLink })).toBeVisible();
+	expect(
+		await messageBody.evaluate((body) => body.scrollWidth - body.clientWidth)
+	).toBeLessThanOrEqual(1);
 	if (process.env.MAIL_VISUAL_CAPTURE) {
 		await page.waitForTimeout(350);
 		await page.screenshot({ path: '/tmp/grademaxxing-mail-phone.png' });

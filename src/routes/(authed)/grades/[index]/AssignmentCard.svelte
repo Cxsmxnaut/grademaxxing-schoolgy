@@ -355,6 +355,8 @@
 				<div class="flex w-full items-center justify-end gap-[0.375rem]">
 					<NumberInput
 						title="Points earned"
+						inputmode="decimal"
+						step="any"
 						class="h-[2.1875rem] w-[3.875rem] px-0 text-center font-mono text-[0.8125rem] sm:h-[1.9375rem] sm:w-[3.25rem]"
 						bind:value={pointsEarned}
 						disabled={cannotEditPoints}
@@ -363,6 +365,8 @@
 					/
 					<NumberInput
 						title="Points possible"
+						inputmode="decimal"
+						step="any"
 						class="h-[2.1875rem] w-[3.875rem] px-0 text-center font-mono text-[0.8125rem] sm:h-[1.9375rem] sm:w-[3.25rem]"
 						bind:value={pointsPossible}
 						disabled={cannotEditPoints}

@@ -270,6 +270,57 @@ test('gradebook calculator, course details, and attendance views are interactive
 	await expect(page.getByText('No records this month')).toBeVisible();
 });
 
+test('the GPA calculator preserves an official A+ selection when projections are reset', async ({
+	page
+}) => {
+	await page.route('**/api/studentvue/gradebook*', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({ xml: gradebookXml(0, 'Semester 1', '100', 'A+') })
+		})
+	);
+	await page.goto('/gpa-calculator');
+	const projectedGrade = page.getByRole('combobox', { name: 'Projected grade' });
+	await expect(projectedGrade).toHaveValue('A+');
+	await expect(projectedGrade.locator('option:checked')).toHaveText('A+ (current)');
+	await projectedGrade.selectOption('B');
+	await expect(
+		page.getByRole('region', { name: 'Estimated GPA' }).getByText('3.00').first()
+	).toBeVisible();
+	await page.getByRole('button', { name: 'Reset all' }).click();
+	await expect(projectedGrade).toHaveValue('A+');
+	await expect(
+		page.getByRole('region', { name: 'Estimated GPA' }).getByText('4.00').first()
+	).toBeVisible();
+});
+
+test('student profile preserves afternoon times and orders the current school-day classes', async ({
+	page
+}) => {
+	await page.clock.install({ time: new Date('2026-10-08T13:45:00') });
+	await page.route('**/api/studentvue/schedule*', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				date: '2026-10-08',
+				classes: [
+					{ period: '1', courseTitle: 'Morning Class', startTime: '8:30 AM', endTime: '9:20 AM' },
+					{ period: '2', courseTitle: 'Noon Class', startTime: '12:05 PM', endTime: '1:30 PM' },
+					{ period: '3', courseTitle: 'Afternoon Class', startTime: '1:39 PM', endTime: '3:13 PM' },
+					{ period: '4', courseTitle: 'Late Class', startTime: '15:20', endTime: '16:00' }
+				]
+			})
+		})
+	);
+	await page.goto('/studentinfo');
+	await expect(page.getByText('Afternoon Class', { exact: true })).toBeVisible();
+	await expect(page.getByText('1:39 PM – 3:13 PM', { exact: true })).toBeVisible();
+	await expect(page.getByText('3:20 PM – 4:00 PM', { exact: true })).toBeVisible();
+	await expect(page.getByText('Morning Class', { exact: true })).toHaveCount(0);
+});
+
 test('grade percentages keep two decimal places when StudentVUE provides them', async ({
 	page
 }) => {
@@ -436,6 +487,14 @@ test('truncated assignment percentages preserve weighted points and what-if delt
 	await expect(page.getByLabel('Hypothetical mode')).toBeEnabled();
 	await page.getByLabel('Hypothetical mode').check();
 	await row.getByRole('spinbutton', { name: 'Points earned', exact: true }).fill('39.35');
+	const earnedInput = row.getByRole('spinbutton', { name: 'Points earned', exact: true });
+	const possibleInput = row.getByRole('spinbutton', { name: 'Points possible', exact: true });
+	expect(await earnedInput.evaluate((input: HTMLInputElement) => input.validity.valid)).toBe(true);
+	await possibleInput.fill('50.5');
+	expect(await possibleInput.evaluate((input: HTMLInputElement) => input.validity.valid)).toBe(
+		true
+	);
+	await possibleInput.fill('50');
 	await expect(page.getByText('+1.00% vs actual')).toBeVisible();
 	await expect(row.getByRole('progressbar')).toHaveAttribute('aria-valuetext', '78.7%');
 	await page.getByRole('button', { name: 'Reset changes', exact: true }).click();

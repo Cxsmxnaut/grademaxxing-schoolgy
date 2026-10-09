@@ -7,6 +7,7 @@ export const srcdoc = (content: string, openNewTabInstruction: string) => `<!DOC
             html {
                 font-family: Manrope, sans-serif;
                 line-height: 1.5;
+                overflow-wrap: anywhere;
             }
 
             a {

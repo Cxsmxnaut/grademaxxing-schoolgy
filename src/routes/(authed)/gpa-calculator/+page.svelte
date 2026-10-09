@@ -28,7 +28,7 @@
 		weightBonus: number;
 		academic: boolean;
 	};
-	const gradeOptions = ['A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F'];
+	const gradeOptions = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F'];
 	let rows = $state<GpaRow[]>([]);
 	let loadedCourseKey = '';
 	let transcript = $state<TranscriptImport | undefined>();
