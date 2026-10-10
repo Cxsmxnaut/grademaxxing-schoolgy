@@ -76,8 +76,15 @@
 	let detailRequested = $state(false);
 	$effect(() => {
 		if (!needsCourseDetail || detailRequested) return;
+		const catalog = gradebookState.gradebookCatalog;
+		if (!catalog || catalog.loadingIndex === (catalog.overrideIndex ?? catalog.defaultIndex))
+			return;
 		detailRequested = true;
-		void switchReportPeriod({ forceRefresh: true, silent: true }).catch(() => undefined);
+		void switchReportPeriod({
+			overrideIndex: catalog.overrideIndex,
+			forceRefresh: true,
+			silent: true
+		}).catch(() => undefined);
 	});
 	const synergyGradePercentage = $derived.by(() => {
 		const raw = mark?._CalculatedScoreRaw?.trim();

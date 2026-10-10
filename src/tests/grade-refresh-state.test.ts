@@ -1,6 +1,10 @@
 import { acc } from '$lib/account.svelte';
 import type { ReportPeriod } from '$lib/contracts/studentvue/gradebook';
-import { saveGradebookCatalogToLocalStorage, type GradebookCatalog } from '$lib/grades/catalog';
+import {
+	getGradebookCatalogFromLocalStorage,
+	saveGradebookCatalogToLocalStorage,
+	type GradebookCatalog
+} from '$lib/grades/catalog';
 import {
 	gradebookState,
 	initializeGradebookCatalog,
@@ -202,6 +206,78 @@ test('failed fresh recovery retains saved grades and its error across consumer m
 		resetGradebookCatalog();
 		acc.studentAccount = undefined;
 		vi.restoreAllMocks();
+		vi.unstubAllGlobals();
+	}
+});
+
+test('an older in-flight refresh cannot overwrite or persist grades after a newer refresh finishes', async () => {
+	const storedValues = new Map<string, string>();
+	vi.stubGlobal('localStorage', {
+		getItem: (key: string) => storedValues.get(key) ?? null,
+		setItem: (key: string, value: string) => storedValues.set(key, value),
+		removeItem: (key: string) => storedValues.delete(key)
+	});
+	const account = new StudentAccount(
+		'portal.example.test',
+		'synthetic-race-student',
+		'',
+		'session'
+	);
+	let finishOld!: (response: Response) => void;
+	let finishNew!: (response: Response) => void;
+	const oldResponse = new Promise<Response>((resolve) => (finishOld = resolve));
+	const newResponse = new Promise<Response>((resolve) => (finishNew = resolve));
+	const request = vi
+		.spyOn(account, 'gradebookRequest')
+		.mockReturnValueOnce(oldResponse)
+		.mockReturnValueOnce(newResponse);
+	const oldXml = gradebookXml([]);
+	const newXml = oldXml.replace('Quarter 1', 'Refreshed Quarter');
+	try {
+		resetGradebookCatalog();
+		acc.studentAccount = account;
+		gradebookState.gradebookCatalog = {
+			defaultIndex: 0,
+			recordCache: [{ xml: oldXml, lastRefresh: 1, detailed: true }]
+		};
+		const older = switchReportPeriod({ fresh: true, silent: true });
+		const newer = switchReportPeriod({ fresh: true, silent: true });
+		finishNew(new Response(wrapEnvelope(newXml, Operation.Request)));
+		await newer;
+		finishOld(new Response(wrapEnvelope(oldXml, Operation.Request)));
+		await older;
+		expect(request).toHaveBeenCalledTimes(2);
+		expect(gradebookState.gradebookCatalog?.recordCache[0]?.xml).toBe(newXml);
+		expect(getGradebookCatalogFromLocalStorage()?.recordCache[0]?.xml).toBe(newXml);
+	} finally {
+		resetGradebookCatalog();
+		acc.studentAccount = undefined;
+		vi.restoreAllMocks();
+		vi.unstubAllGlobals();
+	}
+});
+
+test('saved grades from before the class identity fix are discarded for a complete refresh', () => {
+	const storedValues = new Map<string, string>();
+	vi.stubGlobal('localStorage', {
+		getItem: (key: string) => storedValues.get(key) ?? null,
+		setItem: (key: string, value: string) => storedValues.set(key, value),
+		removeItem: (key: string) => storedValues.delete(key)
+	});
+	try {
+		acc.studentAccount = new StudentAccount('portal.example.test', 'synthetic-cache-student', '');
+		saveGradebookCatalogToLocalStorage({
+			defaultIndex: 0,
+			recordCache: [{ xml: gradebookXml([]), lastRefresh: 1 }]
+		});
+		const key = [...storedValues.keys()][0]!;
+		const cache = JSON.parse(storedValues.get(key)!);
+		cache.version = 6;
+		storedValues.set(key, JSON.stringify(cache));
+		expect(getGradebookCatalogFromLocalStorage()).toBeUndefined();
+		expect(storedValues.has(key)).toBe(false);
+	} finally {
+		acc.studentAccount = undefined;
 		vi.unstubAllGlobals();
 	}
 });

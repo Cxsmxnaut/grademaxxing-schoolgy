@@ -40,7 +40,7 @@ async function seedCache(
 			localStorage.setItem(
 				'gradebook5',
 				JSON.stringify({
-					version: 6,
+					version: 7,
 					owner: `${domain}\n${username}`,
 					defaultIndex: 0,
 					overrideIndex: null,
@@ -74,6 +74,128 @@ async function expectSavedGrades(page: Page) {
 	await expect(page.getByTestId('post-login-loading')).toHaveCount(0);
 	await expect(page.getByText('StudentVUE is on the clock.', { exact: false })).toHaveCount(0);
 }
+
+function multiCourseXml(order: string[], englishScore = 84, reportPeriod = 0, detailed = true) {
+	const courses = {
+		english: { title: 'English', period: 1, letter: 'B', score: englishScore },
+		ethnic: { title: 'Ethnic Studies', period: 2, letter: 'A-', score: 91 },
+		math: { title: 'Math', period: 3, letter: 'A+', score: 100 }
+	};
+	return `<Gradebook><ReportingPeriod Index="${reportPeriod}" GradePeriod="Quarter ${reportPeriod + 1}"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1"/><ReportPeriod Index="1" GradePeriod="Quarter 2"/></ReportingPeriods><Courses>${order
+		.map((id) => {
+			const course = courses[id as keyof typeof courses];
+			return `<Course CourseID="${id}" CourseName="${course.title}" Period="${course.period}" Staff="Example Teacher" Room="101"><Marks><Mark MarkName="Quarter ${reportPeriod + 1}" CalculatedScoreRaw="${course.score}" CalculatedScoreString="${course.letter}"><Assignments>${detailed ? `<Assignment GradebookID="${id}-assignment" Measure="${course.title} work" Type="Homework" Date="9/1/2026" DueDate="9/1/2026" Point="${course.score}" PointPossible="100" Notes="" MeasureDescription=""/>` : ''}</Assignments></Mark></Marks></Course>`;
+		})
+		.join('')}</Courses></Gradebook>`;
+}
+
+async function seedCourseRecords(
+	page: Page,
+	recordCache: Array<{ xml: string; detailed: boolean; lastRefresh: number }>,
+	overrideIndex: number | null = null
+) {
+	await page.addInitScript(
+		({ recordCache, overrideIndex, username, domain }) => {
+			if (localStorage.getItem('gradebook5') !== null) return;
+			localStorage.setItem(
+				'gradebook5',
+				JSON.stringify({
+					version: 7,
+					owner: `${domain}\n${username}`,
+					defaultIndex: 0,
+					overrideIndex,
+					recordCache
+				})
+			);
+			localStorage.setItem(
+				'token',
+				JSON.stringify({ username, domain, sessionId: 'cache-session' })
+			);
+		},
+		{ recordCache, overrideIndex, username, domain }
+	);
+}
+
+test('opening a cached class during a reordered background refresh preserves its own grade and assignments', async ({
+	page
+}) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	await mockSession(page);
+	const saved = multiCourseXml(['english', 'ethnic', 'math']);
+	await seedCourseRecords(page, [
+		{ xml: saved, detailed: true, lastRefresh: Date.now() - 120 * 60_000 }
+	]);
+	const requested = gate();
+	const responseGate = gate();
+	const updated = multiCourseXml(['math', 'ethnic', 'english'], 85);
+	await page.route('**/api/studentvue/gradebook*', async (route) => {
+		requested.release();
+		await responseGate.promise;
+		await route.fulfill({ json: { xml: updated, detailed: true } });
+	});
+	await page.goto('/grades');
+	await requested.promise;
+	await expect(page.getByRole('link', { name: /English.*84%/ })).toBeVisible();
+	await page.getByRole('link', { name: /English.*84%/ }).click();
+	await expect(page.getByRole('heading', { name: 'English', exact: true })).toBeVisible();
+	await expect(page.locator('main header')).toContainText('84%');
+	responseGate.release();
+	await expect(page.getByTestId('sidebar-refresh')).toHaveAttribute('aria-busy', 'false');
+	await expect(page).toHaveURL(/\/grades\/english$/);
+	await expect(page.locator('main header')).toContainText('85%');
+	await expect(page.locator('main header')).not.toContainText('100%');
+	await expect(page.getByRole('tabpanel', { name: 'All', exact: true })).toContainText(
+		'English work'
+	);
+	await expect(page.getByRole('tabpanel', { name: 'All', exact: true })).not.toContainText(
+		'Math work'
+	);
+	await page.getByRole('link', { name: 'All courses', exact: true }).click();
+	await expect(page.getByRole('link', { name: /English.*85%/ })).toBeVisible();
+	await expect(page.getByRole('link', { name: /Math.*100%/ })).toBeVisible();
+	await expect(page.getByRole('link', { name: /Ethnic Studies.*91%/ })).toBeVisible();
+	await page.reload();
+	await expect(page.getByRole('link', { name: /English.*85%/ })).toBeVisible();
+	await expect(page.getByRole('link', { name: /Math.*100%/ })).toBeVisible();
+});
+
+test('a summary-only class in a saved non-default quarter hydrates that same quarter', async ({
+	page
+}) => {
+	await mockSession(page);
+	const selectedXml = multiCourseXml(['english'], 84, 1, false);
+	const defaultXml = multiCourseXml(['english'], 100, 0);
+	await seedCourseRecords(
+		page,
+		[
+			{ xml: defaultXml, detailed: true, lastRefresh: Date.now() },
+			{ xml: selectedXml, detailed: false, lastRefresh: Date.now() }
+		],
+		1
+	);
+	const requests: string[] = [];
+	const responseGate = gate();
+	await page.route('**/api/studentvue/gradebook*', async (route) => {
+		const period = new URL(route.request().url()).searchParams.get('reportPeriod') ?? '0';
+		requests.push(period);
+		await responseGate.promise;
+		await route.fulfill({
+			json: {
+				xml: period === '1' ? multiCourseXml(['english'], 85, 1) : defaultXml,
+				detailed: true
+			}
+		});
+	});
+	await page.goto('/grades/english');
+	await expect(page.getByRole('heading', { name: 'English', exact: true })).toBeVisible();
+	await expect(page.locator('main header')).toContainText('84%');
+	await expect.poll(() => requests.length).toBeGreaterThan(0);
+	responseGate.release();
+	await expect(page.getByTestId('sidebar-refresh')).toHaveAttribute('aria-busy', 'false');
+	await expect(page.locator('main header')).toContainText('85%');
+	await expect(page.locator('main header')).toContainText('Quarter 2');
+	expect(requests).toEqual(['1']);
+});
 
 test('a cold protected-route load uses the full-screen loader and persists the complete cache', async ({
 	page

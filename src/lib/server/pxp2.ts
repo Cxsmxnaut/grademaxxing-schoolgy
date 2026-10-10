@@ -29,9 +29,9 @@ import {
 	identifier,
 	isUuid,
 	jsonAssignment,
+	matchCourseHeaders,
 	mdyDate,
 	missingGradedAssignmentIds,
-	normalizeCourseTitle,
 	normalizeGradebookContext,
 	numericText,
 	parseGradebookAssignmentDetail,
@@ -290,22 +290,7 @@ export class Pxp2Client {
 			this.gradebookContext = undefined;
 			return this.loadGradebook(reportPeriod, summary);
 		}
-		const headerEntries = [...headers.values()];
-		const summaryHeaders = classes.map((course, index) => {
-			const courseId =
-				identifier(course.ID) || identifier(course.ClassID) || identifier(course.SectionGU);
-			const byId = headers.get(courseId);
-			if (byId) return byId;
-			// Some StudentVUE builds use one internal id in GradebookFocusClassInfo and
-			// another in the rendered header. Only use positional matching when the class
-			// counts agree and the visible titles independently match.
-			const byPosition = headerEntries[index];
-			return headers.size === classes.length &&
-				byPosition &&
-				normalizeCourseTitle(byPosition.title) === normalizeCourseTitle(text(course.Name))
-				? byPosition
-				: undefined;
-		});
+		const summaryHeaders = matchCourseHeaders(classes, headers);
 		// Do not return an incomplete summary. District markup differs, so fall back to the
 		// complete proven path unless every returned class has a matching, usable header.
 		const safeSummary =
@@ -526,8 +511,11 @@ export class Pxp2Client {
 				const portalId =
 					identifier(course.ID) || identifier(course.ClassID) || identifier(course.SectionGU);
 				const id = portalId || `course-${index + 1}`;
-				const header = summaryHeaders[index] ?? headers.get(portalId);
-				const structuredGrade = gradesByCourse.get(portalId);
+				const header = summaryHeaders[index];
+				// Details are keyed by the rendered class focus, which may differ from
+				// GradebookFocusClassInfo's ID. Reuse the verified match for every field.
+				const detailId = header?.focusId ?? header?.id ?? portalId;
+				const structuredGrade = gradesByCourse.get(detailId);
 				const headerScore = header?.score ?? '';
 				return {
 					id,
@@ -540,7 +528,7 @@ export class Pxp2Client {
 					scoreRaw: structuredGrade?.percentage || numericText(headerScore),
 					missing: header?.missing ?? '0',
 					categories: structuredGrade?.categories ?? [],
-					assignments: assignmentsByCourse.get(portalId) ?? []
+					assignments: assignmentsByCourse.get(detailId) ?? []
 				};
 			});
 			const reportingPeriods = periods.map((period, index) => ({

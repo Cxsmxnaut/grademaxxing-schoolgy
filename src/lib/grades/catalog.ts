@@ -27,8 +27,8 @@ interface GradebookCatalogLocalStorageCache {
 	owner?: string;
 }
 
-// Refetch category definitions, including explicitly non-calculating practice work.
-const gradebookCacheVersion = 6;
+// Refetch records created before course identity was verified across portal endpoints.
+const gradebookCacheVersion = 7;
 
 export interface GradebookCatalog {
 	recordCache: (undefined | GradebookRecord)[];

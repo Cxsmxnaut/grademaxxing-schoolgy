@@ -255,16 +255,25 @@ export function jsonAssignment(html: string, variable: string): unknown {
 export function extractCourseHeaders(html: string) {
 	const output = new Map<
 		string,
-		{ title: string; period: string; room: string; score: string; missing: string }
+		{
+			title: string;
+			period: string;
+			room: string;
+			score: string;
+			missing: string;
+			focusId?: string;
+		}
 	>();
 	const $ = load(html);
 	$('.gb-class-header').each((_index, header) => {
 		const details = $(header).next('.gb-class-row');
 		const classId = details.attr('data-guid')?.trim();
 		if (!classId) return;
-		const titleText = $(header).find('.course-title').first().text().replace(/\s+/g, ' ').trim();
+		const title = $(header).find('.course-title').first();
+		const titleText = title.text().replace(/\s+/g, ' ').trim();
 		const headerText = $(header).text();
 		output.set(classId, {
+			focusId: parseCourseFocus(title.attr('data-focus'))?.courseId,
 			title: titleText.replace(/^\d+:\s*/, ''),
 			period: titleText.match(/^(\d+):/)?.[1] ?? '',
 			room: headerText.match(/Room:\s*([^\n]+)/i)?.[1]?.trim() ?? '',
@@ -277,6 +286,48 @@ export function extractCourseHeaders(html: string) {
 
 export function normalizeCourseTitle(value: string) {
 	return value.replace(/\s+/g, ' ').trim().toLocaleLowerCase();
+}
+
+/** Match independent portal representations without borrowing another class's mark. */
+export function matchCourseHeaders(
+	classes: Array<Record<string, unknown>>,
+	headers: ReturnType<typeof extractCourseHeaders>
+) {
+	const entries = [...headers].map(([id, header]) => ({ id, ...header }));
+	const used = new Set<string>();
+	const matches = classes.map((course) => {
+		const id = identifier(course.ID) || identifier(course.ClassID) || identifier(course.SectionGU);
+		const header = entries.find((entry) => entry.id === id);
+		if (!header) return undefined;
+		const title = normalizeCourseTitle(text(course.Name));
+		if ((title && title !== normalizeCourseTitle(header.title)) || used.has(header.id))
+			throw new Error('StudentVUE returned inconsistent class identity. Please refresh grades.');
+		used.add(header.id);
+		return header;
+	});
+	return matches.map((matched, index) => {
+		if (matched) return matched;
+		// Endpoint IDs can differ. A unique title in both complete class lists is
+		// independent identity evidence; display position is never identity.
+		const title = normalizeCourseTitle(text(classes[index]?.Name));
+		const candidates = entries.filter((entry) => normalizeCourseTitle(entry.title) === title);
+		const uniqueClass = classes.filter(
+			(course) => normalizeCourseTitle(text(course.Name)) === title
+		);
+		if (
+			title &&
+			headers.size === classes.length &&
+			candidates.length === 1 &&
+			uniqueClass.length === 1 &&
+			!used.has(candidates[0]!.id)
+		) {
+			used.add(candidates[0]!.id);
+			return candidates[0];
+		}
+		if (headers.size > 0)
+			throw new Error('StudentVUE returned ambiguous class identity. Please refresh grades.');
+		return undefined;
+	});
 }
 
 export function tableFields(html: string) {
@@ -428,28 +479,31 @@ export function courseFocuses(html: string): CourseFocus[] {
 	const output = new Map<string, CourseFocus>();
 	const $ = load(html);
 	$('.course-title[data-focus]').each((_index, element) => {
-		const encoded = $(element).attr('data-focus');
-		if (!encoded) return;
-		try {
-			const parsed = JSON.parse(decodeHtml(encoded)) as {
-				LoadParams?: { ControlName?: unknown };
-				FocusArgs?: unknown;
-			};
-			if (
-				typeof parsed.LoadParams?.ControlName === 'string' &&
-				parsed.FocusArgs &&
-				typeof parsed.FocusArgs === 'object'
-			) {
-				const parameters = parsed.FocusArgs as Record<string, unknown>;
-				const courseId = identifier(parameters.classID);
-				if (courseId)
-					output.set(courseId, { courseId, control: parsed.LoadParams.ControlName, parameters });
-			}
-		} catch {
-			// Ignore malformed portal markup; it should not block every course.
-		}
+		const focus = parseCourseFocus($(element).attr('data-focus'));
+		if (focus) output.set(focus.courseId, focus);
 	});
 	return [...output.values()];
+}
+
+function parseCourseFocus(encoded?: string): CourseFocus | undefined {
+	if (!encoded) return undefined;
+	try {
+		const parsed = JSON.parse(decodeHtml(encoded)) as {
+			LoadParams?: { ControlName?: unknown };
+			FocusArgs?: unknown;
+		};
+		if (
+			typeof parsed.LoadParams?.ControlName !== 'string' ||
+			!parsed.FocusArgs ||
+			typeof parsed.FocusArgs !== 'object'
+		)
+			return undefined;
+		const parameters = parsed.FocusArgs as Record<string, unknown>;
+		const courseId = identifier(parameters.classID);
+		return courseId ? { courseId, control: parsed.LoadParams.ControlName, parameters } : undefined;
+	} catch {
+		return undefined;
+	}
 }
 
 export function flattenCourseItems(items: unknown[]): CourseContentItem[] {

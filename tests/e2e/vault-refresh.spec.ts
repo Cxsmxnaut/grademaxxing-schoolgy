@@ -144,7 +144,7 @@ async function seedSavedSession(
 				localStorage.setItem(
 					'gradebook5',
 					JSON.stringify({
-						version: 6,
+						version: 7,
 						owner: `${domain}\n${username}`,
 						defaultIndex: 0,
 						overrideIndex: selectedPeriod || null,
