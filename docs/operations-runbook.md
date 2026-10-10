@@ -15,9 +15,9 @@ The active public deployment is a Cloudflare Worker:
 
 ## Maintenance page
 
-The maintenance page is preserved in [`src/lib/components/MaintenancePage.svelte`](../src/lib/components/MaintenancePage.svelte). It is a reusable fallback; do not delete it when the public site is open. The root layout renders it only when the server-side `MAINTENANCE_MODE` variable is exactly `on`. Production sets this variable to `off` in `wrangler.jsonc`, so the public site shows the normal application.
+The maintenance page is preserved in [`src/lib/components/MaintenancePage.svelte`](../src/lib/components/MaintenancePage.svelte). It is a reusable fallback; do not delete it when the public site is open. The root layout renders it on affected authenticated, sign-in and import pages only when the server-side `MAINTENANCE_MODE` variable is exactly `on`. Those HTML pages return HTTP 503 with Retry-After. Public calculators, guides, demo, privacy, sitemap, robots, health and protocol/API endpoints retain normal availability; existing error statuses are preserved. Production sets this variable to `off` in `wrangler.jsonc`, so the public site shows the normal application.
 
-To use the page again for a planned maintenance window, change `MAINTENANCE_MODE` to `on` in `wrangler.jsonc`, deploy the Worker, and verify the public page. Set it back to `off` and deploy again to reopen the site. The health endpoint remains available in either mode, so check the homepage itself when verifying the switch. The maintenance page was previously enabled by a permanent `grademaxxing.app` hostname check; that check was removed because it kept production offline after the merge.
+To use the page again for a planned maintenance window, change `MAINTENANCE_MODE` to `on` in `wrangler.jsonc`, deploy the Worker, and verify `/login` returns the maintenance message with HTTP 503 while a public calculator still returns 200. Set it back to `off` and deploy again to reopen the site. The health endpoint remains available in either mode, so check an affected app page as well as a public tool when verifying the switch. The maintenance page was previously enabled by a permanent `grademaxxing.app` hostname check; that check was removed because it kept production offline after the merge.
 
 ## Common commands
 
@@ -45,10 +45,10 @@ The health endpoint should return a small non-sensitive JSON object and HTTP 200
 1. Review `git status`; do not accidentally deploy or commit unrelated user work.
 2. Run `npm run check`, `npm test`, and relevant Playwright suites. For platform-sensitive releases, follow [release-checklist.md](release-checklist.md).
 3. Confirm Cloudflare has `GRADEMAXXING_SESSION_SECRET` stored as a secret. Do not use a `vars` field, a checked-in file, chat, or CI output for the value.
-4. Deploy with `npm run deploy:cloudflare`.
+4. The main branch triggers `.github/workflows/deploy-cloudflare.yml` and deploys production after its gate passes. For an explicitly requested manual deployment, use `npm run deploy:cloudflare`. Confirm the exact commit and workflow target before release.
 5. Verify the Worker-hostname health endpoint before checking the custom domain.
 6. Verify `https://grademaxxing.app/api/health`, then run a focused production-domain browser suite.
-7. Inspect response headers: successful public traffic should show Cloudflare, never an unexpected Vercel response.
+7. Inspect response headers: successful public traffic should show Cloudflare, never an unexpected Vercel response. Verify production public canonicals and indexability, alternate-host/private noindex, and 401/404 status preservation. For a public-content release, run the [SEO/GEO measurement workflow](seo-geo/measurement.md), including IndexNow only for changed, published public documents.
 
 ## Domain and DNS safeguards
 

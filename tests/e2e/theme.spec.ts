@@ -48,6 +48,8 @@ test('primary controls keep visible hover, focus, and disabled states', async ({
 	await readTheme(page);
 
 	const submit = page.getByRole('button', { name: 'Log in' });
+	await expect(submit).toBeEnabled();
+	await expect(submit).toHaveCSS('background-color', 'rgb(110, 168, 220)');
 	const initialBackground = await submit.evaluate(
 		(element) => getComputedStyle(element).backgroundColor
 	);

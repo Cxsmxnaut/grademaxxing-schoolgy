@@ -4,9 +4,13 @@
 export const prerender = false;
 
 import { env } from '$env/dynamic/private';
+import { isMaintenancePage } from '$lib/seo/indexing';
+import { isProductionHost } from '$lib/seo/public-pages';
+import type { LayoutServerLoad } from './$types';
 
-export function load() {
+export const load: LayoutServerLoad = ({ url, route }) => {
 	return {
-		maintenance: env.MAINTENANCE_MODE === 'on'
+		maintenance: env.MAINTENANCE_MODE === 'on' && isMaintenancePage(url.pathname, route.id),
+		seoIndexableHost: isProductionHost(url.hostname)
 	};
-}
+};

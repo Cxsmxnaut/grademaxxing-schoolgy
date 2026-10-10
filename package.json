@@ -35,7 +35,8 @@
 		"verify": "npm run check && npm run lint && npm run lint:admin && npm run check:admin && npm run check:dead-code && npm test",
 		"check:admin": "npm --prefix admin-console run check",
 		"generate-mocks": "bun run ./generate_mock_data.ts",
-		"lint:admin": "npm run admin:install && npm --prefix admin-console run format:check && npm --prefix admin-console run lint"
+		"lint:admin": "npm run admin:install && npm --prefix admin-console run format:check && npm --prefix admin-console run lint",
+		"indexnow": "vite-node scripts/submit-indexnow.ts"
 	},
 	"devDependencies": {
 		"@axe-core/playwright": "^4.13.0",

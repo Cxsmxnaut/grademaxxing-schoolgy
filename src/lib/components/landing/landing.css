@@ -29,6 +29,17 @@
 	color: var(--landing-muted);
 	line-height: 1.6;
 }
+.landing-root .sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
 .landing-root a {
 	text-decoration: none;
 }
@@ -159,6 +170,43 @@
 	background: rgb(110 168 220 / 5.5%);
 	font-size: 11.5px;
 	font-weight: 600;
+}
+.landing-demo-link {
+	display: block;
+	width: fit-content;
+	margin: 18px auto 0;
+	color: var(--landing-accent);
+	font-size: 15px;
+}
+.landing-tool-list {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0 32px;
+	max-width: 1000px;
+	margin: 0 auto;
+}
+.landing-tool-list > a {
+	display: block;
+	padding: 28px 0;
+	border-top: 1px solid var(--landing-border);
+	color: inherit;
+}
+.landing-tool-list h3 {
+	margin-bottom: 12px;
+}
+.landing-tool-list span {
+	display: block;
+	margin-top: 16px;
+	color: var(--landing-accent);
+}
+.landing-tools-guide {
+	max-width: 1000px;
+	margin: 24px auto 0;
+}
+.landing-tools-guide a {
+	color: var(--landing-accent);
+	text-decoration: underline;
+	text-underline-offset: 4px;
 }
 .landing-hero-preview {
 	position: relative;
@@ -469,6 +517,9 @@
 	}
 }
 @media (max-width: 767px) {
+	.landing-tool-list {
+		grid-template-columns: 1fr;
+	}
 	.landing-nav-links {
 		display: none;
 	}

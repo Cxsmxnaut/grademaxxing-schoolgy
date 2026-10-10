@@ -8,12 +8,22 @@ import { expect, test } from '@playwright/test';
 const LANDING = process.env.LANDING_URL ?? '';
 
 const NAV_ANCHORS = [
-	{ label: 'How it works', hash: '#how-it-works' },
 	{ label: 'Features', hash: '#why' },
 	{ label: 'FAQ', hash: '#faq' }
 ] as const;
 
 test.describe('animos landing — navigation', () => {
+	for (const { label, path } of [
+		{ label: 'Calculators', path: '/calculators' },
+		{ label: 'Try a demo', path: '/demo' }
+	]) {
+		test(`nav link "${label}" opens the public page`, async ({ page }) => {
+			await page.goto(`${LANDING}/`);
+			await page.getByRole('navigation').getByRole('link', { name: label, exact: true }).click();
+			await expect(page).toHaveURL(new RegExp(`${path}$`));
+			await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+		});
+	}
 	for (const { label, hash } of NAV_ANCHORS) {
 		test(`nav link "${label}" scrolls to ${hash}`, async ({ page }) => {
 			await page.goto(`${LANDING}/`);
@@ -144,7 +154,11 @@ test.describe('animos landing — showcase grid', () => {
 			for (const image of await row.locator('img').all()) {
 				await image.scrollIntoViewIfNeeded();
 				await expect(image).toHaveAttribute('alt', /.+/);
-				await expect(image).toHaveAttribute('src', /\/images\/showcase-[a-z-]+\.png$/);
+				await expect(image).toHaveAttribute('src', /\/optimized-large\/showcase-[a-z-]+\.webp$/);
+				await expect(image).toHaveAttribute(
+					'srcset',
+					/optimized-small\/.+640w,\s*.*optimized-large\/.+1200w/
+				);
 				const card = image.locator('xpath=ancestor::figure');
 				const bounds = await card.boundingBox();
 				expect(bounds!.x).toBeGreaterThanOrEqual(0);
@@ -163,10 +177,16 @@ test.describe('animos landing — showcase grid', () => {
 			).toBe(true);
 			for (const image of await row.locator('img').all()) {
 				expect(
-					await image.evaluate((el: HTMLImageElement) => {
+					await image.evaluate(async (el: HTMLImageElement) => {
+						// srcset density correction rounds naturalWidth/naturalHeight to integers.
+						// Decode the selected file without srcset to compare its true pixel ratio.
+						const source = new Image();
+						source.src = el.currentSrc;
+						await source.decode();
 						const bounds = el.getBoundingClientRect();
 						return (
-							Math.abs(bounds.width / bounds.height - el.naturalWidth / el.naturalHeight) < 0.01
+							Math.abs(bounds.width / bounds.height - source.naturalWidth / source.naturalHeight) <
+							0.01
 						);
 					})
 				).toBe(true);

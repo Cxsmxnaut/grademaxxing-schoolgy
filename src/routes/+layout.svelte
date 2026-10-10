@@ -1,22 +1,29 @@
 <script lang="ts">
 	import '@fontsource/manrope/400.css';
-	import '@fontsource/manrope/500.css';
 	import '@fontsource/manrope/600.css';
 	import '@fontsource/outfit/600.css';
 	import '@fontsource/outfit/700.css';
-	import '@fontsource/jetbrains-mono/400.css';
-	import '@fontsource/jetbrains-mono/600.css';
 	import { browser } from '$app/environment';
+	import { page } from '$app/state';
 	import MaintenancePage from '$lib/components/MaintenancePage.svelte';
-	import { Toaster } from '$lib/components/ui/sonner';
-	import { onMount } from 'svelte';
+	import { getPublicPage } from '$lib/seo/public-pages';
+	import type { Component } from 'svelte';
 	import '../app.css';
 
 	let { children, data } = $props();
+	let AppEnhancements = $state<Component | null>(null);
+	const needsAppEnhancements = $derived(!getPublicPage(page.url.pathname));
 
-	onMount(() => {
-		if (location.hostname === 'new.grademaxxing.app')
-			console.info('hi 👋 preprod StudentVUE grade sync is live · check 3');
+	$effect(() => {
+		if (browser && needsAppEnhancements && !AppEnhancements) {
+			void import('$lib/components/AppEnhancements.svelte')
+				.then((module) => {
+					AppEnhancements = module.default;
+				})
+				.catch(() => {
+					// An optional toast/font chunk must not interrupt the app.
+				});
+		}
 	});
 </script>
 
@@ -25,8 +32,8 @@
 {#if data.maintenance}
 	<MaintenancePage />
 {:else}
-	{#if browser}
-		<Toaster />
+	{#if browser && needsAppEnhancements && AppEnhancements}
+		<AppEnhancements />
 	{/if}
 
 	{@render children()}

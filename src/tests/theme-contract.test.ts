@@ -3,7 +3,13 @@ import { expect, test } from 'vitest';
 
 const themeCss = readFileSync(new URL('../app.css', import.meta.url), 'utf8');
 const rootBlock = themeCss.match(/:root\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
-const tailwindBlock = themeCss.match(/@theme inline\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
+const utilityCss = readFileSync(new URL('../app-utilities.css', import.meta.url), 'utf8');
+const tailwindBlock = utilityCss.match(/@theme inline\s*\{([\s\S]*?)\n\}/)?.[1] ?? '';
+
+test('public base styles do not import the authenticated utility stylesheet', () => {
+	expect(themeCss).not.toContain("@import 'tailwindcss'");
+	expect(utilityCss).toContain("@import 'tailwindcss'");
+});
 
 const semanticTokens = [
 	'background',

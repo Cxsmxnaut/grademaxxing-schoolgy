@@ -1,7 +1,15 @@
+import { env } from '$env/dynamic/private';
+import { isMaintenancePage, needsNoindex, productionHttpsRedirect } from '$lib/seo/indexing';
 import { adminConsoleCsp } from '$lib/server/admin/csp';
 import { wellKnownResponse } from '$lib/server/mcp/metadata';
 import { appendServerTiming } from '$lib/server/request-timing';
-import { error, type Handle, type HandleServerError, type RequestEvent } from '@sveltejs/kit';
+import {
+	error,
+	isHttpError,
+	type Handle,
+	type HandleServerError,
+	type RequestEvent
+} from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 
 const MAX_API_BODY_BYTES = 32 * 1024;
@@ -14,44 +22,83 @@ const adminAppBasePath = '/admin-app';
 export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.requestId = randomUUID();
 	const startedAt = performance.now();
-	if (
+	let response: Response | undefined;
+	const httpsLocation = productionHttpsRedirect(
+		event.url,
+		event.request.headers.get('x-forwarded-proto')
+	);
+	if (httpsLocation) {
+		response = new Response(null, { status: 308, headers: { Location: httpsLocation } });
+	} else if (
 		event.url.pathname === '/admin' ||
 		(event.url.hostname === 'admin.grademaxxing.app' && event.url.pathname === '/')
 	) {
-		return Response.redirect(new URL(`${adminAppBasePath}/`, event.url), 302);
+		response = new Response(null, {
+			status: 302,
+			headers: { Location: new URL(`${adminAppBasePath}/`, event.url).href }
+		});
 	}
 
 	// MCP OAuth discovery documents are answered before application routing so
 	// ChatGPT and Claude can find the authorization server on every adapter.
-	const wellKnown = wellKnownResponse(event.url);
-	if (wellKnown) return wellKnown;
+	response ??= wellKnownResponse(event.url);
 
-	// Public registration and bearer-token MCP endpoints use no ambient cookies.
-	// The credential/consent form at /mcp/authorize still requires this origin.
-	if (unsafeMethods.has(event.request.method) && !crossOriginMcpEndpoints.has(event.url.pathname)) {
-		const contentType = event.request.headers.get('content-type')?.split(';', 1)[0]?.trim();
-		const isForm = [
-			'application/x-www-form-urlencoded',
-			'multipart/form-data',
-			'text/plain'
-		].includes(contentType ?? '');
-		const origin = event.request.headers.get('origin');
-		if (
-			event.request.headers.get('sec-fetch-site') === 'cross-site' ||
-			(origin && !sameRequestOrigin(origin, event.request, event.url)) ||
-			(isForm && !origin)
-		) {
-			throw error(403, 'Cross-site requests are not allowed.');
+	if (!response) {
+		try {
+			// Public registration and bearer-token MCP endpoints use no ambient cookies.
+			// The credential/consent form at /mcp/authorize still requires this origin.
+			if (
+				unsafeMethods.has(event.request.method) &&
+				!crossOriginMcpEndpoints.has(event.url.pathname)
+			) {
+				const contentType = event.request.headers.get('content-type')?.split(';', 1)[0]?.trim();
+				const isForm = [
+					'application/x-www-form-urlencoded',
+					'multipart/form-data',
+					'text/plain'
+				].includes(contentType ?? '');
+				const origin = event.request.headers.get('origin');
+				if (
+					event.request.headers.get('sec-fetch-site') === 'cross-site' ||
+					(origin && !sameRequestOrigin(origin, event.request, event.url)) ||
+					(isForm && !origin)
+				) {
+					throw error(403, 'Cross-site requests are not allowed.');
+				}
+			}
+
+			if (event.url.pathname.startsWith('/api/')) {
+				guardApiRequest(event.request, event.url);
+			}
+		} catch (cause) {
+			if (!isHttpError(cause)) throw cause;
+			// Guard errors also pass through security and indexing headers. Keep the
+			// original HTTP status and avoid reflecting request inputs in the body.
+			response = new Response(JSON.stringify(cause.body), {
+				status: cause.status,
+				headers: { 'Content-Type': 'application/json; charset=utf-8' }
+			});
 		}
 	}
 
-	if (event.url.pathname.startsWith('/api/')) {
-		guardApiRequest(event.request, event.url);
-	}
-
-	const response = wantsAdminAppShell(event.url.pathname)
+	response ??= wantsAdminAppShell(event.url.pathname)
 		? await adminAppShell(event)
 		: await resolve(event);
+	if (
+		env.MAINTENANCE_MODE === 'on' &&
+		isMaintenancePage(event.url.pathname, event.route?.id) &&
+		response.status === 200 &&
+		response.headers.get('content-type')?.includes('text/html')
+	) {
+		// The layout renders the maintenance message; the HTTP status must agree.
+		// Public calculators, guides, sitemap, robots and protocol/API endpoints
+		// retain their normal availability and any real 4xx/5xx stays unchanged.
+		response = new Response(response.body, {
+			status: 503,
+			headers: response.headers
+		});
+	}
+
 	const durationMs = performance.now() - startedAt;
 	response.headers.set('X-Request-ID', event.locals.requestId);
 	appendServerTiming(response.headers, `app;dur=${durationMs.toFixed(1)}`);
@@ -65,6 +112,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 		'Permissions-Policy',
 		'camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()'
 	);
+	if (
+		event.isDataRequest ||
+		needsNoindex(event.url, response.status, response.headers.get('content-type'))
+	) {
+		response.headers.set('X-Robots-Tag', 'noindex');
+	}
 
 	const forwardedProtocol = event.request.headers
 		.get('x-forwarded-proto')
@@ -77,7 +130,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	) {
 		response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
 	}
-	if (event.url.pathname.startsWith('/api/')) {
+	if (event.isDataRequest || event.url.pathname.startsWith('/api/')) {
 		response.headers.set('Cache-Control', 'private, no-store, max-age=0');
 		response.headers.set('Pragma', 'no-cache');
 	} else if (response.headers.get('content-type')?.includes('text/html')) {

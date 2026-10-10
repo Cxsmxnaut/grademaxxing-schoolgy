@@ -15,7 +15,7 @@ The main visual references used during prior work were GradeWave-style spacing, 
 - Technical labels and compact metadata: JetBrains Mono.
 - Icons: Lucide Svelte.
 
-Use the existing semantic tokens and Tailwind aliases. Hard-coded colors are appropriate only for a genuinely local illustration/effect that cannot be represented semantically.
+Use the existing semantic tokens. Private app pages use Tailwind aliases from `src/app-utilities.css`; anonymous public pages use scoped semantic CSS and avoid that app stylesheet. Hard-coded colors are appropriate only for a genuinely local illustration/effect that cannot be represented semantically.
 
 ## Corner radius system
 
@@ -56,7 +56,7 @@ Playwright tests cover accessibility, responsive layouts, sidebar/navigation beh
 
 Use screenshots and pixel diffs to catch regressions, but never commit screenshots containing a real student's information. For a change touching menus, check the closed state, open state, keyboard access, dismissal, phone layout, loading state, and error state.
 
-The public landing is implemented in `src/routes/+page.svelte`, with isolated styling in `src/lib/components/landing/landing.css` and synthetic app previews in `static/landing/images/`. Use the current public product name `Grademaxxing` without a release-stage suffix. It uses the integrated hills/scroll presentation and a static, responsive feature-preview grid; it does not depend on the standalone Next.js prototypes. Refresh preview assets when the app layout changes; never use a student's live records for public previews. Landing links target the existing `/login` and `/privacy` routes, while saved sessions continue to `/grades`. Focused coverage lives in `tests/e2e/landing.spec.ts` and `tests/e2e/landing-animos.spec.ts`, alongside accessibility, auth-flow, and session-persistence coverage.
+The public landing is implemented in `src/routes/+page.svelte`, with isolated styling in `src/lib/components/landing/landing.css` and synthetic app previews in `static/landing/images/`. Use the current public product name `Grademaxxing` without a release-stage suffix. It uses the integrated hills/scroll presentation and a static, responsive feature-preview grid; it does not depend on the standalone Next.js prototypes. Refresh preview assets when the app layout changes; never use a student's live records for public previews. Landing links connect to public calculators, the fictional demo, guides, methodology, `/login` and `/privacy`, while saved sessions continue to `/grades`. New public pages inherit `(public)/+layout.svelte`, `PublicArticle` and `PageSection`; calculators use their shared scoped form styles. Use one PageMeta per public route. Small/large WebP variants provide responsive preview assets; original synthetic PNGs remain as source assets. Focused coverage lives in `tests/e2e/landing.spec.ts` and `tests/e2e/landing-animos.spec.ts`, alongside accessibility, auth-flow, and session-persistence coverage.
 
 ## Product copy and branding
 

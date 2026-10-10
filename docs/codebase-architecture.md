@@ -25,7 +25,9 @@ District StudentVUE portal
 
 ### Client and routes
 
-`src/routes/+page.svelte` is the public landing page. `login` and `privacy` are public routes. Legacy onboarding URLs redirect to `login`. Routes beneath `src/routes/(authed)` share the application shell and sidebar.
+`src/routes/+page.svelte` is the public landing page. The `(public)` route group provides anonymous calculators, a fictional demo, guides, methodology, about, compatibility and privacy pages. `/login` is a noindex connection route; legacy onboarding URLs redirect there. Routes beneath `src/routes/(authed)` share the application shell and sidebar.
+
+`src/lib/seo/public-pages.ts` owns the 16 indexable paths, production canonical URLs, metadata, social card paths and structured data. Every public page owns one `PageMeta` instance. The sitemap uses this registry; private pages, APIs, admin, error responses and alternate hosts carry noindex headers. Public tools and guides remain available during maintenance, while affected app HTML returns 503 with Retry-After. Authentication continues to protect records independently of crawler rules.
 
 Key authenticated routes:
 
@@ -46,7 +48,8 @@ Key authenticated routes:
 
 - `gradebook.ts` and `course.ts` normalize grade data.
 - `assignments.ts` is the stable assignment-domain facade; `assignments/` owns contracts, calculations, and portal parsing.
-- `gpa.ts` and `rank.ts` own GPA/rank calculations.
+- `gpa.ts` and `rank.ts` own connected-app GPA/rank calculations.
+- `public-calculators.ts` owns independent anonymous arithmetic: final targets, assignment impact, points-based category targets, weighted percentages and configurable GPA. It imports no account, portal or storage code. Public assumptions do not change connected-app policy.
 - `refresh.ts` and `seenAssignments.ts` manage refresh snapshots and newly seen records.
 - `catalog.ts` is the persisted gradebook catalog; `catalog.svelte.ts` is its reactive client facade.
 - `course-name.ts` owns StudentVUE course-title normalization used by presentation layers.
@@ -69,6 +72,8 @@ Cross-cutting browser utilities are grouped by responsibility instead of a catch
 
 `/api/health` is the public deployment health check and must stay free of student data.
 
+`POST /api/public-analytics` accepts only an enumerated event, an exact public manifest path and a bounded referral channel. It writes aggregate Analytics Engine counters without calculator inputs, student details, cookies or persistent identifiers. The browser respects Do Not Track and Global Privacy Control. See [SEO/GEO measurement](seo-geo/measurement.md) for interpretation and account-level verification.
+
 ### Server integration
 
 - `src/lib/server/pxp2.ts`: stateful PXP2 portal client and login/resume/resource orchestration.
@@ -83,7 +88,9 @@ The StudentVUE portal maintains gradebook period/class focus in its own upstream
 
 ## Styling and components
 
-`src/app.css` is the canonical semantic-token file for the dark interface, typography, status colors, surfaces, sidebar tokens, focus rings, and charts. Fonts are Instrument Sans (body), Space Grotesk (headings), and IBM Plex Mono (technical labels). Prefer semantic Tailwind tokens such as `bg-background`, `text-foreground`, and `bg-sidebar` over hard-coded colors. The public landing page's isolated visual system lives in `src/lib/components/landing/landing.css`.
+`src/app.css` is the canonical semantic-token file for the dark interface, typography, status colors, surfaces, sidebar tokens, focus rings, and charts. Fonts are Manrope (body), Outfit (headings), and JetBrains Mono (technical labels). Prefer semantic Tailwind tokens such as `bg-background`, `text-foreground`, and `bg-sidebar` over hard-coded colors. The public landing page's isolated visual system lives in `src/lib/components/landing/landing.css`.
+
+`src/app-utilities.css` contains Tailwind aliases and generated utilities; authenticated layout and AuthShell import it. Anonymous public pages use scoped CSS and the shared base tokens, so their first load avoids the app utility stylesheet. `AppEnhancements.svelte` loads app-only font weights and toast UI after private navigation. The homepage does not import account bootstrap; the authenticated layout owns it. Responsive synthetic WebP assets in `static/landing/optimized-{small,large}` replace full-size preview PNG downloads.
 
 Reusable primitives live in `src/lib/components/ui`. Keep only primitives that have active application consumers. Product-level shared pieces live in `src/lib/components`, notably `AppPageShell`, `AppPageHeader`, `LoadingBanner`, `RecordLoadFailure`, and `RankEmblem`.
 
