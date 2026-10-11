@@ -1,5 +1,5 @@
 import { protectedStudentUsageKey } from '$lib/server/analytics/usage';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 
 type D1Statement = {
 	bind: (...values: unknown[]) => D1Statement;
@@ -48,14 +48,12 @@ export function validReferralIdentity(firstName: string, lastName: string, email
 	);
 }
 
-function createCode(firstName: string) {
-	const prefix =
-		firstName
-			.toLowerCase()
-			.normalize('NFKD')
-			.replace(/[^a-z0-9]/g, '')
-			.slice(0, 10) || 'share';
-	return `${prefix}-${randomBytes(4).toString('hex')}`;
+function nameCode(name: string) {
+	return name
+		.toLowerCase()
+		.normalize('NFKD')
+		.replace(/[^a-z0-9]/g, '')
+		.slice(0, 80);
 }
 
 export async function createReferralPartner(
@@ -66,21 +64,30 @@ export async function createReferralPartner(
 	if (!db) return undefined;
 	const record = {
 		id: randomUUID(),
-		code: createCode(identity.firstName),
 		firstName: identity.firstName.trim(),
 		lastName: identity.lastName.trim(),
 		email: normalizedEmail(identity.email),
 		createdAt: Date.now()
 	};
-	await db
-		.prepare(
-			`INSERT INTO referral_partners
-			 (id, code, first_name, last_name, email, created_at, active)
-			 VALUES (?, ?, ?, ?, ?, ?, 1)`
-		)
-		.bind(record.id, record.code, record.firstName, record.lastName, record.email, record.createdAt)
-		.run();
-	return record;
+	const firstNameCode = nameCode(record.firstName) || 'share';
+	const withInitial = `${firstNameCode}${nameCode(record.lastName).charAt(0)}`;
+	for (let attempt = 0; attempt < 100; attempt++) {
+		const code =
+			attempt === 0 ? firstNameCode : attempt === 1 ? withInitial : `${withInitial}${attempt}`;
+		// The unique code constraint chooses the winner even for simultaneous creations.
+		// Email conflicts still fail, so the same partner cannot be registered twice.
+		const result = await db
+			.prepare(
+				`INSERT INTO referral_partners
+				 (id, code, first_name, last_name, email, created_at, active)
+				 VALUES (?, ?, ?, ?, ?, ?, 1)
+				 ON CONFLICT(code) DO NOTHING`
+			)
+			.bind(record.id, code, record.firstName, record.lastName, record.email, record.createdAt)
+			.run();
+		if (result.meta?.changes === 1) return { ...record, code };
+	}
+	throw new Error('No referral link is available for this name.');
 }
 
 export async function getReferralLeaderboard(platform: unknown) {
@@ -138,7 +145,8 @@ export async function recordNewStudentReferral(
 ) {
 	const db = database(platform);
 	const secret = process.env.GRADEMAXXING_ANALYTICS_HMAC_SECRET;
-	if (!db || !secret || !code || !/^[a-z0-9]+-[0-9a-f]{8}$/.test(code)) return false;
+	// Accept simple names and existing invitations until their partners are removed.
+	if (!db || !secret || !code || !/^[a-z0-9]{1,83}(?:-[0-9a-f]{8})?$/.test(code)) return false;
 	const studentKey = protectedStudentUsageKey(domain, username, secret);
 	const result = await db
 		.prepare(
