@@ -13,7 +13,9 @@ The active public deployment is a Cloudflare Worker:
 
 `wrangler.jsonc` is the source of truth for the Worker route. It requires `GRADEMAXXING_SESSION_SECRET`, keeps Cloudflare observability disabled, and uses Cloudflare's static-assets binding. Normal builds remain Node-oriented; Cloudflare builds require `DEPLOY_TARGET=cloudflare`.
 
-Pre-production uses branch `pre-prod`, Worker `grademaxxing-pre-prod`, and `wrangler.preprod.jsonc`. Its preview address is `https://dev.grademaxxing.app`; `https://new.grademaxxing.app` remains an alias. Deploy previews with `npx wrangler deploy --config wrangler.preprod.jsonc` after the normal verification and Cloudflare build checks.
+Pre-production uses branch `pre-prod`, Worker `grademaxxing-pre-prod`, and `wrangler.preprod.jsonc`. Its preview address is `https://dev.grademaxxing.app`; `https://new.grademaxxing.app` remains an alias. Every push to `pre-prod` runs [the pre-production deployment workflow](../.github/workflows/deploy-preprod.yml): dependency audit, source verification, Cloudflare build, deployment, public health checks, and landing/login browser smoke tests. It uses the existing repository `CLOUDFLARE_API_TOKEN` secret and the GitHub `Preview` environment. A newer push supersedes an in-flight pre-production run.
+
+For a manual local deployment, use `npx wrangler deploy --config wrangler.preprod.jsonc` after the normal verification and Cloudflare build checks. The production workflow remains separate and runs on pushes to `main`.
 
 ## Maintenance page
 
