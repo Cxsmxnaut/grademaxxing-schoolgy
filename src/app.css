@@ -2,6 +2,40 @@
 
 @import 'tw-animate-css';
 
+html.auth-page-transition::view-transition-old(root) {
+	animation: auth-page-out 320ms ease both;
+	mix-blend-mode: normal;
+}
+
+html.auth-page-transition::view-transition-new(root) {
+	animation: auth-page-in 320ms ease both;
+	mix-blend-mode: normal;
+}
+
+@keyframes auth-page-out {
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes auth-page-in {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	html.auth-page-transition::view-transition-old(root),
+	html.auth-page-transition::view-transition-new(root) {
+		animation: none;
+	}
+}
+
 :root {
 	color-scheme: dark;
 	--font-body: 'Manrope', system-ui, sans-serif;
