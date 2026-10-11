@@ -49,6 +49,10 @@ function referralPlatform() {
 					)
 						return { meta: { changes: 1 } };
 					if (query.includes('INSERT INTO referral_partners')) {
+						if (partners.some((partner) => partner.code === values[1]))
+							return { meta: { changes: 0 } };
+						if (partners.some((partner) => partner.email === values[4]))
+							throw new Error("UNIQUE constraint failed: index 'referral_partners_email'");
 						partners.push({
 							id: String(values[0]),
 							code: String(values[1]),
@@ -111,7 +115,7 @@ describe('referrals', () => {
 			lastName: 'Lovelace',
 			email: 'ADA@example.com'
 		});
-		expect(partner?.code).toMatch(/^ada-[0-9a-f]{8}$/);
+		expect(partner?.code).toBe('ada');
 
 		const domain = 'district.example.edu';
 		const username = 'new-student';
@@ -127,6 +131,58 @@ describe('referrals', () => {
 		expect(attributions).toHaveLength(1);
 		const leaderboard = await getReferralLeaderboard(platform);
 		expect(leaderboard?.[0]).toMatchObject({ firstName: 'Ada', referrals: 1 });
+	});
+
+	test('uses first names, then last initials, and numbers for repeated collisions', async () => {
+		const { platform } = referralPlatform();
+		const codes: string[] = [];
+		for (const [index, lastName] of ['Lovelace', 'Lane', 'Lewis', 'Lee', 'Byron'].entries()) {
+			const partner = await createReferralPartner(platform, {
+				firstName: 'Ada',
+				lastName,
+				email: `ada${index}@example.com`
+			});
+			codes.push(partner!.code);
+		}
+		expect(codes).toEqual(['ada', 'adal', 'adal2', 'adal3', 'adab']);
+	});
+
+	test('normalizes case, accents, spaces, and punctuation into readable links', async () => {
+		const { platform } = referralPlatform();
+		const first = await createReferralPartner(platform, {
+			firstName: ' Éléonore ',
+			lastName: "O'Connor",
+			email: 'first@example.com'
+		});
+		const second = await createReferralPartner(platform, {
+			firstName: 'ELEONORE',
+			lastName: "O'Neil",
+			email: 'second@example.com'
+		});
+		expect(first?.code).toBe('eleonore');
+		expect(second?.code).toBe('eleonoreo');
+	});
+
+	test('allocates distinct codes for concurrent requests and rejects duplicate emails', async () => {
+		const { platform } = referralPlatform();
+		const partners = await Promise.all(
+			['first', 'second', 'third'].map((name) =>
+				createReferralPartner(platform, {
+					firstName: 'Maya',
+					lastName: 'Chen',
+					email: `${name}@example.com`
+				})
+			)
+		);
+		expect(partners.map((partner) => partner!.code)).toEqual(['maya', 'mayac', 'mayac2']);
+		await expect(
+			createReferralPartner(platform, {
+				firstName: 'Another',
+				lastName: 'Person',
+				email: 'FIRST@example.com'
+			})
+		).rejects.toThrow('UNIQUE constraint');
+		expect(await getReferralLeaderboard(platform)).toHaveLength(3);
 	});
 
 	test('does not credit a referrer when an existing protected user later opens the link', async () => {
