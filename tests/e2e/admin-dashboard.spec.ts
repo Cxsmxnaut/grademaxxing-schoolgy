@@ -163,7 +163,7 @@ test('the operations console presents sign-in, analytics, feedback, referrals an
 	}> = [
 		{
 			id: 'partner-1',
-			code: 'maya-a1b2c3d4',
+			code: 'maya',
 			firstName: 'Maya',
 			lastName: 'Chen',
 			email: 'maya@example.com',
@@ -183,7 +183,7 @@ test('the operations console presents sign-in, analytics, feedback, referrals an
 			};
 			const partner = {
 				id: 'partner-2',
-				code: 'jordan-e5f6a7b8',
+				code: 'jordan',
 				...input,
 				createdAt: '2026-09-20T09:00:00.000Z',
 				active: true,
@@ -299,12 +299,14 @@ test('the operations console presents sign-in, analytics, feedback, referrals an
 	await page.getByRole('link', { name: 'Referrals' }).click();
 	await expect(page.getByRole('heading', { name: 'Referral leaderboard' })).toBeVisible();
 	await expect(page.getByText('Maya Chen')).toBeVisible();
+	await expect(page.getByText('/refer/maya', { exact: true })).toBeVisible();
 	await expect(page.getByRole('cell', { name: '5' })).toBeVisible();
 	await page.getByLabel('First name').fill('Jordan');
 	await page.getByLabel('Last name').fill('Rivera');
 	await page.getByLabel('Email address').fill('jordan@example.com');
 	await page.getByRole('button', { name: 'Generate link' }).click();
 	await expect(page.getByText('Jordan Rivera')).toBeVisible();
+	await expect(page.getByText('/refer/jordan', { exact: true })).toBeVisible();
 	await expect(page.getByRole('status')).toContainText("Jordan's referral link is ready");
 	if (process.env.ADMIN_VISUAL_CAPTURE)
 		await page.screenshot({
