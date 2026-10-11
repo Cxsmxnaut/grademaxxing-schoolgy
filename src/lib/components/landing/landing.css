@@ -194,21 +194,21 @@
 	pointer-events: none;
 }
 .landing-word-stage {
-	height: 180vh;
+	min-height: 120vh;
 }
 .landing-word-sticky {
 	position: sticky;
-	top: 0;
+	top: 20vh;
 	display: flex;
-	min-height: 100vh;
+	min-height: 60vh;
 	align-items: center;
 	justify-content: center;
-	padding: 24px;
+	padding: 88px 24px;
 }
 .landing-word-sticky p {
-	max-width: 1000px;
+	max-width: 1100px;
 	text-align: center;
-	font-size: clamp(1.6rem, 3.4vw, 2.6rem);
+	font-size: clamp(1.8rem, 4vw, 3rem);
 	font-weight: 600;
 	line-height: 1.32;
 	letter-spacing: -0.8px;
@@ -513,11 +513,10 @@
 		transition: none !important;
 	}
 	.landing-word-stage {
-		height: auto;
+		min-height: 0;
 	}
 	.landing-word-sticky {
 		position: static;
-		min-height: 50vh;
 	}
 	.landing-word-sticky span {
 		opacity: 1 !important;

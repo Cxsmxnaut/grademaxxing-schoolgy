@@ -3,6 +3,7 @@
 	import { acc, loadStudentAccount } from '$lib/account.svelte';
 	import { brand } from '$lib/brand';
 	import '$lib/components/landing/landing.css';
+	import SchoolMarquee from '$lib/components/landing/SchoolMarquee.svelte';
 	import { LocalStorageKey } from '$lib/storage/keys';
 	import CalculatorIcon from '@lucide/svelte/icons/calculator';
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
@@ -16,6 +17,7 @@
 	const introduction = `${brand} turns a final percentage into the information you actually need — grade trends, category math, and what-if scores, so you always know what to do next.`;
 	let hero: HTMLElement;
 	let wordStage: HTMLDivElement;
+	let wordSticky: HTMLDivElement;
 	let heroProgress = $state(0);
 	let wordProgress = $state(1);
 
@@ -32,11 +34,13 @@
 			heroProgress = motion.matches
 				? 0
 				: Math.max(0, Math.min(1, -rect.top / Math.max(1, rect.height - innerHeight * 0.2)));
-			const range = wordStage.offsetHeight - innerHeight;
+			const wordTop = wordStage.getBoundingClientRect().top - innerHeight * 0.2;
+			const wordTravel = wordStage.offsetHeight - wordSticky.offsetHeight;
+			const wordLead = innerHeight * 0.35;
 			wordProgress =
-				motion.matches || range <= 0
+				motion.matches || wordTravel <= 0
 					? 1
-					: Math.max(0, Math.min(1, -wordStage.getBoundingClientRect().top / range));
+					: Math.max(0, Math.min(1, (wordLead - wordTop) / (wordTravel + wordLead)));
 		};
 		const schedule = () => {
 			if (!frame) frame = requestAnimationFrame(measure);
@@ -261,8 +265,9 @@
 				/>
 			</div>
 		</section>
+		<SchoolMarquee />
 		<div bind:this={wordStage} class="landing-word-stage">
-			<div class="landing-word-sticky">
+			<div bind:this={wordSticky} class="landing-word-sticky">
 				<p>
 					<span class="sr-only">{introduction}</span>
 					{#each introduction.split(' ') as word, i (i)}

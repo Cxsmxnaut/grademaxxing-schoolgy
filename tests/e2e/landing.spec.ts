@@ -39,6 +39,7 @@ for (const width of [320, 390, 768, 1440]) {
 		page
 	}) => {
 		await page.setViewportSize({ width, height: 844 });
+		await page.emulateMedia({ reducedMotion: 'reduce' });
 		const errors: string[] = [];
 		page.on('pageerror', (error) => errors.push(error.message));
 		page.on('console', (message) => {
@@ -93,7 +94,75 @@ test('reduced motion keeps the introduction readable and previews stationary', a
 		await page.locator('.landing-word-sticky .sr-only').textContent()
 	);
 	await expect(page.locator('.landing-overview')).toHaveCSS('transform', 'none');
+	await expect(page.locator('.landing-word-sticky')).toHaveCSS('position', 'static');
 	await expect(page.locator('.landing-steps article').first()).toHaveCSS('position', 'static');
+	await expect(page.locator('.landing-schools-track')).toHaveClass(/landing-schools-static/);
+	await expect(page.locator('.landing-schools .marquee')).toHaveCount(0);
+});
+
+for (const width of [390, 1440]) {
+	test(`introduction stays in place while scrolling reveals its words at ${width}px`, async ({
+		page
+	}) => {
+		await page.setViewportSize({ width, height: 900 });
+		await page.emulateMedia({ reducedMotion: 'no-preference' });
+		await page.goto('/');
+		await page.evaluate(() => document.fonts.ready);
+		const geometry = await page.locator('.landing-word-stage').evaluate((stage) => ({
+			top: stage.getBoundingClientRect().top + window.scrollY,
+			travel: stage.clientHeight - stage.firstElementChild!.clientHeight
+		}));
+		expect(geometry.travel).toBeGreaterThan(0);
+		const scrollToProgress = async (progress: number) => {
+			await page.evaluate(
+				({ top, travel, progress }) => window.scrollTo(0, top + travel * progress),
+				{ ...geometry, progress }
+			);
+		};
+		const words = page.locator('.landing-word-sticky span[aria-hidden]');
+		const revealedWords = () =>
+			words.evaluateAll(
+				(elements) => elements.filter((word) => getComputedStyle(word).opacity === '1').length
+			);
+		await scrollToProgress(0.2);
+		await expect(words.first()).toHaveCSS('opacity', '1');
+		await expect(words.last()).toHaveCSS('opacity', '0.12');
+		const initialCount = await revealedWords();
+		const paragraph = page.locator('.landing-word-sticky p');
+		const initialTop = Math.round((await paragraph.boundingBox())!.y);
+		await scrollToProgress(0.65);
+		await expect.poll(revealedWords).toBeGreaterThan(initialCount);
+		await expect.poll(async () => Math.round((await paragraph.boundingBox())!.y)).toBe(initialTop);
+		await scrollToProgress(1);
+		await expect(words.last()).toHaveCSS('opacity', '1');
+		await expect(words.last()).toHaveCSS('filter', 'blur(0px)');
+	});
+}
+
+test('school carousel pauses on hover and respects changes to motion preference', async ({
+	page
+}) => {
+	await page.emulateMedia({ reducedMotion: 'no-preference' });
+	await page.goto('/');
+	const carousel = page.getByRole('region', { name: 'Schools' });
+	await expect(carousel.getByRole('listitem')).toHaveText([
+		'Foothill High School, Pleasanton',
+		'Amador Valley High School, Pleasanton',
+		'Dublin High School, Dublin',
+		'California High School, San Ramon',
+		'Dougherty Valley High School, San Ramon',
+		'San Ramon Valley High School, Danville',
+		'Monte Vista High School, Danville'
+	]);
+	const tracks = carousel.locator('.marquee');
+	await expect(tracks.first()).toHaveCSS('animation-play-state', 'running');
+	await carousel.locator('.marquee-container').hover();
+	await expect(tracks.first()).toHaveCSS('animation-play-state', 'paused');
+	await page.mouse.move(0, 0);
+	await expect(tracks.first()).toHaveCSS('animation-play-state', 'running');
+	await page.emulateMedia({ reducedMotion: 'reduce' });
+	await expect(tracks).toHaveCount(0);
+	await expect(carousel.getByRole('button')).toHaveCount(0);
 });
 
 test('a saved session bypasses the landing for the gradebook', async ({ page }) => {
