@@ -1,4 +1,4 @@
-name: Deploy to Cloudflare
+name: Deploy production to Cloudflare
 
 on:
   push:
@@ -15,12 +15,13 @@ permissions:
 
 jobs:
   deploy:
-    name: Build and deploy Worker
+    name: Build and deploy production Worker
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: production
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    environment:
+      name: Production
+      url: https://grademaxxing.app
     steps:
       - name: Check out source
         uses: actions/checkout@v7
@@ -43,5 +44,7 @@ jobs:
       - name: Build Cloudflare Worker
         run: npm run build:cloudflare
 
-      - name: Deploy Worker
-        run: npm exec -- wrangler deploy
+      - name: Deploy production Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npm exec -- wrangler deploy --config wrangler.jsonc
