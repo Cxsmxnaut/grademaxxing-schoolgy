@@ -10,6 +10,13 @@ Read `PROJECT_CONTEXT.md` before changing this repository, then follow the linke
 - Preserve per-session serialization for operations that change StudentVUE reporting-period or class focus.
 - Keep Cloudflare observability disabled and required secrets outside source control. Do not remove the production Worker route or Vercel rollback configuration.
 
+## Deployment branches
+
+- Routine development belongs on `pre-prod`. Push explicitly with `git push origin pre-prod`; it deploys only to `dev.grademaxxing.app` and its existing preview alias.
+- `main` deploys only to production. Promote application changes to `main` only when the user explicitly requests a production release for those changes, using a separate reviewed pull request.
+- Do not publish the same development change to both branches, automatically synchronize the branches, or use `git push --all`, `--mirror`, or multiple branch refspecs. A pre-production deployment is not authorization for a production release.
+- Keep deployment workflow branch guards and explicit Wrangler config paths intact. When the user requests deployment-policy maintenance, apply only the requested policy files to `main`; do not include application changes.
+
 ## Structure
 
 - Route/UI composition: `src/routes/`

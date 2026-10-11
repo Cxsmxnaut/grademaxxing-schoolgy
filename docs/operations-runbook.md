@@ -17,6 +17,8 @@ Pre-production uses branch `pre-prod`, Worker `grademaxxing-pre-prod`, and `wran
 
 For a manual local deployment, use `npx wrangler deploy --config wrangler.preprod.jsonc` after the normal verification and Cloudflare build checks. The production workflow remains separate and runs on pushes to `main`.
 
+Both deployment jobs also check their branch explicitly, including manual workflow runs: the production job accepts only `refs/heads/main` and uses `wrangler.jsonc`; the preview job accepts only `refs/heads/pre-prod` and uses `wrangler.preprod.jsonc`. GitHub's environment deployment policies independently allow only branch `main` in `Production` and only branch `pre-prod` in `Preview`. Ordinary development pushes must target only `pre-prod`. Publishing to production requires a separately requested promotion to `main`; do not push a development commit to both branches or automatically synchronize them. GitHub associates checks with a commit SHA, so a commit deliberately present on both branches can display both branches’ checks together even though their deployments are separate.
+
 ## Maintenance page
 
 The maintenance page is preserved in [`src/lib/components/MaintenancePage.svelte`](../src/lib/components/MaintenancePage.svelte). It is a reusable fallback; do not delete it when the public site is open. The root layout renders it only when the server-side `MAINTENANCE_MODE` variable is exactly `on`. Production sets this variable to `off` in `wrangler.jsonc`, so the public site shows the normal application.
