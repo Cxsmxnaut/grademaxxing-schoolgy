@@ -175,7 +175,7 @@
 	const faqs = [
 		{
 			q: 'What is Grademaxxing?',
-			a: 'Grademaxxing is a free, read-only StudentVUE grade calculator and viewer. Explore grade trends, what-if scores, projected GPA, attendance, documents, and mail.'
+			a: 'Grademaxxing is a free, read-only StudentVUE grade calculator and viewer. You need an existing StudentVUE student account from your school district to use it. Explore grade trends, what-if scores, GPA estimates, attendance, documents, and mail.'
 		},
 		{
 			q: 'Does it work with my school?',
@@ -191,11 +191,11 @@
 		},
 		{
 			q: 'Is Grademaxxing free?',
-			a: 'Yes. Grademaxxing is free, including what-if grade calculations and GPA estimates. Available records depend on your StudentVUE portal.'
+			a: 'Yes. What-if calculations and GPA estimates are free. The provisional GPA policy uses a 4.0 base scale, plus 1 for AP/IB and 0.5 for honors courses at C or better. These assumptions are not district-confirmed transcript rules; your school’s official GPA may differ.'
 		},
 		{
 			q: 'What’s a what-if score?',
-			a: 'A what-if grade calculator estimates how an assignment or final could affect your course grade. Results depend on category weights and school rules.'
+			a: 'A what-if grade calculator estimates how an assignment or final could affect your course grade. For example, tests at 80% with 60% weight plus homework at 90% with 40% weight gives 84%. Results depend on your school’s category weights and grading rules.'
 		},
 		{
 			q: 'Does it work on my phone?',

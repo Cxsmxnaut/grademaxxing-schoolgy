@@ -6,6 +6,10 @@
 
 <svelte:head>
 	<title>Privacy - {brand}</title>
+	<meta
+		name="description"
+		content="Learn how Grademaxxing handles StudentVUE sign-in, encrypted sessions, saved credentials, local grade caches, referrals, and signing out."
+	/>
 </svelte:head>
 
 <AuthShell promo={false}>
