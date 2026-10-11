@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, pushState } from '$app/navigation';
 	import { acc, loadStudentAccount } from '$lib/account.svelte';
 	import { brand } from '$lib/brand';
 	import '$lib/components/landing/landing.css';
@@ -20,6 +20,29 @@
 	let wordSticky: HTMLDivElement;
 	let heroProgress = $state(0);
 	let wordProgress = $state(1);
+
+	function scrollToSection(event: MouseEvent) {
+		if (
+			event.defaultPrevented ||
+			event.button !== 0 ||
+			event.metaKey ||
+			event.ctrlKey ||
+			event.shiftKey ||
+			event.altKey
+		)
+			return;
+		const link = event.currentTarget as HTMLAnchorElement;
+		const target = document.getElementById(link.hash.slice(1));
+		if (!target) return;
+		event.preventDefault();
+		if (location.hash !== link.hash) pushState(link.hash, {});
+		target.setAttribute('tabindex', '-1');
+		target.focus({ preventScroll: true });
+		target.scrollIntoView({
+			behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+			block: 'start'
+		});
+	}
 
 	onMount(() => {
 		if (localStorage.getItem(LocalStorageKey.token) !== null) {
@@ -230,7 +253,10 @@
 				></a
 			>
 			<div class="landing-nav-links">
-				<a href="#how-it-works">How it works</a><a href="#why">Features</a><a href="#faq">FAQ</a>
+				<a href="#how-it-works" onclick={scrollToSection}>How it works</a><a
+					href="#why"
+					onclick={scrollToSection}>Features</a
+				><a href="#faq" onclick={scrollToSection}>FAQ</a>
 			</div>
 			<a class="landing-login" href="/login">Log in</a>
 		</div>

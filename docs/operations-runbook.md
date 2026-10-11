@@ -13,6 +13,8 @@ The active public deployment is a Cloudflare Worker:
 
 `wrangler.jsonc` is the source of truth for the Worker route. It requires `GRADEMAXXING_SESSION_SECRET`, keeps Cloudflare observability disabled, and uses Cloudflare's static-assets binding. Normal builds remain Node-oriented; Cloudflare builds require `DEPLOY_TARGET=cloudflare`.
 
+Pre-production uses branch `pre-prod`, Worker `grademaxxing-pre-prod`, and `wrangler.preprod.jsonc`. Its preview address is `https://dev.grademaxxing.app`; `https://new.grademaxxing.app` remains an alias. Deploy previews with `npx wrangler deploy --config wrangler.preprod.jsonc` after the normal verification and Cloudflare build checks.
+
 ## Maintenance page
 
 The maintenance page is preserved in [`src/lib/components/MaintenancePage.svelte`](../src/lib/components/MaintenancePage.svelte). It is a reusable fallback; do not delete it when the public site is open. The root layout renders it only when the server-side `MAINTENANCE_MODE` variable is exactly `on`. Production sets this variable to `off` in `wrangler.jsonc`, so the public site shows the normal application.

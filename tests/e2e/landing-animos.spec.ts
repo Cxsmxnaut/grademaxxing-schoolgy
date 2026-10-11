@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import pixelmatch from 'pixelmatch';
+import { PNG } from 'pngjs';
 
 /**
  * Exercises every interactive element on the AnimOS-derived Grademaxxing
@@ -16,7 +18,20 @@ const NAV_ANCHORS = [
 test.describe('animos landing — navigation', () => {
 	for (const { label, hash } of NAV_ANCHORS) {
 		test(`nav link "${label}" scrolls to ${hash}`, async ({ page }) => {
+			await page.emulateMedia({ reducedMotion: 'no-preference' });
 			await page.goto(`${LANDING}/`);
+			await expect(page.locator('.marquee-container')).toBeVisible();
+			await page.evaluate(() => {
+				const positions: number[] = [];
+				window.addEventListener(
+					'scroll',
+					() => {
+						positions.push(window.scrollY);
+						document.body.dataset.navigationScrollSamples = JSON.stringify(positions);
+					},
+					{ passive: true }
+				);
+			});
 			await page.getByRole('navigation').getByRole('link', { name: label }).click();
 			await expect(page).toHaveURL(new RegExp(`${hash}$`));
 			const target = page.locator(hash);
@@ -26,8 +41,37 @@ test.describe('animos landing — navigation', () => {
 			await expect
 				.poll(async () => Math.round((await target.boundingBox())?.y ?? 99999))
 				.toBeGreaterThanOrEqual(-20);
+			const samples: number[] = await page.evaluate(() =>
+				JSON.parse(document.body.dataset.navigationScrollSamples ?? '[]')
+			);
+			expect(new Set(samples.map(Math.round)).size).toBeGreaterThan(5);
+			await expect(target).toBeFocused();
 		});
 	}
+
+	test('keyboard navigation respects reduced motion and browser history', async ({ page }) => {
+		await page.emulateMedia({ reducedMotion: 'no-preference' });
+		await page.goto(`${LANDING}/`);
+		await expect(page.locator('.marquee-container')).toBeVisible();
+		await page.emulateMedia({ reducedMotion: 'reduce' });
+		await expect(page.locator('.landing-schools-track')).toHaveClass(/landing-schools-static/);
+		await page.evaluate(() => document.fonts.ready);
+		const navigation = page.getByRole('navigation');
+		await navigation.getByRole('link', { name: 'Features' }).focus();
+		await page.keyboard.press('Enter');
+		await expect(page).toHaveURL(/#why$/);
+		await expect(page.locator('#why')).toBeFocused();
+		const top = (await page.locator('#why').boundingBox())!.y;
+		expect(top).toBeGreaterThanOrEqual(70);
+		expect(top).toBeLessThanOrEqual(110);
+		await navigation.getByRole('link', { name: 'FAQ' }).click();
+		await expect(page).toHaveURL(/#faq$/);
+		await page.goBack();
+		await expect(page).toHaveURL(/#why$/);
+		await expect
+			.poll(async () => Math.round((await page.locator('#why').boundingBox())!.y))
+			.toBe(Math.round(top));
+	});
 
 	test('logo links home', async ({ page }) => {
 		await page.goto(`${LANDING}/`);
@@ -180,7 +224,22 @@ test.describe('animos landing — showcase grid', () => {
 				const before = await image.screenshot();
 				await page.waitForTimeout(250);
 				const after = await image.screenshot();
-				expect(after.equals(before), 'Feature preview pixels must remain stationary').toBe(true);
+				const beforePixels = PNG.sync.read(before);
+				const afterPixels = PNG.sync.read(after);
+				expect(afterPixels.width).toBe(beforePixels.width);
+				expect(afterPixels.height).toBe(beforePixels.height);
+				// Compare rendered pixels; fractional clipping can change PNG bytes or edge antialiasing.
+				expect(
+					pixelmatch(
+						beforePixels.data,
+						afterPixels.data,
+						undefined,
+						beforePixels.width,
+						beforePixels.height,
+						{ threshold: 0.1 }
+					),
+					'Feature preview pixels must remain stationary'
+				).toBe(0);
 			}
 			expect(await row.evaluate((el) => el.scrollLeft)).toBe(0);
 

@@ -76,6 +76,31 @@ test('FAQ works with a keyboard and its privacy link is wired', async ({ page })
 	await expect(page).toHaveURL(/\/privacy$/);
 });
 
+test('the introduction follows the school logos without overlapping the hero', async ({ page }) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	await page.emulateMedia({ reducedMotion: 'no-preference' });
+	await page.goto('/');
+	await expect(page.locator('.marquee-container')).toBeVisible();
+	await page.evaluate(() => document.fonts.ready);
+	const { stageTop, heroBottom, schoolBottom, textGap } = await page.evaluate(() => {
+		const stage = document.querySelector('.landing-word-stage')!.getBoundingClientRect();
+		const hero = document.querySelector('.landing-hero')!.getBoundingClientRect();
+		const schools = document.querySelector('.landing-schools')!.getBoundingClientRect();
+		const logo = document.querySelector('.landing-school img')!.getBoundingClientRect();
+		const text = document.querySelector('.landing-word-sticky p')!.getBoundingClientRect();
+		return {
+			stageTop: stage.top,
+			heroBottom: hero.bottom,
+			schoolBottom: schools.bottom,
+			textGap: text.top - logo.bottom
+		};
+	});
+	expect(stageTop).toBeGreaterThan(heroBottom);
+	expect(Math.abs(stageTop - schoolBottom)).toBeLessThan(2);
+	expect(textGap).toBeGreaterThan(80);
+	expect(textGap).toBeLessThan(230);
+});
+
 test('reduced motion keeps the introduction readable and previews stationary', async ({ page }) => {
 	await page.emulateMedia({ reducedMotion: 'reduce' });
 	await page.goto('/');

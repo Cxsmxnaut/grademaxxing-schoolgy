@@ -13,6 +13,10 @@
 	"workers_dev": true,
 	"routes": [
 		{
+			"pattern": "dev.grademaxxing.app",
+			"custom_domain": true
+		},
+		{
 			"pattern": "new.grademaxxing.app",
 			"custom_domain": true
 		}
