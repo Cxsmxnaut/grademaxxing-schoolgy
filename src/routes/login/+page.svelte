@@ -200,10 +200,6 @@
 
 <svelte:head>
 	<title>Log In - {brand}</title>
-	<meta
-		name="description"
-		content="Sign in to Grademaxxing with your school district’s existing StudentVUE student account to view grades and explore what-if calculations."
-	/>
 </svelte:head>
 
 {#if checkingSavedSession || restoringSession}
