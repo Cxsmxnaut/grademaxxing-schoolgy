@@ -92,6 +92,10 @@ test('configured admin login persists after reload and sign-out removes access',
 	expect(['127.0.0.1', 'localhost']).toContain(new URL(baseURL!).hostname);
 	await page.goto('/admin-app/profile');
 	await page.getByLabel('Username').fill('release-test-operator');
+	await page.getByLabel(/^Password/).fill('incorrect-synthetic-password');
+	await page.getByRole('button', { name: 'Open dashboard' }).click();
+	await expect(page.getByRole('alert')).toHaveText('Invalid administrator credentials.');
+	await expect(page.getByRole('heading', { name: 'Sign In' })).toBeVisible();
 	await page.getByLabel(/^Password/).fill('synthetic-release-admin-password');
 	await page.getByRole('button', { name: 'Open dashboard' }).click();
 	await expect(page.getByRole('heading', { name: 'Profile', exact: true })).toBeVisible({
@@ -109,6 +113,41 @@ test('configured admin login persists after reload and sign-out removes access',
 	expect(await (await page.request.get('/api/admin/session')).json()).toEqual({
 		authenticated: false
 	});
+});
+
+test('rejected admin credentials show the server error and allow a successful retry', async ({
+	page
+}) => {
+	let signedIn = false;
+	await page.route('**/api/admin/session', async (route) => {
+		if (route.request().method() === 'POST') {
+			const { password } = route.request().postDataJSON() as { password: string };
+			if (password !== 'synthetic-password')
+				return route.fulfill({
+					status: 401,
+					json: { message: 'Invalid administrator credentials.' }
+				});
+			signedIn = true;
+			return route.fulfill({ status: 204 });
+		}
+		return route.fulfill({
+			json: signedIn
+				? {
+						authenticated: true,
+						user: { username: 'operator', displayName: 'Test Operator', role: 'Administrator' }
+					}
+				: { authenticated: false }
+		});
+	});
+	await page.goto('/admin-app/profile');
+	await page.getByLabel('Username').fill('operator');
+	await page.getByLabel(/^Password/).fill('incorrect-synthetic-password');
+	await page.getByRole('button', { name: 'Open dashboard' }).click();
+	await expect(page.getByRole('alert')).toHaveText('Invalid administrator credentials.');
+	await expect(page.getByLabel(/^Password/)).toHaveValue('');
+	await page.getByLabel(/^Password/).fill('synthetic-password');
+	await page.getByRole('button', { name: 'Open dashboard' }).click();
+	await expect(page.getByRole('heading', { name: 'Profile', exact: true })).toBeVisible();
 });
 
 test('admin sign-in stays usable when browser storage is blocked', async ({ page }) => {

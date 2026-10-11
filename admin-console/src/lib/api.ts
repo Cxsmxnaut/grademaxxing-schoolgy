@@ -114,15 +114,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   } catch {
     throw new ApiError("You appear to be offline. Reconnect and try again.", 0);
   }
-  if (response.status === 401)
-    throw new ApiError("Your admin session has expired. Sign in again.", 401);
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as {
       message?: string;
     };
     throw new ApiError(
       body.message ??
-        `Request failed${response.status ? ` (${response.status})` : ""}.`,
+        (response.status === 401
+          ? "Your admin session has expired. Sign in again."
+          : `Request failed${response.status ? ` (${response.status})` : ""}.`),
       response.status,
     );
   }
