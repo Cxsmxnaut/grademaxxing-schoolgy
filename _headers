@@ -1,6 +1,0 @@
-/admin-app/*
-  X-Robots-Tag: noindex
-  Cache-Control: private, no-store, max-age=0
-  X-Content-Type-Options: nosniff
-  X-Frame-Options: DENY
-  Referrer-Policy: no-referrer

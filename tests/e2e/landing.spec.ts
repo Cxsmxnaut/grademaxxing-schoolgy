@@ -2,10 +2,10 @@ import { expect, test } from '@playwright/test';
 
 test('the landing page presents the product and every destination works', async ({ page }) => {
 	await page.goto('/');
-	await expect(page).toHaveTitle(/StudentVUE.*Grademaxxing/);
+	await expect(page).toHaveTitle('Grademaxxing — gradebook without the maze');
 	await expect(page.locator('body')).not.toContainText('Beta');
 	await expect(
-		page.getByRole('heading', { level: 1, name: 'Understand your StudentVUE grades.' })
+		page.getByRole('heading', { level: 1, name: 'Your grades are complicated enough.' })
 	).toBeVisible();
 	await expect(page.getByLabel('Preview of the Grademaxxing gradebook')).toBeVisible();
 	const navigation = page.getByRole('navigation', { name: 'Primary navigation' });

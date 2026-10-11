@@ -1,5 +1,4 @@
 <script lang="ts">
-	import '../../../app-utilities.css';
 	import { brand } from '$lib/brand';
 	import CalculatorIcon from '@lucide/svelte/icons/calculator';
 	import ChartLineIcon from '@lucide/svelte/icons/chart-line';

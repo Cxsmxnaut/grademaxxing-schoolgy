@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { acc, loadStudentAccount } from '$lib/account.svelte';
 	import { brand } from '$lib/brand';
-	import { recordPublicEvent } from '$lib/analytics/public-client';
-	import PageMeta from '$lib/components/seo/PageMeta.svelte';
 	import '$lib/components/landing/landing.css';
 	import { LocalStorageKey } from '$lib/storage/keys';
 	import CalculatorIcon from '@lucide/svelte/icons/calculator';
@@ -13,6 +12,7 @@
 	import MailIcon from '@lucide/svelte/icons/mail';
 	import { onMount } from 'svelte';
 
+	const images = '/landing/images';
 	const introduction = `${brand} turns a final percentage into the information you actually need — grade trends, category math, and what-if scores, so you always know what to do next.`;
 	let hero: HTMLElement;
 	let wordStage: HTMLDivElement;
@@ -20,8 +20,8 @@
 	let wordProgress = $state(1);
 
 	onMount(() => {
-		recordPublicEvent('page_view', '/');
 		if (localStorage.getItem(LocalStorageKey.token) !== null) {
+			if (!acc.studentAccount) loadStudentAccount();
 			void goto('/grades');
 		}
 		const motion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -208,52 +208,44 @@
 	];
 </script>
 
-<PageMeta path="/" />
+<svelte:head>
+	<title>{brand} — gradebook without the maze</title>
+	<meta
+		name="description"
+		content="Understand StudentVUE grades with trends, category math, what-if scores, attendance, documents, and mail."
+	/>
+</svelte:head>
 
 <div class="landing-root">
 	<a class="landing-skip" href="#landing-main">Skip to content</a>
 	<nav class="landing-nav" aria-label="Primary navigation">
 		<div class="landing-nav-inner">
 			<a class="wordmark" href="/" aria-label="Grademaxxing home"
-				><img src="/brand-mark-48.webp" width="24" height="24" alt="" /><span
+				><img src="/grademaxxing-growth-mark.png" width="24" height="24" alt="" /><span
 					>Grade<span class="accent-word">maxxing</span></span
 				></a
 			>
 			<div class="landing-nav-links">
-				<a href="/calculators">Calculators</a><a href="/demo">Try a demo</a><a href="#why"
-					>Features</a
-				><a href="#faq">FAQ</a>
+				<a href="#how-it-works">How it works</a><a href="#why">Features</a><a href="#faq">FAQ</a>
 			</div>
-			<a
-				class="landing-login"
-				href="/login"
-				onclick={() => recordPublicEvent('connection_start', '/')}>Log in</a
-			>
+			<a class="landing-login" href="/login">Log in</a>
 		</div>
 	</nav>
 	<main id="landing-main">
 		<section bind:this={hero} class="landing-hero" aria-labelledby="landing-title">
 			<div class="landing-hero-copy">
-				<h1 id="landing-title">Understand your StudentVUE grades.</h1>
+				<h1 id="landing-title">Your grades are complicated enough.</h1>
 				<p>
 					Grade trends, category math, what-if scores, attendance, documents, and mail. StudentVUE,
 					with less maze.
 				</p>
-				<a
-					class="landing-cta"
-					href="/login"
-					onclick={() => recordPublicEvent('connection_start', '/')}>Open Grademaxxing</a
-				>
-				<a class="landing-demo-link" href="/demo">Try fictional grades first →</a>
+				<a class="landing-cta" href="/login">Open Grademaxxing</a>
 				<div class="landing-pill">Read-only StudentVUE companion</div>
 			</div>
 			<div class="landing-hero-preview" aria-label="Preview of the Grademaxxing gradebook">
 				<img
 					class="landing-overview"
-					src="/landing/optimized-large/gradebook-overview.webp"
-					srcset="/landing/optimized-small/gradebook-overview.webp 640w, /landing/optimized-large/gradebook-overview.webp 1200w"
-					sizes="(max-width: 885px) calc(100vw - 48px), 837px"
-					fetchpriority="high"
+					src="{images}/gradebook-overview.png"
 					width="1440"
 					height="900"
 					alt="Grademaxxing gradebook with synthetic sample grades, GPA summary, and courses"
@@ -261,10 +253,7 @@
 				/>
 				<img
 					class="landing-hills"
-					src="/landing/optimized-large/hills-foreground3-cn7rvjta.webp"
-					srcset="/landing/optimized-small/hills-foreground3-cn7rvjta.webp 640w, /landing/optimized-large/hills-foreground3-cn7rvjta.webp 1200w"
-					sizes="110vw"
-					decoding="async"
+					src="{images}/hills-foreground3-cn7rvjta.png"
 					width="4320"
 					height="1635"
 					alt=""
@@ -293,42 +282,6 @@
 				</p>
 			</div>
 		</div>
-		<section id="calculators" class="landing-section landing-tools" aria-labelledby="tools-heading">
-			<header class="landing-section-heading">
-				<h2 id="tools-heading">Plan your next score. No sign-in needed.</h2>
-				<p>
-					Use the grading model from your class. Every result shows its assumptions and stays
-					separate from your official school record.
-				</p>
-			</header>
-			<div class="landing-tool-list">
-				<a href="/calculators/assignment-impact"
-					><h3>Assignment impact</h3>
-					<p>See what a new or replacement score changes, including weighted categories.</p>
-					<span>Calculate assignment impact →</span></a
-				>
-				<a href="/calculators/final-grade"
-					><h3>Final exam target</h3>
-					<p>Find the score you need when the final has a fixed share of your course grade.</p>
-					<span>Calculate your final score →</span></a
-				>
-				<a href="/calculators/weighted-grade"
-					><h3>Weighted grade</h3>
-					<p>Combine category percentages with explicit weights and normalization.</p>
-					<span>Calculate a weighted grade →</span></a
-				>
-				<a href="/calculators/gpa"
-					><h3>GPA with your policy</h3>
-					<p>Choose grade points, course credits and rigor bonuses for your estimate.</p>
-					<span>Estimate your GPA →</span></a
-				>
-			</div>
-			<p class="landing-tools-guide">
-				<a href="/studentvue-grade-calculator">Explore the StudentVUE grade planner</a> ·
-				<a href="/guides/studentvue-grade-calculation">Understand grade calculations</a>
-				· <a href="/methodology/grade-calculations">Check our math</a>
-			</p>
-		</section>
 		<section id="showcase" class="landing-section" aria-labelledby="context-heading">
 			<header class="landing-section-heading">
 				<p class="landing-eyebrow">THE USEFUL PART</p>
@@ -340,10 +293,7 @@
 					<figure>
 						<figcaption>{preview.label}</figcaption>
 						<img
-							src="/landing/optimized-large/showcase-{preview.image}.webp"
-							srcset="/landing/optimized-small/showcase-{preview.image}.webp 640w, /landing/optimized-large/showcase-{preview.image}.webp 1200w"
-							sizes="(max-width: 767px) calc(100vw - 48px), (max-width: 1100px) 45vw, 500px"
-							decoding="async"
+							src="{images}/showcase-{preview.image}.png"
 							alt={preview.alt}
 							width="1200"
 							height={preview.height}
@@ -366,10 +316,7 @@
 						<p>{step.body}</p>
 					</div>
 					<img
-						src="/landing/optimized-large/{step.image}.webp"
-						srcset="/landing/optimized-small/{step.image}.webp 640w, /landing/optimized-large/{step.image}.webp 1200w"
-						sizes="(max-width: 900px) calc(100vw - 112px), 50vw"
-						decoding="async"
+						src="{images}/{step.image}.png"
 						width="2880"
 						height="1800"
 						loading="lazy"
@@ -390,10 +337,7 @@
 							<p>{feature.body}</p>
 						</div>
 						<img
-							src="/landing/optimized-large/{feature.image}.webp"
-							srcset="/landing/optimized-small/{feature.image}.webp 640w, /landing/optimized-large/{feature.image}.webp 1200w"
-							sizes="(max-width: 767px) calc(100vw - 48px), 50vw"
-							decoding="async"
+							src="{images}/{feature.image}.png"
 							alt={feature.alt}
 							loading="lazy"
 							width="2880"
@@ -434,28 +378,14 @@
 	<footer class="landing-footer">
 		<section class="landing-final-cta" aria-labelledby="cta-heading">
 			<div>
-				<img
-					src="/brand-mark-224.webp"
-					width="112"
-					height="112"
-					alt=""
-					loading="lazy"
-					decoding="async"
-				/>
+				<img src="/grademaxxing-growth-mark.png" width="112" height="112" alt="" loading="lazy" />
 				<h2 id="cta-heading">Your grades are already enough of a puzzle.</h2>
 				<p>Connect StudentVUE. We’ll do the sorting.</p>
-				<a
-					class="landing-cta"
-					href="/login"
-					onclick={() => recordPublicEvent('connection_start', '/')}>Open Grademaxxing</a
-				>
+				<a class="landing-cta" href="/login">Open Grademaxxing</a>
 			</div>
 			<img
 				class="landing-hills"
-				src="/landing/optimized-large/hills-foreground3-cn7rvjta.webp"
-				srcset="/landing/optimized-small/hills-foreground3-cn7rvjta.webp 640w, /landing/optimized-large/hills-foreground3-cn7rvjta.webp 1200w"
-				sizes="110vw"
-				decoding="async"
+				src="{images}/hills-foreground3-cn7rvjta.png"
 				width="4320"
 				height="1635"
 				alt=""
@@ -464,10 +394,7 @@
 			/>
 		</section>
 		<div class="landing-footer-links">
-			<span>© 2026 Grademaxxing</span><a href="/calculators">Calculators</a><a href="/demo">Demo</a
-			><a href="/about">About</a><a href="/studentvue-compatibility">Compatibility</a><a
-				href="/privacy">Privacy</a
-			>
+			<span>© 2026 Grademaxxing</span><a href="/privacy">Privacy</a>
 		</div>
 		<p class="landing-legal">
 			StudentVUE is a registered trademark of Edupoint Educational Systems LLC. Grademaxxing is not
