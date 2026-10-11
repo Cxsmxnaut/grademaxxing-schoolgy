@@ -100,30 +100,30 @@
 	const steps = [
 		{
 			title: 'Connect StudentVUE',
-			body: 'Sign in with your existing account to read grades, attendance, documents, and mail from your district’s portal.',
+			body: 'Use your StudentVUE account to view grades, attendance, documents, and mail from your district’s portal.',
 			image: 'login-connect'
 		},
 		{
 			title: 'See the real math',
-			body: 'Follow dated assignments and watch each new score move the chart — no more guessing what changed your grade.',
+			body: 'Review assignment scores, category weights, and grade trends to understand how your course grade is calculated.',
 			image: 'course-grade-trend'
 		},
 		{
 			title: 'Try the what-if scores',
-			body: 'Add hypothetical work, change category scores, and explore what you need next. Estimates stay separate from official grades.',
+			body: 'Add hypothetical assignments, change category scores, and estimate the score you need next. Estimates never replace official StudentVUE grades.',
 			image: 'what-if-calculator'
 		}
 	];
 	const features = [
 		{
 			title: 'Grade trends',
-			body: 'See your grade changes across assignments, and try out what-if scores on the chart.',
+			body: 'Follow grade changes across dated assignments, and test what-if scores on the chart.',
 			image: 'course-grade-trend',
 			alt: 'Sample course view with a rising grade trend chart'
 		},
 		{
 			title: 'What-if calculator',
-			body: 'Test a final, missing assignment, or target grade before it happens. This is a simulation, not a prophecy.',
+			body: 'Test a final or assignment score to estimate your grade. Your school records stay unchanged.',
 			image: 'what-if-calculator',
 			alt: 'Sample hypothetical mode with a what-if assignment added'
 		},
@@ -154,7 +154,7 @@
 		{
 			icon: CalculatorIcon,
 			title: 'Test takers',
-			body: 'Run the what-if numbers before the exam and walk in knowing your target.'
+			body: 'Estimate the assignment or exam score needed for your target grade before test day.'
 		},
 		{
 			icon: CalendarDaysIcon,
@@ -175,11 +175,11 @@
 	const faqs = [
 		{
 			q: 'What is Grademaxxing?',
-			a: 'A calmer, read-only layer on top of StudentVUE. Grade trends, category math, what-if scores, attendance, documents, and mail — in one place, without the maze.'
+			a: 'Grademaxxing is a free, read-only StudentVUE grade calculator and viewer. Explore grade trends, what-if scores, projected GPA, attendance, documents, and mail.'
 		},
 		{
 			q: 'Does it work with my school?',
-			a: 'Grademaxxing connects to StudentVUE portals using your existing account. Availability depends on your district’s portal and the records it exposes; not every district configuration has been verified.'
+			a: 'Grademaxxing uses your StudentVUE account to read your district’s portal. Support depends on its configuration and available records; compatibility with every school has not been verified.'
 		},
 		{
 			q: 'Is my password safe?',
@@ -187,32 +187,32 @@
 		},
 		{
 			q: 'Do you change or store my grades?',
-			a: 'Grademaxxing cannot change school records, submit assignments, or send mail. Grade data may be cached on your device. What-if scores are local simulations and never replace official grades.'
+			a: 'Grademaxxing only reads StudentVUE records; it cannot change grades, submit work, or send mail. Grades may be cached on your device. What-if calculations are estimates, not official marks.'
 		},
 		{
 			q: 'Is Grademaxxing free?',
-			a: 'Grademaxxing is free to use, including grade trends, what-if scores, attendance, documents, and mail when your portal provides them.'
+			a: 'Yes. Grademaxxing is free, including what-if grade calculations and GPA estimates. Available records depend on your StudentVUE portal.'
 		},
 		{
 			q: 'What’s a what-if score?',
-			a: 'A hypothetical. Add an assignment you haven’t done yet — or a final you’re dreading — and estimate how it would move your grade before it happens.'
+			a: 'A what-if grade calculator estimates how an assignment or final could affect your course grade. Results depend on category weights and school rules.'
 		},
 		{
 			q: 'Does it work on my phone?',
-			a: 'Yes — Grademaxxing is a website, so you can use it in a modern browser on your phone, tablet, or laptop. Nothing to install.'
+			a: 'Yes. Open Grademaxxing in a modern browser on your phone, tablet, or laptop. It is a web app, so there is no download to install.'
 		},
 		{
 			q: 'Can parents use it too?',
-			a: 'Grademaxxing is designed for StudentVUE accounts. ParentVUE accounts and multi-student switching are not currently supported.'
+			a: 'Grademaxxing supports StudentVUE student accounts. ParentVUE accounts and switching between multiple students are not supported.'
 		}
 	];
 </script>
 
 <svelte:head>
-	<title>{brand} — gradebook without the maze</title>
+	<title>StudentVUE Grade Calculator &amp; Trends | {brand}</title>
 	<meta
 		name="description"
-		content="Understand StudentVUE grades with trends, category math, what-if scores, attendance, documents, and mail."
+		content="Explore StudentVUE grades with Grademaxxing’s free what-if grade calculator, grade trends and GPA estimates. Read-only access to your district’s records."
 	/>
 </svelte:head>
 
@@ -236,8 +236,8 @@
 			<div class="landing-hero-copy">
 				<h1 id="landing-title">Your grades are complicated enough.</h1>
 				<p>
-					Grade trends, category math, what-if scores, attendance, documents, and mail. StudentVUE,
-					with less maze.
+					Understand your StudentVUE grades with grade trends, category math, what-if scores,
+					attendance, documents, and mail.
 				</p>
 				<a class="landing-cta" href="/login">Open Grademaxxing</a>
 				<div class="landing-pill">Read-only StudentVUE companion</div>
