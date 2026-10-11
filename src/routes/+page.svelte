@@ -270,7 +270,7 @@
 					with less maze.
 				</p>
 				<a class="landing-cta" href="/login">Open Grademaxxing</a>
-				<div class="landing-pill">Read-only StudentVUE companion</div>
+				<div class="landing-pill">100+ new users this month</div>
 			</div>
 			<div class="landing-hero-preview" aria-label="Preview of the Grademaxxing gradebook">
 				<img
