@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('the landing page presents the product and every destination works', async ({ page }) => {
 	await page.goto('/');
-	await expect(page).toHaveTitle('StudentVUE Grade Calculator & Trends | Grademaxxing');
+	await expect(page).toHaveTitle('Grademaxxing | StudentVUE Grade Calculator & Trends');
 	await expect(page.locator('body')).not.toContainText('Beta');
 	await expect(
 		page.getByRole('heading', { level: 1, name: 'Your grades are complicated enough.' })

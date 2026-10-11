@@ -209,10 +209,10 @@
 </script>
 
 <svelte:head>
-	<title>StudentVUE Grade Calculator &amp; Trends | {brand}</title>
+	<title>{brand} | StudentVUE Grade Calculator &amp; Trends</title>
 	<meta
 		name="description"
-		content="Explore StudentVUE grades with Grademaxxing’s free what-if grade calculator, grade trends and GPA estimates. Read-only access to your district’s records."
+		content="Grademaxxing is a free, read-only StudentVUE grade calculator. Explore grade trends, what-if scores and provisional GPA estimates with your school’s student account."
 	/>
 </svelte:head>
 
@@ -236,7 +236,7 @@
 			<div class="landing-hero-copy">
 				<h1 id="landing-title">Your grades are complicated enough.</h1>
 				<p>
-					Understand your StudentVUE grades with grade trends, category math, what-if scores,
+					Grademaxxing explains your StudentVUE grades with trends, category math, what-if scores,
 					attendance, documents, and mail.
 				</p>
 				<a class="landing-cta" href="/login">Open Grademaxxing</a>
