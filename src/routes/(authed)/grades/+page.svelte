@@ -13,8 +13,10 @@
 	} from '$lib/grades/catalog.svelte';
 	import {
 		clearCourseUnseenAssignments,
+		getCourseAssignmentImpacts,
 		getCourseGrade,
-		getCourseUnseenAssignmentsCount
+		getCourseUnseenAssignmentsCount,
+		isGradedAssignment
 	} from '$lib/grades/course';
 	import { saveSeenAssignmentsToLocalStorage } from '$lib/grades/seenAssignments';
 	import { seenAssignmentIDs } from '$lib/grades/seenAssignments.svelte';
@@ -85,16 +87,16 @@
 	const gpas = $derived(calculateCourseGpas(courses, currentGradeLevel));
 	const recentAssignments = $derived(
 		courses
-			.flatMap((course) =>
-				(course.Marks?.Mark[0]?.Assignments?.Assignment ?? []).map((assignment) => ({
+			.flatMap((course) => {
+				const impacts = getCourseAssignmentImpacts(course);
+				return (course.Marks?.Mark[0]?.Assignments?.Assignment ?? []).map((assignment) => ({
 					assignment,
 					course,
-					date: assignmentDate(assignment)
-				}))
-			)
-			.filter(
-				(item) => item.assignment._Score !== undefined || item.assignment._Point !== undefined
-			)
+					date: assignmentDate(assignment),
+					impact: impacts.get(assignment._GradebookID)
+				}));
+			})
+			.filter((item) => isGradedAssignment(item.assignment))
 			.toSorted((a, b) => b.date.getTime() - a.date.getTime())
 			.slice(0, 8)
 	);
@@ -103,6 +105,8 @@
 		return Number.isNaN(date.getTime()) ? new Date(0) : date;
 	}
 	function assignmentPercentage(assignment: AssignmentEntity) {
+		const official = Number.parseFloat(assignment._AssignmentPercentage ?? '');
+		if (Number.isFinite(official)) return official;
 		const earned = Number.parseFloat(assignment._Point ?? assignment._ScoreCalValue ?? '');
 		const possible = Number.parseFloat(
 			assignment._PointPossible ?? assignment._ScoreMaxValue ?? ''
@@ -115,6 +119,16 @@
 		if (percentage >= 90) return 'text-grade-strong';
 		if (percentage >= 80) return 'text-grade-watch';
 		return 'text-grade-risk';
+	}
+	function impactTone(impact: number) {
+		if (impact > 0) return 'text-grade-strong';
+		if (impact < 0) return 'text-grade-risk';
+		return 'text-grade-neutral';
+	}
+	function formatImpact(impact: number) {
+		if (impact > 0) return `+${formatPercentage(impact)}%`;
+		if (impact < 0) return `${formatPercentage(impact)}%`;
+		return '+0%';
 	}
 	async function changeReportPeriod(index: number) {
 		try {
@@ -268,29 +282,41 @@
 					{#if recentAssignments.length}<ol class="divide-border divide-y">
 							{#each recentAssignments as item (`${item.course._CourseID}-${item.assignment._GradebookID}`)}{@const score =
 									assignmentPercentage(item.assignment)}
-								<li class="px-[1.125rem] py-[0.625rem]">
-									<div class="flex items-start justify-between gap-3">
-										<p
-											class="line-clamp-1 text-[0.78125rem] leading-[1.5] font-semibold tracking-[0.03em]"
-										>
-											{item.assignment._Measure}
+								<li>
+									<a
+										href="/grades/{encodeURIComponent(
+											item.course._CourseID
+										)}?assignment={encodeURIComponent(item.assignment._GradebookID)}"
+										class="hover:bg-accent/40 focus-visible:bg-accent/40 focus-visible:ring-ring block px-[1.125rem] py-[0.625rem] transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
+									>
+										<div class="flex items-start justify-between gap-3">
+											<p
+												class="line-clamp-1 text-[0.78125rem] leading-[1.5] font-semibold tracking-[0.03em]"
+											>
+												{item.assignment._Measure}
+											</p>
+											<div class="flex shrink-0 items-baseline gap-1.5 font-mono leading-[1.5]">
+												{#if item.impact !== undefined}<span
+														class="{impactTone(item.impact)} text-[0.6875rem] font-semibold"
+														title="Overall grade percentage change"
+														>{formatImpact(item.impact)}</span
+													>{/if}
+												{#if score !== undefined}<span
+														class="{percentageTone(score)} text-[0.78125rem] font-semibold"
+														>{formatPercentage(score)}%</span
+													>{/if}
+											</div>
+										</div>
+										<p class="text-tertiary-foreground truncate text-[0.6875rem] leading-[1.5]">
+											{removeCourseType(item.course._CourseName)} · {item.date.getTime()
+												? item.date.toLocaleDateString(undefined, {
+														month: 'numeric',
+														day: 'numeric',
+														year: '2-digit'
+													})
+												: 'Date unavailable'}
 										</p>
-										{#if score !== undefined}<span
-												class="{percentageTone(
-													score
-												)} shrink-0 font-mono text-[0.78125rem] leading-[1.5] font-semibold"
-												>{formatPercentage(score)}%</span
-											>{/if}
-									</div>
-									<p class="text-tertiary-foreground truncate text-[0.6875rem] leading-[1.5]">
-										{removeCourseType(item.course._CourseName)} · {item.date.getTime()
-											? item.date.toLocaleDateString(undefined, {
-													month: 'numeric',
-													day: 'numeric',
-													year: '2-digit'
-												})
-											: 'Date unavailable'}
-									</p>
+									</a>
 								</li>{/each}
 						</ol>{:else}<p class="text-muted-foreground px-5 py-8 text-center text-sm">
 							No graded assignments yet. The portal may be pacing itself.

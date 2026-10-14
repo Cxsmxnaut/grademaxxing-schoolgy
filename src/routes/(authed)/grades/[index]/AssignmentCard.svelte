@@ -35,6 +35,7 @@
 		date?: Date | undefined;
 		editable?: boolean;
 		unseen?: boolean;
+		highlighted?: boolean;
 		comments?: string;
 		recalculateGradePercentage?: () => void;
 		onRemove?: (() => void) | undefined;
@@ -72,6 +73,7 @@
 		date = undefined,
 		editable = false,
 		unseen = false,
+		highlighted = false,
 		comments = undefined,
 		recalculateGradePercentage = () => {},
 		onRemove = undefined
@@ -187,9 +189,12 @@
 </script>
 
 <Card.Root
+	data-assignment-id={id}
+	data-highlighted={highlighted ? 'true' : undefined}
 	class={[
 		'border-border/80 hover:border-foreground/15 max-w-full items-center gap-4 rounded-lg px-[1.125rem] py-[0.875rem] shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.3)] transition-[border-color,background-color,box-shadow,transform] duration-300 hover:-translate-y-px hover:shadow-md sm:flex-row [&_[data-slot=badge]]:h-6',
 		showHypotheticalLabel && 'border-primary',
+		highlighted && 'border-primary bg-primary/10 ring-primary/40 ring-2',
 		unseen && 'border-l-grade-strong bg-grade-strong-soft/30 border-l-4'
 	]}
 >

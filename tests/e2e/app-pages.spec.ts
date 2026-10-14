@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 function gradebookXml(index: number, name: string, score: string, letter: string) {
-	return `<Gradebook><ReportingPeriod Index="${index}" GradePeriod="${name}"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Semester 1"/><ReportPeriod Index="1" GradePeriod="Semester 2"/></ReportingPeriods><Courses><Course CourseID="preview" CourseName="Theme Preview" Period="1" Staff="Teacher Example" StaffEMail="teacher@example.edu" Room="101"><Marks><Mark MarkName="${name}" CalculatedScoreRaw="${score}" CalculatedScoreString="${letter}"><GradeCalculationSummary><AssignmentGradeCalc Type="Assessments" Weight="100%" Points="${score}" PointsPossible="100" WeightedPct="${score}%" CalculatedMark="${letter}"/></GradeCalculationSummary>							<Assignments><Assignment GradebookID="preview-assessment" Measure="Unit assessment" Type="Assessments" Date="8/20/2026" DueDate="8/20/2026" Score="${score}" DisplayScore="${score} out of 100" ScoreCalValue="${score}" ScoreMaxValue="100" ScoreType="Raw Score" Points="${score} / 100" Point="${score}" PointPossible="100" Notes="Strong reasoning. Review question 4." MeasureDescription="Cumulative unit assessment covering the first four lessons." HasDropBox="false"/><Assignment GradebookID="preview-upcoming" Measure="Upcoming quiz" Type="Quizzes" Date="9/25/2026" DueDate="9/28/2026" DisplayScore="Not Graded" ScoreType="Raw Score" Points="10 Points Possible" Notes="" MeasureDescription="" HasDropBox="false"/></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
+	return `<Gradebook><ReportingPeriod Index="${index}" GradePeriod="${name}"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Semester 1"/><ReportPeriod Index="1" GradePeriod="Semester 2"/></ReportingPeriods><Courses><Course CourseID="preview" CourseName="Theme Preview" Period="1" Staff="Teacher Example" StaffEMail="teacher@example.edu" Room="101"><Marks><Mark MarkName="${name}" CalculatedScoreRaw="${score}" CalculatedScoreString="${letter}"><GradeCalculationSummary><AssignmentGradeCalc Type="Assessments" Weight="100%" Points="${score}" PointsPossible="100" WeightedPct="${score}%" CalculatedMark="${letter}"/></GradeCalculationSummary>							<Assignments><Assignment GradebookID="preview-assessment" Measure="Unit assessment" Type="Assessments" Date="8/20/2026" DueDate="8/20/2026" Score="${score}" DisplayScore="${score} out of 100" ScoreCalValue="${score}" ScoreMaxValue="100" ScoreType="Raw Score" Points="${score} / 100" Point="${score}" PointPossible="100" Notes="Strong reasoning. Review question 4." MeasureDescription="Cumulative unit assessment covering the first four lessons." HasDropBox="false"/><Assignment GradebookID="preview-upcoming" Measure="Upcoming quiz" Type="Quizzes" Date="9/25/2026" DueDate="9/28/2026" Score="Not Graded" DisplayScore="Not Graded" ScoreType="Raw Score" Points="10 Points Possible" PointPossible="10" Notes="" MeasureDescription="" HasDropBox="false"/><Assignment GradebookID="preview-empty-score" Measure="Posted homework" Type="Homework" Date="9/26/2026" DueDate="9/29/2026" Score="" DisplayScore="" ScoreType="Raw Score" Points="10 Points Possible" Point="" PointPossible="10" Notes="" MeasureDescription="" HasDropBox="false"/></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
 }
 
 function assignmentEvidenceXml(score: string, assignments: string, summary = '') {
@@ -1275,6 +1275,12 @@ test('Gradebook shows GPA and courses without rankings on desktop and mobile', a
 	await expect(page.getByRole('button', { name: 'Share your rank' })).toHaveCount(0);
 	await expect(page.getByRole('heading', { name: 'Next rank' })).toHaveCount(0);
 
+	const recentlyGraded = page.getByRole('complementary', { name: 'Gradebook details' });
+	await expect(recentlyGraded.getByText('Unit assessment')).toBeVisible();
+	await expect(recentlyGraded.getByText('95%')).toBeVisible();
+	await expect(recentlyGraded.getByText('Upcoming quiz')).toHaveCount(0);
+	await expect(recentlyGraded.getByText('Posted homework')).toHaveCount(0);
+
 	await page.setViewportSize({ width: 390, height: 844 });
 	await expect(page.getByText('GPA summary', { exact: true })).toBeVisible();
 	await page.getByText('GPA summary', { exact: true }).click();
@@ -1309,4 +1315,31 @@ test('Gradebook class controls open the selected course', async ({ page }) => {
 		.click();
 	await expect(page).toHaveURL(/\/grades\/preview$/);
 	await expect(page.getByRole('heading', { level: 1, name: 'Theme Preview' })).toBeVisible();
+});
+
+test('Recently graded shows assignment impact delta and links directly to the highlighted assignment', async ({
+	page
+}) => {
+	const xml = `<Gradebook><ReportingPeriod Index="0" GradePeriod="Semester 1"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Semester 1"/></ReportingPeriods><Courses><Course CourseID="preview" CourseName="Theme Preview" Period="1" Staff="Teacher Example" StaffEMail="teacher@example.edu" Room="101"><Marks><Mark MarkName="Semester 1" CalculatedScoreRaw="90" CalculatedScoreString="A-"><GradeCalculationSummary><AssignmentGradeCalc Type="Assessments" Weight="100%" Points="90" PointsPossible="100" WeightedPct="90%" CalculatedMark="A-"/></GradeCalculationSummary><Assignments><Assignment GradebookID="quiz-2" Measure="Chapter 1 Test" Type="Assessments" Date="10/12/2026" DueDate="10/12/2026" Score="40" DisplayScore="40 out of 50" ScoreCalValue="40" ScoreMaxValue="50" ScoreType="Raw Score" Points="40 / 50" Point="40" PointPossible="50" Notes="" MeasureDescription="" HasDropBox="false"/><Assignment GradebookID="quiz-1" Measure="Baseline Quiz" Type="Assessments" Date="10/05/2026" DueDate="10/05/2026" Score="50" DisplayScore="50 out of 50" ScoreCalValue="50" ScoreMaxValue="50" ScoreType="Raw Score" Points="50 / 50" Point="50" PointPossible="50" Notes="" MeasureDescription="" HasDropBox="false"/><Assignment GradebookID="ungraded-1" Measure="#32" Type="Homework" Date="10/12/2026" DueDate="10/12/2026" Score="" DisplayScore="" ScoreType="Raw Score" Points="10 Points Possible" PointPossible="10" Notes="" MeasureDescription="" HasDropBox="false"/></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
+	await page.route('**/api/studentvue/gradebook*', (route) =>
+		route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ xml }) })
+	);
+	await page.setViewportSize({ width: 1440, height: 900 });
+	await page.goto('/grades');
+
+	const recentlyGraded = page.getByRole('complementary', { name: 'Gradebook details' });
+	await expect(recentlyGraded.getByText('#32')).toHaveCount(0);
+	const testLink = recentlyGraded.getByRole('link', { name: /Chapter 1 Test/ });
+	await expect(testLink).toBeVisible();
+	await expect(testLink).toContainText('-10%');
+	await expect(testLink).toContainText('80%');
+
+	await testLink.click();
+	await expect(page).toHaveURL(/\/grades\/preview\?assignment=quiz-2$/);
+	const highlightedCard = page
+		.getByRole('tabpanel')
+		.filter({ visible: true })
+		.locator('[data-assignment-id="quiz-2"]');
+	await expect(highlightedCard).toBeVisible();
+	await expect(highlightedCard).toHaveAttribute('data-highlighted', 'true');
 });

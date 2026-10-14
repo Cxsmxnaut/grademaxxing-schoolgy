@@ -9,6 +9,7 @@
 		RealAssignment
 	} from '$lib/grades/assignments';
 	import { getAssignmentCalculationIssue } from '$lib/grades/calculation-coverage';
+	import { tick } from 'svelte';
 	import AssignmentCard from './AssignmentCard.svelte';
 
 	interface Props {
@@ -28,6 +29,7 @@
 		removeHypotheticalAssignment: (id: string) => void;
 		recalculateGradePercentage: () => void;
 		seenAssignmentIDs?: Set<string>;
+		highlightedAssignmentId?: string;
 	}
 	let {
 		hypotheticalMode,
@@ -41,7 +43,8 @@
 		addHypotheticalAssignment,
 		removeHypotheticalAssignment,
 		recalculateGradePercentage,
-		seenAssignmentIDs
+		seenAssignmentIDs,
+		highlightedAssignmentId
 	}: Props = $props();
 
 	const categoryDropdownOptions = $derived(
@@ -158,6 +161,28 @@
 		void showAllAssignmentsRevision;
 		activeTab = 'all';
 	});
+
+	let scrolledAssignmentId = $state<string | undefined>(undefined);
+	$effect(() => {
+		const targetId = highlightedAssignmentId;
+		if (!targetId) {
+			scrolledAssignmentId = undefined;
+			return;
+		}
+		if (scrolledAssignmentId === targetId) return;
+		const exists = assignments.some(
+			(assignment) => !assignment.hidden && assignment.id === targetId
+		);
+		if (!exists) return;
+		activeTab = 'all';
+		scrolledAssignmentId = targetId;
+		void tick().then(() => {
+			const element = document.querySelector<HTMLElement>(
+				`[data-assignment-id="${CSS.escape(targetId)}"]`
+			);
+			element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		});
+	});
 </script>
 
 <section class="mt-4">
@@ -267,6 +292,7 @@
 										}}
 										date={newHypothetical ? undefined : date}
 										{comments}
+										highlighted={highlightedAssignmentId === id}
 										editable={true}
 										onRemove={newHypothetical ? () => removeHypotheticalAssignment(id) : undefined}
 										{recalculateGradePercentage}
@@ -297,6 +323,7 @@
 											: undefined}
 										date={newHypothetical ? undefined : date}
 										{comments}
+										highlighted={highlightedAssignmentId === id}
 										editable={true}
 										onRemove={newHypothetical ? () => removeHypotheticalAssignment(id) : undefined}
 										{recalculateGradePercentage}
@@ -349,6 +376,7 @@
 											}}
 											date={newHypothetical ? undefined : date}
 											{comments}
+											highlighted={highlightedAssignmentId === id}
 											editable={true}
 											onRemove={newHypothetical
 												? () => removeHypotheticalAssignment(id)
@@ -377,6 +405,7 @@
 											showHypotheticalLabel={newHypothetical}
 											date={newHypothetical ? undefined : date}
 											{comments}
+											highlighted={highlightedAssignmentId === id}
 											editable={true}
 											onRemove={newHypothetical
 												? () => removeHypotheticalAssignment(id)
@@ -442,6 +471,7 @@
 				: undefined}
 			{date}
 			{comments}
+			highlighted={highlightedAssignmentId === id}
 			unseen={seenAssignmentIDs && !seenAssignmentIDs.has(id) && !notForGrade}
 		/>
 	</li>

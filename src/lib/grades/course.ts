@@ -1,6 +1,20 @@
 import type { AssignmentEntity, Course } from '$lib/contracts/studentvue/gradebook';
-import type { Category } from './assignments';
+import {
+	calculateAssignmentGPCs,
+	calculateCourseGradePercentageFromCategories,
+	calculateCourseGradePercentageFromTotals,
+	getCalculableAssignments,
+	getCategoryAdjustments,
+	getPointsByCategory,
+	gradesMatch,
+	isNotForGrade,
+	parseSynergyAssignment,
+	type Category
+} from './assignments';
+import { getCalculationCoverage, getModelAssignments } from './calculation-coverage';
 import { seenAssignmentIDs } from './seenAssignments.svelte';
+
+export { isNotForGrade };
 
 const getMark = (course: Course) => course.Marks?.Mark[0];
 
@@ -37,10 +51,6 @@ export function clearCourseUnseenAssignments(course: Course) {
 	);
 }
 
-/** StudentVUE marks non-calculating work in the assignment-note prefix. */
-export const isNotForGrade = (notes: string | undefined) =>
-	/^\s*\(\s*not\s+for\s+grading\s*\)/i.test(notes ?? '');
-
 /**
  * Districts post not-yet-graded work in different shapes: some omit the score
  * fields, others send them as empty or non-numeric strings, and the portal
@@ -62,4 +72,56 @@ export function isGradedAssignment(assignment: AssignmentEntity) {
 		numericScore(assignment._ScoreCalValue) !== undefined ||
 		numericScore(assignment._Point) !== undefined
 	);
+}
+
+/**
+ * Compute per-assignment grade percentage change (in percentage points) for a
+ * course's assignments using the same model and coverage checks as the course
+ * detail page. Returns an empty map when the local calculation cannot be
+ * verified against the official course grade.
+ */
+export function getCourseAssignmentImpacts(course: Course): Map<string, number> {
+	const mark = getMark(course);
+	const synergyAssignments = mark?.Assignments?.Assignment ?? [];
+	if (synergyAssignments.length === 0) return new Map();
+
+	const categories = getSynergyCourseAssignmentCategories(course)?.filter(
+		(category) => category.name !== 'TOTAL'
+	);
+	const parsed = synergyAssignments.map(parseSynergyAssignment);
+	const flowed = calculateAssignmentGPCs(parsed, categories);
+	const coverage = getCalculationCoverage(flowed, categories);
+	if (!coverage.complete) return new Map();
+
+	const adjustments = categories ? getCategoryAdjustments(flowed, categories) : [];
+	const model = getModelAssignments([...adjustments, ...flowed], categories);
+	const calculable = getCalculableAssignments(model);
+	if (calculable.length === 0) return new Map();
+
+	const calculatedGrade = categories
+		? calculateCourseGradePercentageFromCategories(getPointsByCategory(calculable), categories)
+		: calculateCourseGradePercentageFromTotals(calculable);
+	if (!Number.isFinite(calculatedGrade)) return new Map();
+
+	const rawOfficial = mark?._CalculatedScoreRaw?.trim();
+	const officialPercentage = rawOfficial ? Number(rawOfficial) : undefined;
+	if (
+		officialPercentage !== undefined &&
+		Number.isFinite(officialPercentage) &&
+		!gradesMatch(calculatedGrade, officialPercentage)
+	) {
+		return new Map();
+	}
+
+	const impacts = new Map<string, number>();
+	for (const assignment of flowed) {
+		if (
+			assignment.notForGrade ||
+			assignment.gradePercentageChange === undefined ||
+			!Number.isFinite(assignment.gradePercentageChange)
+		)
+			continue;
+		impacts.set(assignment.id, Math.round(assignment.gradePercentageChange * 100) / 100);
+	}
+	return impacts;
 }

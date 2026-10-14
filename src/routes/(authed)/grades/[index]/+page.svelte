@@ -374,6 +374,7 @@
 	);
 
 	let showCategoryTable = $state(false);
+	const highlightedAssignmentId = $derived(page.url.searchParams.get('assignment') ?? undefined);
 
 	function markSeenAssignments() {
 		realAssignments.forEach(({ id }) => seenAssignmentIDs.add(id));
@@ -578,6 +579,7 @@
 					{removeHypotheticalAssignment}
 					{recalculateGradePercentage}
 					{seenAssignmentIDs}
+					{highlightedAssignmentId}
 				/>
 			</div>
 		{:else}

@@ -1,6 +1,9 @@
 import type { AssignmentEntity } from '$lib/contracts/studentvue/gradebook';
-import { isNotForGrade } from '../course';
 import type { RealAssignment } from './types';
+
+/** StudentVUE marks non-calculating work in the assignment-note prefix. */
+export const isNotForGrade = (notes: string | undefined) =>
+	/^\s*\(\s*not\s+for\s+grading\s*\)/i.test(notes ?? '');
 
 export function parseSynergyAssignment(synergyAssignment: AssignmentEntity) {
 	const {

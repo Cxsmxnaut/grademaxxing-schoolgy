@@ -1,5 +1,7 @@
 import type { AssignmentEntity } from '$lib/contracts/studentvue/gradebook';
-import { isGradedAssignment } from '$lib/grades/course';
+import { getCourseAssignmentImpacts, isGradedAssignment } from '$lib/grades/course';
+import { gradebookXml } from '$lib/server/gradebook-adapter';
+import { parseGradebookXML } from '$lib/synergy';
 import { describe, expect, test } from 'vitest';
 
 function assignment(overrides: Partial<AssignmentEntity> = {}): AssignmentEntity {
@@ -101,5 +103,113 @@ describe('isGradedAssignment', () => {
 		expect(
 			isGradedAssignment(assignment({ _Score: '9', _Notes: '(Not For Grading) completion only' }))
 		).toBe(false);
+	});
+
+	test('rejects ungraded assignments after gradebook XML serialization', () => {
+		const xml = gradebookXml([
+			{
+				id: 'course-1',
+				period: '1',
+				title: 'Pre-Calculus',
+				room: '101',
+				teacher: 'Teacher Example',
+				teacherEmail: '',
+				score: 'A',
+				scoreRaw: '95',
+				missing: '0',
+				categories: [],
+				assignments: [
+					{
+						AssignmentID: 'ungraded-1',
+						Measure: '#32',
+						Type: 'Homework',
+						Date: '10/12/2026',
+						DueDate: '10/12/2026',
+						Score: 'Not Graded',
+						Points: '10 Points Possible'
+					},
+					{
+						AssignmentID: 'ungraded-2',
+						Measure: 'Practicas 1-2',
+						Type: 'Classwork',
+						Date: '10/12/2026',
+						DueDate: '10/12/2026',
+						Score: '',
+						Points: '10'
+					},
+					{
+						AssignmentID: 'graded-1',
+						Measure: 'Chapter 1 Test',
+						Type: 'Tests',
+						Date: '10/12/2026',
+						DueDate: '10/12/2026',
+						Score: '17 out of 23',
+						Points: '17 / 23',
+						Point: '17',
+						PointPossible: '23',
+						AssignmentPercentage: '73.91'
+					}
+				]
+			}
+		]);
+		const assignments =
+			parseGradebookXML(xml).Courses.Course[0]?.Marks?.Mark[0]?.Assignments?.Assignment ?? [];
+		expect(assignments.filter(isGradedAssignment).map((item) => item._Measure)).toEqual([
+			'Chapter 1 Test'
+		]);
+	});
+
+	test('computes per-assignment grade impact deltas when course calculation matches official grade', () => {
+		const xml = gradebookXml([
+			{
+				id: 'course-1',
+				period: '1',
+				title: 'Spanish II',
+				room: '204',
+				teacher: 'Teacher Example',
+				teacherEmail: '',
+				score: 'A-',
+				scoreRaw: '90',
+				missing: '0',
+				categories: [
+					{
+						name: 'Assessments',
+						weight: '100%',
+						points: '90',
+						pointsPossible: '100',
+						weightedPercentage: '90%',
+						calculatedMark: 'A-'
+					}
+				],
+				assignments: [
+					{
+						AssignmentID: 'a2',
+						Measure: 'Quiz 2',
+						Type: 'Assessments',
+						Date: '10/12/2026',
+						DueDate: '10/12/2026',
+						Score: '40 out of 50',
+						Points: '40 / 50',
+						Point: '40',
+						PointPossible: '50'
+					},
+					{
+						AssignmentID: 'a1',
+						Measure: 'Quiz 1',
+						Type: 'Assessments',
+						Date: '10/05/2026',
+						DueDate: '10/05/2026',
+						Score: '50 out of 50',
+						Points: '50 / 50',
+						Point: '50',
+						PointPossible: '50'
+					}
+				]
+			}
+		]);
+		const course = parseGradebookXML(xml).Courses.Course[0]!;
+		const impacts = getCourseAssignmentImpacts(course);
+		expect(impacts.get('a1')).toBe(100);
+		expect(impacts.get('a2')).toBe(-10);
 	});
 });
