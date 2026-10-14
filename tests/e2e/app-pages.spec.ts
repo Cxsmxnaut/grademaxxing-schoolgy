@@ -1,7 +1,13 @@
 import { expect, test } from '@playwright/test';
 
-function gradebookXml(index: number, name: string, score: string, letter: string) {
-	return `<Gradebook><ReportingPeriod Index="${index}" GradePeriod="${name}"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Semester 1"/><ReportPeriod Index="1" GradePeriod="Semester 2"/></ReportingPeriods><Courses><Course CourseID="preview" CourseName="Theme Preview" Period="1" Staff="Teacher Example" StaffEMail="teacher@example.edu" Room="101"><Marks><Mark MarkName="${name}" CalculatedScoreRaw="${score}" CalculatedScoreString="${letter}"><GradeCalculationSummary><AssignmentGradeCalc Type="Assessments" Weight="100%" Points="${score}" PointsPossible="100" WeightedPct="${score}%" CalculatedMark="${letter}"/></GradeCalculationSummary>							<Assignments><Assignment GradebookID="preview-assessment" Measure="Unit assessment" Type="Assessments" Date="8/20/2026" DueDate="8/20/2026" Score="${score}" DisplayScore="${score} out of 100" ScoreCalValue="${score}" ScoreMaxValue="100" ScoreType="Raw Score" Points="${score} / 100" Point="${score}" PointPossible="100" Notes="Strong reasoning. Review question 4." MeasureDescription="Cumulative unit assessment covering the first four lessons." HasDropBox="false"/><Assignment GradebookID="preview-upcoming" Measure="Upcoming quiz" Type="Quizzes" Date="9/25/2026" DueDate="9/28/2026" Score="Not Graded" DisplayScore="Not Graded" ScoreType="Raw Score" Points="10 Points Possible" PointPossible="10" Notes="" MeasureDescription="" HasDropBox="false"/><Assignment GradebookID="preview-empty-score" Measure="Posted homework" Type="Homework" Date="9/26/2026" DueDate="9/29/2026" Score="" DisplayScore="" ScoreType="Raw Score" Points="10 Points Possible" Point="" PointPossible="10" Notes="" MeasureDescription="" HasDropBox="false"/></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
+function gradebookXml(
+	index: number,
+	name: string,
+	score: string,
+	letter: string,
+	extraAssignments = ''
+) {
+	return `<Gradebook><ReportingPeriod Index="${index}" GradePeriod="${name}"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Semester 1"/><ReportPeriod Index="1" GradePeriod="Semester 2"/></ReportingPeriods><Courses><Course CourseID="preview" CourseName="Theme Preview" Period="1" Staff="Teacher Example" StaffEMail="teacher@example.edu" Room="101"><Marks><Mark MarkName="${name}" CalculatedScoreRaw="${score}" CalculatedScoreString="${letter}"><GradeCalculationSummary><AssignmentGradeCalc Type="Assessments" Weight="100%" Points="${score}" PointsPossible="100" WeightedPct="${score}%" CalculatedMark="${letter}"/></GradeCalculationSummary>							<Assignments>${extraAssignments}<Assignment GradebookID="preview-assessment" Measure="Unit assessment" Type="Assessments" Date="8/20/2026" DueDate="8/20/2026" Score="${score}" DisplayScore="${score} out of 100" ScoreCalValue="${score}" ScoreMaxValue="100" ScoreType="Raw Score" Points="${score} / 100" Point="${score}" PointPossible="100" Notes="Strong reasoning. Review question 4." MeasureDescription="Cumulative unit assessment covering the first four lessons." HasDropBox="false"/><Assignment GradebookID="preview-upcoming" Measure="Upcoming quiz" Type="Quizzes" Date="9/25/2026" DueDate="9/28/2026" DisplayScore="Not Graded" ScoreType="Raw Score" Points="10 Points Possible" Notes="" MeasureDescription="" HasDropBox="false"/></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
 }
 
 function assignmentEvidenceXml(score: string, assignments: string, summary = '') {
@@ -1264,6 +1270,18 @@ test('legacy dashboard bookmarks resolve to the Gradebook home', async ({ page }
 
 test('Gradebook shows GPA and courses without rankings on desktop and mobile', async ({ page }) => {
 	await page.setViewportSize({ width: 1440, height: 900 });
+	// This test also covers the ungraded filter, so it needs a richer fixture
+	// than the shared default: one posted-but-ungraded assignment with an
+	// empty score and one labeled "Not Graded".
+	const ungradedExtras =
+		'<Assignment GradebookID="preview-not-graded" Measure="Not graded quiz" Type="Quizzes" Date="9/24/2026" DueDate="9/24/2026" Score="Not Graded" DisplayScore="Not Graded" ScoreType="Raw Score" Points="10 Points Possible" Notes="" MeasureDescription="" HasDropBox="false"/><Assignment GradebookID="preview-empty-score" Measure="Posted homework" Type="Homework" Date="9/26/2026" DueDate="9/29/2026" Score="" DisplayScore="" ScoreType="Raw Score" Points="10 Points Possible" Point="" PointPossible="10" Notes="" MeasureDescription="" HasDropBox="false"/>';
+	await page.route('**/api/studentvue/gradebook*', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({ xml: gradebookXml(0, 'Semester 1', '95', 'A', ungradedExtras) })
+		})
+	);
 	await page.goto('/grades');
 	const summary = page.getByRole('region', { name: 'Grade summary' });
 	await expect(summary.getByText('GPA · Unweighted', { exact: true })).toBeVisible();
@@ -1311,7 +1329,7 @@ test('Gradebook class controls open the selected course', async ({ page }) => {
 	await page.goto('/grades');
 	await page
 		.locator('main ol')
-		.getByRole('link', { name: /Theme Preview/ })
+		.getByRole('link', { name: /Theme Preview Period 1/ })
 		.click();
 	await expect(page).toHaveURL(/\/grades\/preview$/);
 	await expect(page.getByRole('heading', { level: 1, name: 'Theme Preview' })).toBeVisible();

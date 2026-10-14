@@ -135,8 +135,13 @@ test('opening a cached class during a reordered background refresh preserves its
 	});
 	await page.goto('/grades');
 	await requested.promise;
-	await expect(page.getByRole('link', { name: /English.*84%/ })).toBeVisible();
-	await page.getByRole('link', { name: /English.*84%/ }).click();
+	// The recently graded panel also links into this course with ?assignment=;
+	// intersect the course-row name with the clean href to target one element.
+	const englishCourse = page
+		.getByRole('link', { name: /English.*84%/ })
+		.and(page.locator('a[href="/grades/english"]'));
+	await expect(englishCourse).toBeVisible();
+	await englishCourse.click();
 	await expect(page.getByRole('heading', { name: 'English', exact: true })).toBeVisible();
 	await expect(page.locator('main header')).toContainText('84%');
 	responseGate.release();
@@ -151,12 +156,24 @@ test('opening a cached class during a reordered background refresh preserves its
 		'Math work'
 	);
 	await page.getByRole('link', { name: 'All courses', exact: true }).click();
-	await expect(page.getByRole('link', { name: /English.*85%/ })).toBeVisible();
-	await expect(page.getByRole('link', { name: /Math.*100%/ })).toBeVisible();
-	await expect(page.getByRole('link', { name: /Ethnic Studies.*91%/ })).toBeVisible();
+	await expect(
+		page.getByRole('link', { name: /English.*85%/ }).and(page.locator('a[href="/grades/english"]'))
+	).toBeVisible();
+	await expect(
+		page.getByRole('link', { name: /Math.*100%/ }).and(page.locator('a[href="/grades/math"]'))
+	).toBeVisible();
+	await expect(
+		page
+			.getByRole('link', { name: /Ethnic Studies.*91%/ })
+			.and(page.locator('a[href="/grades/ethnic"]'))
+	).toBeVisible();
 	await page.reload();
-	await expect(page.getByRole('link', { name: /English.*85%/ })).toBeVisible();
-	await expect(page.getByRole('link', { name: /Math.*100%/ })).toBeVisible();
+	await expect(
+		page.getByRole('link', { name: /English.*85%/ }).and(page.locator('a[href="/grades/english"]'))
+	).toBeVisible();
+	await expect(
+		page.getByRole('link', { name: /Math.*100%/ }).and(page.locator('a[href="/grades/math"]'))
+	).toBeVisible();
 });
 
 test('a summary-only class in a saved non-default quarter hydrates that same quarter', async ({

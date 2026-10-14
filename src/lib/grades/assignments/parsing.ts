@@ -87,7 +87,8 @@ export function parseSynergyAssignment(synergyAssignment: AssignmentEntity) {
 		if (usePercentage) calculationPointsEarned = (officialPercentage / 100) * pointsPossible;
 	}
 
-	const notesFormatted = _Notes.replace(/^\s*\(\s*not\s+for\s+grading\s*\)\s*/i, '').trim();
+	// Districts may omit the Notes attribute entirely; treat it as empty.
+	const notesFormatted = (_Notes ?? '').replace(/^\s*\(\s*not\s+for\s+grading\s*\)\s*/i, '').trim();
 	const assignmentDate = new Date(_Date);
 	const dueDate = new Date(_DueDate);
 	const safeDate = Number.isFinite(assignmentDate.getTime())
@@ -97,7 +98,7 @@ export function parseSynergyAssignment(synergyAssignment: AssignmentEntity) {
 			: new Date(0);
 
 	const assignment: RealAssignment = {
-		name: _Measure,
+		name: _Measure ?? '',
 		id: synergyAssignment._GradebookID,
 		pointsEarned,
 		pointsPossible,
@@ -117,7 +118,8 @@ export function parseSynergyAssignment(synergyAssignment: AssignmentEntity) {
 		category: _Type,
 		date: safeDate,
 		newHypothetical: false,
-		description: _MeasureDescription.length > 0 ? _MeasureDescription : undefined,
+		// Districts may omit optional attributes entirely; treat them as empty.
+		description: (_MeasureDescription ?? '').length > 0 ? _MeasureDescription : undefined,
 		comments: notesFormatted.length > 0 ? notesFormatted : undefined
 	};
 

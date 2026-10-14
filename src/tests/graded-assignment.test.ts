@@ -213,3 +213,12 @@ describe('isGradedAssignment', () => {
 		expect(impacts.get('a2')).toBe(-10);
 	});
 });
+
+describe('getCourseAssignmentImpacts', () => {
+	test('tolerates assignments that omit the Notes attribute entirely', () => {
+		const xml = `<Gradebook><ReportingPeriod Index="0" GradePeriod="Quarter 1"/><ReportingPeriods><ReportPeriod Index="0" GradePeriod="Quarter 1"/></ReportingPeriods><Courses><Course CourseID="cache" CourseName="Cache Preview" Period="1" Staff="Example Teacher" Room="101"><Marks><Mark MarkName="Quarter 1" CalculatedScoreRaw="94" CalculatedScoreString="A"><Assignments><Assignment GradebookID="cache-assignment" Measure="Saved assignment" Type="Homework" Date="9/1/2026" DueDate="9/1/2026" Point="94" PointPossible="100"/></Assignments></Mark></Marks></Course></Courses></Gradebook>`;
+		const gradebook = parseGradebookXML(xml);
+		const course = gradebook.Courses.Course[0]!;
+		expect(() => getCourseAssignmentImpacts(course)).not.toThrow();
+	});
+});
