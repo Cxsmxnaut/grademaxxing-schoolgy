@@ -4,6 +4,7 @@
 	import { brand } from '$lib/brand';
 	import '$lib/components/landing/landing.css';
 	import SchoolMarquee from '$lib/components/landing/SchoolMarquee.svelte';
+	import SeoHead from '$lib/components/SeoHead.svelte';
 	import { LocalStorageKey } from '$lib/storage/keys';
 	import CalculatorIcon from '@lucide/svelte/icons/calculator';
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
@@ -233,15 +234,38 @@
 			a: 'Grademaxxing is designed for StudentVUE accounts. ParentVUE accounts and multi-student switching are not currently supported.'
 		}
 	];
+
+	const landingDescription =
+		'Understand StudentVUE grades with trends, category math, what-if scores, attendance, documents, and mail.';
+	const jsonLd = {
+		'@context': 'https://schema.org',
+		'@graph': [
+			{
+				'@type': 'SoftwareApplication',
+				name: brand,
+				url: 'https://grademaxxing.app/',
+				description: landingDescription,
+				applicationCategory: 'EducationApplication',
+				operatingSystem: 'Any',
+				offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }
+			},
+			{
+				'@type': 'FAQPage',
+				mainEntity: faqs.map((faq) => ({
+					'@type': 'Question',
+					name: faq.q,
+					acceptedAnswer: { '@type': 'Answer', text: faq.a }
+				}))
+			}
+		]
+	};
 </script>
 
-<svelte:head>
-	<title>{brand} — gradebook without the maze</title>
-	<meta
-		name="description"
-		content="Understand StudentVUE grades with trends, category math, what-if scores, attendance, documents, and mail."
-	/>
-</svelte:head>
+<SeoHead
+	title={`${brand} — gradebook without the maze`}
+	description={landingDescription}
+	{jsonLd}
+/>
 
 <div class="landing-root">
 	<a class="landing-skip" href="#landing-main">Skip to content</a>
@@ -425,7 +449,7 @@
 			/>
 		</section>
 		<div class="landing-footer-links">
-			<span>© 2026 Grademaxxing</span><a href="/privacy">Privacy</a>
+			<span>© 2026 Grademaxxing</span><a href="/privacy">Privacy</a><a href="/glossary">Glossary</a>
 		</div>
 		<p class="landing-legal">
 			StudentVUE is a registered trademark of Edupoint Educational Systems LLC. Grademaxxing is not

@@ -2,11 +2,20 @@
 	import { brand } from '$lib/brand';
 	import AuthPanelHeader from '$lib/components/auth/AuthPanelHeader.svelte';
 	import AuthShell from '$lib/components/auth/AuthShell.svelte';
+	import SeoHead from '$lib/components/SeoHead.svelte';
+
+	const description =
+		'How Grademaxxing handles your credentials, sessions, local caches, and referrals — without keeping your StudentVUE password on our servers.';
+	const jsonLd = {
+		'@context': 'https://schema.org',
+		'@type': 'WebPage',
+		name: `Privacy - ${brand}`,
+		url: 'https://grademaxxing.app/privacy',
+		description
+	};
 </script>
 
-<svelte:head>
-	<title>Privacy - {brand}</title>
-</svelte:head>
+<SeoHead title="Privacy - {brand}" {description} {jsonLd} />
 
 <AuthShell promo={false}>
 	<article class="text-foreground w-full max-w-[46rem] py-2 sm:py-8">
@@ -64,5 +73,11 @@
 				</p>
 			</section>
 		</div>
+
+		<footer class="text-muted-foreground mt-10 text-xs leading-relaxed">
+			<a href="/" class="text-link hover:brightness-110">Home</a><span aria-hidden="true">
+				·
+			</span><a href="/glossary" class="text-link hover:brightness-110">Glossary</a>
+		</footer>
 	</article>
 </AuthShell>

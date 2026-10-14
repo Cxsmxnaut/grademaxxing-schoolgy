@@ -9,13 +9,25 @@ export const prerender = true;
 const SITE_ORIGIN = 'https://grademaxxing.app';
 
 /** Public, content-bearing pages only. The authenticated app pages, /api,
- * /admin, and per-user /refer/[code] links are intentionally excluded. */
-const PATHS = ['/', '/login', '/privacy'] as const;
+ * /admin, and per-user /refer/[code] links are intentionally excluded.
+ *
+ * `lastmod` records each page's last meaningful content change — keep it a real
+ * date rather than stamping build time, because validators treat identical
+ * auto-dated entries as noise. */
+const PATHS = [
+	{ path: '/', lastmod: '2026-10-10' },
+	{ path: '/login', lastmod: '2026-10-10' },
+	{ path: '/privacy', lastmod: '2026-10-10' },
+	{ path: '/glossary', lastmod: '2026-10-13' }
+] as const;
 
 const body = [
 	'<?xml version="1.0" encoding="UTF-8"?>',
 	'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-	...PATHS.map((path) => `\t<url><loc>${SITE_ORIGIN}${path}</loc></url>`),
+	...PATHS.map(
+		({ path, lastmod }) =>
+			`\t<url><loc>${SITE_ORIGIN}${path}</loc><lastmod>${lastmod}</lastmod></url>`
+	),
 	'</urlset>'
 ].join('\n');
 

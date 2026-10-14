@@ -1,4 +1,5 @@
 import { adminConsoleCsp } from '$lib/server/admin/csp';
+import { markdownMirrorPath, markdownResponse } from '$lib/server/markdown-mirrors';
 import { wellKnownResponse } from '$lib/server/mcp/metadata';
 import { appendServerTiming } from '$lib/server/request-timing';
 import { error, type Handle, type HandleServerError, type RequestEvent } from '@sveltejs/kit';
@@ -25,6 +26,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// ChatGPT and Claude can find the authorization server on every adapter.
 	const wellKnown = wellKnownResponse(event.url);
 	if (wellKnown) return wellKnown;
+
+	// Public pages answer direct `/page.md` URLs and `Accept: text/markdown`
+	// requests with their Markdown mirror (llms.txt v2 content negotiation).
+	if (event.request.method === 'GET') {
+		const markdown = markdownResponse(event.request, event.url.pathname);
+		if (markdown) return markdown;
+	}
 
 	// Public registration and bearer-token MCP endpoints use no ambient cookies.
 	// The credential/consent form at /mcp/authorize still requires this origin.
@@ -82,6 +90,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 		response.headers.set('Pragma', 'no-cache');
 	} else if (response.headers.get('content-type')?.includes('text/html')) {
 		response.headers.set('Cache-Control', 'private, no-store, max-age=0');
+		// Advertise llms.txt for every page and the Markdown mirror where one exists.
+		const mirror = markdownMirrorPath(event.url.pathname);
+		const links = ['</llms.txt>; rel="describedby"'];
+		if (mirror) {
+			links.unshift(`<${mirror}>; rel="alternate"; type="text/markdown"`);
+			response.headers.append('Vary', 'Accept');
+		}
+		response.headers.set('Link', links.join(', '));
 	}
 	if (
 		(response.status === 429 || response.status === 503) &&
