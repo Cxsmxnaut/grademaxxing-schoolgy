@@ -1,0 +1,20 @@
+# Grademaxxing
+
+> A private, read-only StudentVUE grade companion: grade trends, category math, what-if scores, attendance, documents, and school mail in one calm view. Official school records stay official; every estimate is clearly labeled as a simulation.
+
+Grademaxxing connects to a district's StudentVUE portal using the student's existing account, reads the gradebook over HTTPS, and turns it into dated assignment trends, weighted-category math, and what-if simulations. It can never change school records, submit work, or send mail. Credentials are encrypted on the device and never stored on the server.
+
+## Pages
+
+- [Home](https://grademaxxing.app/): Product overview, feature tour, FAQ, and a preview of the gradebook
+- [Log in](https://grademaxxing.app/login): Connect a StudentVUE account; the password is encrypted on-device and sent only over HTTPS
+- [Privacy](https://grademaxxing.app/privacy): How credentials, sessions, local caches, and referrals are handled
+- [Glossary](https://grademaxxing.app/glossary): Plain-language definitions for grading and StudentVUE terms
+
+## Optional
+
+- [llms-full.txt](https://grademaxxing.app/llms-full.txt): Complete Grademaxxing documentation in a single Markdown file
+- [sitemap.md](https://grademaxxing.app/sitemap.md): Markdown sitemap listing every public page
+- [AGENTS.md](https://grademaxxing.app/AGENTS.md): Guidance for coding agents working on this project
+- [robots.txt](https://grademaxxing.app/robots.txt): Crawler directives — all crawlers are allowed
+- [sitemap.xml](https://grademaxxing.app/sitemap.xml): Standard XML sitemap with lastmod dates

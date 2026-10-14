@@ -1,0 +1,56 @@
+# Grademaxxing — full documentation
+
+> A private, read-only StudentVUE grade companion. This file collects the full text of every public page in one Markdown document for AI agents.
+
+Grademaxxing turns a school portal gradebook into grade trends, weighted-category math, what-if scores, attendance, documents, and school mail. It connects with the student's existing StudentVUE account over HTTPS, reads the gradebook, and never changes school records. What-if scores and projected grades are local simulations, clearly separated from official values.
+
+## Home — https://grademaxxing.app/
+
+Grademaxxing is a calmer, read-only layer on top of StudentVUE.
+
+- Grade trends: watch each dated assignment move the course line, with what-if scores on the chart.
+- What-if calculator: test a final, a missing assignment, or a target grade before it happens. The simulation is never a prophecy.
+- Attendance detail: review absences, tardies, activities, dates, and class periods.
+- Records in one place: StudentVUE documents, report cards, and mail within reach.
+- Projected GPA: explore estimates without confusing them with official records.
+
+Built for grade trackers, college applicants, test takers, attendance watchers, record keepers, and message readers. All previews on the site use fictional sample records. Grademaxxing is free to use. It works in any modern browser on phone, tablet, or laptop — nothing to install. ParentVUE accounts and multi-student switching are not currently supported.
+
+StudentVUE availability depends on the district's portal configuration; not every district has been verified.
+
+## Log in — https://grademaxxing.app/login
+
+Sign in with an existing StudentVUE account: pick the district, enter the StudentVUE email and password, and optionally keep the session signed in on the device. Credentials travel over encrypted HTTPS to establish the StudentVUE session, then the server discards the password. "Keep me signed in" encrypts the district, username, and password on-device with a non-exportable browser key; only ciphertext is stored in browser storage. A wrong password can be recovered through the district's StudentVUE password-help page.
+
+## Privacy — https://grademaxxing.app/privacy
+
+- Signing in: the browser sends credentials over HTTPS to the Grademaxxing server, which uses them to establish a session with the official StudentVUE portal and then discards the password. It is never written to disk, logs, or server session.
+- While signed in: the active StudentVUE session state is encrypted and authenticated inside a secure HTTP-only app cookie for up to 12 hours, used only to proxy read-only student information.
+- Local data: saved credentials are encrypted on-device; grade data used by the interface may be cached locally. Signing out deletes the server session, saved credentials, and local caches.
+- Referrals: invited referrers are created privately by the administrator; referred visitors go to the standard sign-in and are counted only by a one-way protected student key. No referred student name or email is stored.
+
+## Glossary — https://grademaxxing.app/glossary
+
+- StudentVUE: the student grade portal from Edupoint Educational Systems that Grademaxxing reads.
+- Reporting period: the quarter or trimester window grades are reported in.
+- Category: a weighted group of assignments such as homework, quizzes, or tests.
+- Category weight: how much a category counts toward the course grade.
+- What-if score: a hypothetical grade you have not earned yet, used to estimate impact.
+- Grade trend: the course percentage plotted across dated assignments.
+- Impact delta: how much a newly posted assignment moved the course average.
+- Tardy: a late arrival recorded in attendance.
+- Estimate vs official: every projected or simulated number in Grademaxxing is labeled; only the values shown as official come from the school.
+
+## For agents
+
+- llms.txt: <https://grademaxxing.app/llms.txt>
+- Markdown sitemap: <https://grademaxxing.app/sitemap.md>
+- XML sitemap: <https://grademaxxing.app/sitemap.xml>
+- robots.txt (all crawlers allowed): <https://grademaxxing.app/robots.txt>
+- Coding-agent guidance: <https://grademaxxing.app/AGENTS.md>
+- Every public page has a Markdown mirror at `/index.md`, `/login.md`, `/privacy.md`, `/glossary.md`, and also answers `Accept: text/markdown` requests with `Content-Type: text/markdown; charset=utf-8`.
+
+## Optional
+
+- StudentVUE is a registered trademark of Edupoint Educational Systems LLC. Grademaxxing is not affiliated with or endorsed by Edupoint or any school district.
+- An OAuth-protected MCP server lives at `/mcp` with RFC 8414 discovery under `/.well-known/oauth-authorization-server`.

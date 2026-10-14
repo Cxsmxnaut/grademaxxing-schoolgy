@@ -13,6 +13,7 @@
 	import AuthPanelHeader from '$lib/components/auth/AuthPanelHeader.svelte';
 	import DistrictCombobox from '$lib/components/auth/DistrictCombobox.svelte';
 	import PostLoginLoadingScreen from '$lib/components/auth/PostLoginLoadingScreen.svelte';
+	import SeoHead from '$lib/components/SeoHead.svelte';
 	import SessionRecoveryScreen from '$lib/components/auth/SessionRecoveryScreen.svelte';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Button } from '$lib/components/ui/button';
@@ -99,6 +100,16 @@
 	const sessionExpired = $derived(
 		browser && page.url.searchParams.get('sessionExpired') === 'true'
 	);
+
+	const loginDescription =
+		'Sign in to Grademaxxing with your existing StudentVUE account. Your password is encrypted on this device and passed directly to your district over HTTPS.';
+	const jsonLd = {
+		'@context': 'https://schema.org',
+		'@type': 'WebPage',
+		name: `Sign in to ${brand}`,
+		url: 'https://grademaxxing.app/login',
+		description: loginDescription
+	};
 
 	async function finishLogin(
 		loginAccount: StudentAccount,
@@ -198,9 +209,7 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Log In - {brand}</title>
-</svelte:head>
+<SeoHead title="Log In - {brand}" description={loginDescription} {jsonLd} />
 
 {#if checkingSavedSession || restoringSession}
 	<SessionRecoveryScreen stage={recoveryStage} />
@@ -343,7 +352,11 @@
 						</p>
 						<p class="mt-2.5">{brand} is independent and is not affiliated with Edupoint.</p>
 						<p class="text-tertiary-foreground mt-[0.875rem] text-xs leading-[1.125rem]">
-							<a href="/privacy" class="text-link hover:brightness-110">Privacy</a>
+							<a href="/privacy" class="text-link hover:brightness-110">Privacy</a><span
+								aria-hidden="true"
+							>
+								·
+							</span><a href="/glossary" class="text-link hover:brightness-110">Glossary</a>
 						</p>
 					</div>
 				</form>
