@@ -8,9 +8,16 @@ Local implementation; no deployment or district approval is implied.
 `GRADEMAXXING_USAGE_DB` binding stores a running row before model work, then bounded
 provider-attempt and tool-outcome events and final metrics. Apply migration
 `0007_max_diagnostics.sql` in the intended environment before enabling this feature.
-The production deployment workflow ensures this additive, repeatable schema before
-deploying the Worker. Missing storage/migrations fail open for chat and appear as
-unavailable in the console.
+Apply this additive, repeatable schema with an authorized Wrangler login before the
+first deployment to an environment:
+
+```sh
+npx wrangler d1 execute grademaxxing-usage --remote --config wrangler.jsonc --file migrations/0007_max_diagnostics.sql
+```
+
+The deployment-only GitHub token does not have D1 administration permission; schema
+changes are separate from Worker deployment. Missing storage/migrations fail open
+for chat and appear as unavailable in the console.
 
 Max provider credentials live in the encrypted `MAX_PROVIDER_SECRETS` GitHub Actions
 secret as a JSON object of provider environment variables. The production workflow
