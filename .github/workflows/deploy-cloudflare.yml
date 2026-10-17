@@ -44,6 +44,21 @@ jobs:
       - name: Build Cloudflare Worker
         run: npm run build:cloudflare
 
+      # This additive migration is safe to repeat and does not replay older migrations.
+      - name: Ensure Max diagnostics schema
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npm exec -- wrangler d1 execute grademaxxing-usage --remote --config wrangler.jsonc --file migrations/0007_max_diagnostics.sql
+
+      - name: Configure Max provider secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          MAX_PROVIDER_SECRETS: ${{ secrets.MAX_PROVIDER_SECRETS }}
+        run: |
+          if [ -n "$MAX_PROVIDER_SECRETS" ]; then
+            printf '%s' "$MAX_PROVIDER_SECRETS" | npm exec -- wrangler secret bulk --config wrangler.jsonc
+          fi
+
       - name: Deploy production Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

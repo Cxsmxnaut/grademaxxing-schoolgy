@@ -183,5 +183,13 @@ export function createMeshFromEnv(
 				'(comma-separated lists) in the server environment.'
 		);
 	}
-	return new TokenMesh({ slots, ...meshOptions });
+	return new TokenMesh({
+		slots,
+		// Leave room for reasoning responses while keeping stalled providers bounded.
+		attemptTimeoutMs: 12_000,
+		streamIdleTimeoutMs: 12_000,
+		// A saturated pool should offer a retry instead of holding the chat for minutes.
+		maxPoolWaitMs: 5_000,
+		...meshOptions
+	});
 }

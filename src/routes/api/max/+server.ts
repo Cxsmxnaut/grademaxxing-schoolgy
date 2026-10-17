@@ -1,15 +1,28 @@
+import { dev } from '$app/environment';
 import { env as privateEnv } from '$env/dynamic/private';
 import type { Env } from '$lib/server/max/config';
-import { askMaxDetailed, getDefaultMesh } from '$lib/server/max/max';
+import { sanitizeMaxContext } from '$lib/server/max/context';
+import { createMaxDiagnostics, type MaxDiagnostics } from '$lib/server/max/diagnostics';
+import { askMaxDetailed, generateChatTitle, getDefaultMesh } from '$lib/server/max/max';
+import { createMaxResourceAccess, type MaxResourceAccess } from '$lib/server/max/resources';
 import {
 	PoolExhaustedError,
 	TokenMesh,
 	UpstreamError,
 	type AttemptError
 } from '$lib/server/max/tokenMesh';
-import { getStudentSession, sessionCookie } from '$lib/server/student-session';
+import {
+	clientSessionHeader,
+	getStudentSession,
+	requireStudentSessionContext,
+	serializeStudentSession,
+	sessionCookie,
+	sessionMaxAge
+} from '$lib/server/student-session';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+
+export const config = { maxDiagnostics: true };
 
 /**
  * POST /api/max — the Max AI chat endpoint.
@@ -27,8 +40,8 @@ import type { RequestHandler } from './$types';
  *
  * The Token Mesh module-scope cache means warm invocations keep their 429
  * benches; cold starts simply begin with a clean pool. Either way the caller
- * only ever sees a successful reply or a clean JSON error. Nothing about a
- * conversation is stored server-side.
+ * only ever sees a successful reply or a clean JSON error. Content-free diagnostics are stored separately; only an
+ * development-test question may be included, never replies or app context.
  *
  * Abuse protection mirrors /api/feedback: the app-wide cross-site POST guard
  * in hooks.server.ts plus a per-address soft rate ceiling here.
@@ -37,6 +50,7 @@ import type { RequestHandler } from './$types';
 const WINDOW_MS = 60 * 1000;
 const MAX_REQUESTS = 12;
 const MAX_QUERY_LENGTH = 8_000;
+const MAX_BODY_BYTES = 32 * 1024;
 const requests = new Map<string, { count: number; resetAt: number }>();
 
 function safeClientAddress(getClientAddress: () => string) {
@@ -49,6 +63,9 @@ function safeClientAddress(getClientAddress: () => string) {
 
 function recordRequest(address: string) {
 	const now = Date.now();
+	for (const [key, value] of requests) if (value.resetAt <= now) requests.delete(key);
+	if (!requests.has(address) && requests.size >= 10_000)
+		requests.delete(requests.keys().next().value!);
 	const current = requests.get(address);
 	requests.set(
 		address,
@@ -75,12 +92,14 @@ function classifyError(err: unknown): { status: number; payload: Record<string, 
 	const error = err instanceof Error ? err : new Error(String(err));
 	const name = error.name ?? 'Error';
 	const message = typeof error.message === 'string' ? error.message : '';
-	const rawAttempts = (err as { attempts?: unknown }).attempts;
+	const rawAttempts = (err as { attempts?: unknown } | null)?.attempts;
 	const attempts = Array.isArray(rawAttempts)
-		? rawAttempts.map((attempt: AttemptError) => {
-				const { detail: _detail, ...rest } = attempt;
-				return rest;
-			})
+		? rawAttempts.map(({ slotId, provider, kind, status }: AttemptError) => ({
+				slotId,
+				provider,
+				kind,
+				status
+			}))
 		: [];
 
 	if (message.includes('No provider keys configured')) {
@@ -89,14 +108,18 @@ function classifyError(err: unknown): { status: number; payload: Record<string, 
 	if (name === 'PoolExhaustedError' || err instanceof PoolExhaustedError) {
 		return {
 			status: 503,
-			payload: { error: message, type: 'PoolExhaustedError', retryable: true }
+			payload: {
+				error: 'Max is temporarily busy. Please try again in a minute.',
+				type: 'PoolExhaustedError',
+				retryable: true
+			}
 		};
 	}
 	if (name === 'UpstreamError' || err instanceof UpstreamError) {
 		return {
 			status: 502,
 			payload: {
-				error: message || 'all pooled provider keys failed',
+				error: 'Max is having trouble reaching its AI providers. Please try again shortly.',
 				type: 'UpstreamError',
 				attempts
 			}
@@ -117,12 +140,22 @@ function classifyError(err: unknown): { status: number; payload: Record<string, 
  * pre-token failure is reported as an in-stream error event; the UI treats
  * it exactly like a failed request.
  */
-function streamMax(
+async function streamMax(
 	mesh: TokenMesh,
-	body: { studentDataContext?: unknown; userQuery: string; history?: unknown }
+	body: {
+		studentDataContext?: unknown;
+		userQuery: string;
+		history?: unknown;
+		conversationMemory?: unknown;
+	},
+	access: MaxResourceAccess,
+	commitSession: () => void,
+	diagnostics: MaxDiagnostics
 ) {
 	const encoder = new TextEncoder();
 	let closed = false;
+	let ready!: () => void;
+	const started = new Promise<void>((resolve) => (ready = resolve));
 	const stream = new ReadableStream<Uint8Array>({
 		start(controller) {
 			const send = (obj: Record<string, unknown>) => {
@@ -138,24 +171,37 @@ function streamMax(
 			askMaxDetailed(body.studentDataContext ?? null, body.userQuery, {
 				mesh,
 				history: body.history,
+				conversationMemory: body.conversationMemory,
+				resourceAccess: access,
+				onAttempt: diagnostics.attempt,
+				onTool: diagnostics.tool,
 				onToken: (chunk) => {
+					diagnostics.token(chunk);
+					ready();
 					delivered = true;
 					send({ t: chunk });
 				}
 			})
-				.then((result) => {
+				.then(async (result) => {
+					await diagnostics.finish('success', result);
 					send({
+						diagnosticId: diagnostics.id,
+						reportReceipt: diagnostics.reportReceipt,
 						done: true,
 						text: result.text,
 						provider: result.provider,
 						model: result.model,
-						usage: result.usage
+						usage: result.usage,
+						toolsUsed: result.toolsUsed
 					});
 				})
-				.catch((err: unknown) => {
+				.catch(async (err: unknown) => {
 					const { status, payload } = classifyError(err);
+					await diagnostics.finish('failed', undefined, String(payload.type ?? 'Error'));
 					delete payload.attempts; // too heavy for the stream
 					send({
+						diagnosticId: diagnostics.id,
+						reportReceipt: diagnostics.reportReceipt,
 						error: payload.error,
 						type: payload.type ?? 'Error',
 						status,
@@ -163,6 +209,8 @@ function streamMax(
 					});
 				})
 				.finally(() => {
+					ready();
+					void access.dispose().catch(() => undefined);
 					closed = true;
 					try {
 						controller.close();
@@ -170,21 +218,30 @@ function streamMax(
 						/* already closed */
 					}
 				});
+		},
+		async cancel() {
+			closed = true;
+			access.cancel();
+			await diagnostics.finish('cancelled');
 		}
 	});
 
+	await started;
+	commitSession();
 	return new Response(stream, {
 		headers: {
 			'content-type': 'text/event-stream; charset=utf-8',
-			'cache-control': 'no-cache, no-transform',
+			'cache-control': 'no-store, no-transform',
 			'x-accel-buffering': 'no' // proxies: don't buffer, the whole point is liveness
 		}
 	});
 }
 
 export const POST: RequestHandler = async ({ request, cookies, platform, getClientAddress }) => {
+	let session: ReturnType<typeof getStudentSession>;
 	try {
-		getStudentSession(cookies.get(sessionCookie));
+		session = getStudentSession(cookies.get(sessionCookie));
+		requireStudentSessionContext(session, request.headers.get(clientSessionHeader));
 	} catch {
 		return json({ error: 'Sign in before asking Max.', type: 'Unauthorized' }, { status: 401 });
 	}
@@ -202,13 +259,49 @@ export const POST: RequestHandler = async ({ request, cookies, platform, getClie
 
 	let input: {
 		action?: unknown;
+		feedbackReceipts?: unknown;
+		assistantReply?: unknown;
 		studentDataContext?: unknown;
 		userQuery?: unknown;
 		history?: unknown;
+		conversationMemory?: unknown;
 		stream?: unknown;
 	};
 	try {
-		input = (await request.json()) as typeof input;
+		const declared = Number(request.headers.get('content-length') ?? 0);
+		if (declared > MAX_BODY_BYTES)
+			return json({ error: 'Question payload is too large.', type: 'BadRequest' }, { status: 413 });
+		const reader = request.body?.getReader();
+		const chunks: Uint8Array[] = [];
+		let size = 0;
+		try {
+			if (reader)
+				for (;;) {
+					const { done, value } = await reader.read();
+					if (done) break;
+					size += value.byteLength;
+					if (size > MAX_BODY_BYTES) {
+						void reader.cancel().catch(() => undefined);
+						return json(
+							{ error: 'Question payload is too large.', type: 'BadRequest' },
+							{ status: 413 }
+						);
+					}
+					chunks.push(value);
+				}
+		} finally {
+			reader?.releaseLock();
+		}
+		const bytes = new Uint8Array(size);
+		let offset = 0;
+		for (const chunk of chunks) {
+			bytes.set(chunk, offset);
+			offset += chunk.byteLength;
+		}
+		const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes));
+		if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
+			return json({ error: 'Expected a question object.', type: 'BadRequest' }, { status: 400 });
+		input = parsed as typeof input;
 	} catch {
 		return json({ error: 'invalid JSON body', type: 'BadRequest' }, { status: 400 });
 	}
@@ -230,38 +323,109 @@ export const POST: RequestHandler = async ({ request, cookies, platform, getClie
 		);
 	}
 
+	if (input.action !== undefined && input.action !== 'title')
+		return json({ error: 'Unknown action.', type: 'BadRequest' }, { status: 400 });
+
 	recordRequest(address);
+	const context = sanitizeMaxContext(input.studentDataContext);
+	const diagnostics = createMaxDiagnostics(platform, {
+		question: userQuery,
+		shareQuestion: dev,
+		username: session.username,
+		action: input.action === 'title' ? 'title' : 'chat'
+	});
+	request.signal.addEventListener(
+		'abort',
+		() => {
+			void diagnostics.finish('cancelled');
+		},
+		{ once: true }
+	);
 
 	let mesh: TokenMesh;
 	try {
 		mesh = getDefaultMesh(requestEnv(platform));
 	} catch (err) {
 		const { status, payload } = classifyError(err);
-		return json(payload, { status });
+		await diagnostics.finish('failed', undefined, String(payload.type ?? 'Error'));
+		return json(
+			{ ...payload, diagnosticId: diagnostics.id, reportReceipt: diagnostics.reportReceipt },
+			{ status }
+		);
 	}
 
-	if (input.stream === true) {
-		return streamMax(mesh, {
-			studentDataContext: input.studentDataContext ?? null,
+	if (input.action === 'title') {
+		const result = await generateChatTitle(
 			userQuery,
-			history: input.history
-		});
+			typeof input.assistantReply === 'string' ? input.assistantReply.slice(0, 300) : '',
+			{ mesh, onAttempt: diagnostics.attempt }
+		);
+		await diagnostics.finish(
+			result.provider === 'fallback' ? 'failed' : 'success',
+			undefined,
+			result.provider === 'fallback' ? 'TitleFallback' : undefined
+		);
+		return json(result, { headers: { 'cache-control': 'no-store' } });
+	}
+
+	const access = createMaxResourceAccess(session, {
+		signal: request.signal,
+		platform,
+		feedbackReceipts: input.feedbackReceipts
+	});
+	const commitSession = () => {
+		if (access.usedPortal)
+			cookies.set(sessionCookie, serializeStudentSession(session), {
+				path: '/',
+				httpOnly: true,
+				sameSite: 'lax',
+				secure: !dev,
+				maxAge: sessionMaxAge
+			});
+	};
+	if (input.stream === true) {
+		return streamMax(
+			mesh,
+			{
+				studentDataContext: context,
+				userQuery,
+				history: input.history,
+				conversationMemory: input.conversationMemory
+			},
+			access,
+			commitSession,
+			diagnostics
+		);
 	}
 
 	try {
-		const result = await askMaxDetailed(input.studentDataContext ?? null, userQuery, {
+		const result = await askMaxDetailed(context, userQuery, {
 			mesh,
-			history: input.history
+			history: input.history,
+			conversationMemory: input.conversationMemory,
+			resourceAccess: access,
+			onAttempt: diagnostics.attempt,
+			onTool: diagnostics.tool
 		});
+		commitSession();
+		await diagnostics.finish('success', result);
 		return json({
+			diagnosticId: diagnostics.id,
+			reportReceipt: diagnostics.reportReceipt,
 			text: result.text,
 			provider: result.provider,
 			model: result.model,
-			usage: result.usage
+			usage: result.usage,
+			toolsUsed: result.toolsUsed
 		});
 	} catch (err) {
 		const { status, payload } = classifyError(err);
-		if (status === 500) console.error('askMax failed:', err);
-		return json(payload, { status });
+		await diagnostics.finish('failed', undefined, String(payload.type ?? 'Error'));
+		return json(
+			{ ...payload, diagnosticId: diagnostics.id, reportReceipt: diagnostics.reportReceipt },
+			{ status }
+		);
+	} finally {
+		await access.dispose();
 	}
 };

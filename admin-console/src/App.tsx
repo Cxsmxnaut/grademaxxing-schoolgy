@@ -6,6 +6,7 @@ import { AuthProvider, RequireAuth } from "./context/AuthContext";
 import AppLayout from "./layout/AppLayout";
 import SignIn from "./pages/AuthPages/SignIn";
 import NotFound from "./pages/OtherPage/NotFound";
+const MaxDiagnosticsPage = lazy(() => import("./pages/MaxDiagnosticsPage"));
 const Dashboard = lazy(() => import("./pages/Dashboard/Dashboard"));
 const FeedbackInbox = lazy(() => import("./pages/FeedbackInbox"));
 const ReferralsPage = lazy(() => import("./pages/ReferralsPage"));
@@ -32,6 +33,7 @@ export default function App() {
             <Route element={<RequireAuth />}>
               <Route element={<AppLayout />}>
                 <Route index path="/" element={<Dashboard />} />
+                <Route path="/max" element={<MaxDiagnosticsPage />} />
                 <Route path="/feedback" element={<FeedbackInbox />} />
                 <Route path="/referrals" element={<ReferralsPage />} />
                 <Route path="/users" element={<UsersPage />} />

@@ -63,6 +63,46 @@
 			</section>
 
 			<section>
+				<h2 class="text-foreground mb-2 text-lg font-semibold">Max conversations</h2>
+				<p>
+					Max saves up to 20 recent chats on this device, encrypted with a non-exportable browser
+					key. Each chat expires 30 days after its last update. Each chat keeps at most its latest
+					120 messages; this message limit does not extend the expiration period. You can reopen,
+					delete, or clear them from the chat sidebar. Signing out clears this device’s saved chats
+					with the other local caches. Conversation context and relevant saved-chat excerpts may be
+					sent to AI providers when you ask Max a question. Max can retrieve requested assignment
+					details and teacher notes, attendance, schedule, school and profile fields, mail senders,
+					recipients and bodies, document text, and feedback conversations available through your
+					saved receipts. These lookups use your signed-in app access; authentication secrets and
+					administrator-only records are excluded. File formats without extractable text are not
+					read visually. Current app records remain the source for current grades and attendance.
+				</p>
+			</section>
+
+			<section>
+				<h2 class="text-foreground mb-2 text-lg font-semibold">Max reliability diagnostics</h2>
+				<p>
+					Administrators can review request times, broad question topics, provider/model attempts,
+					tool names and outcomes, timings, error codes, output character counts, and reliability
+					flags. These diagnostics exclude AI replies, conversation history, retrieved school
+					records, tool arguments/results, account identifiers, IP addresses, and credentials.
+					Automatic flags identify technical symptoms, not whether an answer is factually correct.
+					You can report an empty, incorrect, unhelpful, or poorly formatted reply; only the issue
+					category is attached to its diagnostic record.
+				</p>
+				<p class="mt-3">
+					The public production app does not include question text in these diagnostics. In the
+					local development testing setup, user questions are automatically included for the
+					developer to diagnose Max; AI replies and other conversation context remain excluded.
+					Basic email, link, account-name and secret redaction reduces accidental exposure but does
+					not guarantee anonymity. Avoid personal details or school records in test questions.
+					Diagnostics have a 7-day review window; expired rows are deleted on the next diagnostic
+					read or write. Administrators can clear all diagnostics sooner. Signing out clears local
+					chats but does not delete existing diagnostics.
+				</p>
+			</section>
+
+			<section>
 				<h2 class="text-foreground mb-2 text-lg font-semibold">Invite-only referrals</h2>
 				<p>
 					Invited referrers are created privately by the administrator using their name and email.

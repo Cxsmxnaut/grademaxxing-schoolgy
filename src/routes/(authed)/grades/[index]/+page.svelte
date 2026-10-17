@@ -559,8 +559,13 @@
 		{/if}
 
 		{#if categories && gradeCategories && showCategoryTable && !hypotheticalMode}
-			<div class="m-4 flex justify-center" transition:fade={{ duration: 200 }}>
-				<GradeCategoryTable {gradeCategories} {hypotheticalMode} {pointsByCategory} />
+			<div class="mb-4 min-w-0" transition:fade={{ duration: 200 }}>
+				<GradeCategoryTable
+					{gradeCategories}
+					{hypotheticalMode}
+					{pointsByCategory}
+					{assignmentCategoryColors}
+				/>
 			</div>
 		{/if}
 

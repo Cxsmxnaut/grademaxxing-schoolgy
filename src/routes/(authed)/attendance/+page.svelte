@@ -6,6 +6,11 @@
 	import { Calendar } from '$lib/components/ui/calendar';
 	import CalendarDay from '$lib/components/ui/calendar/calendar-day.svelte';
 	import type { Period } from '$lib/contracts/studentvue/attendance';
+	import {
+		getAbsenceType,
+		getDailyType,
+		type AttendanceType
+	} from '$lib/studentvue/attendance-status';
 	import { removeCourseType } from '$lib/grades/course-name';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
@@ -25,7 +30,6 @@
 	loadAttendance();
 	loadSchedule();
 
-	type AttendanceType = 'Absent' | 'Tardy' | 'Excused' | 'Present' | 'Unknown';
 	type View = 'day' | 'week' | 'month';
 	type AttendanceRow = {
 		date: string;
@@ -36,8 +40,6 @@
 		reason: string;
 	};
 
-	const excusedReasonRegex =
-		/Field Trip|School Pass|Excused|Medical\/Dent|Comp Ed\/Court-Religi|Illness or Sickness|SB14 Wellness\/Illnes|Med. all day\/period/i;
 	const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
 	const shortDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 	const weekdayFormatter = new Intl.DateTimeFormat('en-US', {
@@ -67,24 +69,6 @@
 	let view = $state<View>('day');
 	let visibleStatuses = $state<AttendanceType[]>([...statusOptions]);
 	let expandedRecord = $state<string | undefined>();
-
-	function getAbsenceType(periods: Period[]): AttendanceType {
-		const reasons = periods.map((period) => period._Name);
-		if (reasons.some((reason) => reason === 'Absent' || reason === 'Non ADA')) return 'Absent';
-		if (reasons.some((reason) => /Tardy/i.test(reason))) return 'Tardy';
-		if (reasons.some((reason) => excusedReasonRegex.test(reason))) return 'Excused';
-		if (reasons.some((reason) => reason === 'Present')) return 'Present';
-		return 'Unknown';
-	}
-
-	function getDailyType(status: string, reason: string): AttendanceType {
-		const value = `${status} ${reason}`;
-		if (/present/i.test(value)) return 'Present';
-		if (/tardy|late/i.test(value)) return 'Tardy';
-		if (/absent|unexcused|unverified|truan/i.test(value)) return 'Absent';
-		if (/excused|field trip|activity|school business|school pass/i.test(value)) return 'Excused';
-		return 'Unknown';
-	}
 
 	function parseAttendanceDate(value: string) {
 		const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);

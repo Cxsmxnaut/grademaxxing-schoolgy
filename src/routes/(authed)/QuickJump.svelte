@@ -12,6 +12,7 @@
 	import CalendarCheck2Icon from '@lucide/svelte/icons/calendar-check-2';
 	import FilesIcon from '@lucide/svelte/icons/files';
 	import MailOpenIcon from '@lucide/svelte/icons/mail-open';
+	import BotIcon from '@lucide/svelte/icons/bot';
 	import MessageSquareQuoteIcon from '@lucide/svelte/icons/message-square-quote';
 	import UserRoundIcon from '@lucide/svelte/icons/user-round';
 	import type { Component } from 'svelte';
@@ -40,6 +41,7 @@
 	}
 
 	const pages: { title: string; url: string; icon: Component; keywords: string }[] = [
+		{ title: 'Max AI', url: '/max', icon: BotIcon, keywords: 'assistant chat tutor grades study' },
 		{
 			title: 'Gradebook',
 			url: '/grades',

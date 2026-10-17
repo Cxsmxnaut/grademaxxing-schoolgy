@@ -14,6 +14,21 @@ test('loose multiplication stays literal while tight emphasis formats', () => {
 	expect(renderMarkdown('5 * 3 * 2')).toBe('<p>5 * 3 * 2</p>');
 });
 
+test('policy and external links render safely while code and unsafe destinations stay literal', () => {
+	expect(renderMarkdown('[Privacy policy](/privacy)')).toBe(
+		'<p><a href="/privacy">Privacy policy</a></p>'
+	);
+	expect(renderMarkdown('[School](https://example.test/?a=1&b=2)')).toContain(
+		'<a href="https://example.test/?a=1&amp;b=2" target="_blank" rel="noopener noreferrer">School</a>'
+	);
+	for (const href of ['javascript:alert', 'data:text/html,evil', '//evil.test', '/\\evil.test'])
+		expect(renderMarkdown(`[unsafe](${href})`)).not.toContain('<a ');
+	expect(renderMarkdown('`[Privacy policy](/privacy)`')).toBe(
+		'<p><code>[Privacy policy](/privacy)</code></p>'
+	);
+	expect(renderMarkdown('[<img src=x>](/privacy?q="onclick="evil)')).not.toContain('<img');
+});
+
 test('headings, lists, tables and code fences render as blocks', () => {
 	expect(renderMarkdown('### Game Plan')).toBe('<h3>Game Plan</h3>');
 	expect(renderMarkdown('- one\n- two')).toBe('<ul><li>one</li><li>two</li></ul>');

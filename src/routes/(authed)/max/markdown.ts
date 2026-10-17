@@ -178,6 +178,17 @@ export function renderMarkdown(src: unknown): string {
 		spans.push('<code>' + code + '</code>');
 		return SENTINEL + 'C' + (spans.length - 1) + SENTINEL;
 	});
+	// Escape-first links: keep code literal, reject executable schemes and
+	// protocol-relative URLs, and stash generated tags before emphasis runs.
+	const links: string[] = [];
+	text = text.replace(/\[([^\]\n]+)\]\(([^()\s]+)\)/g, (match, label: string, href: string) => {
+		const local = /^\/(?![\\/])/.test(href) && !href.includes('\\');
+		if (!local && !/^https?:\/\//i.test(href)) return match;
+		links.push(
+			`<a href="${href}"${local ? '' : ' target="_blank" rel="noopener noreferrer"'}>${label}</a>`
+		);
+		return SENTINEL + 'L' + (links.length - 1) + SENTINEL;
+	});
 
 	// emphasis, per line — runs before block parsing so it never touches the
 	// tags we generate. Tight bounds keep "5 * 3 * 2" literal.
@@ -306,6 +317,10 @@ export function renderMarkdown(src: unknown): string {
 
 	return out
 		.join('')
+		.replace(
+			new RegExp(`${SENTINEL}L(\\d+)${SENTINEL}`, 'g'),
+			(_m, i: string) => links[Number(i)] ?? ''
+		)
 		.replace(
 			new RegExp(`${SENTINEL}C(\\d+)${SENTINEL}`, 'g'),
 			(_m, i: string) => spans[Number(i)] ?? ''

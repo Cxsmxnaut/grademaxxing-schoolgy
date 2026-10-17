@@ -31,6 +31,7 @@
 	import FilesIcon from '@lucide/svelte/icons/files';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import MailOpenIcon from '@lucide/svelte/icons/mail-open';
+	import BotIcon from '@lucide/svelte/icons/bot';
 	import MessageSquareQuoteIcon from '@lucide/svelte/icons/message-square-quote';
 	import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
 	import * as Avatar from '$lib/components/ui/avatar';
@@ -185,6 +186,7 @@
 		section: 'Overview' | 'School';
 	}[] = [
 		{ title: 'Gradebook', url: '/grades', icon: BookIcon, section: 'Overview' },
+		{ title: 'Max AI', url: '/max', icon: BotIcon, section: 'Overview' },
 		{ title: 'Attendance', url: '/attendance', icon: CalendarCheck2Icon, section: 'School' },
 		{ title: 'Documents', url: '/documents', icon: FilesIcon, section: 'School' },
 		{ title: 'Mail', url: '/mail', icon: MailOpenIcon, section: 'School' },
@@ -329,7 +331,7 @@
 										aria-hidden="true"
 									>
 									</span>
-									<span class="truncate text-[0.78125rem] leading-none font-medium"
+									<span class="truncate text-[0.78125rem] leading-5 font-medium"
 										>{removeCourseType(course._CourseName)}</span
 									>
 								</a>

@@ -8,7 +8,18 @@ const adapter =
 		? adapterCloudflare()
 		: process.env.VERCEL === '1'
 			? adapterVercel({ maxDuration: 300, runtime: 'nodejs24.x' })
-			: adapterNode();
+			: {
+					...adapterNode(),
+					async emulate() {
+						return {
+							async platform({ config }) {
+								if (!config?.maxDiagnostics) return {};
+								const { maxDevelopmentPlatform } = await import('./scripts/max-dev-database.mjs');
+								return maxDevelopmentPlatform();
+							}
+						};
+					}
+				};
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {

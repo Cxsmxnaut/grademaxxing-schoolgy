@@ -67,23 +67,23 @@ test('empty history keeps the original three-message stateless package', () => {
 	expect(messages[1]?.content).toBe(`${CONTEXT_HEADER}\nnull`);
 });
 
-test('history is sanitized: malformed entries dropped, turns and length bounded', () => {
-	const history: unknown[] = [
-		{ role: 'robot', text: 'ignored role' },
-		{ role: 'user', text: '   ' },
-		null,
-		{ role: 'max', content: 'ok content form' },
-		{ role: 'user', text: 'x'.repeat(2_000) },
-		...Array.from({ length: 4 }, (_, i) => ({ role: 'user', text: `turn ${i}` }))
-	];
+test('history retains up to twelve exchanges, bounds long turns and drops malformed entries', () => {
+	const history = Array.from({ length: 30 }, (_, i) => ({
+		role: i % 2 ? 'max' : 'user',
+		text: i === 6 ? 'x'.repeat(3000) : `turn ${i}`
+	}));
 	const messages = buildMaxMessages(null, 'question', history);
 	const turns = messages.slice(2, -1);
-
 	expect(turns).toHaveLength(MAX_HISTORY_TURNS);
-	expect(turns[0]).toEqual({ role: 'assistant', content: 'ok content form' });
-	expect(turns[1]).toEqual({ role: 'user', content: 'x'.repeat(1_500) });
-	expect(turns.at(-1)).toEqual({ role: 'user', content: 'turn 3' });
-	expect(turns.every((turn) => turn.role === 'user' || turn.role === 'assistant')).toBe(true);
+	expect(turns[0]?.content).toBe('x'.repeat(2000));
+	expect(turns.at(-1)?.content).toBe('turn 29');
+	const cleaned = buildMaxMessages(null, 'q', [
+		null,
+		{ role: 'robot', text: 'ignored' },
+		{ role: 'user', text: ' ' },
+		{ role: 'max', text: 'valid' }
+	]).slice(2, -1);
+	expect(cleaned).toEqual([{ role: 'assistant', content: 'valid' }]);
 });
 
 test('askMax rejects an empty question before touching the mesh', async () => {
@@ -93,7 +93,27 @@ test('askMax rejects an empty question before touching the mesh', async () => {
 });
 
 test('askMaxDetailed locks the temperature to 0.3 and sends the exact package', async () => {
-	const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(completion('answer')));
+	const fetchMock = vi
+		.fn<typeof fetch>()
+		.mockResolvedValueOnce(
+			jsonResponse({
+				choices: [
+					{
+						message: {
+							content: null,
+							tool_calls: [
+								{
+									id: 'read-1',
+									type: 'function',
+									function: { name: 'read_app_data', arguments: '{"section":"grades"}' }
+								}
+							]
+						}
+					}
+				]
+			})
+		)
+		.mockResolvedValueOnce(jsonResponse(completion('answer')));
 	const mesh = new TokenMesh({
 		slots: [slot({ key: 'k', id: 's1' })],
 		fetchImpl: fetchMock,
@@ -103,7 +123,7 @@ test('askMaxDetailed locks the temperature to 0.3 and sends the exact package', 
 	const result = await askMaxDetailed({ courses: [] }, 'how is my average?', { mesh });
 	expect(result.text).toBe('answer');
 
-	expect(fetchMock).toHaveBeenCalledTimes(1);
+	expect(fetchMock).toHaveBeenCalledTimes(2);
 	const [, init] = fetchMock.mock.calls[0]!;
 	const payload = JSON.parse(String(init?.body)) as {
 		temperature: number;
@@ -114,6 +134,9 @@ test('askMaxDetailed locks the temperature to 0.3 and sends the exact package', 
 	expect(payload.model).toBe('test-model');
 	expect(payload.messages.map((message) => message.role)).toEqual(['system', 'system', 'user']);
 	expect(payload.messages[2]?.content).toBe('how is my average?');
+	expect(JSON.parse(String(fetchMock.mock.calls[0]![1]?.body)).tool_choice).toBe('required');
+	expect(JSON.parse(String(fetchMock.mock.calls[1]![1]?.body)).messages.at(-1).role).toBe('tool');
+	expect(result.toolsUsed).toEqual(['read_app_data']);
 });
 
 test('a 429 is benched and the identical request instantly fails over to the next key', async () => {
@@ -229,4 +252,100 @@ test('completeStream assembles SSE deltas and reports provider metadata', async 
 
 	const [, init] = fetchMock.mock.calls[0]!;
 	expect(JSON.parse(String(init?.body)).stream).toBe(true);
+});
+
+test('invalid slot errors cannot disclose configured keys', () => {
+	expect(
+		() => new TokenMesh({ slots: [slot({ key: 'synthetic-secret-key', id: 'bad', baseUrl: '' })] })
+	).toThrow('invalid key slot configuration');
+});
+
+test('HTTP error bodies cannot stall failover after response headers', async () => {
+	const fetchMock = vi
+		.fn<typeof fetch>()
+		.mockResolvedValueOnce(new Response(new ReadableStream({ start() {} }), { status: 429 }))
+		.mockResolvedValueOnce(jsonResponse(completion('fallback')));
+	const mesh = new TokenMesh({
+		slots: [slot({ key: 'a', id: 'a' }), slot({ key: 'b', id: 'b' })],
+		fetchImpl: fetchMock,
+		random: () => 0.99,
+		benchJitterMs: 0
+	});
+	await expect(
+		mesh.complete({ messages: [{ role: 'user', content: 'hi' }] })
+	).resolves.toMatchObject({ text: 'fallback' });
+});
+
+test('an empty HTTP 200 answer fails over to a useful response', async () => {
+	const fetchMock = vi
+		.fn<typeof fetch>()
+		.mockResolvedValueOnce(jsonResponse({ choices: [] }))
+		.mockResolvedValueOnce(jsonResponse(completion('useful answer')));
+	const mesh = new TokenMesh({
+		slots: [slot({ key: 'a', id: 'a' }), slot({ key: 'b', id: 'b' })],
+		fetchImpl: fetchMock,
+		random: () => 0.99
+	});
+	await expect(
+		mesh.complete({ messages: [{ role: 'user', content: 'hi' }] })
+	).resolves.toMatchObject({ text: 'useful answer' });
+	expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
+test('a provider stream ending mid-answer never becomes a completed answer', async () => {
+	const fetchMock = vi
+		.fn<typeof fetch>()
+		.mockResolvedValue(new Response('data: {"choices":[{"delta":{"content":"Partial"}}]}\n\n'));
+	const mesh = new TokenMesh({ slots: [slot({ key: 'a', id: 'a' })], fetchImpl: fetchMock });
+	const onToken = vi.fn();
+	await expect(mesh.completeStream({ messages: [] }, onToken)).rejects.toMatchObject({
+		name: 'UpstreamError'
+	});
+	expect(onToken).toHaveBeenCalledWith('Partial');
+	expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+
+test('a final provider frame without a newline is retained', async () => {
+	const fetchMock = vi
+		.fn<typeof fetch>()
+		.mockResolvedValue(
+			new Response('data: {"choices":[{"delta":{"content":"Complete"}}]}\n\ndata: [DONE]')
+		);
+	const mesh = new TokenMesh({ slots: [slot({ key: 'a', id: 'a' })], fetchImpl: fetchMock });
+	await expect(mesh.completeStream({ messages: [] }, () => {})).resolves.toMatchObject({
+		text: 'Complete'
+	});
+});
+
+test('a completely benched application pool offers retry instead of waiting a minute', async () => {
+	const { createMeshFromEnv } = await import('$lib/server/max/config');
+	const sleep = vi.fn(async () => {});
+	const mesh = createMeshFromEnv({ GROQ_API_KEYS: 'synthetic-only' }, { sleep });
+	mesh.bench('groq-1', 60_000);
+	await expect(
+		mesh.complete({ messages: [{ role: 'user', content: 'hi' }] })
+	).rejects.toMatchObject({ name: 'PoolExhaustedError' });
+	expect(sleep).not.toHaveBeenCalled();
+});
+
+test('a pooled model names chats with bounded snippets and cleaned output', async () => {
+	const { generateChatTitle, MAX_TITLE_PROMPT } = await import('$lib/server/max/max');
+	const mesh = fakeMesh();
+	vi.mocked(mesh.complete).mockResolvedValue({
+		text: '<think>reasoning</think>\nTitle: **Biology Final Target.**',
+		provider: 'groq',
+		model: 'test',
+		slotId: '1',
+		usage: null
+	});
+	const result = await generateChatTitle('Biology '.repeat(80), 'Reply '.repeat(80), { mesh });
+	expect(result).toMatchObject({ title: 'Biology Final Target', provider: 'groq' });
+	const payload = vi.mocked(mesh.complete).mock.calls[0]![0];
+	expect(payload.messages[0]?.content).toBe(MAX_TITLE_PROMPT);
+	expect(payload.messages[1]?.content.length).toBeLessThan(620);
+	expect(payload.tools).toBeUndefined();
+	vi.mocked(mesh.complete).mockRejectedValue(new Error('unavailable'));
+	expect((await generateChatTitle('My biology final goal', '', { mesh })).title).toBe(
+		'My biology final goal'
+	);
 });

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useSidebar } from "@/context/SidebarContext";
 import {
   ChatIcon,
@@ -19,6 +20,11 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
+  {
+    name: "maxDiagnostics.title",
+    path: "/max",
+    icon: <ChatIcon className="size-6" />,
+  },
   {
     name: "Dashboard",
     path: "/",
@@ -50,6 +56,7 @@ const accountItems: NavItem[] = [
 ];
 
 const AppSidebar: React.FC = () => {
+  const { t } = useTranslation();
   const {
     isExpanded,
     isHovered,
@@ -87,7 +94,11 @@ const AppSidebar: React.FC = () => {
               {item.icon}
             </span>
             {(isExpanded || isHovered || isMobileOpen) && (
-              <span>{item.name}</span>
+              <span>
+                {item.name === "maxDiagnostics.title"
+                  ? t(item.name)
+                  : item.name}
+              </span>
             )}
           </Link>
         </li>

@@ -1,3 +1,8 @@
+import type { MaxDiagnosticSummary } from "../../../src/lib/contracts/max-diagnostics";
+export type {
+  MaxDiagnostic,
+  MaxDiagnosticSummary,
+} from "../../../src/lib/contracts/max-diagnostics";
 export type UsageRangeDays = 7 | 30 | 90;
 
 export type DailyUsage = {
@@ -131,6 +136,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const adminApi = {
+  maxDiagnostics: (before?: string, issuesOnly = false, signal?: AbortSignal) =>
+    request<MaxDiagnosticSummary>(
+      `/api/admin/max?issues=${issuesOnly ? "1" : "0"}${before ? `&before=${encodeURIComponent(before)}` : ""}`,
+      { signal },
+    ),
+  clearMaxDiagnostics: () =>
+    request<void>("/api/admin/max", { method: "DELETE" }),
   session: (signal?: AbortSignal) =>
     request<AdminSession>("/api/admin/session", { signal }),
   signIn: (username: string, password: string) =>
