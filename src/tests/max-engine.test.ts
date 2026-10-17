@@ -41,6 +41,28 @@ function completion(text: string) {
 	};
 }
 
+test.each([false, true])(
+	'default fetch preserves the Worker global receiver (stream=%s)',
+	async (stream) => {
+		vi.stubGlobal('fetch', function (this: unknown) {
+			if (this !== globalThis)
+				throw new TypeError('Illegal invocation: function called with incorrect this reference');
+			return Promise.resolve(jsonResponse(completion('Worker response')));
+		});
+		try {
+			const mesh = new TokenMesh({ slots: [slot({ key: 'synthetic-key', id: 'worker' })] });
+			const chunks: string[] = [];
+			const result = stream
+				? await mesh.completeStream({ messages: [] }, (chunk) => chunks.push(chunk))
+				: await mesh.complete({ messages: [] });
+			expect(result.text).toBe('Worker response');
+			if (stream) expect(chunks.join('')).toBe('Worker response');
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	}
+);
+
 test('buildMaxMessages packages persona, context, history and the question in order', () => {
 	const messages = buildMaxMessages(
 		{ courses: [{ course: 'AP Chemistry', percent: 88.4 }] },

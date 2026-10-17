@@ -303,7 +303,9 @@ export class TokenMesh {
 		this.maxPoolWaitMs = maxPoolWaitMs;
 		this.attemptTimeoutMs = attemptTimeoutMs;
 		this.streamIdleTimeoutMs = streamIdleTimeoutMs;
-		this.fetchImpl = fetchImpl;
+		// Workers' native fetch requires the global receiver. Calling an unbound
+		// copy as this.fetchImpl(...) fails before any provider request is sent.
+		this.fetchImpl = fetchImpl === globalThis.fetch ? fetchImpl.bind(globalThis) : fetchImpl;
 		this.random = random;
 		this.sleep = sleep;
 		this.onEvent = onEvent;
