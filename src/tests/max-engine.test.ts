@@ -189,10 +189,17 @@ test('askMaxDetailed locks the temperature to 0.3 and sends the exact package', 
 	};
 	expect(payload.temperature).toBe(MAX_TEMPERATURE);
 	expect(payload.model).toBe('test-model');
-	expect(payload.messages.map((message) => message.role)).toEqual(['system', 'system', 'user']);
+	expect(payload.messages.map((message) => message.role)).toEqual([
+		'system',
+		'system',
+		'user',
+		'system'
+	]);
 	expect(payload.messages[2]?.content).toBe('how is my average?');
 	expect(JSON.parse(String(fetchMock.mock.calls[0]![1]?.body)).tool_choice).toBe('auto');
-	expect(JSON.parse(String(fetchMock.mock.calls[1]![1]?.body)).messages.at(-1).role).toBe('tool');
+	const toolRound = JSON.parse(String(fetchMock.mock.calls[1]![1]?.body)).messages;
+	expect(toolRound.at(-2).role).toBe('tool');
+	expect(toolRound.at(-1).role).toBe('system');
 	expect(result.toolsUsed).toEqual(['read_app_data']);
 });
 
