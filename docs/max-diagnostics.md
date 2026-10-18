@@ -23,6 +23,12 @@ Max provider credentials live in the encrypted `MAX_PROVIDER_SECRETS` GitHub Act
 secret as a JSON object of provider environment variables. The production workflow
 uploads them into Cloudflare Worker secrets without writing them into the repository.
 
+Model routing keeps Gemini Flash primary and offers Flash-Lite in the next tier.
+OpenRouter free models try `cohere/north-mini-code:free`, then the free-only router
+`openrouter/free`, when the preferred model is overloaded. Successful diagnostics record the actual returned
+model. Provider `Retry-After` reset times are honored; keys in one provider project
+can share quota, so key rotation cannot guarantee additional capacity.
+
 The authenticated admin console at `/admin-app/max` reads `/api/admin/max`.
 Neither the public chat tools nor student APIs can list these records. Responses use
 private/no-store caching. Clear-all requires administrator authentication and a second

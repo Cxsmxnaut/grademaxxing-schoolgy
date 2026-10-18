@@ -209,6 +209,7 @@ interface ProviderChatResponse {
 
 /** A response, or the response-shaped failure `_post` synthesizes. */
 interface ClassifiableResponse {
+	headers?: Pick<Headers, 'get'>;
 	ok: boolean;
 	status: number;
 	body?: ReadableStream<Uint8Array> | null;
@@ -414,7 +415,7 @@ export class TokenMesh {
 			try {
 				observer?.({
 					provider: slot.provider,
-					model: slot.model,
+					model: outcome.ok ? outcome.value.model : slot.model,
 					kind: outcome.ok ? 'success' : outcome.error.kind,
 					status: outcome.ok ? 200 : (outcome.error.status ?? null),
 					durationMs: Date.now() - started
@@ -504,7 +505,7 @@ export class TokenMesh {
 	 */
 	private async attempt(slot: ResolvedSlot, payload: ChatPayload): Promise<AttemptOutcome> {
 		const url = this.chatUrl(slot);
-		const body = JSON.stringify({ ...payload, model: slot.model });
+		const body = this.requestBody(slot, payload);
 
 		const controller = new AbortController();
 		const timer =
@@ -638,7 +639,7 @@ export class TokenMesh {
 		onToken: (chunk: string) => void
 	): Promise<AttemptOutcome> {
 		const url = this.chatUrl(slot);
-		const body = JSON.stringify({ ...payload, model: slot.model, stream: true });
+		const body = this.requestBody(slot, payload, true);
 
 		// Stage 1: response headers must arrive within attemptTimeoutMs — a
 		// provider that never answers is aborted before it can stall the reply.
@@ -754,8 +755,23 @@ export class TokenMesh {
 						sawFinish = true;
 					if (chunk.usage && typeof chunk.usage === 'object') usage = chunk.usage as MeshUsage;
 					if (typeof chunk.model === 'string' && chunk.model !== '') model = chunk.model;
-					for (const fragment of chunk.choices?.[0]?.delta?.tool_calls ?? []) {
-						const index = fragment.index ?? 0;
+					for (const [position, fragment] of (
+						chunk.choices?.[0]?.delta?.tool_calls ?? []
+					).entries()) {
+						// Gemini may omit indexes for parallel calls. A supplied call ID
+						// is authoritative; otherwise retain the position within the delta.
+						let index = fragment.index ?? position;
+						if (fragment.id) {
+							const prior = [...toolFragments].find(([, call]) => call.id === fragment.id);
+							if (prior) index = prior[0];
+							else if (
+								toolFragments.get(index)?.id &&
+								toolFragments.get(index)!.id !== fragment.id
+							) {
+								index = 0;
+								while (toolFragments.has(index)) index++;
+							}
+						}
 						if (!Number.isInteger(index) || index < 0 || index >= 8)
 							throw new Error('Invalid tool call index');
 						const call = toolFragments.get(index) ?? {
@@ -764,7 +780,8 @@ export class TokenMesh {
 							function: { name: '', arguments: '' }
 						};
 						if (fragment.id) call.id = fragment.id;
-						call.function.name += fragment.function?.name ?? '';
+						if (fragment.function?.name && fragment.function.name !== call.function.name)
+							call.function.name += fragment.function.name;
 						call.function.arguments += fragment.function?.arguments ?? '';
 						if (call.function.arguments.length > 16_000)
 							throw new Error('Tool arguments too large');
@@ -864,6 +881,16 @@ export class TokenMesh {
 		return `${slot.baseUrl.replace(/\/+$/, '')}/chat/completions`;
 	}
 
+	private requestBody(slot: ResolvedSlot, payload: ChatPayload, stream = false) {
+		// Keep the selected free model first, then let OpenRouter route around
+		// its capacity outages without changing providers or selecting paid models.
+		const selection =
+			slot.provider === 'openrouter' && slot.model.endsWith(':free')
+				? { models: [...new Set([slot.model, 'cohere/north-mini-code:free', 'openrouter/free'])] }
+				: { model: slot.model };
+		return JSON.stringify({ ...payload, ...selection, ...(stream ? { stream: true } : {}) });
+	}
+
 	private async post(
 		url: string,
 		slot: ResolvedSlot,
@@ -933,8 +960,17 @@ export class TokenMesh {
 		const status = res.status;
 
 		if (status === 429) {
-			// THE headline case: bench 60s, retry instantly on the next key.
-			return { ok: false, benchMs: this.benchMs, error: { ...base, kind: 'rate_limit' } };
+			const retryAfter = res.headers?.get('retry-after');
+			const delay = retryAfter
+				? Number.isFinite(Number(retryAfter))
+					? Number(retryAfter) * 1000
+					: Date.parse(retryAfter) - Date.now()
+				: NaN;
+			// Honor a provider's reset time instead of replacing a short token
+			// refill (or a long quota reset) with a fixed one-minute cooldown.
+			const benchMs =
+				Number.isFinite(delay) && delay > 0 ? Math.min(delay, 24 * 60 * 60 * 1000) : this.benchMs;
+			return { ok: false, benchMs, error: { ...base, kind: 'rate_limit' } };
 		}
 		if (status === 401 || status === 403) {
 			// The key itself is bad — longer penalty so it stops eating requests.

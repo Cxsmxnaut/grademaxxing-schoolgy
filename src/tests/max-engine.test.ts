@@ -89,6 +89,41 @@ test('empty history keeps the original three-message stateless package', () => {
 	expect(messages[1]?.content).toBe(`${CONTEXT_HEADER}\nnull`);
 });
 
+test.each([false, true])(
+	'ordinary conversation can answer on its first turn (stream=%s)',
+	async (stream) => {
+		const pieces = ['Hello! ', 'How can I help?'];
+		const fetchMock = vi.fn<(url: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
+			async (_url, init) => {
+				const payload = JSON.parse(String(init?.body));
+				expect(payload.tool_choice).toBe('auto');
+				return stream
+					? new Response(
+							pieces
+								.map(
+									(content) => `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`
+								)
+								.join('') + 'data: [DONE]\n\n',
+							{ headers: { 'content-type': 'text/event-stream' } }
+						)
+					: jsonResponse(completion(pieces.join('')));
+			}
+		);
+		const chunks: string[] = [];
+		const result = await askMaxDetailed(null, 'Hi', {
+			mesh: new TokenMesh({
+				slots: [slot({ key: 'synthetic-key', id: 'conversation' })],
+				fetchImpl: fetchMock
+			}),
+			...(stream ? { onToken: (chunk: string) => chunks.push(chunk) } : {})
+		});
+		expect(result.text).toBe(pieces.join(''));
+		expect(result.toolsUsed).toEqual([]);
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		if (stream) expect(chunks).toEqual(pieces);
+	}
+);
+
 test('history retains up to twelve exchanges, bounds long turns and drops malformed entries', () => {
 	const history = Array.from({ length: 30 }, (_, i) => ({
 		role: i % 2 ? 'max' : 'user',
@@ -156,7 +191,7 @@ test('askMaxDetailed locks the temperature to 0.3 and sends the exact package', 
 	expect(payload.model).toBe('test-model');
 	expect(payload.messages.map((message) => message.role)).toEqual(['system', 'system', 'user']);
 	expect(payload.messages[2]?.content).toBe('how is my average?');
-	expect(JSON.parse(String(fetchMock.mock.calls[0]![1]?.body)).tool_choice).toBe('required');
+	expect(JSON.parse(String(fetchMock.mock.calls[0]![1]?.body)).tool_choice).toBe('auto');
 	expect(JSON.parse(String(fetchMock.mock.calls[1]![1]?.body)).messages.at(-1).role).toBe('tool');
 	expect(result.toolsUsed).toEqual(['read_app_data']);
 });
@@ -235,6 +270,74 @@ test('every key failing surfaces one UpstreamError with per-slot attempts', asyn
 		]
 	});
 });
+
+test.each([undefined, 0])(
+	'parallel streamed calls keep distinct IDs when indexes are %s',
+	async (index) => {
+		const calls = ['gpa', 'grades', 'attendance'].map((section, position) => ({
+			...(index === undefined ? {} : { index }),
+			id: `parallel-${position}`,
+			function: { name: 'read_app_data', arguments: JSON.stringify({ section }) },
+			...(position === 0
+				? { extra_content: { google: { thought_signature: 'synthetic-signature' } } }
+				: {})
+		}));
+		const fetchImpl = vi
+			.fn<(url: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+			.mockResolvedValue(
+				new Response(
+					`data: ${JSON.stringify({ choices: [{ delta: { tool_calls: calls }, finish_reason: 'tool_calls' }] })}\n\ndata: [DONE]\n\n`,
+					{ headers: { 'content-type': 'text/event-stream' } }
+				)
+			);
+		const result = await new TokenMesh({
+			slots: [slot({ key: 'synthetic-key', id: 'parallel' })],
+			fetchImpl
+		}).completeStream({ messages: [] }, () => {});
+		expect(result.toolCalls).toHaveLength(3);
+		expect(result.toolCalls?.map((call) => call.id)).toEqual(calls.map((call) => call.id));
+		expect(result.toolCalls?.map((call) => call.function)).toEqual(
+			calls.map((call) => call.function)
+		);
+		expect(result.toolCalls?.[0]?.extra_content).toEqual(calls[0]?.extra_content);
+	}
+);
+
+test.each([false, true])(
+	'OpenRouter free capacity fallback stays free and reports the model used (stream=%s)',
+	async (stream) => {
+		const fetchImpl = vi.fn<(url: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
+			async (_url, init) => {
+				const request = JSON.parse(String(init?.body));
+				expect(request.models).toEqual([
+					'primary/model:free',
+					'cohere/north-mini-code:free',
+					'openrouter/free'
+				]);
+				return jsonResponse({
+					model: 'available/model:free',
+					choices: [{ message: { content: 'Available reply' } }]
+				});
+			}
+		);
+		const mesh = new TokenMesh({
+			slots: [
+				slot({
+					provider: 'openrouter',
+					key: 'synthetic-key',
+					id: 'fallback',
+					model: 'primary/model:free'
+				})
+			],
+			fetchImpl
+		});
+		const result = stream
+			? await mesh.completeStream({ messages: [] }, () => {})
+			: await mesh.complete({ messages: [] });
+		expect(result.model).toBe('available/model:free');
+		expect(result.text).toBe('Available reply');
+	}
+);
 
 test('completeStream assembles SSE deltas and reports provider metadata', async () => {
 	const encoder = new TextEncoder();
@@ -348,6 +451,34 @@ test('a completely benched application pool offers retry instead of waiting a mi
 		mesh.complete({ messages: [{ role: 'user', content: 'hi' }] })
 	).rejects.toMatchObject({ name: 'PoolExhaustedError' });
 	expect(sleep).not.toHaveBeenCalled();
+});
+
+test('Gemini retains the primary model with a separately metered Lite fallback', async () => {
+	const { createPoolFromEnv } = await import('$lib/server/max/config');
+	const pool = createPoolFromEnv({ GEMINI_API_KEYS: 'synthetic-only' });
+	expect(pool.map(({ model, tier }) => ({ model, tier }))).toEqual([
+		{ model: 'gemini-3.5-flash', tier: 1 },
+		{ model: 'gemini-3.5-flash-lite', tier: 2 }
+	]);
+	expect(new Set(pool.map((slot) => slot.id)).size).toBe(pool.length);
+});
+
+test('rate limits preserve the provider Retry-After instead of forcing sixty seconds', async () => {
+	const fetchImpl = vi
+		.fn<(url: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+		.mockResolvedValueOnce(new Response('{}', { status: 429, headers: { 'retry-after': '7' } }))
+		.mockResolvedValueOnce(jsonResponse(completion('Fallback reply')));
+	const mesh = new TokenMesh({
+		slots: [
+			slot({ key: 'first', id: 'first', tier: 1 }),
+			slot({ key: 'second', id: 'second', tier: 2 })
+		],
+		fetchImpl,
+		benchJitterMs: 0
+	});
+	await expect(mesh.complete({ messages: [] })).resolves.toMatchObject({ text: 'Fallback reply' });
+	expect(mesh.benchRemaining('first')).toBeGreaterThan(5000);
+	expect(mesh.benchRemaining('first')).toBeLessThanOrEqual(7000);
 });
 
 test('a pooled model names chats with bounded snippets and cleaned output', async () => {

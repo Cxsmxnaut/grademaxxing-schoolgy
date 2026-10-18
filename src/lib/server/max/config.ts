@@ -11,19 +11,10 @@
 import { TokenMesh, type MeshSlot, type TokenMeshOptions } from './tokenMesh';
 
 /**
- * Free-tier defaults (verified October 2026):
- *   - Groq: openai/gpt-oss-120b is OpenAI's 120B flagship hosted free on Groq
- *     with 1,000 req/day and 8,000 TPM per key (across 5 keys = 5,000 req/day),
- *     sub-second time-to-first-token, and native ChatGPT formatting & math
- *     accuracy. (By contrast, qwen/qwen3.8-27b on Groq has a 1,000 OTPM cap
- *     that rejects long step-by-step math explanations with HTTP 413/429.)
- *   - Gemini: gemini-3.5-flash is Google AI Studio's fast, high-quota free
- *     workhorse (gemini-3.8-flash has a tiny 20 RPD free-tier cap that
- *     exhausts almost immediately).
- *   - OpenRouter: nvidia/nemotron-3-ultra-550b-a55b:free is the fastest,
- *     highest-capacity free model on OpenRouter (~400ms latency vs 20s+ hangs
- *     on nemotron-3.5-lightning:free).
- *   - Mistral: mistral-small-latest is the documented stable alias.
+ * OpenAI-compatible model defaults. Quotas and capacity vary by project,
+ * account and model; rotating keys does not create independent quota when
+ * those keys belong to the same project. See the model fallbacks below and
+ * TokenMesh's OpenRouter request routing for capacity failures.
  */
 export type ProviderName = 'gemini' | 'groq' | 'openrouter' | 'mistral';
 
@@ -38,8 +29,7 @@ export const PROVIDER_DEFAULTS: Record<ProviderName, ProviderDefaults> = {
 	// Tier 1 = primary waterfall layer: tried before any Tier-2 slot.
 	gemini: {
 		// Google AI Studio keys speak OpenAI-compatible protocol here; free tier.
-		// gemini-3.5-flash is the fast, high-quota free workhorse (gemini-3.8-flash
-		// has a tiny 20 RPD free-tier cap that exhausts immediately).
+		// Flash-Lite is available in the next tier when this model is unavailable.
 		baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
 		model: 'gemini-3.5-flash',
 		tier: 1
@@ -146,7 +136,7 @@ const resolveModel = (override: string | undefined, fallback: string) => {
  *   APP_URL, APP_NAME (OpenRouter attribution headers)
  */
 export function createPoolFromEnv(env: Env = process.env): MeshSlot[] {
-	return createPool(
+	const pool = createPool(
 		{
 			groq: splitKeys(env.GROQ_API_KEYS),
 			openrouter: splitKeys(env.OPENROUTER_API_KEYS),
@@ -169,6 +159,14 @@ export function createPoolFromEnv(env: Env = process.env): MeshSlot[] {
 			}
 		}
 	);
+	// A model's daily quota is shared across keys in the same Google project.
+	// Preserve the preferred model and offer a separately metered Flash-Lite
+	// model after the primary tier, rather than retrying exhausted keys forever.
+	return pool.flatMap((slot) =>
+		slot.provider === 'gemini' && slot.model === PROVIDER_DEFAULTS.gemini.model
+			? [slot, { ...slot, id: `${slot.id}-lite`, model: 'gemini-3.5-flash-lite', tier: 2 }]
+			: [slot]
+	);
 }
 
 /** Convenience factory: mesh wired straight from the environment. */
@@ -189,7 +187,7 @@ export function createMeshFromEnv(
 		attemptTimeoutMs: 12_000,
 		streamIdleTimeoutMs: 12_000,
 		// A saturated pool should offer a retry instead of holding the chat for minutes.
-		maxPoolWaitMs: 5_000,
+		maxPoolWaitMs: 15_000,
 		...meshOptions
 	});
 }

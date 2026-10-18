@@ -66,25 +66,34 @@ function fakeMesh(result: Partial<MeshResult> = {}) {
 		usage: null,
 		...result
 	};
+	const complete = vi.fn(async (payload: { tools?: unknown; messages: { role: string }[] }) =>
+		payload.tools && !payload.messages.some((message) => message.role === 'tool')
+			? {
+					...value,
+					text: '',
+					toolCalls: ['grades', 'gpa', 'attendance'].map((section) => ({
+						id: `read-${section}`,
+						type: 'function',
+						function: { name: 'read_app_data', arguments: JSON.stringify({ section }) }
+					}))
+				}
+			: value
+	);
 	return {
-		complete: vi.fn(async (payload: { tool_choice?: string }) =>
-			payload.tool_choice === 'required'
-				? {
-						...value,
-						text: '',
-						toolCalls: ['grades', 'gpa', 'attendance'].map((section) => ({
-							id: `read-${section}`,
-							type: 'function',
-							function: { name: 'read_app_data', arguments: JSON.stringify({ section }) }
-						}))
-					}
-				: value
-		),
-		completeStream: vi.fn(async (_payload: unknown, onToken: (chunk: string) => void) => {
-			onToken('max ');
-			onToken('answer');
-			return value;
-		})
+		complete,
+		completeStream: vi.fn(
+			async (
+				payload: { tools?: unknown; messages: { role: string }[] },
+				onToken: (chunk: string) => void
+			) => {
+				const result = await complete(payload);
+				if (!('toolCalls' in result)) {
+					onToken('max ');
+					onToken('answer');
+				}
+				return result;
+			}
+		)
 	} as unknown as TokenMesh;
 }
 
@@ -400,8 +409,8 @@ test.each([false, true])(
 			slotId: '1',
 			usage: null
 		};
-		const complete = vi.fn(async (payload: { tool_choice?: string }) =>
-			payload.tool_choice === 'required'
+		const complete = vi.fn(async (payload: { tools?: unknown; messages: { role: string }[] }) =>
+			payload.tools && !payload.messages.some((message) => message.role === 'tool')
 				? {
 						...value,
 						text: '',
@@ -423,10 +432,16 @@ test.each([false, true])(
 					}
 				: value
 		);
-		const completeStream = vi.fn(async (_payload: unknown, onToken: (text: string) => void) => {
-			onToken(value.text);
-			return value;
-		});
+		const completeStream = vi.fn(
+			async (
+				payload: { tools?: unknown; messages: { role: string }[] },
+				onToken: (text: string) => void
+			) => {
+				const result = await complete(payload);
+				if (!('toolCalls' in result)) onToken(value.text);
+				return result;
+			}
+		);
 		setDefaultMesh({ complete, completeStream } as unknown as TokenMesh);
 		const event = fakeEvent({
 			body: { userQuery: 'Who sent that message?', stream },

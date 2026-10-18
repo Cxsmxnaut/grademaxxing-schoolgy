@@ -259,7 +259,7 @@ test('agent executes native tools, returns results by call id, and streams the m
 	expect(result.toolsUsed).toEqual(['read_app_data', 'calculate_grade']);
 	expect(result.text).toBe('The app calculator says **100%**.');
 	expect(chunks).toEqual(['The app calculator says ', '**100%**.']);
-	expect(seen[0]?.tool_choice).toBe('required');
+	expect(seen[0]?.tool_choice).toBe('auto');
 	expect(seen[0]?.messages[1]?.content).not.toContain('3.50'); // Read via tool, not guessed from prompt.
 	const resultMessage = seen[2]!.messages.find((message) => message.tool_call_id === 'calc');
 	expect(JSON.parse(resultMessage!.content)).toMatchObject({
