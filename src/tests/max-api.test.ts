@@ -102,6 +102,49 @@ afterEach(() => {
 	vi.unstubAllEnvs();
 });
 
+test.each([false, true])(
+	'a token-limited reply reports an interruption instead of success (stream=%s)',
+	async (stream) => {
+		setDefaultMesh(
+			new TokenMesh({
+				slots: [
+					{ provider: 'mistral', key: 'synthetic', model: 'test', baseUrl: 'https://provider.test' }
+				],
+				fetchImpl: async () =>
+					Response.json({
+						choices: [
+							{ finish_reason: 'length', message: { content: 'An unfinished synthetic answer' } }
+						]
+					})
+			})
+		);
+		const response = await POST(
+			fakeEvent({
+				body: { userQuery: 'Explain this', stream },
+				token: 'valid-session',
+				address: stream ? '203.0.113.91' : '203.0.113.92'
+			})
+		);
+		if (stream) {
+			const frames = (await response!.text())
+				.split('\n')
+				.filter((line) => line.startsWith('data:'))
+				.map((line) => JSON.parse(line.slice(5)));
+			expect(frames.some((frame) => frame.done)).toBe(false);
+			expect(frames.find((frame) => frame.error)).toMatchObject({
+				type: 'MaxOutputLimitError',
+				partial: true
+			});
+		} else {
+			expect(response!.status).toBe(502);
+			expect(await response!.json()).toMatchObject({
+				type: 'MaxOutputLimitError',
+				error: expect.stringContaining('length limit')
+			});
+		}
+	}
+);
+
 test('the endpoint requires a signed-in student session', async () => {
 	const response = await POST(fakeEvent({ body: { userQuery: 'hi' }, token: undefined }));
 	expect(response?.status).toBe(401);

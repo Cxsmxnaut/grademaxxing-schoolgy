@@ -137,6 +137,36 @@ test('search covers every assignment beyond both old summary caps and exposes te
 	expect(client.gradebook).toHaveBeenLastCalledWith(1, false);
 });
 
+test('default individual-record reads include feedback beyond the first five fields while arrays stay paginated', async () => {
+	const { read } = setup({
+		gradebook: async () => ({
+			courses: [
+				{
+					assignments: [
+						{
+							AssignmentID: 'synthetic',
+							Measure: 'Evidence response',
+							category: 'Reading',
+							Point: '4',
+							PointPossible: '10',
+							graded: true,
+							Notes: 'Use two quotes and explain how each supports the narrator claim.'
+						}
+					]
+				}
+			]
+		})
+	});
+	const assignment = await read({ resource: 'gradebook', path: '/courses/0/assignments/0' });
+	expect(assignment.records.Notes).toContain('two quotes');
+	expect(assignment.nextOffset).toBeNull();
+	const { read: readMany } = setup();
+	expect(await readMany({ resource: 'gradebook', path: '/courses/0/assignments' })).toMatchObject({
+		total: 351,
+		nextOffset: 5
+	});
+});
+
 test('mail folders, every sender and full bodies are accessible with text pagination', async () => {
 	const { read, client } = setup();
 	const found = await read(

@@ -119,6 +119,13 @@ test('empty outputs, truncation, tool errors and partial failures produce flags 
 	});
 	partial.token('Secret partial text');
 	await partial.finish('failed', undefined, 'UpstreamError');
+	const outputLimit = createMaxDiagnostics(platform, {
+		action: 'chat',
+		question: 'hello',
+		shareQuestion: false
+	});
+	outputLimit.token('Synthetic cut-off response');
+	await outputLimit.finish('failed', undefined, 'MaxOutputLimitError');
 	const limited = createMaxDiagnostics(platform, {
 		action: 'chat',
 		question: 'hello',
@@ -129,6 +136,11 @@ test('empty outputs, truncation, tool errors and partial failures produce flags 
 		finishReason: 'length'
 	});
 	const items = (await listMaxDiagnostics(platform))!.items;
+	expect(items.find((i) => i.id === outputLimit.id)).toMatchObject({
+		status: 'failed',
+		errorCode: 'MaxOutputLimitError',
+		flags: ['output_limit', 'partial_reply']
+	});
 	expect(items.find((i) => i.id === empty.id)).toMatchObject({
 		status: 'empty',
 		flags: expect.arrayContaining(['empty_provider_reply', 'tool_error', 'empty_reply'])

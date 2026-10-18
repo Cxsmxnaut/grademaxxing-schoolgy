@@ -121,6 +121,8 @@ export interface ChatMessage {
 
 export interface ChatPayload {
 	temperature?: number;
+	/** Completion cap; reasoning providers receive a bounded thinking allowance. */
+	max_tokens?: number;
 	messages: ChatMessage[];
 	tools?: FunctionTool[];
 	tool_choice?: 'auto' | 'none' | 'required';
@@ -888,7 +890,33 @@ export class TokenMesh {
 			slot.provider === 'openrouter' && slot.model.endsWith(':free')
 				? { models: [...new Set([slot.model, 'cohere/north-mini-code:free', 'openrouter/free'])] }
 				: { model: slot.model };
-		return JSON.stringify({ ...payload, ...selection, ...(stream ? { stream: true } : {}) });
+		// Very small shared caps can be consumed entirely by hidden reasoning,
+		// leaving blank replies or incomplete tool JSON. Keep a finite allowance
+		// without confusing it with the student's visible-answer writing target.
+		let budget: Record<string, unknown> = {};
+		if (payload.max_tokens !== undefined) {
+			if (slot.provider === 'gemini') {
+				// Flash 3.8 rejects MINIMAL; Flash-Lite 3.x accepts it.
+				const minimalThinking = /^gemini-3\..*-flash-lite/.test(slot.model);
+				budget = {
+					max_tokens: payload.max_tokens + (minimalThinking ? 0 : 1024),
+					reasoning_effort: minimalThinking ? 'minimal' : 'low'
+				};
+			} else if (slot.provider === 'groq' && slot.model.startsWith('openai/gpt-oss-')) {
+				budget = { max_tokens: payload.max_tokens + 2048, reasoning_effort: 'low' };
+			} else if (slot.provider === 'openrouter') {
+				budget = {
+					max_tokens: payload.max_tokens + 2048,
+					reasoning: { effort: 'low', exclude: true }
+				};
+			}
+		}
+		return JSON.stringify({
+			...payload,
+			...selection,
+			...budget,
+			...(stream ? { stream: true } : {})
+		});
 	}
 
 	private async post(

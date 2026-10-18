@@ -113,10 +113,32 @@ environment; the command prints synthetic answers and technical outcomes.
 The cases cover an English improvement request, its "but how?" follow-up, recovery
 from an earlier vague answer, and a simple GPA question. A low-scoring assignment
 and specific teacher feedback are intentionally absent from the initial summary:
-Max must retrieve them and give concrete advice. Improvement answers have no length
-cap. The GPA case checks that a simple question stays focused.
+Max must retrieve them and give concrete advice while keeping normal answers near
+120–180 words. The evaluation allows 200 whitespace-separated words for Markdown
+and checks a clean `stop` finish and identical streamed/final text. The GPA case
+checks that a simple question stays focused. These length checks accompany, rather
+than replace, the assignment/feedback/action checks.
+Percentage claims are checked against percentage fields and formatted values
+actually returned by the app context/tools. Review projected scores and policy
+claims manually too; a numeric match alone does not establish a valid scenario.
+
+Chat requests carry a 1,024-token API completion cap (titles: 64). Gemini 3 Flash-Lite
+uses minimal reasoning effort. Gemini Flash 3.8 and 2.5 reserve 1,024 additional
+tokens for low-effort thinking; Groq GPT-OSS and OpenRouter reserve 2,048. Those providers can count hidden
+reasoning against the same cap, so these are total completion ceilings, not exact
+visible-answer limits. OpenRouter requests low effort and excludes reasoning text.
+The writing guidance is repeated after tool results to keep the final answer short
+without reducing the investigation. Follow-ups keep the same 180-word writing budget and explain the specific part
+the student needs, rather than restarting or expanding the entire plan. The app preserves truncation diagnostics; it
+never executes tool calls whose arguments were cut short by a token limit.
+
+Reading an individual record returns up to 20 object fields by default so feedback
+after the first five fields is visible alongside the score. Arrays still default
+to five entries; all reads retain the 14,000-character bound and pagination.
 
 Use `PLAN_PROVIDERS=gemini` (or a comma-separated list of configured providers) to
-isolate providers. Quota/timeouts are evaluation failures, not successful answers.
+isolate providers. `PLAN_CASES=repair,simple` selects individual cases to reduce
+live quota use; `PLAN_MODEL=gemini-3.1-flash-lite` isolates a configured model.
+Quota/timeouts are evaluation failures, not successful answers.
 Review the generated plans as well as the checks: matching assignment names and
 feedback does not prove every recommendation or interpretation is correct.

@@ -54,7 +54,7 @@ const properties = {
 	limit: {
 		type: 'integer',
 		description:
-			'Maximum records (1–20) or text characters (1–6000). Defaults: 5 records / 6000 characters.'
+			'Maximum records/fields (1–20) or text characters (1–6000). Defaults: 5 array records, 20 object fields, 6000 characters.'
 	}
 };
 export const MAX_RESOURCE_TOOLS: FunctionTool[] = [
@@ -232,7 +232,10 @@ function readPage(value: unknown, args: Args) {
 		};
 	}
 	if (!selected || typeof selected !== 'object') return { path, value: selected, nextOffset: null };
-	const limit = number(args, 'limit', 1, 20, 5)!;
+	// Individual assignments often put feedback after their first five fields.
+	// Include the record's metadata together; keep array pages small and retain
+	// the existing 14,000-character bound and pagination for larger objects.
+	const limit = number(args, 'limit', 1, 20, Array.isArray(selected) ? 5 : 20)!;
 	const entries = Object.entries(selected);
 	let end = Math.min(offset + limit, entries.length);
 	const build = () =>

@@ -304,6 +304,27 @@ test('a truncated stream keeps its partial answer and reports interruption', asy
 	await expect(page.getByTestId('max-chat-input')).toBeEnabled();
 });
 
+test('an API completion limit keeps partial text and shows the specific length warning', async ({
+	page
+}) => {
+	await page.route('**/api/max', (route) =>
+		route.fulfill({
+			status: 200,
+			contentType: 'text/event-stream',
+			body:
+				'data: {"t":"A synthetic partial answer"}\n\n' +
+				'data: {"error":"Max\'s reply hit its length limit. Try asking for one part at a time.","type":"MaxOutputLimitError","partial":true}\n\n'
+		})
+	);
+	await page.goto('/max');
+	await page.getByTestId('max-chat-input').fill('Explain');
+	await page.getByTestId('max-chat-send').click();
+	await expect(page.getByRole('log')).toContainText('A synthetic partial answer');
+	await expect(page.getByRole('log')).toContainText('length limit');
+	await page.getByTestId('max-chat-input').fill('Explain just the first step');
+	await expect(page.getByTestId('max-chat-send')).toBeEnabled();
+});
+
 test('Max can open directly and marks failed attendance unavailable while keeping app grades', async ({
 	page
 }) => {

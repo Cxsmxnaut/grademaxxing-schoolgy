@@ -23,6 +23,7 @@ const errorCodes = new Set([
 	'NotConfigured',
 	'PoolExhaustedError',
 	'UpstreamError',
+	'MaxOutputLimitError',
 	'TitleFallback'
 ]);
 const cutoff = () => Date.now() - retentionDays * 86400_000;
@@ -213,6 +214,7 @@ export function createMaxDiagnostics(
 			row.durationMs = bounded(Date.now() - started);
 			row.status = status;
 			row.errorCode = errorCode ? (errorCodes.has(errorCode) ? errorCode : 'InternalError') : null;
+			if (errorCode === 'MaxOutputLimitError') row.flags.push('output_limit');
 			if (result) {
 				row.provider = safeLabel(result.provider);
 				row.model = safeLabel(result.model);

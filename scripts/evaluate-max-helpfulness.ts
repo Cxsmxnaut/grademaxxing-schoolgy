@@ -113,11 +113,25 @@ const context = {
 };
 const pool = createPoolFromEnv(),
 	results: any[] = [];
+
+// Check numeric claims against values actually supplied by app records/tools.
+// This is deliberately narrower than a general factual-quality assessment.
+function collectPercentages(value: unknown, allowed: Set<number>, field = '') {
+	if (typeof value === 'number' && /percent/i.test(field)) allowed.add(value);
+	if (typeof value === 'string')
+		for (const match of value.matchAll(/(-?\d+(?:\.\d+)?)\s*%/g)) allowed.add(Number(match[1]));
+	if (value && typeof value === 'object')
+		for (const [key, child] of Object.entries(value)) collectPercentages(child, allowed, key);
+}
 if (!pool.length) throw new Error('Configure provider API keys before running this evaluation.');
 // Default to the production waterfall. Optional isolation can surface real
 // provider quota failures; those must not be mistaken for a successful eval.
 for (const provider of process.env.PLAN_PROVIDERS?.split(',') ?? ['pool']) {
-	const slots = provider === 'pool' ? pool : pool.filter((slot) => slot.provider === provider);
+	const slots = pool.filter(
+		(slot) =>
+			(provider === 'pool' || slot.provider === provider) &&
+			(!process.env.PLAN_MODEL || slot.model === process.env.PLAN_MODEL)
+	);
 	if (!slots.length) throw new Error('No configured keys for the requested evaluation provider.');
 	const mesh = new TokenMesh({
 		slots,
@@ -154,6 +168,7 @@ for (const provider of process.env.PLAN_PROVIDERS?.split(',') ?? ['pool']) {
 			['repair', 'but how do i increase it'],
 			['simple', 'whats my gpa']
 		]) {
+			if (process.env.PLAN_CASES && !process.env.PLAN_CASES.split(',').includes(id)) continue;
 			const prior =
 				id === 'repair'
 					? [
@@ -174,12 +189,17 @@ for (const provider of process.env.PLAN_PROVIDERS?.split(',') ?? ['pool']) {
 			const tools: string[] = [],
 				chunks: string[] = [],
 				attempts: any[] = [];
+			const percentages = new Set<number>();
+			collectPercentages(context, percentages);
 			try {
 				const answer = await askMaxDetailed(context, question, {
 					mesh,
 					history: prior,
 					resourceAccess: access,
-					onTool: (name) => tools.push(name),
+					onTool: (name, result) => {
+						tools.push(name);
+						collectPercentages(result, percentages);
+					},
 					onToken: (text) => chunks.push(text),
 					onAttempt: (event) => attempts.push(event)
 				});
@@ -188,13 +208,21 @@ for (const provider of process.env.PLAN_PROVIDERS?.split(',') ?? ['pool']) {
 						? { gpa: /3\.50|3\.5/.test(answer.text), focused: answer.text.split(/\s+/).length < 80 }
 						: {
 								specificAssignment: /River Passage Check/i.test(answer.text),
-								feedback: /quote|evidence|narrator|answers?\s*2/i.test(answer.text),
+								feedback: /two quotes|2 quotes|narrator|answers?\s*2/i.test(answer.text),
 								action:
 									/revise|rewrite|add|ask|review|practice|cite|submit|complete|work through|write|explain/i.test(
 										answer.text
 									),
-								deepLookup: reads > 0
+								deepLookup: reads > 0,
+								concise: answer.text.trim().split(/\s+/).length <= 200
 							};
+				Object.assign(checks, {
+					completed: answer.finishReason === 'stop',
+					streamMatches: chunks.join('') === answer.text,
+					sourcedPercentages: [...answer.text.matchAll(/(-?\d+(?:\.\d+)?)\s*%/g)].every((match) =>
+						percentages.has(Number(match[1]))
+					)
+				});
 				const result = {
 					provider,
 					model: answer.model,

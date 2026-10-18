@@ -115,6 +115,16 @@ function classifyError(err: unknown): { status: number; payload: Record<string, 
 			}
 		};
 	}
+	if (name === 'MaxOutputLimitError') {
+		return {
+			status: 502,
+			payload: {
+				error: "Max's reply hit its length limit. Try asking for one part at a time.",
+				type: name,
+				retryable: true
+			}
+		};
+	}
 	if (name === 'UpstreamError' || err instanceof UpstreamError) {
 		return {
 			status: 502,

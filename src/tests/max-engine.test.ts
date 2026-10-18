@@ -1,6 +1,7 @@
 import {
 	askMaxDetailed,
 	buildMaxMessages,
+	MAX_COMPLETION_TOKENS,
 	MAX_HISTORY_TURNS,
 	MAX_SYSTEM_PROMPT,
 	MAX_TEMPERATURE
@@ -202,6 +203,145 @@ test('askMaxDetailed locks the temperature to 0.3 and sends the exact package', 
 	expect(toolRound.at(-1).role).toBe('system');
 	expect(result.toolsUsed).toEqual(['read_app_data']);
 });
+
+test.each([false, true])(
+	'bounded completions survive provider fallback and tool rounds (stream=%s)',
+	async (stream) => {
+		const requests: { model: string; messages: { role: string }[] }[] = [];
+		const fetchMock = vi.fn<(url: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
+			async (_url, init) => {
+				const body = JSON.parse(String(init?.body));
+				requests.push(body);
+				if (body.model === 'gemini-3.5-flash-lite') return jsonResponse({}, 429);
+				if (!body.messages.some((message: { role: string }) => message.role === 'tool'))
+					return jsonResponse({
+						choices: [
+							{
+								finish_reason: 'tool_calls',
+								message: {
+									content: null,
+									tool_calls: [
+										{
+											id: 'read-gpa',
+											type: 'function',
+											function: { name: 'read_app_data', arguments: '{"section":"gpa"}' }
+										}
+									]
+								}
+							}
+						]
+					});
+				return jsonResponse({
+					choices: [
+						{
+							finish_reason: 'stop',
+							message: { content: 'Your GPA is unavailable. Refresh the gradebook first.' }
+						}
+					]
+				});
+			}
+		);
+		const chunks: string[] = [];
+		const result = await askMaxDetailed(null, 'What is my GPA?', {
+			mesh: new TokenMesh({
+				slots: [
+					slot({
+						id: 'google',
+						key: 'fake-google',
+						provider: 'gemini',
+						model: 'gemini-3.5-flash-lite',
+						tier: 1
+					}),
+					slot({ id: 'groq', key: 'fake-groq', model: 'openai/gpt-oss-120b', tier: 2 })
+				],
+				fetchImpl: fetchMock,
+				benchJitterMs: 0
+			}),
+			...(stream ? { onToken: (chunk: string) => chunks.push(chunk) } : {})
+		});
+		expect(requests).toHaveLength(3);
+		expect(requests[0]).toMatchObject({
+			max_tokens: MAX_COMPLETION_TOKENS,
+			reasoning_effort: 'minimal'
+		});
+		for (const request of requests.slice(1))
+			expect(request).toMatchObject({
+				max_tokens: MAX_COMPLETION_TOKENS + 2048,
+				reasoning_effort: 'low',
+				tool_choice: 'auto'
+			});
+		expect(result.toolsUsed).toEqual(['read_app_data']);
+		expect(result.finishReason).toBe('stop');
+		if (stream) expect(chunks.join('')).toBe(result.text);
+	}
+);
+
+test.each([
+	['gemini', 'gemini-2.5-flash', 2048],
+	['gemini', 'gemini-3.8-flash', 2048],
+	['openrouter', 'openrouter/free', 3072],
+	['mistral', 'mistral-small-latest', 1024]
+])(
+	'completion caps reach %s without leaking other providers settings',
+	async (provider, model, tokens) => {
+		const fetchMock = vi.fn<(url: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
+			async (_url, init) => {
+				const body = JSON.parse(String(init?.body));
+				expect(body.max_tokens).toBe(tokens);
+				if (provider === 'gemini') expect(body.reasoning_effort).toBe('low');
+				else expect(body.reasoning_effort).toBeUndefined();
+				if (provider === 'openrouter')
+					expect(body.reasoning).toEqual({ effort: 'low', exclude: true });
+				else expect(body.reasoning).toBeUndefined();
+				return jsonResponse(completion('Hello!'));
+			}
+		);
+		await askMaxDetailed(null, 'hi', {
+			mesh: new TokenMesh({
+				slots: [
+					slot({ id: 'bounded', key: 'fake', provider: String(provider), model: String(model) })
+				],
+				fetchImpl: fetchMock
+			})
+		});
+	}
+);
+
+test.each([false, true])(
+	'a completion limit never executes truncated tool arguments (stream=%s)',
+	async (stream) => {
+		const onTool = vi.fn();
+		const mesh = new TokenMesh({
+			slots: [slot({ id: 'limited', key: 'fake' })],
+			fetchImpl: async () =>
+				jsonResponse({
+					choices: [
+						{
+							finish_reason: 'length',
+							message: {
+								content: null,
+								tool_calls: [
+									{
+										id: 'cut',
+										type: 'function',
+										function: { name: 'calculate_grade', arguments: '{"operation":' }
+									}
+								]
+							}
+						}
+					]
+				})
+		});
+		await expect(
+			askMaxDetailed(null, 'Calculate this grade', {
+				mesh,
+				onTool,
+				...(stream ? { onToken: () => {} } : {})
+			})
+		).rejects.toThrow('completion limit');
+		expect(onTool).not.toHaveBeenCalled();
+	}
+);
 
 test('a 429 is benched and the identical request instantly fails over to the next key', async () => {
 	const keysSeen: string[] = [];
