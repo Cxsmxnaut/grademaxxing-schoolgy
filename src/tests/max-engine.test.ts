@@ -494,6 +494,61 @@ test.each(['gemini-3.5-flash', 'gemini-3.8-flash', 'gemini-2.5-flash'])(
 );
 
 test.each([false, true])(
+	'priority Google keys precede existing keys at every model, before other providers (stream=%s)',
+	async (stream) => {
+		const { createMeshFromEnv } = await import('$lib/server/max/config');
+		const tried: { model: string; key: string }[] = [];
+		const fetchImpl = vi.fn<(url: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
+			async (_url, init) => {
+				const body = JSON.parse(String(init?.body));
+				tried.push({ model: body.model, key: new Headers(init?.headers).get('authorization')! });
+				if (body.model.startsWith('gemini-')) return new Response('{}', { status: 429 });
+				return jsonResponse(completion('Recovered'));
+			}
+		);
+		const mesh = createMeshFromEnv(
+			{
+				GEMINI_PRIORITY_API_KEYS: 'new-one,new-two,new-three,new-four,new-one',
+				GEMINI_API_KEYS: 'old-one,old-two,new-one,old-one',
+				GROQ_API_KEYS: 'synthetic-groq'
+			},
+			{ fetchImpl, random: () => 0.99, benchJitterMs: 0 }
+		);
+		const result = stream
+			? await mesh.completeStream({ messages: [] }, () => {})
+			: await mesh.complete({ messages: [] });
+		expect(result).toMatchObject({ text: 'Recovered', provider: 'groq' });
+		const models = [
+			'gemini-3.5-flash-lite',
+			'gemini-3.1-flash-lite',
+			'gemini-3.8-flash',
+			'gemini-2.5-flash'
+		];
+		for (const [index, model] of models.entries()) {
+			const group = tried.slice(index * 6, index * 6 + 6);
+			expect(group.every((attempt) => attempt.model === model)).toBe(true);
+			expect(group.map((attempt) => attempt.key)).toEqual([
+				'Bearer new-one',
+				'Bearer new-two',
+				'Bearer new-three',
+				'Bearer new-four',
+				'Bearer old-one',
+				'Bearer old-two'
+			]);
+		}
+		expect(tried).toHaveLength(25);
+		expect(new Set(mesh.slots.map((slot) => slot.id)).size).toBe(mesh.slots.length);
+	}
+);
+
+test('priority-only configuration can run without legacy Google keys', async () => {
+	const { createPoolFromEnv } = await import('$lib/server/max/config');
+	const pool = createPoolFromEnv({ GEMINI_PRIORITY_API_KEYS: 'new-only' });
+	expect(pool).toHaveLength(4);
+	expect(pool[0]).toMatchObject({ key: 'new-only', model: 'gemini-3.5-flash-lite', tier: 1 });
+});
+
+test.each([false, true])(
 	'waterfall continues through every Google key/model on failure (stream=%s)',
 	async (stream) => {
 		const { createMeshFromEnv } = await import('$lib/server/max/config');

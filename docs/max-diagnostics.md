@@ -23,8 +23,11 @@ Max provider credentials live in the encrypted `MAX_PROVIDER_SECRETS` GitHub Act
 secret as a JSON object of provider environment variables. The production workflow
 uploads them into Cloudflare Worker secrets without writing them into the repository.
 
-Model routing tries both Google keys at each level before moving on:
+Model routing tries all Google keys at each level before moving on:
 Gemini 3.5 Flash-Lite, Gemini 3.1 Flash-Lite, Gemini 3.8 Flash, then Gemini 2.5 Flash.
+Optional `GEMINI_PRIORITY_API_KEYS` are tried before regular `GEMINI_API_KEYS` at
+each model, rotating within each group. Duplicate keys are used only once per
+model. Both variables belong in private Worker secrets and `MAX_PROVIDER_SECRETS`.
 Only after all available Gemini slots fail does it try Groq, OpenRouter, or Mistral.
 Failures before visible output (rate limits, rejected keys/models, network errors,
 timeouts, empty responses and provider outages) advance through the waterfall.

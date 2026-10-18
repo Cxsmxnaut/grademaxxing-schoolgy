@@ -25,7 +25,7 @@ export interface ProviderDefaults {
 	tier: number;
 }
 
-// Both keys get a turn at each model before moving down the waterfall.
+// All Google keys get a turn at each model before moving down the waterfall.
 // Project quotas may be shared; these slots do not multiply Google's limits.
 const GEMINI_WATERFALL = [
 	'gemini-3.5-flash-lite',
@@ -139,18 +139,22 @@ const resolveModel = (override: string | undefined, fallback: string) => {
 /**
  * Pool from environment variables (comma-separated key lists):
  *   GROQ_API_KEYS, OPENROUTER_API_KEYS, MISTRAL_API_KEYS, GEMINI_API_KEYS
+ *   GEMINI_PRIORITY_API_KEYS: tried before regular Google keys at each model.
  * Optional overrides:
  *   GROQ_MODEL / OPENROUTER_MODEL / MISTRAL_MODEL / GEMINI_MODEL
  *   <PROVIDER>_BASE_URL for any of the above
  *   APP_URL, APP_NAME (OpenRouter attribution headers)
  */
 export function createPoolFromEnv(env: Env = process.env): MeshSlot[] {
+	const priorityKeys = new Set(splitKeys(env.GEMINI_PRIORITY_API_KEYS));
+	const geminiKeys = [...new Set([...priorityKeys, ...splitKeys(env.GEMINI_API_KEYS)])];
+	const tierStep = priorityKeys.size ? 2 : 1;
 	const pool = createPool(
 		{
 			groq: splitKeys(env.GROQ_API_KEYS),
 			openrouter: splitKeys(env.OPENROUTER_API_KEYS),
 			mistral: splitKeys(env.MISTRAL_API_KEYS),
-			gemini: splitKeys(env.GEMINI_API_KEYS)
+			gemini: geminiKeys
 		},
 		{
 			env,
@@ -169,7 +173,8 @@ export function createPoolFromEnv(env: Env = process.env): MeshSlot[] {
 		}
 	);
 	return pool.flatMap((slot) => {
-		if (slot.provider !== 'gemini') return [slot];
+		if (slot.provider !== 'gemini')
+			return [{ ...slot, tier: GEMINI_WATERFALL.length * tierStep + 1 }];
 		// An explicit custom model replaces the primary, retaining the fallback
 		// levels and their ordering before every non-Google provider.
 		const models = [...new Set([slot.model, ...GEMINI_WATERFALL.slice(1)])];
@@ -177,7 +182,7 @@ export function createPoolFromEnv(env: Env = process.env): MeshSlot[] {
 			...slot,
 			id: index === 0 ? slot.id : `${slot.id}-${model}`,
 			model,
-			tier: index + 1
+			tier: index * tierStep + 1 + (priorityKeys.size && !priorityKeys.has(slot.key) ? 1 : 0)
 		}));
 	});
 }
@@ -190,7 +195,8 @@ export function createMeshFromEnv(
 	const slots = createPoolFromEnv(env);
 	if (slots.length === 0) {
 		throw new Error(
-			'No provider keys configured. Set GROQ_API_KEYS / OPENROUTER_API_KEYS / MISTRAL_API_KEYS ' +
+			'No provider keys configured. Set GEMINI_PRIORITY_API_KEYS / GEMINI_API_KEYS / ' +
+				'GROQ_API_KEYS / OPENROUTER_API_KEYS / MISTRAL_API_KEYS ' +
 				'(comma-separated lists) in the server environment.'
 		);
 	}

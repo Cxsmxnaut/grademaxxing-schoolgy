@@ -137,7 +137,8 @@ test('without provider keys the endpoint answers 503 NotConfigured', async () =>
 		'GROQ_API_KEYS',
 		'OPENROUTER_API_KEYS',
 		'MISTRAL_API_KEYS',
-		'GEMINI_API_KEYS'
+		'GEMINI_API_KEYS',
+		'GEMINI_PRIORITY_API_KEYS'
 	])
 		vi.stubEnv(name, '');
 
