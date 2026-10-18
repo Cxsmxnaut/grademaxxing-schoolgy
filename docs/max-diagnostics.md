@@ -99,3 +99,21 @@ Validate using synthetic records only: migration-backed database tests, route/au
 tests, request isolation, redaction/no-content assertions, stream cancellation,
 student reporting, and admin desktop/phone flows. Run the repository verification
 and Cloudflare build gates before handoff.
+
+## Live helpfulness evaluation
+
+Run `MAX_LIVE_EVAL=true npm run eval:max:helpfulness` to evaluate the configured
+provider waterfall using invented records and a synthetic portal client. No real
+student account or district system is contacted. Provider keys stay in the server
+environment; the command prints synthetic answers and technical outcomes.
+
+The cases cover an English improvement request, its "but how?" follow-up, recovery
+from an earlier vague answer, and a simple GPA question. A low-scoring assignment
+and specific teacher feedback are intentionally absent from the initial summary:
+Max must retrieve them and give concrete advice. Improvement answers have no length
+cap. The GPA case checks that a simple question stays focused.
+
+Use `PLAN_PROVIDERS=gemini` (or a comma-separated list of configured providers) to
+isolate providers. Quota/timeouts are evaluation failures, not successful answers.
+Review the generated plans as well as the checks: matching assignment names and
+feedback does not prove every recommendation or interpretation is correct.

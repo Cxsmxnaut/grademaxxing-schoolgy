@@ -18,6 +18,7 @@
 		"preview": "node build",
 		"test": "npm run test:unit",
 		"test:unit": "vitest run src/tests",
+		"eval:max:helpfulness": "vite-node scripts/evaluate-max-helpfulness.ts",
 		"test:watch": "vitest src/tests",
 		"test:e2e": "playwright test",
 		"test:human": "playwright test -c playwright.human.config.ts",
