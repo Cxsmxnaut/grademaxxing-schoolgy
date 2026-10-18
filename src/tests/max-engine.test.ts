@@ -453,14 +453,122 @@ test('a completely benched application pool offers retry instead of waiting a mi
 	expect(sleep).not.toHaveBeenCalled();
 });
 
-test('Gemini retains the primary model with a separately metered Lite fallback', async () => {
+test('both Gemini keys use Lite first and all Google models precede other providers', async () => {
 	const { createPoolFromEnv } = await import('$lib/server/max/config');
-	const pool = createPoolFromEnv({ GEMINI_API_KEYS: 'synthetic-only' });
-	expect(pool.map(({ model, tier }) => ({ model, tier }))).toEqual([
-		{ model: 'gemini-3.5-flash', tier: 1 },
-		{ model: 'gemini-3.5-flash-lite', tier: 2 }
-	]);
+	const pool = createPoolFromEnv({
+		GEMINI_API_KEYS: 'synthetic-one,synthetic-two',
+		GROQ_API_KEYS: 'synthetic-groq',
+		OPENROUTER_API_KEYS: 'synthetic-router',
+		MISTRAL_API_KEYS: 'synthetic-mistral'
+	});
+	for (const key of ['synthetic-one', 'synthetic-two']) {
+		expect(
+			pool.filter((slot) => slot.key === key).map(({ model, tier }) => ({ model, tier }))
+		).toEqual([
+			{ model: 'gemini-3.5-flash-lite', tier: 1 },
+			{ model: 'gemini-3.1-flash-lite', tier: 2 },
+			{ model: 'gemini-3.8-flash', tier: 3 },
+			{ model: 'gemini-2.5-flash', tier: 4 }
+		]);
+	}
+	expect(pool.filter((slot) => slot.provider !== 'gemini').every((slot) => slot.tier === 5)).toBe(
+		true
+	);
 	expect(new Set(pool.map((slot) => slot.id)).size).toBe(pool.length);
+});
+
+test.each(['gemini-3.5-flash', 'gemini-3.8-flash', 'gemini-2.5-flash'])(
+	'old environment override %s cannot keep low-quota Flash primary',
+	async (model) => {
+		const { createPoolFromEnv } = await import('$lib/server/max/config');
+		const pool = createPoolFromEnv({ GEMINI_API_KEYS: 'synthetic-only', GEMINI_MODEL: model });
+		expect(pool[0]).toMatchObject({ model: 'gemini-3.5-flash-lite', tier: 1 });
+	}
+);
+
+test.each([false, true])(
+	'waterfall continues through every Google key/model on failure (stream=%s)',
+	async (stream) => {
+		const { createMeshFromEnv } = await import('$lib/server/max/config');
+		const failures = [429, 401, 503, 404, 'network', 'empty', 429, 500];
+		const tried: { model: string; key: string }[] = [];
+		const fetchImpl = vi.fn<(url: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
+			async (_url, init) => {
+				const body = JSON.parse(String(init?.body));
+				tried.push({ model: body.model, key: new Headers(init?.headers).get('authorization')! });
+				const failure = failures[tried.length - 1];
+				if (failure === 'network') throw new TypeError('Synthetic network failure');
+				if (failure === 'empty') return jsonResponse({ choices: [] });
+				if (typeof failure === 'number') return new Response('{}', { status: failure });
+				return stream
+					? new Response(
+							'data: {"choices":[{"delta":{"content":"Recovered"}}]}\n\ndata: [DONE]\n\n',
+							{ headers: { 'content-type': 'text/event-stream' } }
+						)
+					: jsonResponse(completion('Recovered'));
+			}
+		);
+		const mesh = createMeshFromEnv(
+			{
+				GEMINI_API_KEYS: 'synthetic-one,synthetic-two',
+				GROQ_API_KEYS: 'synthetic-groq'
+			},
+			{ fetchImpl, random: () => 0.99, benchJitterMs: 0 }
+		);
+		const chunks: string[] = [];
+		const result = stream
+			? await mesh.completeStream({ messages: [] }, (chunk) => chunks.push(chunk))
+			: await mesh.complete({ messages: [] });
+		expect(result).toMatchObject({ text: 'Recovered', provider: 'groq' });
+		expect(tried.map((attempt) => attempt.model)).toEqual([
+			'gemini-3.5-flash-lite',
+			'gemini-3.5-flash-lite',
+			'gemini-3.1-flash-lite',
+			'gemini-3.1-flash-lite',
+			'gemini-3.8-flash',
+			'gemini-3.8-flash',
+			'gemini-2.5-flash',
+			'gemini-2.5-flash',
+			'openai/gpt-oss-120b'
+		]);
+		for (let index = 0; index < 8; index += 2) {
+			expect(new Set(tried.slice(index, index + 2).map((attempt) => attempt.key)).size).toBe(2);
+		}
+		if (stream) expect(chunks.join('')).toBe('Recovered');
+	}
+);
+
+test('rate-limited primary slots stay benched while healthy Google fallbacks keep answering', async () => {
+	const { createMeshFromEnv } = await import('$lib/server/max/config');
+	const tried: string[] = [];
+	const mesh = createMeshFromEnv(
+		{ GEMINI_API_KEYS: 'synthetic-one,synthetic-two', GROQ_API_KEYS: 'synthetic-groq' },
+		{
+			random: () => 0.99,
+			benchJitterMs: 0,
+			fetchImpl: vi.fn<(url: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
+				async (_url, init) => {
+					const model = JSON.parse(String(init?.body)).model;
+					tried.push(model);
+					return model === 'gemini-3.5-flash-lite'
+						? new Response('{}', { status: 429, headers: { 'retry-after': '3600' } })
+						: jsonResponse(completion('Google fallback'));
+				}
+			)
+		}
+	);
+	for (let index = 0; index < 2; index++) {
+		await expect(mesh.complete({ messages: [] })).resolves.toMatchObject({
+			provider: 'gemini',
+			text: 'Google fallback'
+		});
+	}
+	expect(tried).toEqual([
+		'gemini-3.5-flash-lite',
+		'gemini-3.5-flash-lite',
+		'gemini-3.1-flash-lite',
+		'gemini-3.1-flash-lite'
+	]);
 });
 
 test('rate limits preserve the provider Retry-After instead of forcing sixty seconds', async () => {

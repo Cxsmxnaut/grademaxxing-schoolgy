@@ -21,33 +21,41 @@ export type ProviderName = 'gemini' | 'groq' | 'openrouter' | 'mistral';
 export interface ProviderDefaults {
 	baseUrl: string;
 	model: string;
-	/** 1 = primary waterfall layer, tried before any Tier-2 slot. */
+	/** Lower tiers are tried before higher tiers; keys rotate within each tier. */
 	tier: number;
 }
 
+// Both keys get a turn at each model before moving down the waterfall.
+// Project quotas may be shared; these slots do not multiply Google's limits.
+const GEMINI_WATERFALL = [
+	'gemini-3.5-flash-lite',
+	'gemini-3.1-flash-lite',
+	'gemini-3.8-flash',
+	'gemini-2.5-flash'
+];
+const OTHER_PROVIDER_TIER = GEMINI_WATERFALL.length + 1;
+
 export const PROVIDER_DEFAULTS: Record<ProviderName, ProviderDefaults> = {
-	// Tier 1 = primary waterfall layer: tried before any Tier-2 slot.
 	gemini: {
 		// Google AI Studio keys speak OpenAI-compatible protocol here; free tier.
-		// Flash-Lite is available in the next tier when this model is unavailable.
 		baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
-		model: 'gemini-3.5-flash',
+		model: GEMINI_WATERFALL[0]!,
 		tier: 1
 	},
 	groq: {
 		baseUrl: 'https://api.groq.com/openai/v1',
 		model: 'openai/gpt-oss-120b',
-		tier: 2
+		tier: OTHER_PROVIDER_TIER
 	},
 	openrouter: {
 		baseUrl: 'https://openrouter.ai/api/v1',
 		model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
-		tier: 2
+		tier: OTHER_PROVIDER_TIER
 	},
 	mistral: {
 		baseUrl: 'https://api.mistral.ai/v1',
 		model: 'mistral-small-latest',
-		tier: 2
+		tier: OTHER_PROVIDER_TIER
 	}
 };
 
@@ -115,8 +123,9 @@ const splitKeys = (value: string | undefined) =>
  * the high-quota workhorse models.
  */
 const STALE_MODEL_UPGRADES: Record<string, string> = {
-	'gemini-3.8-flash': 'gemini-3.5-flash',
-	'gemini-2.5-flash': 'gemini-3.5-flash',
+	'gemini-3.5-flash': 'gemini-3.5-flash-lite',
+	'gemini-3.8-flash': 'gemini-3.5-flash-lite',
+	'gemini-2.5-flash': 'gemini-3.5-flash-lite',
 	'qwen/qwen3.8-27b': 'openai/gpt-oss-120b',
 	'nvidia/nemotron-3.5-lightning:free': 'nvidia/nemotron-3-ultra-550b-a55b:free'
 };
@@ -159,14 +168,18 @@ export function createPoolFromEnv(env: Env = process.env): MeshSlot[] {
 			}
 		}
 	);
-	// A model's daily quota is shared across keys in the same Google project.
-	// Preserve the preferred model and offer a separately metered Flash-Lite
-	// model after the primary tier, rather than retrying exhausted keys forever.
-	return pool.flatMap((slot) =>
-		slot.provider === 'gemini' && slot.model === PROVIDER_DEFAULTS.gemini.model
-			? [slot, { ...slot, id: `${slot.id}-lite`, model: 'gemini-3.5-flash-lite', tier: 2 }]
-			: [slot]
-	);
+	return pool.flatMap((slot) => {
+		if (slot.provider !== 'gemini') return [slot];
+		// An explicit custom model replaces the primary, retaining the fallback
+		// levels and their ordering before every non-Google provider.
+		const models = [...new Set([slot.model, ...GEMINI_WATERFALL.slice(1)])];
+		return models.map((model, index) => ({
+			...slot,
+			id: index === 0 ? slot.id : `${slot.id}-${model}`,
+			model,
+			tier: index + 1
+		}));
+	});
 }
 
 /** Convenience factory: mesh wired straight from the environment. */

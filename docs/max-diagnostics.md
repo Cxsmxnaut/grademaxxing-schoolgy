@@ -23,7 +23,13 @@ Max provider credentials live in the encrypted `MAX_PROVIDER_SECRETS` GitHub Act
 secret as a JSON object of provider environment variables. The production workflow
 uploads them into Cloudflare Worker secrets without writing them into the repository.
 
-Model routing keeps Gemini Flash primary and offers Flash-Lite in the next tier.
+Model routing tries both Google keys at each level before moving on:
+Gemini 3.5 Flash-Lite, Gemini 3.1 Flash-Lite, Gemini 3.8 Flash, then Gemini 2.5 Flash.
+Only after all available Gemini slots fail does it try Groq, OpenRouter, or Mistral.
+Failures before visible output (rate limits, rejected keys/models, network errors,
+timeouts, empty responses and provider outages) advance through the waterfall.
+Interrupted visible streams and an entirely unavailable pool still report an error;
+fallback cannot guarantee availability or safely append a different model's answer.
 OpenRouter free models try `cohere/north-mini-code:free`, then the free-only router
 `openrouter/free`, when the preferred model is overloaded. Successful diagnostics record the actual returned
 model. Provider `Retry-After` reset times are honored; keys in one provider project
