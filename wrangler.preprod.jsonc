@@ -1,7 +1,6 @@
 {
 	"$schema": "./node_modules/wrangler/config-schema.json",
-	"name": "grademaxxing-pre-prod",
-	"account_id": "11d9c54af4e4fcae112a298e32cd2d59",
+	"name": "grademaxxing-schoology-preview",
 	"main": ".svelte-kit/cloudflare/_worker.js",
 	"assets": {
 		"directory": ".svelte-kit/cloudflare",
@@ -11,34 +10,10 @@
 	},
 	"compatibility_date": "2026-09-05",
 	"workers_dev": true,
-	"routes": [
-		{
-			"pattern": "dev.grademaxxing.app",
-			"custom_domain": true
-		},
-		{
-			"pattern": "new.grademaxxing.app",
-			"custom_domain": true
-		}
-	],
 	"preview_urls": false,
 	"observability": {
 		"enabled": false
 	},
-	"analytics_engine_datasets": [
-		{
-			"binding": "GRADEMAXXING_USAGE_ANALYTICS",
-			"dataset": "grademaxxing_usage"
-		}
-	],
-	"d1_databases": [
-		{
-			"binding": "GRADEMAXXING_USAGE_DB",
-			"database_name": "grademaxxing-usage",
-			"database_id": "4061cd79-6b55-4379-bd99-ca7558c3baab",
-			"migrations_dir": "migrations"
-		}
-	],
 	"vars": {
 		"NODE_ENV": "production"
 	}

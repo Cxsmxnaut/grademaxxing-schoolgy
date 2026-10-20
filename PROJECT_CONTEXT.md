@@ -6,11 +6,14 @@ This is the starting point for a fresh Codex task working on Grademaxxing. Read 
 
 Grademaxxing is a student-facing SvelteKit application for viewing StudentVUE records and exploring grades. It is a **read-only** companion: it does not send mail, change records, submit work, or report absences. Its product features include a gradebook, individual-course what-if calculations, GPA calculator, attendance/calendar, documents, StudentVUE mail reading, profile information, and a landing/sign-in flow.
 
+This clone adds a separate Schoology edition at `/schoology/login` and `/schoology`. See [Schoology parity and configuration](docs/schoology-parity.md). Keep the StudentVUE and Schoology authentication/session flows separate. Schoology users authenticate only on the official Schoology authorization page; never add a password form, credential logging, token exposure to browser JavaScript, or an unapproved district host.
+
 The source is an AGPL-derived work. Keep the existing license and attribution/history obligations intact. The public product name is **Grademaxxing**; do not represent it as affiliated with Edupoint or a school district.
 
 ## Where the project is
 
 - Repository: `/Users/slolakap/Documents/ChatGPT/New project/gradecompass-a47c44e`
+- Schoology edition clone: `/Users/slolakap/Documents/ChatGPT/New project/grademaxxing-schoology`
 - Local development: `npm run dev`, serving on `127.0.0.1`
 - Public production URL: `https://grademaxxing.app`
 - Current hosting: Cloudflare Worker named `grademaxxing-beta`

@@ -52,6 +52,26 @@
 			</section>
 
 			<section>
+				<h2 class="text-foreground mb-2 text-lg font-semibold">Schoology edition</h2>
+				<p>
+					The separate Schoology edition sends you to Schoology's configured district authorization
+					page. Grademaxxing does not ask for or receive your Schoology password. The application
+					consumer secret stays in server configuration; OAuth tokens and pending authorization data
+					stay in the server-only session store. The browser receives only a random opaque,
+					HTTP-only app session cookie, which expires after up to 12 hours. Schoology access tokens
+					themselves expire under Schoology's published token lifetime rules, so reauthorization may
+					be needed.
+				</p>
+				<p class="mt-3">
+					Schoology gradebook, profile, calendar, course-document, and inbox reads depend on the
+					district's app approval and the account's permissions. Grademaxxing does not write grades,
+					send messages, download course files, or request Schoology course-wide attendance records.
+					The fictional demo uses invented data and makes no Schoology requests. Signing out deletes
+					the local Schoology session cookie.
+				</p>
+			</section>
+
+			<section>
 				<h2 class="text-foreground mb-2 text-lg font-semibold">Local data and signing out</h2>
 				<p>
 					If you choose “Keep me signed in,” your district, username, and password are encrypted on

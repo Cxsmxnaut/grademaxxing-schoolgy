@@ -1,0 +1,40 @@
+{
+	"name": "@grademaxxing/schoology-connector",
+	"version": "0.1.0",
+	"description": "Read-only Schoology connector and local grade simulations for Grademaxxing",
+	"type": "module",
+	"private": true,
+	"license": "MIT",
+	"engines": {
+		"node": ">=22"
+	},
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./grades": {
+			"types": "./dist/grades.d.ts",
+			"import": "./dist/grades.js"
+		}
+	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE",
+		"THIRD_PARTY_NOTICES.md",
+		"licenses"
+	],
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"check": "tsc --noEmit -p tsconfig.test.json",
+		"test": "tsx --test tests/*.test.ts",
+		"demo": "tsx examples/demo.ts",
+		"verify": "npm run check && npm test && npm run build && npm run demo"
+	},
+	"devDependencies": {
+		"@types/node": "^22.0.0",
+		"tsx": "^4.0.0",
+		"typescript": "^5.0.0"
+	}
+}

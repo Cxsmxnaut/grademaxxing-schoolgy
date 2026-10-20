@@ -14,7 +14,6 @@
 		"build": "npm run build:admin && vite build",
 		"build:cloudflare": "npm run build:admin && DEPLOY_TARGET=cloudflare vite build",
 		"preview:cloudflare": "npm run build:cloudflare && wrangler dev",
-		"deploy:cloudflare": "npm run build:cloudflare && wrangler deploy",
 		"preview": "node build",
 		"test": "npm run test:unit",
 		"test:unit": "vitest run src/tests",

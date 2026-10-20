@@ -293,7 +293,10 @@
 					Grade trends, category math, what-if scores, attendance, documents, and mail. StudentVUE,
 					with less maze.
 				</p>
-				<a class="landing-cta" href="/login">Open Grademaxxing</a>
+				<div class="flex flex-wrap gap-3">
+					<a class="landing-cta" href="/login">Open Grademaxxing</a>
+					<a class="landing-cta" href="/schoology/login">Schoology edition</a>
+				</div>
 				<div class="landing-pill">100+ new users this month</div>
 			</div>
 			<div class="landing-hero-preview" aria-label="Preview of the Grademaxxing gradebook">
